@@ -21,6 +21,8 @@ var ROUTES = {
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
+  'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
+  'production.post':  function (s, p) { return Production.post(s, p); },
   'requests.list':    function (s, p) { return Requests.list(s, p); },
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },

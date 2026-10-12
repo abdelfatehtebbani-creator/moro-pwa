@@ -1,22 +1,29 @@
 // App start: service worker, sign-in, the shell (side menu / phone bottom bar), routing and sync.
 import { call, session, ApiError } from './api.js';
+import { Outbox } from './outbox.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
 import { t, applyLang, getLang, setLang, errText } from './i18n.js';
-import { h, icon, toast } from './ui.js';
+import { h, icon, toast, flash, trackFilled, dialog, fmtDate } from './ui.js';
 import { showAuth } from './views/login.js';
 import * as dashboard from './views/dashboard.js';
 import * as soon from './views/soon.js';
+import * as receive from './views/receive.js';
+import * as issue from './views/issue.js';
+import * as production from './views/production.js';
+import * as requests from './views/requests.js';
+import * as masters from './views/masters.js';
+import * as users from './views/users.js';
 
 const ROUTES = {
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
-  receive:   { view: soon, perm: 'kind.RECEIPT', group: 'nav_ops' },
-  issue:     { view: soon, perm: 'kind.ISSUE', group: 'nav_ops' },
-  production:{ view: soon, perm: 'kind.PROD_OUTPUT', group: 'nav_ops' },
-  requests:  { view: soon, perm: 'requests.list', group: 'nav_ops' },
+  receive:   { view: receive, perm: 'kind.RECEIPT', group: 'nav_ops' },
+  issue:     { view: issue, perm: 'kind.ISSUE', group: 'nav_ops' },
+  production:{ view: production, perm: 'production.post', group: 'nav_ops' },
+  requests:  { view: requests, perm: 'requests.list', group: 'nav_ops' },
   reports:   { view: soon, perm: 'movements.query', group: 'nav_ops' },
-  masters:   { view: soon, perm: 'items.save', group: 'nav_admin' },
-  users:     { view: soon, perm: 'users.list', group: 'nav_admin' },
+  masters:   { view: masters, perm: 'items.save', group: 'nav_admin' },
+  users:     { view: users, perm: 'users.list', group: 'nav_admin' },
 };
 
 const root = document.getElementById('app');
@@ -49,6 +56,7 @@ async function start() {
       return;
     }
   }
+  await Outbox.init();
   buildShell();
   route();
   if (cached) sync(true);
@@ -87,17 +95,22 @@ function buildShell() {
   updateSync();
 }
 
+let current = null;
 function route() {
+  if (current && current.dispose) current.dispose();
   let name = (location.hash.replace(/^#\/?/, '') || 'dashboard').split('?')[0];
   if (name === 'more') return showMore();
   if (!ROUTES[name] || !allowed(name)) name = 'dashboard';
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
-  ROUTES[name].view.render(content, name);
+  current = ROUTES[name].view;
+  current.render(content, name);
   window.scrollTo(0, 0);
 }
 
 function showMore() {
+  if (current && current.dispose) current.dispose();
+  current = null;
   title.textContent = t('more');
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === 'more'));
   const u = Data.user;
@@ -105,14 +118,47 @@ function showMore() {
     h('div', h('b', u.display_name), ' · ', h('span.muted', t('role_' + u.role))),
     h('nav.nav', { style: 'display:grid;gap:4px' }, Object.keys(ROUTES).filter(allowed).map((name) =>
       h('a', { href: '#/' + name, style: 'color:var(--ink)' }, icon(name), h('span', t(name))))),
+    h('button.btn.secondary', { type: 'button', onclick: changePin }, t('change_pin')),
     h('button.btn.secondary', { type: 'button', onclick: toggleLang }, t('lang_other')),
-    h('button.btn.danger', { type: 'button', onclick: logout }, t('logout'))));
+    h('button.btn.danger', { type: 'button', onclick: logout }, t('logout'))),
+    failedCard());
+}
+
+/** Saves the server refused (a rule failed): shown so nothing is lost silently. */
+function failedCard() {
+  const list = Outbox.failed;
+  if (!list.length) return '';
+  return h('div.card', h('h2', t('rejected_title')), h('small.muted', t('rejected_help')),
+    list.map((f) => h('div.req-card', h('b', f.label || f.action), h('span.muted', ' · ' + fmtDate(f.at.slice(0, 10))),
+      h('p.err-text', errText({ code: f.error, detail: f.detail })),
+      h('button.link', { type: 'button', onclick: async () => { await Outbox.dropFailed(f.id); showMore(); } }, t('dismiss')))));
+}
+
+async function changePin() {
+  const ok = await dialog((close) => {
+    const oldPin = trackFilled(h('input.input.pin#c-old', { type: 'password', inputmode: 'numeric', maxlength: 8 }));
+    const newPin = trackFilled(h('input.input.pin#c-new', { type: 'password', inputmode: 'numeric', maxlength: 8 }));
+    const newPin2 = trackFilled(h('input.input.pin#c-new2', { type: 'password', inputmode: 'numeric', maxlength: 8 }));
+    const err = h('p.err-text', '');
+    const go = async () => {
+      for (const f of [oldPin, newPin, newPin2]) if (!f.value) return flash(f);
+      if (newPin.value !== newPin2.value) { err.textContent = t('pin_mismatch'); return flash(newPin2); }
+      try { const r = await call('auth.changePin', { old_pin: oldPin.value, new_pin: newPin.value }); session.token = r.token; close(true); }
+      catch (e) { err.textContent = errText(e); }
+    };
+    return [h('h3', t('change_pin')), h('div.field', h('label', t('old_pin')), oldPin), h('div.field', h('label', t('pin')), newPin),
+      h('div.field', h('label', t('pin_repeat')), newPin2), err,
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: go }, t('save')))];
+  });
+  if (ok) toast(t('saved'), 'ok');
 }
 
 window.addEventListener('hashchange', () => { if (content) route(); });
-window.addEventListener('moro:data', () => { if (content) route(); });
+// fresh data redraws the dashboard only; work screens read the data live and keep what is being typed
+window.addEventListener('moro:data', () => { if (content && current === dashboard) route(); });
 window.addEventListener('online', () => sync(false));
 window.addEventListener('offline', updateSync);
+window.addEventListener('moro:outbox', updateSync);
 
 let lastSyncOk = navigator.onLine;
 async function sync(force) {
@@ -129,8 +175,10 @@ function updateSync() {
   if (!syncEl) return;
   const online = navigator.onLine && lastSyncOk;
   syncEl.classList.toggle('offline', !online);
+  syncEl.classList.toggle('pending', online && Outbox.pending > 0);
   const at = Data.syncedAt ? new Date(Data.syncedAt).toLocaleTimeString(getLang() === 'ar' ? 'ar-QA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-  syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '');
+  syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
+    (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (Outbox.failed.length ? ' · ⚠ ' + Outbox.failed.length : '');
 }
 
 function toggleLang() {

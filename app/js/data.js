@@ -14,6 +14,8 @@ export const Data = {
   items: new Map(),
   parties: new Map(),
   balances: new Map(),
+  serverBalances: new Map(),
+  pendingDeltas: {},
   lists: [],
   recipes: [],
   locations: [],
@@ -30,7 +32,8 @@ export const Data = {
     this.settings = b.settings || {};
     this.items = new Map(objects(b.items).map((i) => [i.item_id, i]));
     this.parties = new Map(objects(b.parties).map((p) => [p.party_id, p]));
-    this.balances = new Map(objects(b.balances).map((x) => [x.item_id, x]));
+    this.serverBalances = new Map(objects(b.balances).map((x) => [x.item_id, x]));
+    this.applyPending(this.pendingDeltas || {});
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
     this.locations = objects(b.locations);
@@ -62,6 +65,18 @@ export const Data = {
     if (version === this.version) return false;
     await this.refresh();
     return true;
+  },
+
+  /** Balances = server balances + movements still waiting in the outbox. */
+  applyPending(deltas) {
+    this.pendingDeltas = deltas;
+    const m = new Map([...this.serverBalances].map(([k, v]) => [k, { ...v }]));
+    for (const [id, d] of Object.entries(deltas)) {
+      const cur = m.get(id) || { item_id: id, qty: 0, unit: (this.items.get(id) || {}).unit || '', last_expiry: '' };
+      cur.qty = Math.round((Number(cur.qty) + d) * 1e6) / 1e6;
+      m.set(id, cur);
+    }
+    this.balances = m;
   },
 
   can(action) { return this.perms.has(action); },

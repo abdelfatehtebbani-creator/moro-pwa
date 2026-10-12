@@ -97,8 +97,9 @@ var Movements = {
    *                      doc_no, location, expiry, purpose, image}]
    * Returns {saved: [{client_id, movement_id, doc_no, duplicate}], version}
    */
-  save: function (session, payload) {
+  save: function (session, payload, internalKinds) {
     var list = payload.movements || [];
+    var kinds = internalKinds || SAVE_KINDS;
     Util.require(list.length > 0 && list.length <= 200, 'nothing_to_save');
     return withLock(function () {
       var known = {};
@@ -110,7 +111,7 @@ var Movements = {
           out.push({ client_id: src.client_id, movement_id: k.movement_id, doc_no: k.doc_no, duplicate: true });
           return;
         }
-        Util.require(SAVE_KINDS.indexOf(src.kind) >= 0, 'kind_invalid', src.kind);
+        Util.require(kinds.indexOf(src.kind) >= 0, 'kind_invalid', src.kind);
         Perm.canKind(session, src.kind);
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);

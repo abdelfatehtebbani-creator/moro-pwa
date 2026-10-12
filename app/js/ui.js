@@ -2,9 +2,13 @@
 
 /** h('div.card', {onclick}, child, 'text', ...) – element builder. */
 export function h(tag, attrs, ...kids) {
-  const [name, ...classes] = tag.split('.');
-  const el = document.createElement(name || 'div');
+  // 'input.input.pin#pin' → <input class="input pin" id="pin">
+  const parts = tag.match(/[.#]?[^.#]+/g) || ['div'];
+  const el = document.createElement(parts[0][0] === '.' || parts[0][0] === '#' ? 'div' : parts.shift());
+  const classes = parts.filter((p) => p[0] === '.').map((p) => p.slice(1));
+  const idPart = parts.find((p) => p[0] === '#');
   if (classes.length) el.className = classes.join(' ');
+  if (idPart) el.id = idPart.slice(1);
   if (attrs && (typeof attrs !== 'object' || attrs instanceof Node || Array.isArray(attrs))) { kids.unshift(attrs); attrs = null; }
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v === undefined || v === null || v === false) continue;

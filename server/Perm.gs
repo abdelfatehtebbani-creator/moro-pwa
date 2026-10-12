@@ -22,6 +22,8 @@ var PERMISSIONS = {
   'parties.save':       ['admin', 'storekeeper', 'purchasing'],
   'lists.save':         ['admin', 'purchasing'],
   'recipes.save':       ['admin'],
+  'production.preview': ['admin', 'storekeeper'],
+  'production.post':    ['admin', 'storekeeper'],
   'requests.list':      ALL_ROLES,
   'requests.create':    ['admin', 'storekeeper', 'production'],
   'requests.fulfil':    ['admin', 'storekeeper'],
