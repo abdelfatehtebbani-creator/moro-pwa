@@ -2,3 +2,4 @@ migration/out/
 __pycache__/
 *.xlsm
 .clasprc.json
+server/ImportData.gs
