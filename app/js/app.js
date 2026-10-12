@@ -1,6 +1,7 @@
 // App start: service worker, sign-in, the shell (side menu / phone bottom bar), routing and sync.
 import { call, session, ApiError } from './api.js';
 import { Outbox } from './outbox.js';
+import { MovStore } from './movstore.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
 import { t, applyLang, getLang, setLang, errText } from './i18n.js';
@@ -160,12 +161,17 @@ window.addEventListener('moro:data', () => { if (content && current === dashboar
 window.addEventListener('online', () => sync(false));
 window.addEventListener('offline', updateSync);
 window.addEventListener('moro:outbox', updateSync);
+// every server call tells whether the connection works, so the indicator follows at once
+window.addEventListener('moro:net', (e) => {
+  if (lastSyncOk !== e.detail) { lastSyncOk = e.detail; updateSync(); if (e.detail && Outbox.pending) Outbox.flush(); }
+});
 
 let lastSyncOk = navigator.onLine;
 async function sync(force) {
   try {
     if (force) await Data.refresh(); else await Data.refreshIfChanged();
     lastSyncOk = true;
+    MovStore.prefetch();
   } catch (e) {
     lastSyncOk = false;
   }

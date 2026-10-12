@@ -225,6 +225,8 @@ const DICT = {
     "selected_n": "المحدد: {n}",
     "select_all": "تحديد الكل",
     "select_none": "إلغاء التحديد",
+    "offline_data": "دون اتصال: بيانات محفوظة حتى {at}",
+    "includes_pending": "يشمل ما ينتظر الإرسال",
     // errors
     'err.offline': 'لا يوجد اتصال بالإنترنت', 'err.server_error': 'حدث خطأ في الخادم، حاول مرة أخرى',
     'err.login_failed': 'اسم المستخدم أو الرمز غير صحيح', 'err.login_locked': 'محاولات كثيرة خاطئة. حاول بعد {d} دقائق',
@@ -454,6 +456,8 @@ const DICT = {
     "selected_n": "Selected: {n}",
     "select_all": "Select all",
     "select_none": "Clear",
+    "offline_data": "Offline: data saved up to {at}",
+    "includes_pending": "includes entries waiting to send",
     'err.offline': 'No internet connection', 'err.server_error': 'Server error, please try again',
     'err.login_failed': 'Wrong username or PIN', 'err.login_locked': 'Too many wrong attempts. Try again in {d} minutes',
     'err.pin_format': 'PIN must be 4 to 8 digits', 'err.username_format': 'Username: 3 to 30 Latin letters or digits',

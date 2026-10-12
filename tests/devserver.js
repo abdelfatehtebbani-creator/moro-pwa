@@ -47,6 +47,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
 
 http.createServer((req, res) => {
+  // touch tests/out/OFFLINE to make /api fail like a lost connection (offline testing)
+  if (req.url === '/api' && fs.existsSync(path.join(__dirname, 'out', 'OFFLINE'))) { req.socket.destroy(); return; }
   if (req.method === 'POST' && req.url === '/api') {
     let body = '';
     req.on('data', (c) => { body += c; });

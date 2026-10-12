@@ -2,8 +2,8 @@
 // then PDF (formal print layout), Excel (formatted .xlsx) or WhatsApp. The preview clears after
 // sending/saving and when switching report (as in MORO v8).
 import { call } from '../api.js';
-import { kv } from '../db.js';
-import { Data, objects } from '../data.js';
+import { Data } from '../data.js';
+import { MovStore } from '../movstore.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { REPORTS, reportText } from '../reports.js';
@@ -12,14 +12,6 @@ import { reportToXlsx } from '../xlsx.js';
 let selected = 'fast';
 const state = {};        // options per report, kept while the app is open
 
-async function movements(force) {
-  const cached = await kv.get('movs');
-  if (cached && cached.version === Data.version && !force) return cached.list;
-  const res = await call('movements.query', { limit: 50000 });
-  const list = objects(res);
-  await kv.set('movs', { version: res.version, list });
-  return list;
-}
 
 function multiSelect(id, options, chosen) {
   const search = trackFilled(h('input.input#' + id + '-q', { type: 'search', placeholder: t('lookup_hint') }));
@@ -166,11 +158,17 @@ export function render(root) {
     if (rep.opts.includes('dates') && (!p.from || !p.to || p.from > p.to)) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
     status.textContent = t('loading'); status.className = 'form-status';
     let movs = [];
+    let note = '';
     try {
-      if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) movs = await movements(false);
+      if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
+        const res = await MovStore.all();
+        movs = res.list;
+        if (res.stale) note = '  ·  ' + t('offline_data', { at: new Date(res.at).toLocaleString('en-GB') });
+        if (res.list.some((m) => m.pending)) note += '  ·  ' + t('includes_pending');
+      }
     } catch (e) { status.textContent = errText(e); status.className = 'form-status err'; return; }
     current = rep.build(p, movs.filter((m) => m.status !== 'deleted'));
-    status.textContent = t('report_rows', { n: current.rows.length }); status.className = 'form-status ok';
+    status.textContent = t('report_rows', { n: current.rows.length }) + note; status.className = 'form-status ' + (note ? 'warn' : 'ok');
     drawPreview();
   }
 

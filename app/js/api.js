@@ -24,8 +24,10 @@ export async function call(action, payload = {}) {
       body: JSON.stringify({ action, payload, token: session.token }),
     });
   } catch {
+    window.dispatchEvent(new CustomEvent('moro:net', { detail: false }));
     throw new ApiError('offline');
   }
+  window.dispatchEvent(new CustomEvent('moro:net', { detail: res.ok }));
   if (!res.ok) throw new ApiError('offline', 'HTTP ' + res.status);
   let body;
   try { body = await res.json(); } catch { throw new ApiError('server_error', 'bad json'); }

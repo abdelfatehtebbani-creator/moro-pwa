@@ -1,8 +1,8 @@
 // Goods receiving – same fields and rules as MORO v13 (frmReceive), with the v7–v13 habits:
 // Enter through the fields, red flash on an empty required field, Enter on Save saves,
 // fields clear at once while the save goes out in the background, F2 switches Food/Packaging.
-import { call } from '../api.js';
-import { Data, objects } from '../data.js';
+import { Data } from '../data.js';
+import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, fmtNum, fmtDate, trackFilled } from '../ui.js';
@@ -202,14 +202,10 @@ export async function render(root) {
   search.addEventListener('input', fillRecords);
 
   async function loadRecords() {
-    const pend = Outbox.queued('movements.save').flatMap((j) => j.payload.movements)
-      .filter((m) => m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN').map((m) => ({ ...m, pending: true, final_amount: '' }));
-    const inZone = (m) => (Data.items.get(m.item_id) || {}).category === zone.value;
-    records = pend.filter(inZone).concat(records.filter((m) => !m.pending && inZone(m)));
-    fillRecords();
+    const keep = (m) => (m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN') && (Data.items.get(m.item_id) || {}).category === zone.value;
     try {
-      const res = await call('movements.query', { kinds: ['RECEIPT', 'SUPPLIER_RETURN'], limit: 1500 });
-      records = pend.filter(inZone).concat(objects(res).filter(inZone));
+      const res = await MovStore.all();          // local copy: works without internet
+      records = res.list.filter(keep).slice(0, 1500);
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 7 }, errText(e)))); }
   }
@@ -239,7 +235,9 @@ export async function render(root) {
   const onRejected = (e) => { toast(t('rejected', { what: e.detail.label || '' }) + ': ' + errText({ code: e.detail.error, detail: e.detail.detail }), 'err'); loadRecords(); };
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onRejected);
-  cleanup = () => { zone.dispose(); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
+  window.addEventListener('moro:data', loadRecords);      // new server data → refresh the records list
+  cleanup = () => { zone.dispose(); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected);
+    window.removeEventListener('moro:data', loadRecords); cleanup = null; };
   item.input.focus();
   loadRecords();
 }

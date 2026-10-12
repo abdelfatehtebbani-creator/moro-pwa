@@ -1,8 +1,8 @@
 // Department issues – an issue slip with several lines, posted together (MORO v13 frmIssue).
 // Enter: department → item → quantity → adds the line and returns to item; Enter on an empty item
 // moves to "Post"; Enter there posts. The slip number D-MMDD-NNN is given by the server.
-import { call } from '../api.js';
-import { Data, objects } from '../data.js';
+import { Data } from '../data.js';
+import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
@@ -153,13 +153,9 @@ export async function render(root) {
   search.addEventListener('input', fillRecords);
 
   async function loadRecords() {
-    const pend = Outbox.queued('movements.save').flatMap((j) => j.payload.movements).filter((m) => m.kind === 'ISSUE')
-      .map((m) => ({ ...m, pending: true, doc_no: '…' }));
-    records = pend.concat(records.filter((m) => !m.pending));
-    fillRecords();
     try {
-      const res = await call('movements.query', { kinds: ['ISSUE'], limit: 1500 });
-      records = pend.concat(objects(res));
+      const res = await MovStore.all();          // local copy: works without internet
+      records = res.list.filter((m) => m.kind === 'ISSUE').map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -208,7 +204,9 @@ export async function render(root) {
   const onRejected = (e) => { toast(t('rejected', { what: e.detail.label || '' }) + ': ' + errText({ code: e.detail.error, detail: e.detail.detail }), 'err'); loadRecords(); };
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onRejected);
-  cleanup = () => { zone.dispose(); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
+  window.addEventListener('moro:data', loadRecords);      // new server data → refresh the records list
+  cleanup = () => { zone.dispose(); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected);
+    window.removeEventListener('moro:data', loadRecords); cleanup = null; };
   drawLines();
   loadRecords();
   dept.input.focus();
