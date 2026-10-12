@@ -203,3 +203,53 @@ select.input { appearance: auto; }
 }
 .form-grid > *, .field { min-width: 0; }
 input[type="date"].input { min-width: 0; }
+
+/* ---------- reports ---------- */
+.rep-layout { display: grid; grid-template-columns: 250px minmax(260px, 340px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.rep-cards { display: grid; gap: 12px; }
+.rep-group { display: grid; gap: 5px; }
+.rep-group-title { font-size: 12px; font-weight: 700; color: var(--muted); }
+.rep-card { text-align: start; border: 0; background: #f2f4f7; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: var(--ink);
+  border-inline-start: 4px solid transparent; }
+.rep-card:hover { background: #d6eaea; color: #006060; }
+.rep-card.on { background: var(--teal); color: #fff; font-weight: 600; border-inline-start-color: #ffc107; }
+.rep-opts { display: grid; gap: 12px; }
+.rep-opts h2 { margin: 0; font-size: 16px; }
+.quick { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
+.months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 8px; font-size: 13px; }
+.ms { display: grid; gap: 6px; }
+.ms-list { max-height: 230px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #fff; }
+.ms-row { display: flex; gap: 8px; align-items: center; padding: 3px 0; font-size: 13.5px; cursor: pointer; }
+.ms-foot { display: flex; gap: 14px; align-items: center; font-size: 13px; }
+.rep-head { display: grid; gap: 2px; }
+.rep-table th, .rep-table td { text-align: left; }
+.rep-table td.num { text-align: right; }
+.btn.wa { background: #1fa855; }
+#print-area { display: none; }
+@media (max-width: 1250px) { .rep-layout { grid-template-columns: 240px minmax(0, 1fr); } .rep-out { grid-column: 1 / -1; } }
+@media (max-width: 860px) { .rep-layout { grid-template-columns: 1fr; } .rep-cards { grid-template-columns: 1fr; } }
+
+/* ---------- formal print (PDF) ---------- */
+@page { size: A4; margin: 12mm 10mm 16mm;
+  @bottom-center { content: "Page " counter(page) " of " counter(pages); font: 8pt Calibri, Arial, sans-serif; color: #6e757d; }
+  @bottom-left { content: "ALAKER SWEETS - MORO"; font: 8pt Calibri, Arial, sans-serif; color: #6e757d; } }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  body { background: #fff; }
+  #print-area { display: block; font: 10pt Calibri, Arial, sans-serif; color: #212529; direction: ltr; }
+  .pr-company { text-align: center; font-size: 20pt; font-weight: 700; color: #16263f; }
+  .pr-sub { text-align: center; color: #6e757d; font-size: 10pt; margin-bottom: 8pt; }
+  .pr-title { text-align: center; font-size: 15pt; font-weight: 700; border-bottom: 2px solid #16263f; padding-bottom: 4pt; }
+  .pr-meta { display: flex; justify-content: space-between; margin: 6pt 0 10pt; color: #6e757d; }
+  .pr-meta b { color: #212529; }
+  .pr-table { width: 100%; border-collapse: collapse; }
+  .pr-table thead { display: table-header-group; }
+  .pr-table th { background: #16263f !important; color: #fff !important; padding: 5pt 6pt; border: 1px solid #c8ced6; font-weight: 700;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pr-table td { padding: 4pt 6pt; border: 1px solid #c8ced6; }
+  .pr-table tbody tr:nth-child(even) td { background: #f2f5f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pr-table td.num { text-align: right; } .pr-table td.ctr { text-align: center; }
+  .pr-table tr { page-break-inside: avoid; }
+  .pr-count { margin-top: 10pt; font-weight: 700; }
+  .pr-note { font-size: 8pt; color: #6e757d; font-style: italic; }
+}

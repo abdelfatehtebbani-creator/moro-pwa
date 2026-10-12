@@ -1,0 +1,243 @@
+// The 13 MORO v13 reports, computed on the device from the movements and balances.
+// Every report returns {title, subtitle, columns:[{label, type}], rows:[[...]]}.
+// Column types: t text, n number, m money, d date (YYYY-MM-DD), p share (0–1).
+import { Data } from './data.js';
+import { daysBetween } from './ui.js';
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const r6 = (n) => Math.round(n * 1e6) / 1e6;
+const itemName = (id) => (Data.items.get(id) || {}).name || id;
+const partyName = (id) => (Data.parties.get(id) || {}).name || id;
+const byName = (a, b) => String(a).localeCompare(String(b));
+const inRange = (m, p) => (!p.from || m.date >= p.from) && (!p.to || m.date <= p.to);
+const periodText = (p) => 'Period: ' + p.from + '  to  ' + p.to;
+const todayText = () => 'Date: ' + Data.todayIso();
+
+/** Report catalogue: id, group, the options it uses, and its builder. */
+export const REPORTS = [
+  { id: 'fast', group: 'stock', opts: ['list'], build: (p) => itemList('FAST', 'Fast Moving Items Report') },
+  { id: 'min', group: 'stock', opts: [], build: minStock },
+  { id: 'sensitive', group: 'stock', opts: ['list'], build: () => itemList('SENSITIVE', 'Sensitive Items Report') },
+  { id: 'expiry', group: 'stock', opts: ['foodPack', 'zero', 'items?'], build: stockExpiry },
+  { id: 'near', group: 'stock', opts: ['days', 'zero'], build: nearExpiry },
+  { id: 'changes', group: 'move', opts: ['dates', 'mode', 'items?'], build: changes },
+  { id: 'bySection', group: 'move', opts: ['dates', 'sections'], build: (p, m) => consumption(p, m, false) },
+  { id: 'byItem', group: 'move', opts: ['dates', 'sections'], build: (p, m) => consumption(p, m, true) },
+  { id: 'itemOut', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, true) },
+  { id: 'itemIn', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, false) },
+  { id: 'multiMonth', group: 'move', opts: ['year', 'items'], build: multiMonth },
+  { id: 'prices', group: 'other', opts: ['items'], build: prices, prices: true },
+  { id: 'production', group: 'other', opts: ['period'], build: productionSummary },
+];
+
+function itemList(list, title) {
+  const ids = Data.list(list);
+  const rows = [...ids].map((id) => Data.items.get(id)).filter(Boolean)
+    .sort((a, b) => (a.category === b.category ? byName(a.name, b.name) : a.category === 'Food' ? -1 : 1))
+    .map((it) => [it.category, it.name, Data.qty(it.item_id), it.unit]);
+  return { title, subtitle: todayText(), columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
+}
+
+function minStock() {
+  const rows = Data.lowStock().map((x) => [x.item.name, x.qty, x.min, x.item.unit]);
+  return { title: 'Items at or below minimum stock', subtitle: todayText(),
+    columns: cols(['Item', 't'], ['Available', 'n'], ['Minimum stock', 'n'], ['Unit', 't']), rows };
+}
+
+function expiryStatus(left) {
+  if (left < 0) return 'Expired';
+  if (left === 0) return 'Expires Today';
+  return 'Remaining ' + left + ' days';
+}
+
+function stockExpiry(p) {
+  const today = Data.todayIso();
+  const sel = p.items && p.items.size ? p.items : null;
+  const rows = [];
+  for (const it of Data.activeItems()) {
+    if (sel && !sel.has(it.item_id)) continue;
+    const q = Data.qty(it.item_id);
+    if (!p.zero && q <= 0) continue;
+    const b = Data.balances.get(it.item_id);
+    const exp = b && b.last_expiry;
+    if (exp) {
+      if (p.packOnly) continue;
+      rows.push(['Food', it.name, q, it.unit, exp, expiryStatus(daysBetween(today, exp))]);
+    } else {
+      if (p.foodOnly) continue;
+      rows.push(['Packaging', it.name, q, it.unit, '', 'No expiry']);
+    }
+  }
+  rows.sort((a, b) => (a[0] === b[0] ? byName(a[1], b[1]) : a[0] === 'Packaging' ? -1 : 1));
+  return { title: 'Stock with expiry', subtitle: todayText(),
+    columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Expiry date', 'd'], ['Status', 't']), rows };
+}
+
+function nearExpiry(p) {
+  const days = Number(p.days) || 90;
+  const rows = Data.expiring(days).filter((x) => x.left >= 0 && (p.zero || x.qty > 0))
+    .map((x) => [x.item.name, x.expiry, x.left, x.qty, x.item.unit]);
+  if (p.zero) {
+    const today = Data.todayIso();
+    for (const b of Data.balances.values()) {
+      const it = Data.items.get(b.item_id);
+      if (!it || !b.last_expiry || Number(b.qty) > 0) continue;
+      const left = daysBetween(today, b.last_expiry);
+      if (left >= 0 && left <= days) rows.push([it.name, b.last_expiry, left, Number(b.qty), it.unit]);
+    }
+    rows.sort((a, b) => a[2] - b[2]);
+  }
+  return { title: 'Products near expiry (within ' + days + ' days)', subtitle: todayText(),
+    columns: cols(['Item', 't'], ['Expiry date', 'd'], ['Days left', 'n'], ['Quantity', 'n'], ['Unit', 't']), rows };
+}
+
+function changes(p, movs) {
+  const sel = p.items && p.items.size ? p.items : null;
+  const inc = new Map(); const out = new Map();
+  for (const m of movs) {
+    if (!inRange(m, p) || (sel && !sel.has(m.item_id))) continue;
+    const q = Number(m.qty);
+    const map = q > 0 ? inc : out;
+    map.set(m.item_id, r6((map.get(m.item_id) || 0) + Math.abs(q)));
+  }
+  const rows = [];
+  const add = (label, map) => [...map.keys()].sort((a, b) => byName(itemName(a), itemName(b)))
+    .forEach((id) => rows.push([label, itemName(id), map.get(id), Data.qty(id), (Data.items.get(id) || {}).unit || '']));
+  if (p.mode !== 'out') add('Incoming', inc);
+  if (p.mode !== 'in') add('Outgoing', out);
+  return { title: 'Inventory changes', subtitle: periodText(p),
+    columns: cols(['Direction', 't'], ['Item', 't'], ['Quantity', 'n'], ['Current balance', 'n'], ['Unit', 't']), rows };
+}
+
+function consumption(p, movs, byItem) {
+  const sel = p.sections || new Set();
+  const groups = new Map();
+  for (const m of movs) {
+    if (!inRange(m, p) || !sel.has(m.party_id)) continue;
+    const k1 = byItem ? m.item_id : m.party_id;
+    const k2 = byItem ? m.party_id : m.item_id;
+    if (!groups.has(k1)) groups.set(k1, new Map());
+    const g = groups.get(k1);
+    g.set(k2, r6((g.get(k2) || 0) - Number(m.qty)));       // issues are negative: shown as quantity issued
+  }
+  const n1 = byItem ? itemName : partyName;
+  const n2 = byItem ? partyName : itemName;
+  const rows = [];
+  [...groups.keys()].sort((a, b) => byName(n1(a), n1(b))).forEach((k1) => {
+    const g = groups.get(k1);
+    [...g.keys()].sort((a, b) => byName(n2(a), n2(b))).forEach((k2) => rows.push([n1(k1), n2(k2), g.get(k2)]));
+  });
+  return { title: 'Consumption by ' + (byItem ? 'item' : 'department'), subtitle: periodText(p),
+    columns: byItem ? cols(['Item', 't'], ['Department', 't'], ['Quantity issued', 'n']) : cols(['Department', 't'], ['Item', 't'], ['Quantity issued', 'n']), rows };
+}
+
+function itemMovement(p, movs, outgoing) {
+  const sel = p.items || new Set();
+  const groups = new Map();
+  for (const m of movs) {
+    const q = Number(m.qty);
+    if (!inRange(m, p) || !sel.has(m.item_id) || (outgoing ? q >= 0 : q <= 0)) continue;
+    const k = m.item_id + '|' + m.unit;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(m);
+  }
+  const rows = [];
+  for (const k of [...groups.keys()].sort((a, b) => byName(itemName(a.split('|')[0]), itemName(b.split('|')[0])))) {
+    const [id, unit] = k.split('|');
+    const list = groups.get(k);
+    const per = new Map(); let tot = 0;
+    list.forEach((m) => { const q = Math.abs(Number(m.qty)); per.set(m.party_id, r6((per.get(m.party_id) || 0) + q)); tot += q; });
+    if (p.detail === 'detailed') {
+      [...per.keys()].sort((a, b) => byName(partyName(a), partyName(b))).forEach((pid) => {
+        const byDate = new Map();
+        list.filter((m) => m.party_id === pid).forEach((m) => byDate.set(m.date, r6((byDate.get(m.date) || 0) + Math.abs(Number(m.qty)))));
+        [...byDate.keys()].sort().forEach((d) => rows.push([itemName(id), unit, partyName(pid), d, byDate.get(d)]));
+      });
+    } else {
+      [...per.keys()].sort((a, b) => per.get(b) - per.get(a)).forEach((pid) => rows.push([itemName(id), unit, partyName(pid), per.get(pid), tot ? per.get(pid) / tot : 0]));
+    }
+  }
+  const title = (outgoing ? 'Item consumption' : 'Item receipts') + (p.detail === 'detailed' ? ' (detailed)' : ' (summary)');
+  return { title, subtitle: periodText(p),
+    columns: p.detail === 'detailed' ? cols(['Item', 't'], ['Unit', 't'], ['Supplier / Department', 't'], ['Date', 'd'], ['Quantity', 'n'])
+      : cols(['Item', 't'], ['Unit', 't'], ['Supplier / Department', 't'], ['Quantity', 'n'], ['Share', 'p']), rows };
+}
+
+function multiMonth(p, movs) {
+  const sel = p.items || new Set();
+  const months = p.months && p.months.size ? p.months : new Set([Number(Data.todayIso().slice(5, 7))]);
+  const total = new Map();
+  for (const m of movs) {
+    if (!sel.has(m.item_id) || Number(m.date.slice(0, 4)) !== Number(p.year)) continue;
+    const mo = Number(m.date.slice(5, 7));
+    if (!months.has(mo)) continue;
+    const k = mo + '|' + m.item_id;
+    total.set(k, r6((total.get(k) || 0) + Number(m.qty)));
+  }
+  const rows = [...total.keys()].sort((a, b) => Number(a.split('|')[0]) - Number(b.split('|')[0]) || byName(itemName(a.split('|')[1]), itemName(b.split('|')[1])))
+    .map((k) => { const [mo, id] = k.split('|'); return [MONTHS[mo - 1], itemName(id), (Data.items.get(id) || {}).unit || '', total.get(k)]; });
+  return { title: 'Multi-month item report ' + p.year, subtitle: todayText(),
+    columns: cols(['Month', 't'], ['Item', 't'], ['Unit', 't'], ['Total quantity', 'n']), rows };
+}
+
+function prices(p, movs) {
+  const sel = p.items || new Set();
+  const rec = new Map();
+  for (const m of movs) {
+    if (m.kind !== 'RECEIPT' || !sel.has(m.item_id) || !(Number(m.price) > 0)) continue;
+    if (!rec.has(m.item_id)) rec.set(m.item_id, []);
+    rec.get(m.item_id).push(m);
+  }
+  const rows = [];
+  [...rec.keys()].sort((a, b) => byName(itemName(a), itemName(b))).forEach((id) => {
+    const list = rec.get(id);
+    const latest = list.reduce((a, b) => (b.date > a.date || (b.date === a.date && b.movement_id > a.movement_id) ? b : a));
+    const high = list.reduce((a, b) => (Number(b.price) > Number(a.price) ? b : a));
+    const low = list.reduce((a, b) => (Number(b.price) < Number(a.price) ? b : a));
+    [['Latest', latest], ['Highest', high], ['Lowest', low]].forEach(([kind, m]) =>
+      rows.push([itemName(id), kind, Number(m.price), m.per, partyName(m.party_id), m.date]));
+  });
+  return { title: 'Price differences', subtitle: todayText(),
+    columns: cols(['Item', 't'], ['Price type', 't'], ['Price (QR)', 'm'], ['Per', 't'], ['Supplier', 't'], ['Date', 'd']), rows };
+}
+
+function weekStart(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 1) % 7));   // weeks start on Saturday
+  return d.toISOString().slice(0, 10);
+}
+
+function productionSummary(p, movs) {
+  const key = (d) => (p.period === 'weekly' ? 'Week of ' + weekStart(d) : p.period === 'yearly' ? d.slice(0, 4) : d.slice(0, 7));
+  const tot = new Map();
+  movs.filter((m) => m.kind === 'PROD_OUTPUT').forEach((m) => {
+    const k = key(m.date) + '|' + m.item_id;
+    tot.set(k, r6((tot.get(k) || 0) + Number(m.qty)));
+  });
+  const rows = [...tot.keys()].sort().reverse().map((k) => {
+    const [per, id] = k.split('|');
+    return [per, itemName(id), tot.get(k), (Data.items.get(id) || {}).unit || ''];
+  });
+  const label = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }[p.period] || 'Monthly';
+  return { title: 'Production summary (' + label + ')', subtitle: todayText(),
+    columns: cols(['Period', 't'], ['Product', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
+}
+
+function cols(...defs) { return defs.map(([label, type]) => ({ label, type })); }
+
+/** Plain text of a report for WhatsApp (one line per row). */
+export function reportText(rep, fmtNum, fmtDate) {
+  const lines = [rep.title, rep.subtitle, '-'.repeat(32)];
+  rep.rows.forEach((r) => {
+    lines.push('- ' + r.map((v, i) => {
+      if (v === '' || v === null || v === undefined) return '';
+      const t = rep.columns[i].type;
+      if (t === 'd') return fmtDate(v);
+      if (t === 'p') return (Number(v) * 100).toFixed(1) + '%';
+      if (t === 'n' || t === 'm') return fmtNum(v);
+      return String(v);
+    }).filter(Boolean).join(' | '));
+  });
+  if (!rep.rows.length) lines.push('No data.');
+  return lines.join('\n');
+}

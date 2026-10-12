@@ -3,3 +3,4 @@ __pycache__/
 *.xlsm
 .clasprc.json
 server/ImportData.gs
+tests/out/
