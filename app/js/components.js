@@ -13,21 +13,27 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 export function combo({ id, options, placeholder = '', onPick }) {
   const input = trackFilled(h('input.input', { id, autocomplete: 'off', placeholder, role: 'combobox', 'aria-expanded': 'false' }));
   const list = h('ul.combo-list', { role: 'listbox', hidden: true });
-  const wrap = h('div.combo', input, list);
+  // the arrow (or a click in the field) opens the whole list, to pick without typing
+  const arrow = h('button.combo-arrow', { type: 'button', tabindex: -1, 'aria-label': 'open list',
+    onmousedown: (e) => { e.preventDefault(); if (list.hidden) { input.focus(); render(true); } else close(); } }, '▾');
+  const wrap = h('div.combo', input, arrow, list);
   let value = '';
   let shown = [];
   let hi = -1;
 
-  const render = () => {
-    const q = norm(input.value);
+  /** full = show every option (browsing); otherwise filter by what is typed. */
+  const render = (full) => {
+    const q = full || value ? '' : norm(input.value);
     const all = options();
-    shown = (q ? all.filter((o) => norm(o.label).includes(q)) : all).slice(0, 60);
-    hi = shown.length ? 0 : -1;
-    list.replaceChildren(...shown.map((o, i) => h('li', { role: 'option', 'data-i': i, class: i === hi ? 'hi' : '',
+    shown = (q ? all.filter((o) => norm(o.label).includes(q)) : all).slice(0, 600);
+    hi = shown.length ? Math.max(0, shown.findIndex((o) => o.value === value)) : -1;
+    list.replaceChildren(...shown.map((o, i) => h('li', { role: 'option', 'data-i': i, class: (i === hi ? 'hi ' : '') + (o.value === value ? 'cur' : ''),
       onmousedown: (e) => { e.preventDefault(); pick(o); } }, h('bdi', o.label), o.hint ? h('small.num', o.hint) : null)));
     list.hidden = !shown.length || document.activeElement !== input;
     input.setAttribute('aria-expanded', String(!list.hidden));
+    if (!list.hidden && hi > 0) list.children[hi].scrollIntoView({ block: 'nearest' });
   };
+  const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); };
   const move = (d) => {
     if (list.hidden || !shown.length) return;
     hi = (hi + d + shown.length) % shown.length;
@@ -38,26 +44,26 @@ export function combo({ id, options, placeholder = '', onPick }) {
     value = o ? o.value : '';
     input.value = o ? o.label : '';
     input.dispatchEvent(new Event('change'));
-    list.hidden = true;
-    input.setAttribute('aria-expanded', 'false');
+    close();
     if (onPick) onPick(value, o);
   };
 
-  input.addEventListener('input', () => { value = ''; if (onPick) onPick('', null); render(); });
-  input.addEventListener('focus', () => { if (input.value.trim() && !value) render(); });
+  input.addEventListener('input', () => { value = ''; if (onPick) onPick('', null); render(false); });
+  input.addEventListener('mousedown', () => { if (list.hidden) setTimeout(() => render(true), 0); });
   input.addEventListener('blur', () => {
-    list.hidden = true;
+    close();
     if (!value) {   // typed text that exactly matches one option counts as picked
       const exact = options().find((o) => norm(o.label) === norm(input.value));
       if (exact) pick(exact);
     }
   });
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) render(); else move(1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) render(!input.value.trim() || !!value); else move(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
-    else if (e.key === 'Escape') { list.hidden = true; }
-    else if (e.key === 'Enter' && !e.shiftKey && !value && input.value.trim()) {
-      const o = !list.hidden && hi >= 0 ? shown[hi] : (shown.length === 1 ? shown[0] : null);
+    else if (e.key === 'Escape') { close(); }
+    else if (e.key === 'Enter' && !e.shiftKey) {
+      // the highlighted row of an open list, or the only match of what was typed
+      const o = !list.hidden && hi >= 0 ? shown[hi] : (!value && input.value.trim() && shown.length === 1 ? shown[0] : null);
       if (o) pick(o);
     }
   });

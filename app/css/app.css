@@ -253,3 +253,10 @@ input[type="date"].input { min-width: 0; }
   .pr-count { margin-top: 10pt; font-weight: 700; }
   .pr-note { font-size: 8pt; color: #6e757d; font-style: italic; }
 }
+.combo .input { padding-inline-end: 34px; }
+.combo-arrow { position: absolute; inset-inline-end: 1px; top: 1px; bottom: 1px; width: 32px; border: 0; background: transparent;
+  color: var(--muted); font-size: 14px; cursor: pointer; border-radius: 0 6px 6px 0; }
+[dir="rtl"] .combo-arrow { border-radius: 6px 0 0 6px; }
+.combo-arrow:hover { background: #eef2f6; color: var(--ink); }
+.combo-list li.cur { font-weight: 600; }
+.combo-list { max-height: 320px; }
