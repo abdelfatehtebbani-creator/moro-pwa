@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#16263f">
-  <title>Install MORO</title>
-  <meta name="description" content="MORO – نظام إدارة المخزون لحلويات العكر. ثبّت التطبيق على الحاسوب أو الهاتف.">
+  <title>Install MORO – Materials Operations &amp; Records Organizer</title>
+  <meta name="description" content="MORO – Materials Operations &amp; Records Organizer – ALAKER SWEETS. Install the app on your computer or phone.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -143,7 +143,7 @@
     function apply() {
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-      document.title = lang === 'ar' ? 'تثبيت MORO' : 'Install MORO';
+      document.title = (lang === 'ar' ? 'تثبيت ' : 'Install ') + 'MORO – Materials Operations & Records Organizer';
       document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = T[lang][el.getAttribute('data-t')]; });
       document.getElementById('lang').textContent = T[lang].other;
       note.textContent = noteKey ? T[lang][noteKey] : '';
