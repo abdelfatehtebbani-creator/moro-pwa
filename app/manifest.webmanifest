@@ -1,6 +1,7 @@
 {
   "name": "MORO – إدارة المخزون",
   "short_name": "MORO",
+  "description": "Materials Operations & Records Organizer",
   "description": "ALAKER SWEETS inventory: receiving, issues, production and reports",
   "lang": "ar",
   "dir": "rtl",
