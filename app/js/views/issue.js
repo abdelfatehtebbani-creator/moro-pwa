@@ -49,7 +49,7 @@ export async function render(root) {
         h('td.num', i + 1), h('td.wrap', h('bdi', it.name)), h('td', h('span', { class: 'pill ' + (it.category === 'Food' ? 'food' : 'pack') }, t(it.category === 'Food' ? 'food' : 'packaging'))),
         h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td', h('button.link', { type: 'button', onclick: (e) => { e.stopPropagation(); removeLine(i, e.currentTarget); } }, t('delete'))));
-    }) : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));
+    }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
     count.textContent = t('lines_count', { n: lines.length });
     dept.input.disabled = lines.length > 0;      // department fixed while the slip has lines (v13)
   }
