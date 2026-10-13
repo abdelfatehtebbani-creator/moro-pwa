@@ -92,7 +92,7 @@ function buildShell() {
     navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name))));
   }
   const side = h('aside.side',
-    h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', t('app_sub')))),
+    h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
     h('nav.nav', navLinks),
     h('div.side-foot',
       h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),

@@ -1,7 +1,7 @@
 // Arabic / English texts. Server error codes are translated here (err.<code>).
 const DICT = {
   ar: {
-    app_name: 'MORO', app_sub: 'نظام إدارة المخزون', company: 'حلويات العكر',
+    app_name: 'MORO', app_sub: 'Materials Operations & Records Organizer', company: 'حلويات العكر',
     lang_other: 'English',
     // auth
     login_title: 'تسجيل الدخول', username: 'اسم المستخدم', pin: 'الرمز (PIN)', login: 'دخول',
@@ -271,7 +271,7 @@ const DICT = {
     'err.min_invalid': 'أدخل رقمًا صحيحًا', 'err.not_found': 'السجل غير موجود',
   },
   en: {
-    app_name: 'MORO', app_sub: 'Inventory management', company: 'ALAKER SWEETS',
+    app_name: 'MORO', app_sub: 'Materials Operations & Records Organizer', company: 'ALAKER SWEETS',
     lang_other: 'العربية',
     login_title: 'Sign in', username: 'Username', pin: 'PIN', login: 'Sign in',
     setup_title: 'First run: admin account', setup_hint: 'There are no users yet. Create your account as system admin.',
