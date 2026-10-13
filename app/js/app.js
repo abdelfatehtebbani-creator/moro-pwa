@@ -1,5 +1,6 @@
 // App start: service worker, sign-in, the shell (side menu / phone bottom bar), routing and sync.
 import { call, session, ApiError } from './api.js';
+import { APP_VERSION } from './config.js';
 import { Outbox } from './outbox.js';
 import { MovStore } from './movstore.js';
 import { kv } from './db.js';
@@ -32,7 +33,21 @@ const root = document.getElementById('app');
 let content, title, syncEl;
 
 applyLang();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// updates: the service worker file is never taken from the browser cache, and when a new version
+// takes over, the page reloads itself once so the new screens appear without closing the app
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+}
 
 window.addEventListener('moro:signed-out', async () => {
   await kv.clear();
@@ -80,7 +95,7 @@ function buildShell() {
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', t('app_sub')))),
     h('nav.nav', navLinks),
     h('div.side-foot',
-      h('div', u.display_name, h('br'), h('small', t('role_' + u.role))),
+      h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
       h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
       h('button', { type: 'button', onclick: logout }, t('logout'))));
 
@@ -117,7 +132,7 @@ function showMore() {
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === 'more'));
   const u = Data.user;
   content.replaceChildren(h('div.card',
-    h('div', h('b', u.display_name), ' · ', h('span.muted', t('role_' + u.role))),
+    h('div', h('b', u.display_name), ' · ', h('span.muted', t('role_' + u.role) + ' · v' + APP_VERSION)),
     h('nav.nav', { style: 'display:grid;gap:4px' }, Object.keys(ROUTES).filter(allowed).map((name) =>
       h('a', { href: '#/' + name, style: 'color:var(--ink)' }, icon(name), h('span', t(name))))),
     h('button.btn.secondary', { type: 'button', onclick: changePin }, t('change_pin')),

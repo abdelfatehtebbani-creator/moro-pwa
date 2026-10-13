@@ -1,6 +1,6 @@
 /* Service worker: keeps the app shell available offline. Data never goes through here –
    it is cached in IndexedDB by the app (js/db.js). Bump VERSION on every release. */
-const VERSION = 'moro-v0.6.1';
+const VERSION = 'moro-v0.6.2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/api.js', 'js/db.js', 'js/i18n.js', 'js/ui.js', 'js/data.js',
@@ -22,9 +22,11 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;   // API and fonts go to the network
-  // network first, so a new release is picked up when online; cache when offline
+  // network first, so a new release is picked up when online; cache when offline.
+  // 'no-cache' makes the browser check the server every time (GitHub Pages lets files be reused
+  // for 10 minutes otherwise, which kept an old version running after an update).
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(new Request(e.request, { cache: 'no-cache' })).then((res) => {
       const copy = res.clone();
       caches.open(VERSION).then((c) => c.put(e.request, copy));
       return res;
