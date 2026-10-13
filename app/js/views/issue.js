@@ -145,9 +145,9 @@ export async function render(root) {
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
-        h('td.num', fmtDate(m.date)), h('td.num', m.doc_no || ''), h('td.wrap', h('bdi', p ? p.name : '')),
+        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', p ? p.name : '')),
         h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtNum(Math.abs(Number(m.qty))) + ' ' + (m.unit || '')),
-        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''));
+        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''));
     }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
   };
   search.addEventListener('input', fillRecords);
@@ -194,7 +194,7 @@ export async function render(root) {
       h('div.form-actions', postBtn, clearBtn), status,
       h('small.muted', t('issue_help'))),
     h('div.card', h('div.card-head', h('h2', t('recent_issues'))), search,
-      h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('slip_no')), h('th', t('department')), h('th', t('item')), h('th', t('qty')), h('th', ''))), recBody)))));
+      h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('department')), h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', t('slip_no')))), recBody)))));
 
   const onSent = (e) => {
     const r = e.detail.result;
