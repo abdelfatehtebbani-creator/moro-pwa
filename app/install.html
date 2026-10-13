@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16263f">
+  <title>تثبيت MORO</title>
+  <meta name="description" content="MORO – نظام إدارة المخزون لحلويات العكر. ثبّت التطبيق على الحاسوب أو الهاتف.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+  <style>
+    :root { --navy: #16263f; --navy-2: #22385a; --brand: #ee7326; --teal: #00807f; --ink: #1c2633; --muted: #65717f; --bg: #f0f2f5; --line: #dde2e8; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font: 16px/1.7 "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; color: var(--ink); background: var(--bg); }
+    .hero { background: var(--navy); color: #fff; padding: calc(40px + env(safe-area-inset-top, 0px)) 20px 56px; text-align: center; }
+    .hero img { width: 112px; height: 112px; }
+    .hero h1 { margin: 6px 0 2px; font-size: 34px; letter-spacing: .08em; }
+    .hero p { margin: 0 auto; max-width: 520px; color: #c9d4e4; }
+    .install { margin: 26px auto 0; display: grid; gap: 10px; justify-items: center; }
+    .btn { display: inline-flex; align-items: center; gap: 10px; border: 0; border-radius: 12px; padding: 15px 30px; font: inherit; font-size: 19px;
+      font-weight: 700; color: #fff; background: var(--brand); cursor: pointer; text-decoration: none; box-shadow: 0 8px 24px rgba(238,115,38,.35); }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary { background: transparent; box-shadow: none; border: 1px solid #50678c; font-size: 15px; padding: 10px 20px; font-weight: 600; }
+    .note { color: #9fb0c8; font-size: 14px; min-height: 1.4em; }
+    main { max-width: 900px; margin: -28px auto 0; padding: 0 16px 48px; display: grid; gap: 18px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+    .card h2 { margin: 0 0 10px; font-size: 18px; }
+    .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+    .feature { display: grid; gap: 2px; }
+    .feature b { color: var(--navy); }
+    .feature span { color: var(--muted); font-size: 14.5px; }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .step { border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    .step.mine { border-color: var(--teal); box-shadow: 0 0 0 2px #dff1f0; }
+    .step h3 { margin: 0 0 6px; font-size: 16px; }
+    .step ol { margin: 0; padding-inline-start: 20px; color: #3a4655; font-size: 14.5px; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+    @media (max-width: 700px) { .features, .steps { grid-template-columns: 1fr; } .hero h1 { font-size: 28px; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <img src="icons/logo.png" alt="">
+    <h1>MORO</h1>
+    <p>نظام إدارة المخزون لحلويات العكر: الاستلام والصرف والإنتاج والتقارير، على الحاسوب والهاتف، ببيانات واحدة مشتركة.</p>
+    <div class="install">
+      <button class="btn" id="install" type="button">⬇&nbsp; حمّل التطبيق من هنا</button>
+      <a class="btn" id="open" href="./" hidden>افتح التطبيق</a>
+      <a class="btn secondary" id="web" href="./">أو استعمله من المتصفح مباشرة</a>
+      <div class="note" id="note"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>ماذا يقدّم التطبيق</h2>
+      <div class="features">
+        <div class="feature"><b>استلام البضاعة</b><span>تسجيل الفواتير بالمورد والكمية والسعر والصلاحية ومكان التخزين.</span></div>
+        <div class="feature"><b>صرف للأقسام</b><span>إذن صرف برقم تلقائي، وطلبات الأقسام تُنفَّذ بضغطة.</span></div>
+        <div class="feature"><b>الإنتاج</b><span>خصم المكونات حسب الوصفة وإضافة المنتج إلى المخزون.</span></div>
+        <div class="feature"><b>التقارير</b><span>13 تقريرًا بصيغة PDF وExcel، وإرسالها عبر واتساب.</span></div>
+        <div class="feature"><b>يعمل دون إنترنت</b><span>تحفظ عملك وقت الانقطاع، ويُرسل وحده عند عودة الاتصال.</span></div>
+        <div class="feature"><b>لكل مستخدم صلاحياته</b><span>المدير، وأمين المخزن، ومسؤول المشتريات، ومسؤول الإنتاج.</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>إن لم يظهر زر التحميل</h2>
+      <div class="steps">
+        <div class="step" id="s-android"><h3>هاتف Android</h3><ol><li>افتح هذا الرابط في Chrome.</li><li>اضغط القائمة ⋮ أعلى الشاشة.</li><li>اختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".</li></ol></div>
+        <div class="step" id="s-ios"><h3>iPhone / iPad</h3><ol><li>افتح هذا الرابط في Safari.</li><li>اضغط زر المشاركة <b>⎋</b> أسفل الشاشة.</li><li>اختر "إضافة إلى الشاشة الرئيسية" ثم "إضافة".</li></ol></div>
+        <div class="step" id="s-pc"><h3>الحاسوب</h3><ol><li>افتح هذا الرابط في Chrome أو Edge.</li><li>اضغط أيقونة التثبيت في يمين شريط العنوان.</li><li>اختر "تثبيت".</li></ol></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>بعد التثبيت</h2>
+      <p style="margin:0">ادخل باسم المستخدم والرمز اللذين أعطاك إياهما المدير، ثم غيّر الرمز من "المزيد" ← "تغيير الرمز". التطبيق يتحدّث وحده عند كل إصدار جديد.</p>
+    </section>
+  </main>
+
+  <footer>ALAKER SWEETS · MORO</footer>
+
+  <script>
+    var installBtn = document.getElementById('install');
+    var openBtn = document.getElementById('open');
+    var note = document.getElementById('note');
+    var deferred = null;
+    var ua = navigator.userAgent;
+    var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isAndroid = /Android/i.test(ua);
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+    // highlight the steps for this device
+    document.getElementById(isIOS ? 's-ios' : isAndroid ? 's-android' : 's-pc').classList.add('mine');
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
+
+    // the button is always there: it opens the browser's install window when the browser offers one,
+    // otherwise it points to the steps for this device (Safari on iPhone, or browsers without the window)
+    var stepsFor = function () { return document.getElementById(isIOS ? 's-ios' : isAndroid ? 's-android' : 's-pc'); };
+    if (standalone) {
+      installBtn.hidden = true;
+      openBtn.hidden = false;
+      document.getElementById('web').hidden = true;
+      note.textContent = 'التطبيق مثبّت على هذا الجهاز.';
+    }
+    window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
+    installBtn.addEventListener('click', function () {
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.then(function (r) {
+          if (r.outcome === 'accepted') { installBtn.hidden = true; openBtn.hidden = false; note.textContent = 'تم التثبيت. ستجد MORO بين تطبيقاتك.'; }
+          deferred = null;
+        });
+        return;
+      }
+      stepsFor().scrollIntoView({ behavior: 'smooth', block: 'center' });
+      note.textContent = isIOS ? 'في iPhone يتم التثبيت من زر المشاركة: اتبع الخطوات المظللة أدناه.'
+                               : 'اتبع الخطوات المظللة أدناه لتثبيت التطبيق على جهازك.';
+    });
+    window.addEventListener('appinstalled', function () { installBtn.hidden = true; openBtn.hidden = false; note.textContent = 'تم التثبيت. ستجد MORO بين تطبيقاتك.'; });
+  </script>
+</body>
+</html>
