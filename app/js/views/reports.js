@@ -35,7 +35,7 @@ function multiSelect(id, options, chosen) {
 }
 
 export function render(root) {
-  const reports = REPORTS.filter((r) => !r.prices || Data.user.role !== 'production');
+  const reports = REPORTS.filter((r) => !r.prices || Data.can('see_prices'));
   const cards = h('div.rep-cards');
   const opts = h('div.rep-opts');
   const preview = h('div.rep-preview');

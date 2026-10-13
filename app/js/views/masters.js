@@ -9,11 +9,11 @@ import { combo, field } from '../components.js';
 let tab = 'items';
 
 export function render(root) {
-  const isAdmin = Data.user.role === 'admin';
+  const isAdmin = Data.can('rename');
   const tabs = h('div.tabs');
   const body = h('div');
   const names = { items: t('items'), parties: t('parties'), recipes: t('recipes') };
-  Object.keys(names).filter((k) => k !== 'recipes' || isAdmin).forEach((k) =>
+  Object.keys(names).filter((k) => k !== 'recipes' || Data.can('recipes.save')).forEach((k) =>
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('masters')), tabs), body));
   ({ items, parties, recipes })[tab](body, isAdmin);
@@ -29,7 +29,7 @@ async function save(action, payload, close, err) {
 }
 
 function items(body, isAdmin) {
-  const canMin = ['admin', 'purchasing'].includes(Data.user.role);
+  const canMin = Data.can('min_stock');
   const search = trackFilled(h('input.input#m-search', { type: 'search', placeholder: t('lookup_hint') }));
   const showInactive = h('input#m-inactive', { type: 'checkbox' });
   const tb = h('tbody');

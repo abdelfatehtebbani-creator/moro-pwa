@@ -1,67 +1,71 @@
 /**
- * Perm.gs – who may call what. One table, checked once in the router for every action,
- * plus finer checks inside services (movement kinds, own records).
+ * Perm.gs – who may do what.
  *
- * admin        everything
- * storekeeper  receipts, issues, returns, production; edits own entries; no delete, users or archive
- * purchasing   receipts and supplier returns, items/suppliers, min stock, price data; edits own entries
- * production   reads balances, creates department requests
+ * Permissions are grouped into capabilities (CAPS). Each role has default capabilities; the admin
+ * can give a user a different set (Users.caps, comma separated). Empty caps = the role's defaults.
+ * Every server action is checked once in the router against the user's effective permissions.
  */
 var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
 
-var PERMISSIONS = {
-  'auth.me':            ALL_ROLES,
-  'auth.changePin':     ALL_ROLES,
-  'data.bootstrap':     ALL_ROLES,
-  'data.version':       ALL_ROLES,
-  'movements.query':    ALL_ROLES,
-  'movements.save':     ['admin', 'storekeeper', 'purchasing'],
-  'movements.update':   ['admin', 'storekeeper', 'purchasing'],
-  'movements.delete':   ['admin'],
-  'items.save':         ['admin', 'storekeeper', 'purchasing'],
-  'parties.save':       ['admin', 'storekeeper', 'purchasing'],
-  'lists.save':         ['admin', 'purchasing'],
-  'recipes.save':       ['admin'],
-  'production.preview': ['admin', 'storekeeper'],
-  'production.post':    ['admin', 'storekeeper'],
-  'requests.list':      ALL_ROLES,
-  'requests.create':    ['admin', 'storekeeper', 'production'],
-  'requests.fulfil':    ['admin', 'storekeeper'],
-  'requests.cancel':    ['admin', 'storekeeper', 'production'],
-  'users.list':         ['admin'],
-  'users.save':         ['admin'],
-  'audit.list':         ['admin']
+/** Actions every signed-in user may call. */
+var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list'];
+
+/** Capability → the actions/permissions it opens. Order = order shown in the app. */
+var CAPS = {
+  receive:        ['movements.save', 'kind.RECEIPT', 'kind.SUPPLIER_RETURN'],
+  issue:          ['movements.save', 'kind.ISSUE', 'kind.DEPT_RETURN'],
+  production:     ['production.preview', 'production.post', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
+  request_create: ['requests.create', 'requests.cancel'],
+  request_fulfil: ['requests.fulfil', 'requests.cancel', 'requests.all'],
+  edit_own:       ['movements.update'],
+  edit_all:       ['movements.update', 'edit_any'],
+  delete:         ['movements.delete'],
+  masters:        ['items.save', 'parties.save'],
+  min_stock:      ['items.save', 'min_stock'],
+  rename:         ['items.save', 'parties.save', 'rename'],
+  lists:          ['lists.save'],
+  recipes:        ['recipes.save'],
+  see_prices:     ['see_prices'],
+  users:          ['users.list', 'users.save', 'audit.list']
 };
 
-/** Movement kinds each role may create. */
-var KIND_ROLES = {
-  RECEIPT:         ['admin', 'storekeeper', 'purchasing'],
-  SUPPLIER_RETURN: ['admin', 'storekeeper', 'purchasing'],
-  ISSUE:           ['admin', 'storekeeper'],
-  DEPT_RETURN:     ['admin', 'storekeeper'],
-  PROD_CONSUME:    ['admin', 'storekeeper'],
-  PROD_OUTPUT:     ['admin', 'storekeeper'],
-  ADJUST:          ['admin']
+var ROLE_CAPS = {
+  admin:       Object.keys(CAPS),
+  storekeeper: ['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices'],
+  purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices'],
+  production:  ['request_create']
 };
-
-/** Item/party changes only admin may make (renames and deactivation). */
-var ADMIN_ONLY_CHANGES = ['rename', 'deactivate'];
 
 var Perm = {
+  /** Capabilities of a user row: its own list, or its role's defaults. */
+  capsOf: function (u) {
+    var own = String(u.caps || '').split(',').map(function (c) { return c.trim(); }).filter(function (c) { return CAPS[c]; });
+    return own.length ? own : (ROLE_CAPS[u.role] || []).slice();
+  },
+
+  /** Effective permissions for a user row (array, no duplicates). */
+  permsOf: function (u) {
+    var set = {};
+    BASE_PERMS.forEach(function (p) { set[p] = true; });
+    Perm.capsOf(u).forEach(function (c) { CAPS[c].forEach(function (p) { set[p] = true; }); });
+    return Object.keys(set);
+  },
+
+  has: function (session, perm) {
+    return session.perms.indexOf(perm) >= 0;
+  },
+
   check: function (action, session) {
-    var roles = PERMISSIONS[action];
-    if (!roles) throw new AppError('unknown_action', action);
-    if (roles.indexOf(session.role) < 0) throw new AppError('forbidden', action);
+    if (!ROUTES[action]) throw new AppError('unknown_action', action);
+    if (!Perm.has(session, action)) throw new AppError('forbidden', action);
   },
+
   canKind: function (session, kind) {
-    var roles = KIND_ROLES[kind];
-    Util.require(roles, 'kind_invalid', kind);
-    Util.require(roles.indexOf(session.role) >= 0, 'forbidden', kind);
+    Util.require(SIGN[kind] !== undefined || kind === 'ADJUST', 'kind_invalid', kind);
+    Util.require(Perm.has(session, 'kind.' + kind), 'forbidden', kind);
   },
-  /** Actions this role may call, sent to the app so it can hide what the user cannot do. */
-  forRole: function (role) {
-    return Object.keys(PERMISSIONS).filter(function (a) { return PERMISSIONS[a].indexOf(role) >= 0; })
-      .concat(Object.keys(KIND_ROLES).filter(function (k) { return KIND_ROLES[k].indexOf(role) >= 0; })
-        .map(function (k) { return 'kind.' + k; }));
+
+  require: function (session, perm) {
+    Util.require(Perm.has(session, perm), 'forbidden', perm);
   }
 };

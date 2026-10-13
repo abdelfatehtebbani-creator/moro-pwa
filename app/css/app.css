@@ -260,3 +260,10 @@ input[type="date"].input { min-width: 0; }
 .combo-arrow:hover { background: #eef2f6; color: var(--ink); }
 .combo-list li.cur { font-weight: 600; }
 .combo-list { max-height: 320px; }
+
+.caps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.check.cap { align-items: flex-start; }
+.check.cap span { display: grid; line-height: 1.35; }
+.check.cap small { font-size: 12px; }
+.dialog { max-height: calc(100vh - 32px); overflow-y: auto; width: min(560px, 100%); }
+@media (max-width: 560px) { .caps { grid-template-columns: 1fr; } }

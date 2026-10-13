@@ -39,6 +39,8 @@ export const Data = {
     this.locations = objects(b.locations);
     this.purposes = objects(b.purposes);
     this.today = b.today;
+    this.capList = b.cap_list || [];
+    this.roleCaps = b.role_caps || {};
   },
 
   async loadCached() {

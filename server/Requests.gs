@@ -34,7 +34,7 @@ var Requests = {
     var lines = Repo.all('RequestLines');
     return Repo.all('Requests').filter(function (r) {
       if (p.status && r.status !== p.status) return false;
-      if (session.role === 'production' && r.requested_by !== session.user_id && !p.all) return false;
+      if (!Perm.has(session, 'requests.all') && r.requested_by !== session.user_id) return false;
       return true;
     }).reverse().slice(0, Number(p.limit) || 300).map(function (r) {
       r.lines = lines.filter(function (l) { return l.request_id === r.request_id; });
@@ -87,7 +87,7 @@ var Requests = {
     return withLock(function () {
       var req = Repo.find('Requests', 'request_id', p.request_id);
       Util.require(req && req.status === 'open', 'not_found');
-      if (session.role === 'production') Util.require(req.requested_by === session.user_id, 'forbidden', 'own_only');
+      if (!Perm.has(session, 'requests.fulfil')) Util.require(req.requested_by === session.user_id, 'forbidden', 'own_only');
       Repo.update('Requests', 'request_id', req.request_id, { status: 'cancelled', fulfilled_by: session.user_id,
                                                                fulfilled_at: Util.nowIso() });
       return { request_id: req.request_id, version: Version.bump() };

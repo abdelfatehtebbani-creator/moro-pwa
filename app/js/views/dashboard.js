@@ -8,7 +8,7 @@ import { h, toast, flash, trackFilled, fmtNum, fmtDate, dialog } from '../ui.js'
 let alertTab = 'low';
 
 export async function render(root) {
-  const canEditMin = Data.user && ['admin', 'purchasing'].includes(Data.user.role);
+  const canEditMin = Data.can('min_stock');
 
   // ---------- KPIs
   const kToday = h('b', '…');

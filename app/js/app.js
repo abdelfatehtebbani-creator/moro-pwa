@@ -96,6 +96,7 @@ function buildShell() {
     h('nav.nav', navLinks),
     h('div.side-foot',
       h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
+      h('button', { type: 'button', onclick: changePin }, t('change_pin')),
       h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
       h('button', { type: 'button', onclick: logout }, t('logout'))));
 

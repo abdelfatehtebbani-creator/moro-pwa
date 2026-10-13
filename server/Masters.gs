@@ -29,7 +29,7 @@ var Masters = {
       Util.require(cur, 'not_found');
       var ch = {};
       if (Util.key(name) !== Util.key(cur.name) || name !== cur.name) {
-        Util.require(session.role === 'admin', 'forbidden', 'rename');
+        Perm.require(session, 'rename');
         ch.name = name;
         var aliases = String(cur.aliases || '').split(' | ').filter(String);
         if (aliases.indexOf(cur.name) < 0) aliases.push(cur.name);
@@ -38,14 +38,14 @@ var Masters = {
       if (p.unit !== undefined) ch.unit = Util.clean(p.unit).toUpperCase() || cur.unit;
       if (p.category !== undefined) { Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid'); ch.category = p.category; }
       if (p.min_stock !== undefined) {
-        Util.require(['admin', 'purchasing'].indexOf(session.role) >= 0, 'forbidden', 'min_stock');
+        Perm.require(session, 'min_stock');
         var mn = Util.num(p.min_stock);
         Util.require(mn !== null && mn >= 0, 'min_invalid');
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
-        Util.require(session.role === 'admin', 'forbidden', 'deactivate');
+        Perm.require(session, 'rename');
         ch.active = p.active === true;
       }
       var res = Repo.update('Items', 'item_id', cur.item_id, ch);
@@ -74,9 +74,9 @@ var Masters = {
       var cur = Repo.find('Parties', 'party_id', p.party_id);
       Util.require(cur, 'not_found');
       var ch = {};
-      if (name !== cur.name) { Util.require(session.role === 'admin', 'forbidden', 'rename'); ch.name = name; }
+      if (name !== cur.name) { Perm.require(session, 'rename'); ch.name = name; }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
-        Util.require(session.role === 'admin', 'forbidden', 'deactivate');
+        Perm.require(session, 'rename');
         ch.active = p.active === true;
       }
       var res = Repo.update('Parties', 'party_id', cur.party_id, ch);
@@ -120,7 +120,10 @@ var Masters = {
     ['seq_movement', 'migrated_from', 'migrated_at'].forEach(function (k) { delete settings[k]; });
     return {
       user: session,
-      permissions: Perm.forRole(session.role),
+      permissions: session.perms,
+      caps: session.caps,
+      cap_list: Perm.has(session, 'users.save') ? Object.keys(CAPS) : [],
+      role_caps: Perm.has(session, 'users.save') ? ROLE_CAPS : {},
       version: Version.get(),
       today: Util.today(),
       settings: settings,
@@ -131,7 +134,7 @@ var Masters = {
       lists: Repo.raw('Lists'),
       recipes: Repo.raw('Recipes'),
       balances: Repo.raw('Balances'),
-      contacts: session.role === 'production' ? { columns: [], rows: [] } : Repo.raw('Contacts')
+      contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }
 };

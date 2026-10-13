@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#16263f">
-  <title>تثبيت MORO</title>
+  <title>Install MORO</title>
   <meta name="description" content="MORO – نظام إدارة المخزون لحلويات العكر. ثبّت التطبيق على الحاسوب أو الهاتف.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
@@ -38,92 +38,150 @@
     .step.mine { border-color: var(--teal); box-shadow: 0 0 0 2px #dff1f0; }
     .step h3 { margin: 0 0 6px; font-size: 16px; }
     .step ol { margin: 0; padding-inline-start: 20px; color: #3a4655; font-size: 14.5px; }
+    .hero { position: relative; }
+    .lang { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); inset-inline-end: 16px; background: transparent;
+      border: 1px solid #50678c; color: #fff; border-radius: 8px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
     footer { text-align: center; color: var(--muted); font-size: 13px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
     @media (max-width: 700px) { .features, .steps { grid-template-columns: 1fr; } .hero h1 { font-size: 28px; } }
   </style>
 </head>
 <body>
   <header class="hero">
+    <button class="lang" id="lang" type="button">العربية</button>
     <img src="icons/logo.png" alt="">
     <h1>MORO</h1>
-    <p>نظام إدارة المخزون لحلويات العكر: الاستلام والصرف والإنتاج والتقارير، على الحاسوب والهاتف، ببيانات واحدة مشتركة.</p>
+    <p data-t="intro"></p>
     <div class="install">
-      <button class="btn" id="install" type="button">⬇&nbsp; حمّل التطبيق من هنا</button>
-      <a class="btn" id="open" href="./" hidden>افتح التطبيق</a>
-      <a class="btn secondary" id="web" href="./">أو استعمله من المتصفح مباشرة</a>
+      <button class="btn" id="install" type="button">⬇&nbsp; <span data-t="install"></span></button>
+      <a class="btn" id="open" href="./" hidden data-t="open"></a>
+      <a class="btn secondary" id="web" href="./" data-t="web"></a>
       <div class="note" id="note"></div>
     </div>
   </header>
 
   <main>
     <section class="card">
-      <h2>ماذا يقدّم التطبيق</h2>
+      <h2 data-t="what"></h2>
       <div class="features">
-        <div class="feature"><b>استلام البضاعة</b><span>تسجيل الفواتير بالمورد والكمية والسعر والصلاحية ومكان التخزين.</span></div>
-        <div class="feature"><b>صرف للأقسام</b><span>إذن صرف برقم تلقائي، وطلبات الأقسام تُنفَّذ بضغطة.</span></div>
-        <div class="feature"><b>الإنتاج</b><span>خصم المكونات حسب الوصفة وإضافة المنتج إلى المخزون.</span></div>
-        <div class="feature"><b>التقارير</b><span>13 تقريرًا بصيغة PDF وExcel، وإرسالها عبر واتساب.</span></div>
-        <div class="feature"><b>يعمل دون إنترنت</b><span>تحفظ عملك وقت الانقطاع، ويُرسل وحده عند عودة الاتصال.</span></div>
-        <div class="feature"><b>لكل مستخدم صلاحياته</b><span>المدير، وأمين المخزن، ومسؤول المشتريات، ومسؤول الإنتاج.</span></div>
+        <div class="feature"><b data-t="f1"></b><span data-t="f1d"></span></div>
+        <div class="feature"><b data-t="f2"></b><span data-t="f2d"></span></div>
+        <div class="feature"><b data-t="f3"></b><span data-t="f3d"></span></div>
+        <div class="feature"><b data-t="f4"></b><span data-t="f4d"></span></div>
+        <div class="feature"><b data-t="f5"></b><span data-t="f5d"></span></div>
+        <div class="feature"><b data-t="f6"></b><span data-t="f6d"></span></div>
       </div>
     </section>
 
     <section class="card">
-      <h2>إن لم يظهر زر التحميل</h2>
+      <h2 data-t="manual"></h2>
       <div class="steps">
-        <div class="step" id="s-android"><h3>هاتف Android</h3><ol><li>افتح هذا الرابط في Chrome.</li><li>اضغط القائمة ⋮ أعلى الشاشة.</li><li>اختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".</li></ol></div>
-        <div class="step" id="s-ios"><h3>iPhone / iPad</h3><ol><li>افتح هذا الرابط في Safari.</li><li>اضغط زر المشاركة <b>⎋</b> أسفل الشاشة.</li><li>اختر "إضافة إلى الشاشة الرئيسية" ثم "إضافة".</li></ol></div>
-        <div class="step" id="s-pc"><h3>الحاسوب</h3><ol><li>افتح هذا الرابط في Chrome أو Edge.</li><li>اضغط أيقونة التثبيت في يمين شريط العنوان.</li><li>اختر "تثبيت".</li></ol></div>
+        <div class="step" id="s-android"><h3 data-t="android"></h3><ol><li data-t="a1"></li><li data-t="a2"></li><li data-t="a3"></li></ol></div>
+        <div class="step" id="s-ios"><h3>iPhone / iPad</h3><ol><li data-t="i1"></li><li data-t="i2"></li><li data-t="i3"></li></ol></div>
+        <div class="step" id="s-pc"><h3 data-t="pc"></h3><ol><li data-t="p1"></li><li data-t="p2"></li><li data-t="p3"></li></ol></div>
       </div>
     </section>
 
     <section class="card">
-      <h2>بعد التثبيت</h2>
-      <p style="margin:0">ادخل باسم المستخدم والرمز اللذين أعطاك إياهما المدير، ثم غيّر الرمز من "المزيد" ← "تغيير الرمز". التطبيق يتحدّث وحده عند كل إصدار جديد.</p>
+      <h2 data-t="after"></h2>
+      <p style="margin:0" data-t="afterd"></p>
     </section>
   </main>
 
   <footer>ALAKER SWEETS · MORO</footer>
 
   <script>
+    var T = {
+      en: {
+        intro: 'Inventory management for ALAKER SWEETS: receiving, issues, production and reports, on computer and phone, with one shared set of data.',
+        install: 'Download the app here', open: 'Open the app', web: 'or use it in the browser',
+        what: 'What the app does',
+        f1: 'Goods receiving', f1d: 'Record invoices with supplier, quantity, price, expiry and storage location.',
+        f2: 'Department issues', f2d: 'Issue slips numbered automatically; department requests issued in one tap.',
+        f3: 'Production', f3d: 'Ingredients deducted by recipe and the product added to stock.',
+        f4: 'Reports', f4d: '13 reports as PDF and Excel, and sent by WhatsApp.',
+        f5: 'Works offline', f5d: 'Keeps your work during an outage and sends it when the connection returns.',
+        f6: 'Permissions per user', f6d: 'Admin, storekeeper, purchasing and production manager.',
+        manual: 'If the download button does not open an install window', android: 'Android phone',
+        a1: 'Open this link in Chrome.', a2: 'Tap the menu at the top right.', a3: 'Choose "Install app" or "Add to Home screen".',
+        i1: 'Open this link in Safari.', i2: 'Tap the Share button at the bottom.', i3: 'Choose "Add to Home Screen", then "Add".',
+        pc: 'Computer', p1: 'Open this link in Chrome or Edge.', p2: 'Click the install icon at the right of the address bar.', p3: 'Choose "Install".',
+        after: 'After installing',
+        afterd: 'Sign in with the username and PIN your admin gave you, then change the PIN from the menu (Change PIN). The app updates itself with every new version.',
+        installed: 'The app is installed on this device.', done: 'Installed. You will find MORO among your apps.',
+        ios_note: 'On iPhone the app is installed from the Share button: follow the highlighted steps below.',
+        steps_note: 'Follow the highlighted steps below to install the app on your device.', other: 'العربية'
+      },
+      ar: {
+        intro: 'نظام إدارة المخزون لحلويات العكر: الاستلام والصرف والإنتاج والتقارير، على الحاسوب والهاتف، ببيانات واحدة مشتركة.',
+        install: 'حمّل التطبيق من هنا', open: 'افتح التطبيق', web: 'أو استعمله من المتصفح مباشرة',
+        what: 'ماذا يقدّم التطبيق',
+        f1: 'استلام البضاعة', f1d: 'تسجيل الفواتير بالمورد والكمية والسعر والصلاحية ومكان التخزين.',
+        f2: 'صرف للأقسام', f2d: 'إذن صرف برقم تلقائي، وطلبات الأقسام تُنفَّذ بضغطة.',
+        f3: 'الإنتاج', f3d: 'خصم المكونات حسب الوصفة وإضافة المنتج إلى المخزون.',
+        f4: 'التقارير', f4d: '13 تقريرًا بصيغة PDF وExcel، وإرسالها عبر واتساب.',
+        f5: 'يعمل دون إنترنت', f5d: 'تحفظ عملك وقت الانقطاع، ويُرسل وحده عند عودة الاتصال.',
+        f6: 'لكل مستخدم صلاحياته', f6d: 'المدير، وأمين المخزن، ومسؤول المشتريات، ومسؤول الإنتاج.',
+        manual: 'إن لم يفتح زر التحميل نافذة التثبيت', android: 'هاتف Android',
+        a1: 'افتح هذا الرابط في Chrome.', a2: 'اضغط القائمة أعلى الشاشة.', a3: 'اختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".',
+        i1: 'افتح هذا الرابط في Safari.', i2: 'اضغط زر المشاركة أسفل الشاشة.', i3: 'اختر "إضافة إلى الشاشة الرئيسية" ثم "إضافة".',
+        pc: 'الحاسوب', p1: 'افتح هذا الرابط في Chrome أو Edge.', p2: 'اضغط أيقونة التثبيت في يمين شريط العنوان.', p3: 'اختر "تثبيت".',
+        after: 'بعد التثبيت',
+        afterd: 'ادخل باسم المستخدم والرمز اللذين أعطاك إياهما المدير، ثم غيّر الرمز من القائمة "تغيير الرمز". التطبيق يتحدّث وحده عند كل إصدار جديد.',
+        installed: 'التطبيق مثبّت على هذا الجهاز.', done: 'تم التثبيت. ستجد MORO بين تطبيقاتك.',
+        ios_note: 'في iPhone يتم التثبيت من زر المشاركة: اتبع الخطوات المظللة أدناه.',
+        steps_note: 'اتبع الخطوات المظللة أدناه لتثبيت التطبيق على جهازك.', other: 'English'
+      }
+    };
     var installBtn = document.getElementById('install');
     var openBtn = document.getElementById('open');
     var note = document.getElementById('note');
+    // English by default; ?lang=ar or the button switches to Arabic
+    var lang = /[?&]lang=ar/.test(location.search) ? 'ar' : 'en';
+    var noteKey = '';
+    function apply() {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.title = lang === 'ar' ? 'تثبيت MORO' : 'Install MORO';
+      document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = T[lang][el.getAttribute('data-t')]; });
+      document.getElementById('lang').textContent = T[lang].other;
+      note.textContent = noteKey ? T[lang][noteKey] : '';
+    }
+    function say(key) { noteKey = key; note.textContent = T[lang][key]; }
+    document.getElementById('lang').addEventListener('click', function () { lang = lang === 'ar' ? 'en' : 'ar'; apply(); });
+
     var deferred = null;
     var ua = navigator.userAgent;
     var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var isAndroid = /Android/i.test(ua);
     var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-
-    // highlight the steps for this device
-    document.getElementById(isIOS ? 's-ios' : isAndroid ? 's-android' : 's-pc').classList.add('mine');
+    var steps = document.getElementById(isIOS ? 's-ios' : isAndroid ? 's-android' : 's-pc');
+    steps.classList.add('mine');
+    apply();
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
 
     // the button is always there: it opens the browser's install window when the browser offers one,
     // otherwise it points to the steps for this device (Safari on iPhone, or browsers without the window)
-    var stepsFor = function () { return document.getElementById(isIOS ? 's-ios' : isAndroid ? 's-android' : 's-pc'); };
     if (standalone) {
       installBtn.hidden = true;
       openBtn.hidden = false;
       document.getElementById('web').hidden = true;
-      note.textContent = 'التطبيق مثبّت على هذا الجهاز.';
+      say('installed');
     }
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
     installBtn.addEventListener('click', function () {
       if (deferred) {
         deferred.prompt();
         deferred.userChoice.then(function (r) {
-          if (r.outcome === 'accepted') { installBtn.hidden = true; openBtn.hidden = false; note.textContent = 'تم التثبيت. ستجد MORO بين تطبيقاتك.'; }
+          if (r.outcome === 'accepted') { installBtn.hidden = true; openBtn.hidden = false; say('done'); }
           deferred = null;
         });
         return;
       }
-      stepsFor().scrollIntoView({ behavior: 'smooth', block: 'center' });
-      note.textContent = isIOS ? 'في iPhone يتم التثبيت من زر المشاركة: اتبع الخطوات المظللة أدناه.'
-                               : 'اتبع الخطوات المظللة أدناه لتثبيت التطبيق على جهازك.';
+      steps.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      say(isIOS ? 'ios_note' : 'steps_note');
     });
-    window.addEventListener('appinstalled', function () { installBtn.hidden = true; openBtn.hidden = false; note.textContent = 'تم التثبيت. ستجد MORO بين تطبيقاتك.'; });
+    window.addEventListener('appinstalled', function () { installBtn.hidden = true; openBtn.hidden = false; say('done'); });
   </script>
 </body>
 </html>

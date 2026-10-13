@@ -162,13 +162,13 @@ export async function render(root) {
 
   async function editRecord(m) {
     if (m.pending) return;
-    const own = Data.user.role === 'admin' || m.created_by === Data.user.user_id;
+    const own = Data.can('edit_any') || m.created_by === Data.user.user_id;
     if (!own) { toast(t('err.forbidden'), 'err'); return; }
     const it = Data.items.get(m.item_id);
     const res = await dialog((close) => {
       const q = trackFilled(h('input.input.num#e-qty', { type: 'number', step: 'any', min: 0, value: Math.abs(Number(m.qty)) }));
       const d = trackFilled(h('input.input#e-date', { type: 'date', value: m.date }));
-      const del = h('button.btn.danger', { type: 'button', hidden: Data.user.role !== 'admin',
+      const del = h('button.btn.danger', { type: 'button', hidden: !Data.can('movements.delete'),
         onclick: () => { if (doublePress('del-' + m.movement_id)) close({ del: true }); else flash(del); } }, t('delete'));
       const ok = () => { if (!(Number(q.value) > 0)) return flash(q); close({ qty: Number(q.value), date: d.value }); };
       q.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });

@@ -240,3 +240,25 @@ test('production: consumes the recipe, adds the product, shortage does not block
   assert.equal(g.api('production.post', { product: 'x', qty: 1, date: TODAY }, tok.storekeeper).error.code, 'recipe_missing');
   assert.equal(g.api('production.post', { product: 'maamoul tamr', qty: 1, date: TODAY }, tok.purchasing).error.code, 'forbidden');
 });
+
+test('admin can give a user a custom set of capabilities, and reset it to the role defaults', () => {
+  const { g, tok } = env();
+  const prod = g.rows('Users').find((u) => u.username === 'production');
+  // production manager also allowed to receive goods, but still not to issue
+  const r = g.api('users.save', { user_id: prod.user_id, caps: ['request_create', 'receive'] }, tok.admin);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.deepEqual(r.data.caps, ['request_create', 'receive']);
+  assert.equal(g.api('movements.save', { movements: [receipt()] }, tok.production).ok, true);
+  assert.equal(g.api('movements.save', { movements: [issue()] }, tok.production).error.code, 'forbidden');
+  assert.ok(g.api('data.bootstrap', {}, tok.production).data.permissions.includes('kind.RECEIPT'));
+  // a caps list equal to the role defaults is stored as "defaults"
+  g.api('users.save', { user_id: prod.user_id, caps: ['request_create'] }, tok.admin);
+  assert.equal(g.rows('Users').find((u) => u.user_id === prod.user_id).caps, '');
+  // nobody can be left without someone able to manage users
+  const admin = g.rows('Users').find((u) => u.username === 'admin');
+  assert.equal(g.api('users.save', { user_id: admin.user_id, caps: ['receive'] }, tok.admin).error.code, 'last_admin');
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  assert.equal(g.api('users.save', { user_id: sk.user_id, caps: ['receive', 'users'] }, tok.admin).ok, true);
+  assert.equal(g.api('users.save', { user_id: admin.user_id, caps: ['receive'] }, tok.admin).ok, true);
+  assert.equal(g.api('users.list', {}, tok.storekeeper).ok, true);
+});

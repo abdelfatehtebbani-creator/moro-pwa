@@ -21,7 +21,7 @@ var SCHEMA = {
                  'client_id'],
   RequestLines: ['request_id', 'line_no', 'item_id', 'qty', 'unit', 'issued_qty', 'movement_id'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms'],
+                 'pin_changed_ms', 'caps'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
   Reminders:    ['date', 'message'],

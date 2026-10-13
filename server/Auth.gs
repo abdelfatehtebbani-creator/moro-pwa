@@ -40,7 +40,7 @@ var Auth = {
     return body + '.' + Auth.sign(body);
   },
 
-  /** Returns the session {user_id, username, display_name, role} or throws auth_required. */
+  /** Returns the session {user_id, username, display_name, role, caps, perms} or throws auth_required. */
   verify: function (token) {
     var parts = String(token || '').split('.');
     if (parts.length !== 4) throw new AppError('auth_required');
@@ -51,11 +51,13 @@ var Auth = {
     if (!u || u.active !== true) throw new AppError('auth_required');
     // a PIN change or reset invalidates tokens issued before it
     if (u.pin_changed_ms && Number(parts[1]) < Number(u.pin_changed_ms)) throw new AppError('auth_expired');
-    return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role };
+    return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role,
+             caps: Perm.capsOf(u), perms: Perm.permsOf(u) };
   },
 
   publicUser: function (u) {
-    return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role };
+    return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
+             custom_caps: !!String(u.caps || '').trim() };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -123,12 +125,14 @@ var Auth = {
 
   listUsers: function () {
     return Repo.all('Users').map(function (u) {
-      return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role,
-               active: u.active === true, last_login: u.last_login };
+      var o = Auth.publicUser(u);
+      o.active = u.active === true;
+      o.last_login = u.last_login;
+      return o;
     });
   },
 
-  /** Admin: change name/role/active, or reset a PIN. */
+  /** Admin: change name/role/active/capabilities, or reset a PIN. caps: array (custom) or null (role defaults). */
   saveUser: function (session, p) {
     if (!p.user_id) return Auth.createUser(p, session.user_id);
     var u = Repo.find('Users', 'user_id', p.user_id);
@@ -137,10 +141,19 @@ var Auth = {
     if (p.display_name !== undefined) changes.display_name = Util.clean(p.display_name) || u.username;
     if (p.role !== undefined) { Util.require(ROLES.indexOf(p.role) >= 0, 'role_invalid'); changes.role = p.role; }
     if (p.active !== undefined) changes.active = p.active === true;
-    // the last active admin cannot remove their own admin access
-    if (u.role === 'admin' && (changes.role && changes.role !== 'admin' || changes.active === false)) {
-      var admins = Repo.all('Users').filter(function (x) { return x.role === 'admin' && x.active === true; });
-      Util.require(admins.length > 1, 'last_admin');
+    if (p.caps !== undefined) {
+      var caps = (p.caps || []).filter(function (c, i, a) { return CAPS[c] && a.indexOf(c) === i; });
+      var role = changes.role || u.role;
+      var same = caps.length === ROLE_CAPS[role].length && caps.every(function (c) { return ROLE_CAPS[role].indexOf(c) >= 0; });
+      changes.caps = p.caps === null || same ? '' : caps.join(',');
+    }
+    // at least one active user must keep the right to manage users
+    var after = {};
+    Object.keys(u).forEach(function (k) { after[k] = u[k]; });
+    Object.keys(changes).forEach(function (k) { after[k] = changes[k]; });
+    if (Perm.capsOf(u).indexOf('users') >= 0 && u.active === true && (after.active !== true || Perm.capsOf(after).indexOf('users') < 0)) {
+      var managers = Repo.all('Users').filter(function (x) { return x.user_id !== u.user_id && x.active === true && Perm.capsOf(x).indexOf('users') >= 0; });
+      Util.require(managers.length > 0, 'last_admin');
     }
     var res = Repo.update('Users', 'user_id', u.user_id, changes);
     if (p.pin) { Auth.checkPinFormat(p.pin); Auth.setPin(u.user_id, p.pin); }

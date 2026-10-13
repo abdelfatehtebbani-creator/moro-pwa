@@ -161,7 +161,7 @@ export async function render(root) {
 
   function edit(m) {
     if (m.pending) return;
-    if (!(Data.user.role === 'admin' || m.created_by === Data.user.user_id)) { toast(t('err.forbidden'), 'err'); return; }
+    if (!(Data.can('edit_any') || m.created_by === Data.user.user_id)) { toast(t('err.forbidden'), 'err'); return; }
     const it = Data.items.get(m.item_id);
     if (it && it.category !== zone.value) zone.set(it.category, true);
     editing = m;
@@ -173,7 +173,7 @@ export async function render(root) {
     if (!location.value && m.location) location.input.value = m.location;
     [date, invoice, parcels, retail, qty, price, discount, amount, net, expiry].forEach((x) => x.dispatchEvent(new Event('change')));
     saveBtn.textContent = t('save_changes');
-    delBtn.hidden = Data.user.role !== 'admin';
+    delBtn.hidden = !Data.can('movements.delete');
     status.textContent = t('editing_record', { id: m.movement_id }); status.className = 'form-status';
     item.input.focus();
   }

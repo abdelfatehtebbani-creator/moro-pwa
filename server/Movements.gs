@@ -147,7 +147,7 @@ var Movements = {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
       Util.require(cur && cur.status === 'active', 'not_found');
-      if (session.role !== 'admin') {
+      if (!Perm.has(session, 'edit_any')) {
         Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
         Perm.canKind(session, cur.kind);
       }
@@ -214,7 +214,7 @@ var Movements = {
       return true;
     });
     // production users see quantities, not prices
-    if (session.role === 'production') {
+    if (!Perm.has(session, 'see_prices')) {
       ['price', 'per', 'amount', 'discount', 'final_amount'].forEach(function (f) {
         out = out.map(function (r) { r = r.slice(); r[c[f]] = ''; return r; });
       });
