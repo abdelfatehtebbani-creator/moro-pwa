@@ -7,8 +7,10 @@ import { h, toast, flash, fmtNum, trackFilled, dialog } from '../ui.js';
 import { combo, field } from '../components.js';
 
 let tab = 'items';
+let cleanup = null;
 
 export function render(root) {
+  if (cleanup) cleanup();
   const isAdmin = Data.can('rename');
   const tabs = h('div.tabs');
   const body = h('div');
@@ -18,6 +20,13 @@ export function render(root) {
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('masters')), tabs), body));
   ({ items, parties, recipes })[tab](body, isAdmin);
 }
+
+function watch(fill) {
+  window.addEventListener('moro:data', fill);
+  cleanup = () => { window.removeEventListener('moro:data', fill); cleanup = null; };
+}
+
+export function dispose() { if (cleanup) cleanup(); }
 
 async function save(action, payload, close, err) {
   try {
@@ -44,6 +53,7 @@ function items(body, isAdmin) {
   };
   search.addEventListener('input', fill);
   showInactive.addEventListener('change', fill);
+  watch(fill);
 
   const edit = (it) => dialog((close) => {
     const name = trackFilled(h('input.input#e-name', { value: it ? it.name : '', disabled: it && !isAdmin }));
@@ -79,6 +89,7 @@ function parties(body, isAdmin) {
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
     .map((p) => h('tr.click', { onclick: () => edit(p) }, h('td.num', p.party_id), h('td.wrap', h('bdi', p.name)),
       h('td', t('party_' + p.kind)), h('td', p.active === true ? '' : h('span.pill.out', t('inactive'))))));
+  watch(fill);
   const edit = (p) => dialog((close) => {
     const name = trackFilled(h('input.input#e-pname', { value: p ? p.name : '', disabled: p && !isAdmin }));
     const kind = h('select.input#e-kind', { disabled: !!p }, h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));

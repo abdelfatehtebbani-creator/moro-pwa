@@ -7,6 +7,8 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled } from '../ui.js';
 import { combo, field, doublePress, newId } from '../components.js';
 
+let cleanup = null;
+
 export async function render(root) {
   const canCreate = Data.can('requests.create');
   const canFulfil = Data.can('requests.fulfil');
@@ -60,8 +62,11 @@ export async function render(root) {
     t('req_' + (s || 'all')))));
   parts.push(h('div.card', h('div.card-head', h('h2', t('requests')), tabs), listBox));
 
-  async function loadList() {
-    listBox.replaceChildren(h('p.empty', '…'));
+  let touched = false;      // quantities being edited in a request: the auto refresh waits
+  listBox.addEventListener('input', () => { touched = true; });
+  async function loadList(quiet) {
+    touched = false;
+    if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
       const reqs = await call('requests.list', { status, all: true });
       listBox.replaceChildren(...(reqs.length ? reqs.map(card) : [h('p.empty', t('no_rows'))]));
@@ -110,4 +115,9 @@ export async function render(root) {
 
   root.replaceChildren(...parts);
   loadList();
+  const onData = () => { if (!touched && !listBox.contains(document.activeElement)) loadList(true); };
+  window.addEventListener('moro:data', onData);
+  cleanup = () => { window.removeEventListener('moro:data', onData); cleanup = null; };
 }
+
+export function dispose() { if (cleanup) cleanup(); }

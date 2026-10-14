@@ -77,7 +77,8 @@ async function start() {
   buildShell();
   route();
   if (cached) sync(true);
-  setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, 60000);
+  setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
 function allowed(name) { return Data.can(ROUTES[name].perm); }
@@ -113,6 +114,7 @@ function buildShell() {
   updateSync();
 }
 
+const AUTO_REFRESH_MS = 30000;
 let current = null;
 function route() {
   if (current && current.dispose) current.dispose();
