@@ -22,7 +22,7 @@ export const REPORTS = [
   { id: 'near', group: 'stock', opts: ['days', 'zero'], build: nearExpiry },
   { id: 'changes', group: 'move', opts: ['dates', 'mode', 'items?'], build: changes },
   { id: 'bySection', group: 'move', opts: ['dates', 'sections'], build: (p, m) => consumption(p, m, false) },
-  { id: 'byItem', group: 'move', opts: ['dates', 'sections'], build: (p, m) => consumption(p, m, true) },
+  { id: 'byItem', group: 'move', opts: ['dates', 'zoneItems'], build: (p, m) => consumption(p, m, true) },
   { id: 'itemOut', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, true) },
   { id: 'itemIn', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, false) },
   { id: 'multiMonth', group: 'move', opts: ['year', 'items'], build: multiMonth },
@@ -110,10 +110,12 @@ function changes(p, movs) {
 }
 
 function consumption(p, movs, byItem) {
-  const sel = p.sections || new Set();
+  // by department: the chosen departments; by item: the chosen items, issued to any department
+  const sel = (byItem ? p.items : p.sections) || new Set();
+  const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
   const groups = new Map();
   for (const m of movs) {
-    if (!inRange(m, p) || !sel.has(m.party_id)) continue;
+    if (!inRange(m, p) || !sel.has(byItem ? m.item_id : m.party_id) || !isSection(m.party_id)) continue;
     const k1 = byItem ? m.item_id : m.party_id;
     const k2 = byItem ? m.party_id : m.item_id;
     if (!groups.has(k1)) groups.set(k1, new Map());
