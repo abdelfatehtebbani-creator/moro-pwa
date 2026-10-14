@@ -5,7 +5,7 @@ import { Outbox } from './outbox.js';
 import { MovStore } from './movstore.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
-import { t, applyLang, getLang, setLang, errText } from './i18n.js';
+import { t, applyLang, getLang, setLang, errText, fmtDateTime } from './i18n.js';
 import { h, icon, toast, flash, trackFilled, dialog, fmtDate } from './ui.js';
 import { showAuth } from './views/login.js';
 import * as dashboard from './views/dashboard.js';
@@ -109,7 +109,7 @@ function buildShell() {
 
   title = h('h1', '');
   // a click on the indicator opens the list of refused saves (the phone also has it under "more")
-  syncEl = h('div.sync', { onclick: () => { if (Outbox.failed.length) location.hash = '#/failed'; } }, h('span.dot'), h('span', ''));
+  syncEl = h('div.sync', { onclick: () => { if (canSeeFailed()) location.hash = '#/failed'; } }, h('span.dot'), h('span', ''));
   content = h('section.content');
   root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
   updateSync();
@@ -121,7 +121,7 @@ function route() {
   if (current && current.dispose) current.dispose();
   let name = (location.hash.replace(/^#\/?/, '') || 'dashboard').split('?')[0];
   if (name === 'more') return showMore();
-  if (name === 'failed') return showFailed();
+  if (name === 'failed' && canSeeFailed()) return showFailed();
   if (!ROUTES[name] || !allowed(name)) name = 'dashboard';
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
@@ -146,6 +146,9 @@ function showMore() {
     failedCard());
 }
 
+/** Only the admin (who manages users) opens the refused list from the indicator. */
+const canSeeFailed = () => Outbox.failed.length > 0 && Data.can('users.save');
+
 /** The refused saves alone (opened from the connection indicator). */
 function showFailed() {
   if (current && current.dispose) current.dispose();
@@ -161,7 +164,8 @@ function failedCard(redraw = showMore) {
   const list = Outbox.failed;
   if (!list.length) return '';
   return h('div.card', h('h2', t('rejected_title')), h('small.muted', t('rejected_help')),
-    list.map((f) => h('div.req-card', h('b', f.label || f.action), h('span.muted', ' · ' + fmtDate(f.at.slice(0, 10))),
+    list.map((f) => h('div.req-card', h('b', h('bdi', f.label || f.action)),
+      h('span.muted', ' · ' + (t('job.' + f.action) === 'job.' + f.action ? f.action : t('job.' + f.action)) + ' · ' + fmtDateTime(new Date(f.at))),
       h('p.err-text', errText({ code: f.error, detail: f.detail })),
       h('button.link', { type: 'button', onclick: async () => { await Outbox.dropFailed(f.id); redraw(); } }, t('dismiss')))));
 }
@@ -213,8 +217,8 @@ function updateSync() {
   const online = navigator.onLine && lastSyncOk;
   syncEl.classList.toggle('offline', !online);
   syncEl.classList.toggle('pending', online && Outbox.pending > 0);
-  syncEl.classList.toggle('has-failed', Outbox.failed.length > 0);
-  syncEl.title = Outbox.failed.length ? t('rejected_title') : '';
+  syncEl.classList.toggle('has-failed', canSeeFailed());
+  syncEl.title = canSeeFailed() ? t('rejected_title') : '';
   const at = Data.syncedAt ? new Date(Data.syncedAt).toLocaleTimeString(getLang() === 'ar' ? 'ar-QA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
     (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (Outbox.failed.length ? ' · ⚠ ' + Outbox.failed.length : '');

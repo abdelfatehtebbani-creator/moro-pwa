@@ -142,11 +142,21 @@ var Movements = {
     });
   },
 
+  /** Throws not_found, or already_deleted with "<who>|<when ISO>" when someone deleted the row. */
+  requireActive: function (cur) {
+    Util.require(cur, 'not_found');
+    if (cur.status === 'deleted') {
+      var by = Repo.find('Users', 'user_id', cur.updated_by);
+      throw new AppError('already_deleted', (by ? by.display_name : cur.updated_by || '') + '|' + (cur.updated_at || ''));
+    }
+    Util.require(cur.status === 'active', 'not_found');
+  },
+
   /** payload: {movement_id, changes: {...EDITABLE}} */
   update: function (session, payload) {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
-      Util.require(cur && cur.status === 'active', 'not_found');
+      Movements.requireActive(cur);
       if (!Perm.has(session, 'edit_any')) {
         Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
         Perm.canKind(session, cur.kind);
@@ -178,7 +188,9 @@ var Movements = {
   remove: function (session, payload) {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
-      Util.require(cur && cur.status === 'active', 'not_found');
+      // already deleted (on another device, or this delete sent twice): the wanted result is there
+      if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
+      Movements.requireActive(cur);
       var res = Repo.update('Movements', 'movement_id', cur.movement_id,
         { status: 'deleted', updated_by: session.user_id, updated_at: Util.nowIso() });
       var d = {};

@@ -152,6 +152,15 @@ test('update and delete keep the balance right and are audited', () => {
   assert.equal(bal('I0002'), 0);
   assert.equal(g.rows('Movements').find((m) => m.movement_id === id).status, 'deleted');
   assert.deepEqual(g.rows('Audit').map((a) => a.action).filter((a) => a.startsWith('movement')), ['movement_update', 'movement_delete']);
+  // deleting again changes nothing; editing a deleted row says who deleted it and when
+  const again = g.api('movements.delete', { movement_id: id }, tok.admin);
+  assert.equal(again.ok, true);
+  assert.equal(again.data.already_deleted, true);
+  assert.equal(bal('I0002'), 0);
+  const late = g.api('movements.update', { movement_id: id, changes: { qty: 1 } }, tok.admin).error;
+  assert.equal(late.code, 'already_deleted');
+  assert.match(late.detail, /^.+\|\d{4}-\d{2}-\d{2}T/);
+  assert.equal(g.api('movements.update', { movement_id: 'M999999', changes: { qty: 1 } }, tok.admin).error.code, 'not_found');
   // deleted rows are hidden from queries unless asked
   const q = g.api('movements.query', {}, tok.admin).data;
   assert.ok(!q.rows.some((r) => r[q.columns.indexOf('movement_id')] === id));

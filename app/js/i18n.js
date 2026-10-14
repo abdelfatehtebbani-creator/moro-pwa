@@ -268,7 +268,9 @@ const DICT = {
     'err.username_taken': 'اسم المستخدم مستعمل', 'err.already_setup': 'تم إنشاء حساب المدير مسبقًا، سجّل الدخول',
     'err.forbidden': 'ليست لديك صلاحية لهذه العملية', 'err.busy': 'الخادم مشغول، حاول بعد لحظات',
     'err.auth_required': 'سجّل الدخول من جديد', 'err.auth_expired': 'انتهت الجلسة، سجّل الدخول من جديد',
-    'err.min_invalid': 'أدخل رقمًا صحيحًا', 'err.not_found': 'السجل غير موجود',
+    'err.min_invalid': 'أدخل رقمًا صحيحًا', 'err.not_found': 'السجل غير موجود', 'err.already_deleted': 'حذف هذا السجلَّ {by} في {at}',
+    'job.movements.save': 'حفظ', 'job.movements.update': 'تعديل', 'job.movements.delete': 'حذف',
+    'job.requests.create': 'طلب قسم', 'job.requests.fulfil': 'صرف طلب', 'job.requests.cancel': 'إلغاء طلب', 'job.production.post': 'إنتاج',
   },
   en: {
     app_name: 'MORO', app_sub: 'Materials Operations & Records Organizer', company: 'ALAKER SWEETS',
@@ -532,7 +534,9 @@ const DICT = {
     'err.username_taken': 'Username already used', 'err.already_setup': 'The admin account already exists, please sign in',
     'err.forbidden': "You don't have permission for this", 'err.busy': 'Server busy, try again in a moment',
     'err.auth_required': 'Please sign in again', 'err.auth_expired': 'Your session ended, please sign in again',
-    'err.min_invalid': 'Enter a valid number', 'err.not_found': 'Record not found',
+    'err.min_invalid': 'Enter a valid number', 'err.not_found': 'Record not found', 'err.already_deleted': 'Deleted by {by} on {at}',
+    'job.movements.save': 'Save', 'job.movements.update': 'Edit', 'job.movements.delete': 'Delete',
+    'job.requests.create': 'Department request', 'job.requests.fulfil': 'Request issue', 'job.requests.cancel': 'Request cancel', 'job.production.post': 'Production',
   },
 };
 
@@ -560,8 +564,20 @@ export function t(key, vars) {
 }
 
 /** Message for a server/network error. */
+/** "14-Oct-26 11:03" in the factory's time zone. */
+export function fmtDateTime(d) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Qatar', day: '2-digit', month: 'short', year: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value]));
+  return p.day + '-' + p.month + '-' + p.year + ' ' + p.hour + ':' + p.minute;
+}
+
 export function errText(e) {
   const code = e && e.code ? e.code : 'server_error';
+  if (code === 'already_deleted') {
+    const [by, at] = String(e.detail || '').split('|');
+    const when = at ? new Date(at.length === 19 ? at + '+03:00' : at) : null;
+    return t('err.already_deleted', { by: by || '?', at: when && !isNaN(when) ? fmtDateTime(when) : '?' });
+  }
   const key = 'err.' + code;
   const msg = t(key, { d: e.detail });
   return msg === key ? t('err.server_error') + ' (' + code + ')' : msg;
