@@ -271,3 +271,5 @@ input[type="date"].input { min-width: 0; }
 .check.cap small { font-size: 12px; }
 .dialog { max-height: calc(100vh - 32px); overflow-y: auto; width: min(560px, 100%); }
 @media (max-width: 560px) { .caps { grid-template-columns: 1fr; } }
+.sync.has-failed { cursor: pointer; }
+.sync.has-failed:hover span:last-child { text-decoration: underline; }

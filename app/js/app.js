@@ -108,7 +108,8 @@ function buildShell() {
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
-  syncEl = h('div.sync', h('span.dot'), h('span', ''));
+  // a click on the indicator opens the list of refused saves (the phone also has it under "more")
+  syncEl = h('div.sync', { onclick: () => { if (Outbox.failed.length) location.hash = '#/more'; } }, h('span.dot'), h('span', ''));
   content = h('section.content');
   root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
   updateSync();
@@ -201,6 +202,8 @@ function updateSync() {
   const online = navigator.onLine && lastSyncOk;
   syncEl.classList.toggle('offline', !online);
   syncEl.classList.toggle('pending', online && Outbox.pending > 0);
+  syncEl.classList.toggle('has-failed', Outbox.failed.length > 0);
+  syncEl.title = Outbox.failed.length ? t('rejected_title') : '';
   const at = Data.syncedAt ? new Date(Data.syncedAt).toLocaleTimeString(getLang() === 'ar' ? 'ar-QA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
     (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (Outbox.failed.length ? ' · ⚠ ' + Outbox.failed.length : '');
