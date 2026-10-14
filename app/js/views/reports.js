@@ -13,8 +13,8 @@ let selected = 'fast';
 const state = {};        // options per report, kept while the app is open
 
 
-function multiSelect(id, options, chosen) {
-  const search = trackFilled(h('input.input#' + id + '-q', { type: 'search', placeholder: t('lookup_hint') }));
+function multiSelect(id, options, chosen, hint = 'lookup_hint') {
+  const search = trackFilled(h('input.input#' + id + '-q', { type: 'search', placeholder: t(hint) }));
   const box = h('div.ms-list');
   const count = h('small.muted', '');
   const draw = () => {
@@ -127,7 +127,7 @@ export function render(root) {
       parts.push(h('p.muted', t('list_count', { n: Data.list(list).size })));
       if (Data.can('lists.save')) parts.push(h('button.btn.secondary', { type: 'button', onclick: () => editList(list) }, t('edit_list')));
     }
-    if (o.includes('sections')) parts.push(h('div.field', h('label', t('departments')), multiSelect('rp-sec', sectionOpts, p.sections)));
+    if (o.includes('sections')) parts.push(h('div.field', h('label', t('departments')), multiSelect('rp-sec', sectionOpts, p.sections, 'dept_hint')));
     if (o.includes('zoneItems')) {
       const tabs = h('div.tabs');
       ['Food', 'Packaging'].forEach((z) => tabs.append(h('button', { type: 'button', class: p.zone === z ? 'on' : '', onclick: () => { p.zone = z; p.items.clear(); drawOpts(); } }, t(z === 'Food' ? 'food' : 'packaging'))));
