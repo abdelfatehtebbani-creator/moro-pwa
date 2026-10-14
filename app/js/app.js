@@ -109,7 +109,7 @@ function buildShell() {
 
   title = h('h1', '');
   // a click on the indicator opens the list of refused saves (the phone also has it under "more")
-  syncEl = h('div.sync', { onclick: () => { if (Outbox.failed.length) location.hash = '#/more'; } }, h('span.dot'), h('span', ''));
+  syncEl = h('div.sync', { onclick: () => { if (Outbox.failed.length) location.hash = '#/failed'; } }, h('span.dot'), h('span', ''));
   content = h('section.content');
   root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
   updateSync();
@@ -121,6 +121,7 @@ function route() {
   if (current && current.dispose) current.dispose();
   let name = (location.hash.replace(/^#\/?/, '') || 'dashboard').split('?')[0];
   if (name === 'more') return showMore();
+  if (name === 'failed') return showFailed();
   if (!ROUTES[name] || !allowed(name)) name = 'dashboard';
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
@@ -145,14 +146,24 @@ function showMore() {
     failedCard());
 }
 
+/** The refused saves alone (opened from the connection indicator). */
+function showFailed() {
+  if (current && current.dispose) current.dispose();
+  current = null;
+  title.textContent = t('rejected_title');
+  document.querySelectorAll('[data-route]').forEach((a) => a.classList.remove('active'));
+  content.replaceChildren(failedCard(showFailed) || h('div.card', h('p.empty', t('no_rows'))));
+  window.scrollTo(0, 0);
+}
+
 /** Saves the server refused (a rule failed): shown so nothing is lost silently. */
-function failedCard() {
+function failedCard(redraw = showMore) {
   const list = Outbox.failed;
   if (!list.length) return '';
   return h('div.card', h('h2', t('rejected_title')), h('small.muted', t('rejected_help')),
     list.map((f) => h('div.req-card', h('b', f.label || f.action), h('span.muted', ' · ' + fmtDate(f.at.slice(0, 10))),
       h('p.err-text', errText({ code: f.error, detail: f.detail })),
-      h('button.link', { type: 'button', onclick: async () => { await Outbox.dropFailed(f.id); showMore(); } }, t('dismiss')))));
+      h('button.link', { type: 'button', onclick: async () => { await Outbox.dropFailed(f.id); redraw(); } }, t('dismiss')))));
 }
 
 async function changePin() {
