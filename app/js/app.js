@@ -143,7 +143,7 @@ function showMore() {
     h('button.btn.secondary', { type: 'button', onclick: changePin }, t('change_pin')),
     h('button.btn.secondary', { type: 'button', onclick: toggleLang }, t('lang_other')),
     h('button.btn.danger', { type: 'button', onclick: logout }, t('logout'))),
-    failedCard());
+    canSeeFailed() ? failedCard() : '');
 }
 
 /** Only the admin (who manages users) opens the refused list from the indicator. */
@@ -221,7 +221,7 @@ function updateSync() {
   syncEl.title = canSeeFailed() ? t('rejected_title') : '';
   const at = Data.syncedAt ? new Date(Data.syncedAt).toLocaleTimeString(getLang() === 'ar' ? 'ar-QA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
-    (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (Outbox.failed.length ? ' · ⚠ ' + Outbox.failed.length : '');
+    (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (canSeeFailed() ? ' · ⚠ ' + Outbox.failed.length : '');
 }
 
 function toggleLang() {
