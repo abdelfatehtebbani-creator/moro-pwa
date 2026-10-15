@@ -14,11 +14,13 @@ export function render(root) {
   const isAdmin = Data.can('rename');
   const tabs = h('div.tabs');
   const body = h('div');
-  const names = { items: t('items'), parties: t('parties'), recipes: t('recipes') };
-  Object.keys(names).filter((k) => k !== 'recipes' || Data.can('recipes.save')).forEach((k) =>
+  const names = { items: t('items'), parties: t('parties'), locations: t('locations'), recipes: t('recipes') };
+  const may = { recipes: 'recipes.save', locations: 'locations.save' };
+  if (may[tab] && !Data.can(may[tab])) tab = 'items';
+  Object.keys(names).filter((k) => !may[k] || Data.can(may[k])).forEach((k) =>
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('masters')), tabs), body));
-  ({ items, parties, recipes })[tab](body, isAdmin);
+  ({ items, parties, locations, recipes })[tab](body, isAdmin);
 }
 
 function watch(fill) {
@@ -108,6 +110,36 @@ function parties(body, isAdmin) {
   }).then((r) => { if (r) fill(); });
   body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party'))),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('kind')), h('th', ''))), tb)));
+  fill();
+}
+
+function locations(body, isAdmin) {
+  const tb = h('tbody');
+  const fill = () => tb.replaceChildren(...[...Data.locations]
+    .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name, undefined, { numeric: true }))
+    .map((l) => h('tr.click', { onclick: () => edit(l) }, h('td.num', l.location_id), h('td.wrap', h('bdi', l.name)),
+      h('td', h('span', { class: 'pill ' + (l.category === 'Food' ? 'food' : 'pack') }, t(l.category === 'Food' ? 'food' : 'packaging'))),
+      h('td', l.active === false ? h('span.pill.out', t('inactive')) : ''))));
+  watch(fill);
+  const edit = (l) => dialog((close) => {
+    const name = trackFilled(h('input.input#e-lname', { value: l ? l.name : '', disabled: l && !isAdmin }));
+    const cat = h('select.input#e-lcat', { disabled: l && !isAdmin }, h('option', { value: 'Food' }, t('food')), h('option', { value: 'Packaging' }, t('packaging')));
+    cat.value = l ? l.category : 'Food';
+    const active = h('input#e-lactive', { type: 'checkbox', checked: !l || l.active !== false, disabled: !isAdmin });
+    const err = h('p.err-text', '');
+    const ok = () => {
+      if (!name.value.trim()) return flash(name);
+      const pl = { name: name.value, category: cat.value };
+      if (l) { pl.location_id = l.location_id; pl.active = active.checked; }
+      save('locations.save', pl, close, err);
+    };
+    return [h('h3', l ? t('edit_location') : t('new_location')), field(t('name'), name), field(t('category'), cat),
+      h('label.check', active, ' ', t('active')), l && !isAdmin ? h('small.muted', t('rename_admin_only')) : null,
+      h('small.muted', t('location_help')), err,
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+  }).then((r) => { if (r) fill(); });
+  body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_location'))),
+    h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('category')), h('th', ''))), tb)));
   fill();
 }
 

@@ -19,6 +19,7 @@ var ROUTES = {
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
+  'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },

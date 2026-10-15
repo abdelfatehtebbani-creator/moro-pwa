@@ -216,6 +216,24 @@ test('items: duplicates by name, renames and deactivation are admin-only, min st
   assert.equal(g.rows('Movements')[0].item_id, 'I0001');
 });
 
+test('storage locations: added by masters users, renamed and switched off by the admin only', () => {
+  const { g, tok } = env();
+  const add = g.api('locations.save', { name: ' Cold Room 2 ', category: 'Food' }, tok.storekeeper);
+  assert.equal(add.ok, true, JSON.stringify(add));
+  const id = add.data.location.location_id;
+  assert.match(id, /^L\d{2,}$/);
+  assert.equal(g.api('locations.save', { name: 'cold room 2', category: 'Packaging' }, tok.purchasing).error.code, 'name_taken');
+  assert.equal(g.api('locations.save', { name: 'X', category: 'Other' }, tok.admin).error.code, 'category_invalid');
+  assert.equal(g.api('locations.save', { name: 'Y', category: 'Food' }, tok.production).error.code, 'forbidden');
+  assert.equal(g.api('locations.save', { location_id: id, name: 'Cold Room B' }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('locations.save', { location_id: id, name: 'Cold Room 2', active: false }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('locations.save', { location_id: id, name: 'Cold Room B', active: false }, tok.admin).ok, true);
+  const row = g.rows('Locations').find((l) => l.location_id === id);
+  assert.equal(row.name, 'Cold Room B');
+  assert.equal(row.active, false);
+  assert.deepEqual(g.rows('Audit').map((a) => a.action).filter((a) => a.startsWith('location')), ['location_create', 'location_update']);
+});
+
 test('lists and recipes are replaced as a whole', () => {
   const { g, tok } = env();
   assert.equal(g.api('lists.save', { list: 'FAST', item_ids: ['I0001', 'I0002', 'I0001'] }, tok.purchasing).data.count, 2);

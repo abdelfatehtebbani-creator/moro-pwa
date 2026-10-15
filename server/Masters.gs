@@ -85,6 +85,45 @@ var Masters = {
     });
   },
 
+  /**
+   * payload: {location_id?, name, category, active}. Receipts keep the location's name as it was,
+   * so a rename shows in new receipts only. Like parties: anyone with "masters" adds, the admin
+   * renames or switches off (a switched-off location leaves the list, its history stays).
+   */
+  saveLocation: function (session, p) {
+    return withLock(function () {
+      var name = Util.clean(p.name);
+      Util.require(name, 'name_required');
+      var dup = Repo.all('Locations').filter(function (x) { return Util.key(x.name) === Util.key(name) && x.location_id !== p.location_id; });
+      Util.require(!dup.length, 'name_taken', dup.length ? dup[0].location_id : '');
+      if (!p.location_id) {
+        Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid');
+        var n = 0;
+        Repo.column('Locations', 'location_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
+        var loc = { location_id: 'L' + Util.pad(n + 1, 2), name: name, category: p.category, active: true };
+        Repo.append('Locations', [loc]);
+        Audit.log(session.user_id, 'location_create', 'Locations', loc.location_id, null, loc);
+        return { location: loc, version: Version.bump() };
+      }
+      var cur = Repo.find('Locations', 'location_id', p.location_id);
+      Util.require(cur, 'not_found');
+      var ch = {};
+      if (name !== cur.name) { Perm.require(session, 'rename'); ch.name = name; }
+      if (p.category !== undefined && p.category !== cur.category) {
+        Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid');
+        Perm.require(session, 'rename');
+        ch.category = p.category;
+      }
+      if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
+        Perm.require(session, 'rename');
+        ch.active = p.active === true;
+      }
+      var res = Repo.update('Locations', 'location_id', cur.location_id, ch);
+      Audit.log(session.user_id, 'location_update', 'Locations', cur.location_id, res.before, res.after);
+      return { location: res.after, version: Version.bump() };
+    });
+  },
+
   /** payload: {list: 'FAST'|'SENSITIVE', item_ids: [...]} – replaces that list. */
   saveList: function (session, p) {
     Util.require(['FAST', 'SENSITIVE'].indexOf(p.list) >= 0, 'list_invalid');

@@ -23,7 +23,7 @@ export async function render(root) {
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
   const unitOpts = () => [...new Set([...UNITS, ...Data.activeItems().map((i) => i.unit).filter(Boolean)])].map((u) => ({ value: u, label: u }));
-  const locOpts = () => Data.locations.filter((l) => l.category === zone.value).map((l) => ({ value: l.name, label: l.name }));
+  const locOpts = () => Data.locations.filter((l) => l.category === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
   const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
