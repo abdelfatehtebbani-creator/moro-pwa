@@ -120,6 +120,7 @@ tr.click { cursor: pointer; }
 .pill { display: inline-block; border-radius: 10px; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .pill.food { background: var(--food-soft); color: var(--food); }
 .pill.pack { background: var(--pack-soft); color: var(--pack); }
+.pill.cold { background: #d6e8fb; color: #1f5fa8; }
 .pill.low { background: var(--danger-soft); color: var(--danger); }
 .pill.soon { background: var(--warn-soft); color: var(--warn); }
 .pill.in { background: var(--ok-soft); color: var(--ok); }

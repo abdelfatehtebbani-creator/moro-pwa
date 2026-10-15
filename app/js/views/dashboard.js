@@ -2,10 +2,27 @@
 import { call } from '../api.js';
 import { kv } from '../db.js';
 import { Data, objects } from '../data.js';
+import { MovStore } from '../movstore.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, trackFilled, fmtNum, fmtDate, dialog } from '../ui.js';
 
 let alertTab = 'low';
+
+// Food kept cold: the latest receipt of the item went to a "Freezer …" or "Chiller …" location
+const COLD = /freezer|chiller/i;
+async function coldItems() {
+  const { list } = await MovStore.all();
+  const last = new Map();
+  for (const m of list) {
+    if (m.kind !== 'RECEIPT' || m.status === 'deleted') continue;
+    const k = (m.date || '') + '|' + (m.created_at || '');
+    const cur = last.get(m.item_id);
+    if (!cur || k > cur.k) last.set(m.item_id, { k, location: m.location || '' });
+  }
+  const out = new Map();
+  last.forEach((v, id) => { if (COLD.test(v.location)) out.set(id, v.location); });
+  return out;
+}
 
 export async function render(root) {
   const canEditMin = Data.can('min_stock');
@@ -22,6 +39,12 @@ export async function render(root) {
   const search = trackFilled(h('input.input#lookup', { type: 'search', placeholder: t('lookup_hint'), autocomplete: 'off' }));
   const count = h('span.muted.num', '');
   const lookBody = h('tbody');
+  let cold = new Map();
+  const zonePill = (i) => {
+    if (i.category !== 'Food') return h('span.pill.pack', t('packaging'));
+    const where = cold.get(i.item_id);
+    return h('span', { class: 'pill ' + (where ? 'cold' : 'food'), title: where || '' }, t('food'));
+  };
   const fillLookup = () => {
     const q = search.value.trim().toLowerCase();
     const rows = Data.activeItems().filter((i) => !q || i.name.toLowerCase().includes(q))
@@ -32,7 +55,7 @@ export async function render(root) {
       const qty = Data.qty(i.item_id);
       const low = Number(i.min_stock) > 0 && qty <= Number(i.min_stock);
       return h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(i) : null },
-        h('td.wrap', h('bdi', i.name), ' ', h('span', { class: 'pill ' + (i.category === 'Food' ? 'food' : 'pack') }, t(i.category === 'Food' ? 'food' : 'packaging'))),
+        h('td.wrap', h('bdi', i.name), ' ', zonePill(i)),
         h('td', i.unit),
         h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(qty)),
         h('td.num', Number(i.min_stock) > 0 ? fmtNum(i.min_stock) : ''),
@@ -40,6 +63,7 @@ export async function render(root) {
     }));
   };
   search.addEventListener('input', fillLookup);
+  coldItems().then((m) => { cold = m; fillLookup(); }).catch(() => {});
   const lookup = h('div.card',
     h('div.card-head', h('h2', t('lookup')), count),
     h('div.search', search),
