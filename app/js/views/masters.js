@@ -14,13 +14,13 @@ export function render(root) {
   const isAdmin = Data.can('rename');
   const tabs = h('div.tabs');
   const body = h('div');
-  const names = { items: t('items'), parties: t('parties'), locations: t('locations'), recipes: t('recipes') };
-  const may = { recipes: 'recipes.save', locations: 'locations.save' };
+  const names = { items: t('items'), parties: t('parties'), locations: t('locations'), units: t('units'), recipes: t('recipes') };
+  const may = { recipes: 'recipes.save', locations: 'locations.save', units: 'units.save' };
   if (may[tab] && !Data.can(may[tab])) tab = 'items';
   Object.keys(names).filter((k) => !may[k] || Data.can(may[k])).forEach((k) =>
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('masters')), tabs), body));
-  ({ items, parties, locations, recipes })[tab](body, isAdmin);
+  ({ items, parties, locations, units, recipes })[tab](body, isAdmin);
 }
 
 function watch(fill) {
@@ -61,14 +61,15 @@ function items(body, isAdmin) {
     const name = trackFilled(h('input.input#e-name', { value: it ? it.name : '', disabled: it && !isAdmin }));
     const cat = h('select.input#e-cat', h('option', { value: 'Food' }, t('food')), h('option', { value: 'Packaging' }, t('packaging')));
     cat.value = it ? it.category : 'Food';
-    const unit = trackFilled(h('input.input#e-unit', { value: it ? it.unit : '' }));
+    const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
+    if (it) unit.set(it.unit);
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
     const err = h('p.err-text', '');
     const ok = () => {
       if (!name.value.trim()) return flash(name);
-      if (!unit.value.trim()) return flash(unit);
-      const p = { name: name.value, category: cat.value, unit: unit.value };
+      if (!unit.input.value.trim()) return flash(unit.input);
+      const p = { name: name.value, category: cat.value, unit: unit.input.value.trim().toUpperCase() };
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       save('items.save', p, close, err);
@@ -140,6 +141,36 @@ function locations(body, isAdmin) {
   }).then((r) => { if (r) fill(); });
   body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_location'))),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('category')), h('th', ''))), tb)));
+  fill();
+}
+
+function units(body, isAdmin) {
+  const tb = h('tbody');
+  const used = () => { const n = new Map(); Data.items.forEach((i) => { if (i.active === true) n.set(i.unit, (n.get(i.unit) || 0) + 1); }); return n; };
+  const fill = () => {
+    const n = used();
+    tb.replaceChildren(...[...Data.units].sort((a, b) => String(a.unit).localeCompare(String(b.unit))).map((u) => {
+      const box = h('input', { type: 'checkbox', checked: u.active !== false, disabled: !isAdmin, 'aria-label': t('active') });
+      box.addEventListener('change', async () => {
+        box.disabled = true;
+        try { await call('units.save', { unit: u.unit, active: box.checked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+        catch (e) { box.checked = !box.checked; toast(errText(e), 'err'); }
+        box.disabled = false;
+      });
+      return h('tr', h('td.num', u.unit), h('td.num', n.get(u.unit) || ''), h('td', h('label.check', box, ' ', t('active'))));
+    }));
+  };
+  watch(fill);
+  const unit = trackFilled(h('input.input#e-newunit', { autocapitalize: 'characters', placeholder: 'TRAY' }));
+  const add = async () => {
+    if (!unit.value.trim()) return flash(unit);
+    try { await call('units.save', { unit: unit.value }); unit.value = ''; await Data.refresh(); toast(t('saved'), 'ok'); fill(); }
+    catch (e) { toast(errText(e), 'err'); flash(unit); }
+  };
+  unit.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+  body.replaceChildren(h('small.muted', t(isAdmin ? 'units_help' : 'units_help_add')),
+    h('div.search', unit, h('button.btn', { type: 'button', onclick: add }, '+ ' + t('new_unit'))),
+    h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('unit')), h('th', t('items_using')), h('th', ''))), tb)));
   fill();
 }
 

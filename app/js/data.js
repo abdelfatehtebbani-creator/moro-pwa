@@ -19,6 +19,7 @@ export const Data = {
   lists: [],
   recipes: [],
   locations: [],
+  units: [],
   purposes: [],
   settings: {},
   today: '',
@@ -37,6 +38,7 @@ export const Data = {
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
     this.locations = objects(b.locations);
+    this.units = objects(b.units || { columns: [], rows: [] });
     this.purposes = objects(b.purposes);
     this.today = b.today;
     this.capList = b.cap_list || [];
@@ -82,6 +84,13 @@ export const Data = {
   },
 
   can(action) { return this.perms.has(action); },
+
+  /** Active units (combo options), with `extra` added when it is not in the list. */
+  unitOptions(extra) {
+    const list = this.units.filter((u) => u.active !== false).map((u) => String(u.unit));
+    if (extra && !list.includes(extra)) list.push(extra);
+    return list.sort().map((u) => ({ value: u, label: u }));
+  },
   qty(itemId) { const b = this.balances.get(itemId); return b ? Number(b.qty) || 0 : 0; },
   todayIso() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qatar' }).format(new Date()); },
 

@@ -7,6 +7,7 @@ var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at'],
   Parties:      ['party_id', 'name', 'kind', 'active'],
   Locations:    ['location_id', 'name', 'category', 'active'],
+  Units:        ['unit', 'active'],
   Purposes:     ['purpose_id', 'name', 'active'],
   Movements:    ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',

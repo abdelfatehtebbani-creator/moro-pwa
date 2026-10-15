@@ -20,6 +20,7 @@ var ROUTES = {
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
+  'units.save':       function (s, p) { return Masters.saveUnit(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
@@ -64,12 +65,13 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '3';
+var SCHEMA_VERSION = '4';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {
     setupSheets();
     Repo.reset();
+    Masters.seedUnits();
     Settings.set('schema_version', SCHEMA_VERSION);
   });
 }

@@ -234,6 +234,23 @@ test('storage locations: added by masters users, renamed and switched off by the
   assert.deepEqual(g.rows('Audit').map((a) => a.action).filter((a) => a.startsWith('location')), ['location_create', 'location_update']);
 });
 
+test('units: seeded from the usual units and the items; added by masters users, switched off by the admin', () => {
+  const { g, tok } = env();
+  const units = g.rows('Units').map((u) => u.unit);
+  assert.deepEqual(units, ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G']);
+  assert.equal(g.api('units.save', { unit: ' tray ' }, tok.storekeeper).ok, true);
+  assert.equal(g.rows('Units').find((u) => u.unit === 'TRAY').active, true);
+  assert.equal(g.api('units.save', { unit: 'Tray' }, tok.purchasing).error.code, 'name_taken');
+  assert.equal(g.api('units.save', { unit: 'X' }, tok.production).error.code, 'forbidden');
+  assert.equal(g.api('units.save', { unit: 'TRAY', active: false }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('units.save', { unit: 'TRAY', active: false }, tok.admin).ok, true);
+  assert.equal(g.rows('Units').find((u) => u.unit === 'TRAY').active, false);
+  assert.equal(g.api('data.bootstrap', {}, tok.production).data.units.rows.length, 8);
+  // seeding runs once: units stay as the users left them
+  g.run("Masters.seedUnits()");
+  assert.equal(g.rows('Units').length, 8);
+});
+
 test('lists and recipes are replaced as a whole', () => {
   const { g, tok } = env();
   assert.equal(g.api('lists.save', { list: 'FAST', item_ids: ['I0001', 'I0002', 'I0001'] }, tok.purchasing).data.count, 2);

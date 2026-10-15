@@ -4,6 +4,7 @@
  */
 var CATEGORIES = ['Food', 'Packaging'];
 var PARTY_KINDS = ['supplier', 'section'];
+var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 
 var Masters = {
   /** payload: {item_id?, name, category, unit, min_stock, image, active} */
@@ -124,6 +125,38 @@ var Masters = {
     });
   },
 
+  /** First run of the Units sheet: the usual units plus every unit the items already use. */
+  seedUnits: function () {
+    if (Repo.all('Units').length) return;
+    var seen = {};
+    var units = DEFAULT_UNITS.concat(Repo.column('Items', 'unit')).map(function (u) { return Util.clean(u).toUpperCase(); })
+      .filter(function (u) { if (!u || seen[u]) return false; seen[u] = true; return true; });
+    Repo.append('Units', units.map(function (u) { return { unit: u, active: true }; }));
+  },
+
+  /**
+   * payload: {unit, active}. Items, balances and movements keep the unit as text, so a unit is never
+   * renamed: a new one is added and the old one switched off (it leaves the lists, history stays).
+   */
+  saveUnit: function (session, p) {
+    return withLock(function () {
+      var unit = Util.clean(p.unit).toUpperCase();
+      Util.require(unit, 'name_required');
+      var cur = Repo.find('Units', 'unit', unit);
+      if (!cur) {
+        Repo.append('Units', [{ unit: unit, active: true }]);
+        Audit.log(session.user_id, 'unit_create', 'Units', unit, null, { unit: unit, active: true });
+        return { unit: unit, version: Version.bump() };
+      }
+      Util.require(p.active !== undefined, 'name_taken', unit);
+      if ((p.active === true) === (cur.active === true)) return { unit: unit, version: Version.get() };
+      Perm.require(session, 'rename');
+      var res = Repo.update('Units', 'unit', unit, { active: p.active === true });
+      Audit.log(session.user_id, 'unit_update', 'Units', unit, res.before, res.after);
+      return { unit: unit, version: Version.bump() };
+    });
+  },
+
   /** payload: {list: 'FAST'|'SENSITIVE', item_ids: [...]} – replaces that list. */
   saveList: function (session, p) {
     Util.require(['FAST', 'SENSITIVE'].indexOf(p.list) >= 0, 'list_invalid');
@@ -169,6 +202,7 @@ var Masters = {
       items: Repo.raw('Items'),
       parties: Repo.raw('Parties'),
       locations: Repo.raw('Locations'),
+      units: Repo.raw('Units'),
       purposes: Repo.raw('Purposes'),
       lists: Repo.raw('Lists'),
       recipes: Repo.raw('Recipes'),

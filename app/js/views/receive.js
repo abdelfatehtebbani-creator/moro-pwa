@@ -8,7 +8,6 @@ import { t, errText } from '../i18n.js';
 import { h, toast, fmtNum, fmtDate, trackFilled } from '../ui.js';
 import { combo, field, enterNav, checkAll, zoneToggle, doublePress, newId } from '../components.js';
 
-const UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 let cleanup = null;
 
 export async function render(root) {
@@ -22,7 +21,8 @@ export async function render(root) {
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
-  const unitOpts = () => [...new Set([...UNITS, ...Data.activeItems().map((i) => i.unit).filter(Boolean)])].map((u) => ({ value: u, label: u }));
+  // the units in use, plus the chosen item's own unit even if it was switched off
+  const unitOpts = () => Data.unitOptions(item && item.value ? (Data.items.get(item.value) || {}).unit : '');
   const locOpts = () => Data.locations.filter((l) => l.category === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
   const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
