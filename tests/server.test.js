@@ -271,3 +271,16 @@ test('admin can give a user a custom set of capabilities, and reset it to the ro
   assert.equal(g.api('users.save', { user_id: admin.user_id, caps: ['receive'] }, tok.admin).ok, true);
   assert.equal(g.api('users.list', {}, tok.storekeeper).ok, true);
 });
+
+test('the spreadsheet owner can reset a forgotten PIN; the old PIN and sessions stop working', () => {
+  const { g, tok } = env();
+  for (let i = 0; i < 5; i++) g.api('auth.login', { username: 'admin', pin: '0000' });
+  assert.equal(g.api('auth.login', { username: 'admin', pin: '1234' }).error.code, 'login_locked');
+  g.run("Recovery.resetPin(' Admin ', '24680')");
+  assert.equal(g.api('auth.login', { username: 'admin', pin: '1234' }).ok, false);
+  assert.equal(g.api('auth.login', { username: 'admin', pin: '24680' }).ok, true);
+  assert.equal(g.api('auth.me', {}, tok.admin).error.code, 'auth_expired');
+  assert.equal(g.rows('Audit').filter((a) => a.action === 'pin_reset_owner').length, 1);
+  assert.throws(() => g.run("Recovery.resetPin('nobody', '1234')"));
+  assert.throws(() => g.run("Recovery.resetPin('admin', '12')"));
+});
