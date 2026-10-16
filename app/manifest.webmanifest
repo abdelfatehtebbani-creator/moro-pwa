@@ -4,6 +4,7 @@
   "description": "ALAKER SWEETS inventory: receiving, issues, production and reports",
   "lang": "ar",
   "dir": "rtl",
+  "id": "./?app=moro",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
