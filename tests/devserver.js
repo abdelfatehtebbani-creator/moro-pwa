@@ -4,6 +4,8 @@
  * (server/*.gs) running on in-memory sheets. Loads migration/out/*.csv when present so the
  * screens show realistic data; nothing is written back anywhere.
  *   node tests/devserver.js [port]
+ *   node tests/devserver.js [port] --proxy <web app URL>   the app on this computer, talking to a real server
+ *                                                          (MORO DIV) instead of the in-memory one
  */
 const http = require('node:http');
 const fs = require('node:fs');
@@ -11,6 +13,7 @@ const path = require('node:path');
 const { createGas } = require('./helpers/gas');
 
 const PORT = Number(process.argv[2]) || 8080;
+const PROXY = process.argv.includes('--proxy') ? process.argv[process.argv.indexOf('--proxy') + 1] : '';
 const APP = path.join(__dirname, '..', 'app');
 const OUT = path.join(__dirname, '..', 'migration', 'out');
 const NUMERIC = new Set(['qty', 'price', 'amount', 'discount', 'final_amount', 'min_stock', 'qty_per_unit']);
@@ -51,6 +54,18 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 http.createServer((req, res) => {
   // touch tests/out/OFFLINE to make /api fail like a lost connection (offline testing)
   if (req.url === '/api' && fs.existsSync(path.join(__dirname, 'out', 'OFFLINE'))) { req.socket.destroy(); return; }
+  if (req.method === 'POST' && req.url === '/api' && PROXY) {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', async () => {
+      try {
+        const r = await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' });
+        res.writeHead(r.ok ? 200 : 502, { 'Content-Type': 'application/json' });
+        res.end(await r.text());
+      } catch (e) { res.writeHead(502); res.end(JSON.stringify({ ok: false, error: { code: 'offline' } })); }
+    });
+    return;
+  }
   if (req.method === 'POST' && req.url === '/api') {
     let body = '';
     req.on('data', (c) => { body += c; });
@@ -67,5 +82,9 @@ http.createServer((req, res) => {
   const file = path.join(APP, p);
   if (!file.startsWith(APP) || !fs.existsSync(file)) { res.writeHead(404); res.end('not found'); return; }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+  if (PROXY && path.basename(file) === 'index.html') {     // a red "MORO DIV" tag so the test copy is never mistaken for the real one
+    res.end(fs.readFileSync(file, 'utf8').replace('</body>', '<div style="position:fixed;bottom:0;left:0;z-index:99999;background:#b71c1c;color:#fff;padding:3px 10px;font:600 12px sans-serif">MORO DIV · test copy</div></body>'));
+    return;
+  }
   fs.createReadStream(file).pipe(res);
-}).listen(PORT, () => console.log('MORO dev server on http://localhost:' + PORT));
+}).listen(PORT, () => console.log('MORO dev server on http://localhost:' + PORT + (PROXY ? ' -> ' + PROXY : '')));
