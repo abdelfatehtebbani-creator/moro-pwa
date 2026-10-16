@@ -143,7 +143,7 @@ var Shop = {
     return { line_id: l.line_id, order_id: l.order_id, order_no: l.order_no, order_item_id: l.order_item_id, shop_party_id: l.shop_party_id,
       item_id: l.item_id, qty: Number(l.qty), unit: l.unit, reserved_qty: Number(l.reserved_qty) || 0, handed_qty: Number(l.handed_qty) || 0,
       shortage: Shop.shortage(l), status: l.status, reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
-      handed_at: l.handed_at, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)) };
+      handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)) };
   },
 
   /**
@@ -213,6 +213,35 @@ var Shop = {
       var res = Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: 'unavailable', reserved_qty: 0, reason: reason,
         handed_by: session.user_id, updated_at: Util.nowIso() });
       Audit.log(session.user_id, 'shop_line_unavailable', 'ShopOrderLines', l.line_id, null, { reason: reason });
+      Shop.rebalance([l.item_id]);
+      return { line: Shop.view(res.after), version: Version.bump() };
+    });
+  },
+
+  /**
+   * Storekeeper: goods handed to distribution but not sent come back to the store.
+   * payload: {line_id, qty, reason, date, client_id}. Stock goes back up at once (a return from the shop);
+   * Masar sees returned_qty on the line.
+   */
+  returnLine: function (session, p) {
+    var reason = Util.clean(p.reason);
+    Util.require(reason, 'reason_required');
+    var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
+    Util.require(l, 'not_found');
+    Stores.requireItem(session, l.item_id);
+    var q = Util.round(Util.num(p.qty) || 0);
+    var can = Util.round((Number(l.handed_qty) || 0) - (Number(l.returned_qty) || 0));
+    Util.require(q > 0 && q <= can, 'qty_too_much', l.line_id);
+    var saved = Movements.save(session, { movements: [{ client_id: (p.client_id || l.line_id + '-r') + '-ret', kind: 'DEPT_RETURN',
+      date: p.date || Util.today(), party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit,
+      purpose: 'Not sent: ' + reason + ' (' + (l.order_no || l.order_id) + ')' }] });
+    return withLock(function () {
+      if (saved.saved[0].duplicate) return { line: Shop.view(l), version: Version.get() };
+      var cur = Repo.find('ShopOrderLines', 'line_id', l.line_id);
+      var ids = String(cur.movement_ids || '').split(' ').filter(String).concat([saved.saved[0].movement_id]).join(' ');
+      var res = Repo.update('ShopOrderLines', 'line_id', l.line_id, { returned_qty: Util.round((Number(cur.returned_qty) || 0) + q),
+        reason: reason, movement_ids: ids, updated_at: Util.nowIso() });
+      Audit.log(session.user_id, 'shop_line_return', 'ShopOrderLines', l.line_id, null, { qty: q, reason: reason });
       Shop.rebalance([l.item_id]);
       return { line: Shop.view(res.after), version: Version.bump() };
     });

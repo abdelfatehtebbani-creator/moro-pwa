@@ -14,7 +14,7 @@ var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version',
 var CAPS = {
   receive:        ['movements.save', 'kind.RECEIPT', 'kind.SUPPLIER_RETURN'],
   issue:          ['movements.save', 'kind.ISSUE', 'kind.DEPT_RETURN', 'kind.DISPOSAL'],
-  shop_orders:    ['shop.list', 'shop.hand', 'shop.unavailable', 'kind.ISSUE', 'movements.save'],
+  shop_orders:    ['shop.list', 'shop.hand', 'shop.unavailable', 'shop.return', 'kind.ISSUE', 'kind.DEPT_RETURN', 'movements.save'],
   production:     ['production.preview', 'production.post', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
   request_create: ['requests.create', 'requests.cancel'],
   request_fulfil: ['requests.fulfil', 'requests.cancel', 'requests.all'],

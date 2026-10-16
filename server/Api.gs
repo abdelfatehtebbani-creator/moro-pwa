@@ -35,6 +35,7 @@ var ROUTES = {
   'shop.list':        function (s, p) { return Shop.list(s, p); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
   'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
+  'shop.return':      function (s, p) { return Shop.returnLine(s, p); },
   'special.list':     function (s, p) { return Shop.listSpecial(s, p); },
   'special.decide':   function (s, p) { return Shop.decideSpecial(s, p); }
 };
@@ -71,7 +72,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '6';
+var SCHEMA_VERSION = '7';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {

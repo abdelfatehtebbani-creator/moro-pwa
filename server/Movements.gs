@@ -37,7 +37,8 @@ var Movements = {
     if (m.kind === 'SUPPLIER_RETURN') Util.require(party.kind === 'supplier', 'party_not_supplier');
     // issues go to a department, or to a shop (a shop order handed to distribution)
     if (m.kind === 'ISSUE') Util.require(party.kind === 'section' || party.kind === 'shop', 'party_not_section');
-    if (m.kind === 'DEPT_RETURN') Util.require(party.kind === 'section', 'party_not_section');
+    // returns come back from a department, or from a shop (goods handed for a shop order but not sent)
+    if (m.kind === 'DEPT_RETURN') Util.require(party.kind === 'section' || party.kind === 'shop', 'party_not_section');
     if (m.expiry) Util.require(Util.isDate(m.expiry), 'expiry_invalid');
     return item;
   },

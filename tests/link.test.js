@@ -81,6 +81,25 @@ test('shop order: reserved at once, shortage for the rest, each storekeeper sees
   assert.equal(g.api('shop.hand', { lines: [{ line_id: l2.line_id, qty: 9 }] }, tok.pack).error.code, 'qty_too_much');
 });
 
+test('goods handed but not sent come back as a return from the shop; Masar sees it', () => {
+  const { g, tok, link, bal } = env();
+  const l = link('link.orders.push', { lines: [line('R1', 'I0001', 4)] }).data.lines[0];
+  g.api('shop.hand', { client_id: 'h', lines: [{ line_id: l.line_id, qty: 4 }] }, tok.dry);
+  assert.equal(bal('I0001'), 6);
+  assert.equal(g.api('shop.return', { line_id: l.line_id, qty: 1 }, tok.dry).error.code, 'reason_required');
+  assert.equal(g.api('shop.return', { line_id: l.line_id, qty: 5, reason: 'truck full' }, tok.dry).error.code, 'qty_too_much');
+  assert.equal(g.api('shop.return', { line_id: l.line_id, qty: 3, reason: 'truck full' }, tok.pack).error.code, 'store_forbidden');
+  const r = g.api('shop.return', { line_id: l.line_id, qty: 3, reason: 'truck full', client_id: 'x' }, tok.dry);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(bal('I0001'), 9);
+  const st = link('link.orders.status', {}).data.lines.find((x) => x.order_item_id === 'R1');
+  assert.equal(st.returned_qty, 3);
+  assert.equal(st.handed_qty, 4);
+  // sent again (resend of the same request): counted once
+  g.api('shop.return', { line_id: l.line_id, qty: 1, reason: 'truck full', client_id: 'x' }, tok.dry);
+  assert.equal(bal('I0001'), 9);
+});
+
 test('stock that comes in covers waiting shop orders, oldest first', () => {
   const { g, tok, link } = env();
   link('link.orders.push', { lines: [line('A', 'I0002', 4)] });

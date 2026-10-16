@@ -61,11 +61,13 @@ export async function render(root) {
       const open = tab === 'open' && left > 0;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
-      const no = open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : null;
+      const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
+      const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
+        canBack && Data.canStore(l.store) ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
         t('line_' + l.status)) : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
       return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
-        h('td.num', fmtNum(l.handed_qty)), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
+        h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
         h('td', inp || '', ' ', no || ''));
     });
     const actions = h('div.form-actions');
@@ -102,6 +104,26 @@ export async function render(root) {
     if (!reason) return;
     try { await call('shop.unavailable', { line_id: l.line_id, reason }); toast(t('saved'), 'ok'); load(); }
     catch (e) { toast(errText(e), 'err'); }
+  }
+
+  async function notSent(l) {
+    const can = Math.round((l.handed_qty - (l.returned_qty || 0)) * 1e6) / 1e6;
+    const res = await dialog((close) => {
+      const q = trackFilled(h('input.input.num#sl-back', { type: 'number', step: 'any', min: 0, value: can }));
+      const r = trackFilled(h('input.input#sl-back-why', { placeholder: t('reason') }));
+      const ok = () => {
+        if (!(Number(q.value) > 0) || Number(q.value) > can) return flash(q);
+        if (!r.value.trim()) return flash(r);
+        close({ qty: Number(q.value), reason: r.value.trim() });
+      };
+      return [h('h3', t('not_sent'), ': ', h('bdi', itemOf(l.item_id).name)), h('small.muted', t('not_sent_help')),
+        field(t('qty'), q), field(t('reason'), r),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+    });
+    if (!res) return;
+    await Outbox.add('shop.return', { line_id: l.line_id, date: Data.todayIso(), client_id: newId(), ...res }, itemOf(l.item_id).name);
+    toast(t('saved'), 'ok');
+    setTimeout(load, 2000);
   }
 
   function drawSpecial(list) {
@@ -152,7 +174,7 @@ export async function render(root) {
   }
 
   const onData = () => { if (!touched && !body.contains(document.activeElement)) load(true); };
-  const onSent = (e) => { if (e.detail && e.detail.action === 'shop.hand') load(true); };
+  const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) load(true); };
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
   cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent); cleanup = null; };
