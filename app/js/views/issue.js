@@ -17,12 +17,17 @@ export async function render(root) {
 
   if (!Data.myStores().length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
   const zone = storePicker(() => { item.clear(); info.textContent = ''; loadRecords(); item.input.focus(); });
-  const deptOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true)
-    .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
+  // "Disposal" (damaged / expired stock thrown away) is chosen like a department and needs a reason
+  const DISPOSAL = '__DISPOSAL__';
+  const deptOpts = () => (Data.can('kind.DISPOSAL') ? [{ value: DISPOSAL, label: '⚠ ' + t('disposal') }] : []).concat([...Data.parties.values()]
+    .filter((p) => p.kind === 'section' && p.active === true)
+    .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name })));
+  const reason = trackFilled(h('input.input#i-reason', { placeholder: t('disposal_reason') }));
+  const reasonField = h('div.field.wide', { hidden: true }, h('label', { for: 'i-reason' }, t('disposal_reason')), reason);
   const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
 
-  const dept = combo({ id: 'i-dept', options: deptOpts });
+  const dept = combo({ id: 'i-dept', options: deptOpts, onPick: (v) => { reasonField.hidden = v !== DISPOSAL; } });
   const date = trackFilled(h('input.input#i-date', { type: 'date', value: Data.todayIso() }));
   const item = combo({ id: 'i-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
   const qty = trackFilled(h('input.input.num#i-qty', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' }));
@@ -94,9 +99,13 @@ export async function render(root) {
   async function post() {
     if (!lines.length) { flash(item.input); status.textContent = t('no_lines'); status.className = 'form-status warn'; item.input.focus(); return; }
     if (!dept.value) { flash(dept.input); dept.input.disabled = false; dept.input.focus(); return; }
-    const movements = lines.map((l) => ({ client_id: newId(), kind: 'ISSUE', date: date.value, party_id: dept.value,
-      item_id: l.item_id, qty: l.qty, unit: l.unit }));
-    const deptName = Data.parties.get(dept.value).name;
+    const dispose = dept.value === DISPOSAL;
+    if (dispose && !reason.value.trim()) { flash(reason); reason.focus(); return; }
+    const movements = lines.map((l) => (dispose
+      ? { client_id: newId(), kind: 'DISPOSAL', date: date.value, party_id: '', item_id: l.item_id, qty: l.qty, unit: l.unit, purpose: reason.value.trim() }
+      : { client_id: newId(), kind: 'ISSUE', date: date.value, party_id: dept.value, item_id: l.item_id, qty: l.qty, unit: l.unit }));
+    const deptName = dispose ? t('disposal') : Data.parties.get(dept.value).name;
+    reason.value = ''; reasonField.hidden = true;
     const n = lines.length;
     lines = []; editIndex = -1;          // cleared before the await: a second Enter finds nothing to post
     drawLines();
@@ -146,7 +155,7 @@ export async function render(root) {
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
-        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', p ? p.name : '')),
+        h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : '')),
         h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtNum(Math.abs(Number(m.qty))) + ' ' + (m.unit || '')),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''));
     }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
@@ -156,7 +165,7 @@ export async function render(root) {
   async function loadRecords() {
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter((m) => m.kind === 'ISSUE' && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
+      records = res.list.filter((m) => (m.kind === 'ISSUE' || m.kind === 'DISPOSAL') && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -189,7 +198,7 @@ export async function render(root) {
     h('div.card.form-card',
       h('div.card-head', h('h2', t('issue_slip')), zone.el),
       h('div.form-grid',
-        field(t('department'), dept, { wide: true }), field(t('date'), date), h('div.field', h('label', t('slip_no')), h('div.slip-auto', t('slip_auto'))),
+        field(t('department'), dept, { wide: true }), reasonField, field(t('date'), date), h('div.field', h('label', t('slip_no')), h('div.slip-auto', t('slip_auto'))),
         field(t('item'), item, { wide: true }), info, field(t('qty'), qty), h('div.field.end', addBtn)),
       h('div.card-head', h('h2', t('slip_lines')), count),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('kind')), h('th', t('qty')), h('th', ''))), lineBody)),

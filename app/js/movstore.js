@@ -6,7 +6,7 @@ import { kv } from './db.js';
 import { Data, objects } from './data.js';
 import { Outbox } from './outbox.js';
 
-const SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1 };
+const SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, DISPOSAL: -1 };
 let memory = null;          // {version, list, at}
 let loading = null;
 

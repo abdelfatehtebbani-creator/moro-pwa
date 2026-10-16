@@ -41,6 +41,7 @@ export const Data = {
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
     this.locations = objects(b.locations);
+    this.reservedQty = b.reserved || {};
     this.units = objects(b.units || { columns: [], rows: [] });
     this.purposes = objects(b.purposes);
     this.today = b.today;
@@ -101,6 +102,9 @@ export const Data = {
     return Array.isArray(s) ? s.filter((x) => STORES.includes(x)) : STORES.slice();
   },
   canStore(store) { return this.myStores().includes(store); },
+  /** Quantity held for shop orders, and what is left for everything else. */
+  reserved(id) { return Number((this.reservedQty || {})[id]) || 0; },
+  available(id) { return Math.round((this.qty(id) - this.reserved(id)) * 1e6) / 1e6; },
 
   /** Active units (combo options), with `extra` added when it is not in the list. */
   unitOptions(extra) {

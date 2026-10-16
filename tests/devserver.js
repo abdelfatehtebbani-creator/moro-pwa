@@ -28,6 +28,8 @@ function parseCsv(text) {
 }
 
 const g = createGas();
+// local only: a fixed Masar link key so the link can be tried against this server
+g.run("PropertiesService.getScriptProperties().setProperty('LINK_SECRET', 'dev-link-key')");
 if (fs.existsSync(OUT)) {
   for (const f of fs.readdirSync(OUT).filter((n) => n.endsWith('.csv'))) {
     const name = f.slice(0, -4);
