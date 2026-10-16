@@ -1,12 +1,15 @@
 // Dashboard: KPI tiles, quick item search, alerts (minimum stock / expiry), latest movements.
 import { call } from '../api.js';
 import { kv } from '../db.js';
-import { Data, objects } from '../data.js';
+import { Data, objects, STORES } from '../data.js';
 import { storePill } from '../components.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, trackFilled, fmtNum, fmtDate, dialog } from '../ui.js';
 
-let alertTab = 'low';
+// the table shown under the four cards (none at first) and the store chosen in the quick search;
+// kept while the app is open, so a refresh of the data does not close what the user opened
+let panel = '';
+let lookStore = '';
 
 
 
@@ -15,11 +18,15 @@ export async function render(root) {
 
   // ---------- KPIs
   const kToday = h('b', '…');
+  const card = (cls, key, num, label) => h('button.kpi.' + cls, { type: 'button', 'data-panel': key, 'aria-expanded': String(panel === key),
+    onclick: () => open(panel === key ? '' : key) }, num, h('span', label));
   const kpis = h('div.kpis',
-    h('button.kpi.k1', { type: 'button', onclick: () => search.focus() }, h('b', fmtNum(Data.inStockCount())), h('span', t('kpi_items'))),
-    h('button.kpi.k2', { type: 'button', onclick: () => showAlerts('low') }, h('b', fmtNum(Data.lowStock().length)), h('span', t('kpi_low'))),
-    h('button.kpi.k3', { type: 'button', onclick: () => showAlerts('exp') }, h('b', fmtNum(Data.expiring(30).length)), h('span', t('kpi_exp'))),
-    h('button.kpi.k4', { type: 'button', onclick: () => recentCard.scrollIntoView({ behavior: 'smooth' }) }, kToday, h('span', t('kpi_today'))));
+    card('k1', 'items', h('b', fmtNum(Data.inStockCount())), t('kpi_items')),
+    card('k2', 'low', h('b', fmtNum(Data.lowStock().length)), t('kpi_low')),
+    card('k3', 'exp', h('b', fmtNum(Data.expiring(30).length)), t('kpi_exp')),
+    card('k4', 'today', kToday, t('kpi_today')));
+  const hint = h('p.muted.kpi-hint', t('kpi_hint'));
+  const panelBox = h('div.panel-box');
 
   // ---------- quick search
   const search = trackFilled(h('input.input#lookup', { type: 'search', placeholder: t('lookup_hint'), autocomplete: 'off' }));
@@ -27,7 +34,7 @@ export async function render(root) {
   const lookBody = h('tbody');
   const fillLookup = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = Data.activeItems().filter((i) => !q || i.name.toLowerCase().includes(q))
+    const rows = Data.activeItems().filter((i) => (!q || i.name.toLowerCase().includes(q)) && (!lookStore || Data.storeOf(i) === lookStore))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 300);
     count.textContent = t('items_count', { n: rows.length });
     lookBody.replaceChildren(...rows.map((i) => {
@@ -43,23 +50,25 @@ export async function render(root) {
     }));
   };
   search.addEventListener('input', fillLookup);
+  const storeTabs = h('div.tabs.store-tabs');
+  const drawStoreTabs = () => storeTabs.replaceChildren(...['', ...STORES].map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
+    onclick: () => { lookStore = s; drawStoreTabs(); fillLookup(); search.focus(); } }, s ? t('store_' + s) : t('all_stores'))));
+  drawStoreTabs();
   const lookup = h('div.card',
     h('div.card-head', h('h2', t('lookup')), count),
+    storeTabs,
     h('div.search', search),
     canEditMin ? h('small.muted', t('click_to_edit')) : null,
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('unit')), h('th', t('balance')), h('th', t('min_stock')), h('th', t('last_expiry')))), lookBody)));
 
   // ---------- alerts
-  const tabLow = h('button', { type: 'button', onclick: () => showAlerts('low') }, t('tab_low'));
-  const tabExp = h('button', { type: 'button', onclick: () => showAlerts('exp') }, t('tab_exp'));
+  const alertTitle = h('h2', '');
   const alertHead = h('thead');
   const alertBody = h('tbody');
-  const alerts = h('div.card', h('div.card-head', h('h2', t('alerts')), h('div.tabs', tabLow, tabExp)),
+  const alerts = h('div.card', h('div.card-head', alertTitle),
     h('div.table-wrap', h('table', alertHead, alertBody)));
   function showAlerts(tab) {
-    alertTab = tab;
-    tabLow.classList.toggle('on', tab === 'low');
-    tabExp.classList.toggle('on', tab === 'exp');
+    alertTitle.textContent = t(tab === 'low' ? 'kpi_low' : 'kpi_exp');
     if (tab === 'low') {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('available')), h('th', t('min_stock'))));
       const rows = Data.lowStock();
@@ -93,9 +102,18 @@ export async function render(root) {
   };
 
   const requestsNote = h('div');
-  root.replaceChildren(requestsNote, kpis, h('div.grid-2', lookup, alerts), recentCard);
+  function open(key) {
+    panel = key;
+    kpis.querySelectorAll('.kpi').forEach((b) => { b.classList.toggle('on', b.dataset.panel === key); b.setAttribute('aria-expanded', String(b.dataset.panel === key)); });
+    hint.hidden = !!key;
+    if (key === 'low' || key === 'exp') showAlerts(key);
+    panelBox.replaceChildren(...(key === 'items' ? [lookup] : key === 'low' || key === 'exp' ? [alerts] : key === 'today' ? [recentCard] : []));
+    if (key === 'items') search.focus();
+    if (key) panelBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  root.replaceChildren(requestsNote, kpis, hint, panelBox);
   fillLookup();
-  showAlerts(alertTab);
+  open(panel);
 
   // movements: cached copy first (offline), then the server
   const cached = await kv.get('recent');

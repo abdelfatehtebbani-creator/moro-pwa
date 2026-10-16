@@ -19,6 +19,7 @@ const DICT = {
     // dashboard
     kpi_items: 'مواد متوفرة في المخزن', kpi_low: 'مواد عند الحد الأدنى أو أقل', kpi_exp: 'صلاحية خلال 30 يومًا',
     kpi_today: 'حركات اليوم (استلام / صرف)', lookup: 'بحث سريع عن مادة', lookup_hint: 'اكتب أي جزء من اسم المادة', store: 'المخزن', stores: 'المخازن',
+    kpi_hint: 'اضغط على بطاقة لعرض تفاصيلها', all_stores: 'كل المخازن',
     store_CHILLED: 'مواد مبرَّدة', store_DRY: 'مواد جافة', store_PACK: 'تغليف', store_FINAL: 'منتجات نهائية',
     store_not_yours: 'هذا المخزن ليس من صلاحياتك', own_records_only: 'يمكنك تعديل أو حذف ما أدخلته أنت فقط',
     no_store: 'لم يُحدَّد لك أي مخزن بعد. اطلب من المدير تفعيل مخزنك من شاشة المستخدمين.', other_store: 'مخزن آخر',
@@ -295,6 +296,7 @@ const DICT = {
     online: 'Online', offline: 'Offline', updated_at: 'Updated {t}', refreshing: 'Updating…', connecting: 'Connecting…',
     kpi_items: 'Items in stock', kpi_low: 'Items at or below minimum', kpi_exp: 'Expiring within 30 days',
     kpi_today: "Today's movements (in / out)", lookup: 'Quick item search', lookup_hint: 'Type any part of the item name', store: 'Store', stores: 'Stores',
+    kpi_hint: 'Press a card to see its details', all_stores: 'All stores',
     store_CHILLED: 'Chilled foods', store_DRY: 'Dry foods', store_PACK: 'Packaging', store_FINAL: 'Final products',
     store_not_yours: 'This store is not one of yours', own_records_only: 'You can edit or delete only what you entered',
     no_store: 'No store is set for you yet. Ask the admin to tick your store in Users.', other_store: 'Other store',

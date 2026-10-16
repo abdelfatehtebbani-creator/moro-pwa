@@ -93,6 +93,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .kpi span { font-size: 13.5px; opacity: .92; }
 .kpi.k1 { background: var(--teal); } .kpi.k2 { background: var(--danger); } .kpi.k3 { background: var(--pack); } .kpi.k4 { background: #2f6fae; }
 .kpi:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.kpi.on { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--navy); }
+.kpi-hint { text-align: center; margin: 4px 0 0; }
+.store-tabs { flex-wrap: wrap; margin-bottom: 8px; }
 
 .btn { border: 0; border-radius: var(--radius); padding: 9px 16px; background: var(--teal); color: #fff; font-weight: 600; cursor: pointer; }
 .btn:active { transform: translateY(1px); filter: brightness(.9); }
