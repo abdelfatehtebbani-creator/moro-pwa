@@ -8,8 +8,8 @@
  *   - a return to the supplier needs only supplier, date, item, unit and quantity
  *   - an issue needs department, date, item and quantity; lines saved together share one slip number D-MMDD-NNN
  */
-var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1 };
-var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN'];
+var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1, DISPOSAL: -1 };
+var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN', 'DISPOSAL'];
 var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'final_amount',
                 'doc_no', 'location', 'expiry', 'purpose', 'image'];
 
@@ -20,6 +20,8 @@ var Movements = {
     var item = Repo.find('Items', 'item_id', m.item_id);
     Util.require(item, 'item_unknown', m.item_id);
     Util.require(item.active === true, 'item_inactive', item.name);
+    // a disposal (damaged / expired stock thrown away) has no party but needs a reason
+    if (m.kind === 'DISPOSAL') { Util.require(m.purpose, 'reason_required'); return item; }
     var party = Repo.find('Parties', 'party_id', m.party_id);
     Util.require(party, 'party_unknown', m.party_id);
     Util.require(typeof m.qty === 'number' && m.qty !== 0, 'qty_invalid');
@@ -33,7 +35,9 @@ var Movements = {
       if (item.category === 'Food') Util.require(Util.isDate(m.expiry), 'expiry_required');
     }
     if (m.kind === 'SUPPLIER_RETURN') Util.require(party.kind === 'supplier', 'party_not_supplier');
-    if (m.kind === 'ISSUE' || m.kind === 'DEPT_RETURN') Util.require(party.kind === 'section', 'party_not_section');
+    // issues go to a department, or to a shop (a shop order handed to distribution)
+    if (m.kind === 'ISSUE') Util.require(party.kind === 'section' || party.kind === 'shop', 'party_not_section');
+    if (m.kind === 'DEPT_RETURN') Util.require(party.kind === 'section', 'party_not_section');
     if (m.expiry) Util.require(Util.isDate(m.expiry), 'expiry_invalid');
     return item;
   },
@@ -142,6 +146,9 @@ var Movements = {
       });
       Repo.append('Movements', rows);
       Balances.apply(deltas, expiries);
+      // stock that came in goes first to shop orders still waiting for it
+      var inc = Object.keys(deltas).filter(function (id) { return deltas[id] > 0; });
+      if (inc.length) Shop.rebalance(inc);
       var v = rows.length ? Version.bump() : Version.get();
       return { saved: out, version: v };
     });

@@ -9,6 +9,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('MORO')
     .addItem('Reset a user PIN', 'resetPinFromSheet')
     .addItem('Apply store changes made in the sheet', 'applyStoresFromSheet')
+    .addItem('Create the Masar link key', 'newLinkKeyFromSheet')
     .addToUi();
 }
 
@@ -37,6 +38,13 @@ function applyStoresFromSheet() {
   } catch (e) {
     ui.alert('Not applied: ' + (e && e.code ? e.code : e));
   }
+}
+
+function newLinkKeyFromSheet() {
+  var ui = SpreadsheetApp.getUi();
+  var ok = ui.alert('Create the Masar link key', 'A new key replaces the old one: Masar stops reaching MORO until it gets the new key. Continue?', ui.ButtonSet.YES_NO);
+  if (ok !== ui.Button.YES) return;
+  ui.alert('Masar link key', 'Copy this key into Masar (Script Properties → MORO_LINK_KEY):\n\n' + Link.newSecret(), ui.ButtonSet.OK);
 }
 
 function resetPinFromSheet() {

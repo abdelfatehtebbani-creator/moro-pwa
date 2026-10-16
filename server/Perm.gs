@@ -13,7 +13,8 @@ var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version',
 /** Capability → the actions/permissions it opens. Order = order shown in the app. */
 var CAPS = {
   receive:        ['movements.save', 'kind.RECEIPT', 'kind.SUPPLIER_RETURN'],
-  issue:          ['movements.save', 'kind.ISSUE', 'kind.DEPT_RETURN'],
+  issue:          ['movements.save', 'kind.ISSUE', 'kind.DEPT_RETURN', 'kind.DISPOSAL'],
+  shop_orders:    ['shop.list', 'shop.hand', 'shop.unavailable', 'kind.ISSUE', 'movements.save'],
   production:     ['production.preview', 'production.post', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
   request_create: ['requests.create', 'requests.cancel'],
   request_fulfil: ['requests.fulfil', 'requests.cancel', 'requests.all'],
@@ -26,13 +27,14 @@ var CAPS = {
   lists:          ['lists.save'],
   recipes:        ['recipes.save'],
   see_prices:     ['see_prices'],
+  special:        ['special.list', 'special.decide', 'shop.list', 'shop.shortage'],
   users:          ['users.list', 'users.save', 'audit.list']
 };
 
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
-  storekeeper: ['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices'],
-  purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices'],
+  storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices'],
+  purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special'],
   production:  ['request_create']
 };
 

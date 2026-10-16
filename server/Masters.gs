@@ -3,7 +3,7 @@
  * Names are display text only; every relation uses the stable ID, so a rename touches one cell.
  */
 var CATEGORIES = ['Food', 'Packaging'];
-var PARTY_KINDS = ['supplier', 'section'];
+var PARTY_KINDS = ['supplier', 'section', 'shop'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 
 var Masters = {
@@ -22,7 +22,8 @@ var Masters = {
         Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
         var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: Stores.categoryOf(store), unit: Util.clean(p.unit).toUpperCase(),
                      min_stock: Util.num(p.min_stock) || 0, image: Util.clean(p.image), active: true, aliases: '',
-                     created_at: Util.nowIso(), store: store };
+                     created_at: Util.nowIso(), store: store,
+                     sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -56,6 +57,13 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      if (p.sale_price !== undefined) {
+        Perm.require(session, 'see_prices');
+        var sp = Util.num(p.sale_price);
+        Util.require(p.sale_price === '' || (sp !== null && sp >= 0), 'price_invalid');
+        ch.sale_price = p.sale_price === '' ? '' : sp;
+      }
+      if (p.shop_orderable !== undefined) ch.shop_orderable = p.shop_orderable === true;
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename');
         ch.active = p.active === true;
@@ -221,6 +229,7 @@ var Masters = {
       lists: Repo.raw('Lists'),
       recipes: Repo.raw('Recipes'),
       balances: Repo.raw('Balances'),
+      reserved: Shop.reservedMap(),
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }
