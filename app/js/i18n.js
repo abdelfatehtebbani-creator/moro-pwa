@@ -15,7 +15,7 @@ const DICT = {
     // roles
     role_admin: 'مدير', role_storekeeper: 'أمين المخزن', role_purchasing: 'مسؤول المشتريات', role_production: 'مسؤول الإنتاج',
     // sync
-    online: 'متصل', offline: 'دون اتصال', updated_at: 'آخر تحديث {t}', refreshing: 'جارٍ التحديث…',
+    online: 'متصل', offline: 'دون اتصال', updated_at: 'آخر تحديث {t}', refreshing: 'جارٍ التحديث…', connecting: 'جارٍ الاتصال…',
     // dashboard
     kpi_items: 'مواد متوفرة في المخزن', kpi_low: 'مواد عند الحد الأدنى أو أقل', kpi_exp: 'صلاحية خلال 30 يومًا',
     kpi_today: 'حركات اليوم (استلام / صرف)', lookup: 'بحث سريع عن مادة', lookup_hint: 'اكتب أي جزء من اسم المادة', store: 'المخزن', stores: 'المخازن',
@@ -292,7 +292,7 @@ const DICT = {
     dashboard: 'Dashboard', receive: 'Goods receiving', issue: 'Department issues', production: 'Production',
     requests: 'Department requests', reports: 'Reports', masters: 'Items & suppliers', users: 'Users', more: 'More',
     role_admin: 'Admin', role_storekeeper: 'Storekeeper', role_purchasing: 'Purchasing', role_production: 'Production manager',
-    online: 'Online', offline: 'Offline', updated_at: 'Updated {t}', refreshing: 'Updating…',
+    online: 'Online', offline: 'Offline', updated_at: 'Updated {t}', refreshing: 'Updating…', connecting: 'Connecting…',
     kpi_items: 'Items in stock', kpi_low: 'Items at or below minimum', kpi_exp: 'Expiring within 30 days',
     kpi_today: "Today's movements (in / out)", lookup: 'Quick item search', lookup_hint: 'Type any part of the item name', store: 'Store', stores: 'Stores',
     store_CHILLED: 'Chilled foods', store_DRY: 'Dry foods', store_PACK: 'Packaging', store_FINAL: 'Final products',

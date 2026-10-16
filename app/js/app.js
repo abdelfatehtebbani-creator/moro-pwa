@@ -58,6 +58,9 @@ window.addEventListener('moro:signed-out', async () => {
 async function start() {
   if (!session.token) {
     let setupNeeded = false;
+    root.replaceChildren(h('div.boot', h('img', { src: 'icons/logo.png', alt: '', width: 96, height: 96 }), h('span', 'MORO'),
+      h('small', t('connecting'))));
+    // a slow or missing answer (8 s at most) only means "show the sign-in screen"
     try { setupNeeded = (await call('ping')).setup_needed; } catch { /* offline: show login */ }
     await showAuth(root, setupNeeded);
   }
