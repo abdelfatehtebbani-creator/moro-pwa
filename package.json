@@ -6,6 +6,8 @@
   "scripts": {
     "test": "node --test \"tests/**/*.test.js\"",
     "push": "cd server && clasp push --force",
-    "deploy": "cd server && clasp push --force && clasp update-deployment AKfycbyVmnMLpT1Lv6vUlpKpuDT3-rwfk0DkQpMA_NSOO8B9KMSqvtO4sZb-TKY_MIPrzh3G"
+    "deploy": "cd server && clasp push --force && clasp update-deployment AKfycbyVmnMLpT1Lv6vUlpKpuDT3-rwfk0DkQpMA_NSOO8B9KMSqvtO4sZb-TKY_MIPrzh3G",
+    "deploy:dev": "cd server && clasp -P .clasp.dev.json push --force && clasp -P .clasp.dev.json update-deployment AKfycbxxek05XE5aHud3jDzpP3GLpyfViaX-xIicpobOb_UGFv01qz9g8BkZqdzwBSB97MeRQg",
+    "div": "node tests/devserver.js 8790 --proxy https://script.google.com/macros/s/AKfycbxxek05XE5aHud3jDzpP3GLpyfViaX-xIicpobOb_UGFv01qz9g8BkZqdzwBSB97MeRQg/exec"
   }
 }
