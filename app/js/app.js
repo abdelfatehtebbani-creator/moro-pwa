@@ -55,18 +55,25 @@ window.addEventListener('moro:signed-out', async () => {
   start();
 });
 
+const step = (s) => { window.__moroStep = s + ' ' + APP_VERSION; };
 async function start() {
+  step('start');
   if (!session.token) {
+    step('ping');
     let setupNeeded = false;
     root.replaceChildren(h('div.boot', h('img', { src: 'icons/logo.png', alt: '', width: 96, height: 96 }), h('span', 'MORO'),
       h('small', t('connecting'))));
     // a slow or missing answer (8 s at most) only means "show the sign-in screen"
     try { setupNeeded = (await call('ping')).setup_needed; } catch { /* offline: show login */ }
+    window.__moroStarted = true;           // the sign-in screen is up
     await showAuth(root, setupNeeded);
   }
+  step('cache');
   const cached = await Data.loadCached();
   if (!cached) {
+    step('refresh');
     root.replaceChildren(h('div.boot', h('img', { src: 'icons/logo.png', alt: '', width: 96, height: 96 }), h('span', t('refreshing'))));
+    window.__moroStarted = true;           // "Updating…" is shown; a failure shows its own message
     try {
       await Data.refresh();
     } catch (e) {
@@ -76,9 +83,12 @@ async function start() {
       return;
     }
   }
+  step('outbox');
   await Outbox.init();
+  step('shell');
   buildShell();
   route();
+  window.__moroStarted = true;
   if (cached) sync(true);
   setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });

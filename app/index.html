@@ -18,6 +18,37 @@
     <div class="boot"><img src="icons/logo.png" alt="" width="96" height="96"><span>MORO</span><small>Materials Operations &amp; Records Organizer</small></div>
   </div>
   <div id="toast" class="toast" role="status" hidden></div>
+  <script>
+    (function () {
+      if (/[?&]repair\b/.test(location.search)) {
+        var done = function () { location.replace(location.pathname); };
+        var jobs = [];
+        if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+        if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+        Promise.all(jobs).then(done, done);
+        return;
+      }
+      var errors = [];
+      window.addEventListener('error', function (e) { errors.push(e.message + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : '')); });
+      window.addEventListener('unhandledrejection', function (e) { var r = e.reason; errors.push(String(r && (r.message || r.code) || r)); });
+      setTimeout(function () {
+        if (window.__moroStarted) return;
+        var ar = (localStorage.getItem('moro.lang') || document.documentElement.lang) === 'ar';
+        var box = document.createElement('div');
+        box.className = 'boot-help';
+        box.innerHTML = '<p>' + (ar ? 'لم يكتمل تشغيل التطبيق.' : 'The app did not finish starting.') + '</p>' +
+          '<button type="button" class="btn" id="b-retry">' + (ar ? 'إعادة المحاولة' : 'Try again') + '</button> ' +
+          '<button type="button" class="btn secondary" id="b-repair">' + (ar ? 'إصلاح التطبيق' : 'Repair the app') + '</button>' +
+          '<small>' + (ar ? 'الإصلاح يعيد تحميل ملفات التطبيق فقط، ولا يمس البيانات المحفوظة.' : 'Repair reloads the app files only; saved data is kept.') + '</small>' +
+          '<code></code>';
+        box.querySelector('code').textContent = 'step: ' + (window.__moroStep || 'load') + (errors.length ? ' · ' + errors.slice(-3).join(' | ') : '');
+        var boot = document.querySelector('.boot');
+        (boot || document.body).appendChild(box);
+        box.querySelector('#b-retry').onclick = function () { location.reload(); };
+        box.querySelector('#b-repair').onclick = function () { location.replace(location.pathname + '?repair'); };
+      }, 15000);
+    })();
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
