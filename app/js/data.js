@@ -1,6 +1,6 @@
 // The device's copy of the master data and balances (from data.bootstrap), kept in IndexedDB so
 // the app opens without internet, and refreshed whenever the server's data version changes.
-import { call } from './api.js';
+import { call, session } from './api.js';
 import { kv } from './db.js';
 import { daysBetween } from './ui.js';
 
@@ -50,7 +50,9 @@ export const Data = {
 
   async loadCached() {
     const b = await kv.get('boot');
-    if (!b) return false;
+    // a copy without a user, or saved for another account than the one signed in, is not used
+    const uid = String(session.token || '').split('.')[0];
+    if (!b || !b.user || !b.user.user_id || (uid && b.user.user_id !== uid)) return false;
     this.boot = b;
     this.syncedAt = (await kv.get('boot_at')) || null;
     this.index();
