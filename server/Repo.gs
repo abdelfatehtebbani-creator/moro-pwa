@@ -105,6 +105,16 @@ var Repo = (function () {
     return null;
   }
 
+  /** Sets one column for every row in a single write: value = fn(rowObject). */
+  function setColumn(name, col, fn) {
+    var t = table(name);
+    var c = t.idx[col];
+    if (c === undefined) throw new Error('Unknown column ' + name + '.' + col);
+    if (!t.rows.length) return;
+    var vals = t.rows.map(function (r) { var v = fn(toObj(t, r)); r[c] = v === null || v === undefined ? '' : v; return [r[c]]; });
+    t.sh.getRange(2, c + 1, vals.length, 1).setValues(vals);
+  }
+
   /** Replaces every data row (used for small lists such as Lists and Recipes). */
   function replaceAll(name, objs) {
     var t = table(name);
@@ -117,5 +127,5 @@ var Repo = (function () {
   function reset() { tables = {}; }
 
   return { all: all, raw: raw, find: find, column: column, append: append, update: update, updateWhere: updateWhere,
-           replaceAll: replaceAll, reset: reset };
+           replaceAll: replaceAll, setColumn: setColumn, reset: reset };
 })();

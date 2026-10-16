@@ -1,10 +1,10 @@
 // Users (admin): add users, change name/role, deactivate, reset a PIN, and choose exactly what each
 // user may do. A user follows the defaults of their role until the admin ticks a different set.
 import { call } from '../api.js';
-import { Data } from '../data.js';
+import { Data, STORES } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
-import { field } from '../components.js';
+import { field, storePill } from '../components.js';
 
 const ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
 
@@ -20,7 +20,8 @@ export async function render(root) {
     try {
       const users = await call('users.list');
       tb.replaceChildren(...users.map((u) => h('tr.click', { onclick: () => edit(u) }, h('td', u.display_name), h('td.num', u.username),
-        h('td', t('role_' + u.role)), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults'))),
+        h('td', t('role_' + u.role)), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults')),
+          ' ', ...(u.stores || []).map((s) => storePill(s))),
         h('td.num', u.last_login ? fmtDate(u.last_login.slice(0, 10)) : ''), h('td', u.active ? '' : h('span.pill.out', t('inactive'))))));
     } catch (e) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -48,23 +49,35 @@ export async function render(root) {
       drawCaps();
       const reset = h('button.link', { type: 'button', onclick: () => { chosen = new Set(Data.roleCaps[role.value] || []); drawCaps(); } }, t('reset_to_role'));
 
+      // stores: the admin role always has all of them
+      const stores = new Set(u ? u.stores || [] : STORES);
+      const storeBox = h('div.caps');
+      const drawStores = () => storeBox.replaceChildren(...STORES.map((s) => {
+        const cb = h('input', { type: 'checkbox', checked: role.value === 'admin' || stores.has(s), disabled: role.value === 'admin' });
+        cb.addEventListener('change', () => { cb.checked ? stores.add(s) : stores.delete(s); });
+        return h('label.check.cap', cb, h('span', h('b', t('store_' + s))));
+      }));
+      role.addEventListener('change', drawStores);
+      drawStores();
+
       const ok = async () => {
         if (!name.value.trim()) return flash(name);
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
-        const p = { display_name: name.value, role: role.value, caps: [...chosen] };
+        const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)) };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
         if (pin.value) p.pin = pin.value;
         try {
           const saved = await call('users.save', p);
           // a new user is created with the role defaults: apply a different set right after
-          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen] });
+          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores });
           close(true);
         } catch (e) { err.textContent = errText(e); }
       };
       return [h('h3', u ? t('edit_user') : t('new_user')), field(t('display_name'), name), field(t('username'), user), field(t('role'), role),
         field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null,
-        h('div.card-head', h('b', t('permissions')), reset), capBox, err,
+        h('div.card-head', h('b', t('permissions')), reset), capBox,
+        h('div.card-head', h('b', t('stores'))), h('small.muted', t('stores_help')), storeBox, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
     });
     if (done) { toast(t('saved'), 'ok'); load(); }

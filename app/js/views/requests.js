@@ -5,7 +5,7 @@ import { Data } from '../data.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled } from '../ui.js';
-import { combo, field, doublePress, newId } from '../components.js';
+import { combo, field, doublePress, newId, storePill } from '../components.js';
 
 let cleanup = null;
 
@@ -79,11 +79,14 @@ export async function render(root) {
     const rows = r.lines.map((l) => {
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
       const left = Math.round((Number(l.qty) - Number(l.issued_qty || 0)) * 1e6) / 1e6;
-      const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial')
+      const store = l.store || Data.storeOf(Data.items.get(l.item_id));
+      const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial') && Data.canStore(store)
         ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
-      return h('tr', h('td.wrap', h('bdi', it.name)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
-        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))), h('td', inp || ''));
+      const other = canFulfil && left > 0 && !inp && (r.status === 'open' || r.status === 'partial');
+      return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
+        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))),
+        h('td', inp || (other ? h('small.muted', t('other_store')) : '')));
     });
     const actions = h('div.form-actions');
     if (inputs.length) {
@@ -109,7 +112,7 @@ export async function render(root) {
       h('div.card-head', h('b', r.request_id), h('span', h('bdi', p ? p.name : r.party_id)), h('span.muted.num', fmtDate(r.date)),
         h('span', { class: 'pill ' + ({ open: 'soon', partial: 'soon', fulfilled: 'in', cancelled: 'out' }[r.status] || '') }, t('req_' + r.status))),
       r.note ? h('p.muted', r.note) : null,
-      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('requested')), h('th', t('issued')), h('th', t('balance')), h('th', canFulfil ? t('to_issue') : ''))), h('tbody', rows))),
+      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')), h('th', t('balance')), h('th', canFulfil ? t('to_issue') : ''))), h('tbody', rows))),
       actions);
   }
 

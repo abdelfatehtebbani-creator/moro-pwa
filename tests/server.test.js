@@ -114,16 +114,17 @@ test('saving the same client_id twice records it once (offline resend)', () => {
   assert.equal(bal('I0001'), 15);
 });
 
-test('issue: negative quantity, lines saved together share one slip number per day', () => {
+test('issue: negative quantity, lines of one store saved together share one slip number per day', () => {
   const { g, tok, bal } = env();
-  const r = g.api('movements.save', { movements: [issue(), issue({ item_id: 'I0002', unit: 'BOX', qty: 3 })] }, tok.storekeeper);
+  const r = g.api('movements.save', { movements: [issue(), issue({ qty: 1 }), issue({ item_id: 'I0002', unit: 'BOX', qty: 3 })] }, tok.storekeeper);
   assert.equal(r.ok, true, JSON.stringify(r));
   const slip = 'D-' + TODAY.slice(5, 7) + TODAY.slice(8, 10) + '-001';
-  assert.deepEqual(r.data.saved.map((s) => s.doc_no), [slip, slip]);
-  assert.equal(bal('I0001'), 3);
+  // flour (dry store) shares one slip; cups (packaging store) get the next number
+  assert.deepEqual(r.data.saved.map((s) => s.doc_no), [slip, slip, slip.replace('-001', '-002')]);
+  assert.equal(bal('I0001'), 2);
   assert.equal(bal('I0002'), -3);
   const r2 = g.api('movements.save', { movements: [issue()] }, tok.storekeeper);
-  assert.equal(r2.data.saved[0].doc_no, slip.replace('-001', '-002'));
+  assert.equal(r2.data.saved[0].doc_no, slip.replace('-001', '-003'));
   assert.equal(g.api('movements.save', { movements: [issue({ party_id: 'P002' })] }, tok.admin).error.code, 'party_not_section');
 });
 
@@ -223,7 +224,7 @@ test('storage locations: added by masters users, renamed and switched off by the
   const id = add.data.location.location_id;
   assert.match(id, /^L\d{2,}$/);
   assert.equal(g.api('locations.save', { name: 'cold room 2', category: 'Packaging' }, tok.purchasing).error.code, 'name_taken');
-  assert.equal(g.api('locations.save', { name: 'X', category: 'Other' }, tok.admin).error.code, 'category_invalid');
+  assert.equal(g.api('locations.save', { name: 'X', store: 'OTHER' }, tok.admin).error.code, 'store_invalid');
   assert.equal(g.api('locations.save', { name: 'Y', category: 'Food' }, tok.production).error.code, 'forbidden');
   assert.equal(g.api('locations.save', { location_id: id, name: 'Cold Room B' }, tok.storekeeper).error.code, 'forbidden');
   assert.equal(g.api('locations.save', { location_id: id, name: 'Cold Room 2', active: false }, tok.storekeeper).error.code, 'forbidden');
@@ -249,6 +250,77 @@ test('units: seeded from the usual units and the items; added by masters users, 
   // seeding runs once: units stay as the users left them
   g.run("Masters.seedUnits()");
   assert.equal(g.rows('Units').length, 8);
+});
+
+test('stores: proposed on first run, and each storekeeper works only in their own stores', () => {
+  const { g, tok } = env();
+  const store = (id) => g.rows('Items').find((i) => i.item_id === id).store;
+  assert.equal(store('I0001'), 'DRY');
+  assert.equal(store('I0002'), 'PACK');
+  assert.ok(g.rows('Users').every((u) => u.stores === 'CHILLED,DRY,PACK,FINAL'));
+  // the admin gives the storekeeper the packaging store only
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  assert.equal(g.api('users.save', { user_id: sk.user_id, stores: ['PACK', 'BAD', 'PACK'] }, tok.admin).ok, true);
+  assert.equal(g.rows('Users').find((u) => u.username === 'storekeeper').stores, 'PACK');
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.storekeeper).data.user.stores, ['PACK']);
+  // receiving / issuing flour (dry) is refused, cups (packaging) are fine
+  assert.equal(g.api('movements.save', { movements: [receipt()] }, tok.storekeeper).error.code, 'store_forbidden');
+  assert.equal(g.api('movements.save', { movements: [issue()] }, tok.storekeeper).error.code, 'store_forbidden');
+  const cups = g.api('movements.save', { movements: [issue({ item_id: 'I0002', unit: 'BOX', qty: 1 })] }, tok.storekeeper);
+  assert.equal(cups.ok, true, JSON.stringify(cups));
+  const mine = cups.data.saved[0].movement_id;
+  // edit and delete: own records only, in own stores
+  const adminFlour = g.api('movements.save', { movements: [issue()] }, tok.admin).data.saved[0].movement_id;
+  const adminCups = g.api('movements.save', { movements: [issue({ item_id: 'I0002', unit: 'BOX', qty: 1 })] }, tok.admin).data.saved[0].movement_id;
+  assert.equal(g.api('movements.update', { movement_id: adminCups, changes: { qty: 2 } }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('movements.update', { movement_id: mine, changes: { item_id: 'I0001', unit: 'BAG' } }, tok.storekeeper).error.code, 'store_forbidden');
+  assert.equal(g.api('movements.update', { movement_id: mine, changes: { qty: 2 } }, tok.storekeeper).ok, true);
+  // the admin may edit and delete everyone's records
+  assert.equal(g.api('movements.update', { movement_id: mine, changes: { qty: 3 } }, tok.admin).ok, true);
+  assert.equal(g.api('movements.delete', { movement_id: adminFlour }, tok.admin).ok, true);
+  // a user with delete rights still deletes only their own records
+  g.api('users.save', { user_id: sk.user_id, caps: ['receive', 'issue', 'request_fulfil', 'edit_own', 'delete'] }, tok.admin);
+  assert.equal(g.api('movements.delete', { movement_id: adminCups }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('movements.delete', { movement_id: mine }, tok.storekeeper).ok, true);
+  // moving an item to another store is the admin's
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'FLOUR NO 1', store: 'CHILLED' }, tok.purchasing).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'FLOUR NO 1', store: 'CHILLED' }, tok.admin).ok, true);
+  assert.equal(store('I0001'), 'CHILLED');
+  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').category, 'Food');
+  const box = g.api('items.save', { name: 'NEW BOX', store: 'PACK', unit: 'pc' }, tok.purchasing).data.item;
+  assert.equal(box.category, 'Packaging');
+});
+
+test('department request with two stores: each storekeeper issues their own lines', () => {
+  const { g, tok, bal } = env();
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  g.api('users.save', { user_id: sk.user_id, stores: ['PACK'] }, tok.admin);
+  const req = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }, { item_id: 'I0002', qty: 4 }] }, tok.production).data;
+  const list = g.api('requests.list', { status: 'open' }, tok.storekeeper).data;
+  assert.deepEqual(list[0].lines.map((l) => l.store), ['DRY', 'PACK']);
+  // asking for the flour line is refused; "issue everything" issues the cups line only
+  assert.equal(g.api('requests.fulfil', { request_id: req.request_id, lines: [{ line_no: 1, qty: 2 }] }, tok.storekeeper).error.code, 'store_forbidden');
+  const f = g.api('requests.fulfil', { request_id: req.request_id }, tok.storekeeper);
+  assert.equal(f.ok, true, JSON.stringify(f));
+  assert.equal(f.data.status, 'partial');
+  assert.equal(bal('I0002'), -4);
+  assert.equal(bal('I0001'), 5);
+  const f2 = g.api('requests.fulfil', { request_id: req.request_id }, tok.admin);
+  assert.equal(f2.data.status, 'fulfilled');
+  assert.equal(bal('I0001'), 3);
+});
+
+test('stores changed by hand in the sheet are put in line by the menu command', () => {
+  const { g } = env();
+  const sh = g.spreadsheet.sheets.Items;
+  const c = sh.data[0].indexOf('store');
+  sh.data[1][c] = 'PACK';            // flour moved to packaging by hand
+  sh.data[2][c] = '';                // cups left empty
+  const n = JSON.parse(g.run('JSON.stringify(Stores.applySheetEdits())'));
+  assert.ok(n.items >= 2);
+  const rows = g.rows('Items');
+  assert.equal(rows[0].category, 'Packaging');
+  assert.equal(rows[1].store, 'PACK');
 });
 
 test('lists and recipes are replaced as a whole', () => {

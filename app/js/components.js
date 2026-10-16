@@ -3,6 +3,7 @@
 // required field with a red flash), filled fields tinted, F2 switches Food/Packaging.
 import { h, flash, trackFilled } from './ui.js';
 import { t } from './i18n.js';
+import { Data, STORES } from './data.js';
 
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -118,25 +119,42 @@ export function checkAll(steps) {
 }
 
 /**
- * Food / Packaging switch. F2 anywhere on the screen toggles it (as in MORO v13).
- * Returns {el, value, set(cat)}; onChange(cat) is called on every change.
+ * The four store buttons. Only the user's stores can be chosen; F2 moves to the next of them.
+ * Returns {el, value, set(store, silent), lock(bool), dispose}; onChange(store) on every change.
  */
-export function zoneToggle(onChange, initial = 'Food') {
-  let value = initial;
-  const food = h('button.zone-btn', { type: 'button', onclick: () => set('Food') }, t('food'));
-  const pack = h('button.zone-btn', { type: 'button', onclick: () => set('Packaging') }, t('packaging'));
-  const el = h('div.zone', food, pack, h('small.muted', 'F2'));
-  function set(cat, silent) {
-    value = cat;
-    food.classList.toggle('on', cat === 'Food');
-    pack.classList.toggle('on', cat === 'Packaging');
-    document.body.dataset.zone = cat === 'Food' ? 'food' : 'pack';
-    if (!silent) { flash(cat === 'Food' ? food : pack, true); onChange(cat); }
+export function storePicker(onChange) {
+  const allowed = Data.myStores();
+  // the last store used on this device, else Dry foods, else the first one allowed
+  let last = '';
+  try { last = localStorage.getItem('moro.store') || ''; } catch { /* private window */ }
+  let value = allowed.includes(last) ? last : allowed.includes('DRY') ? 'DRY' : allowed[0] || '';
+  let locked = false;
+  const btns = STORES.map((s) => h('button.zone-btn', { type: 'button', 'data-store': s, disabled: !allowed.includes(s),
+    title: allowed.includes(s) ? '' : t('store_not_yours'), onclick: () => set(s) }, t('store_' + s)));
+  const el = h('div.zone.stores', ...btns, allowed.length > 1 ? h('small.muted', 'F2') : null);
+  function set(store, silent) {
+    if (!allowed.includes(store) || (locked && store !== value)) return;
+    value = store;
+    btns.forEach((b) => b.classList.toggle('on', b.dataset.store === store));
+    document.body.dataset.zone = store.toLowerCase();
+    try { localStorage.setItem('moro.store', store); } catch { /* private window */ }
+    if (!silent) { flash(btns[STORES.indexOf(store)], true); onChange(store); }
   }
-  const onKey = (e) => { if (e.key === 'F2') { e.preventDefault(); set(value === 'Food' ? 'Packaging' : 'Food'); } };
+  const onKey = (e) => {
+    if (e.key !== 'F2' || allowed.length < 2 || locked) return;
+    e.preventDefault();
+    set(allowed[(allowed.indexOf(value) + 1) % allowed.length]);
+  };
   document.addEventListener('keydown', onKey);
-  set(initial, true);
-  return { el, get value() { return value; }, set, dispose: () => { document.removeEventListener('keydown', onKey); delete document.body.dataset.zone; } };
+  if (value) set(value, true);
+  return { el, get value() { return value; }, set,
+    lock(on) { locked = on; btns.forEach((b) => { b.disabled = !allowed.includes(b.dataset.store) || (on && b.dataset.store !== value); }); },
+    dispose: () => { document.removeEventListener('keydown', onKey); delete document.body.dataset.zone; } };
+}
+
+/** A small coloured tag with the store's name. */
+export function storePill(store) {
+  return h('span', { class: 'pill st-' + String(store || 'DRY').toLowerCase() }, t('store_' + (store || 'DRY')));
 }
 
 /** Two quick presses confirm a risky action (instead of a "are you sure?" box). */

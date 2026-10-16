@@ -2,7 +2,7 @@
 // then PDF (formal print layout), Excel (formatted .xlsx) or WhatsApp. The preview clears after
 // sending/saving and when switching report (as in MORO v8).
 import { call } from '../api.js';
-import { Data } from '../data.js';
+import { Data, STORES } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
@@ -42,7 +42,7 @@ export function render(root) {
   const status = h('p.form-status', '');
   let current = null;            // last built report
 
-  const itemOpts = (cat) => () => Data.activeItems().filter((i) => !cat || i.category === cat).sort((a, b) => a.name.localeCompare(b.name))
+  const itemOpts = (store) => () => Data.activeItems().filter((i) => !store || Data.storeOf(i) === store).sort((a, b) => a.name.localeCompare(b.name))
     .map((i) => ({ value: i.item_id, label: i.name }));
   const sectionOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'section').sort((a, b) => a.name.localeCompare(b.name))
     .map((p) => ({ value: p.party_id, label: p.name }));
@@ -58,7 +58,7 @@ export function render(root) {
     if (!state[id]) {
       const today = Data.todayIso();
       state[id] = { from: today.slice(0, 8) + '01', to: today, mode: 'all', detail: 'summary', days: 90, zero: false, foodOnly: false,
-        packOnly: false, items: new Set(), sections: new Set(), zone: 'Food', year: Number(today.slice(0, 4)),
+        packOnly: false, items: new Set(), sections: new Set(), zone: 'DRY', stores: new Set(STORES), year: Number(today.slice(0, 4)),
         months: new Set([Number(today.slice(5, 7))]), period: 'monthly' };
     }
     return state[id];
@@ -127,10 +127,17 @@ export function render(root) {
       parts.push(h('p.muted', t('list_count', { n: Data.list(list).size })));
       if (Data.can('lists.save')) parts.push(h('button.btn.secondary', { type: 'button', onclick: () => editList(list) }, t('edit_list')));
     }
+    if (o.includes('stores')) {
+      parts.push(h('div.field', h('label', t('stores')), h('div.months', STORES.map((s) => {
+        const cb = h('input', { type: 'checkbox', checked: p.stores.has(s) });
+        cb.addEventListener('change', () => { cb.checked ? p.stores.add(s) : p.stores.delete(s); });
+        return h('label.check', cb, ' ', t('store_' + s));
+      }))));
+    }
     if (o.includes('sections')) parts.push(h('div.field', h('label', t('departments')), multiSelect('rp-sec', sectionOpts, p.sections, 'dept_hint')));
     if (o.includes('zoneItems')) {
       const tabs = h('div.tabs');
-      ['Food', 'Packaging'].forEach((z) => tabs.append(h('button', { type: 'button', class: p.zone === z ? 'on' : '', onclick: () => { p.zone = z; p.items.clear(); drawOpts(); } }, t(z === 'Food' ? 'food' : 'packaging'))));
+      STORES.forEach((z) => tabs.append(h('button', { type: 'button', class: p.zone === z ? 'on' : '', onclick: () => { p.zone = z; p.items.clear(); drawOpts(); } }, t('store_' + z))));
       parts.push(tabs, h('div.field', h('label', t('items')), multiSelect('rp-items', itemOpts(p.zone), p.items)));
     }
     if (o.includes('items') || o.includes('items?')) {
@@ -154,6 +161,7 @@ export function render(root) {
     const rep = reports.find((r) => r.id === selected);
     const p = opt(selected);
     if ((rep.opts.includes('items') || rep.opts.includes('zoneItems')) && !p.items.size) { status.textContent = t('choose_items'); status.className = 'form-status warn'; return; }
+    if (rep.opts.includes('stores') && !p.stores.size) { status.textContent = t('choose_stores'); status.className = 'form-status warn'; return; }
     if (rep.opts.includes('sections') && !p.sections.size) { status.textContent = t('choose_departments'); status.className = 'form-status warn'; return; }
     if (rep.opts.includes('dates') && (!p.from || !p.to || p.from > p.to)) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
     status.textContent = t('loading'); status.className = 'form-status';

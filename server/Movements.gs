@@ -78,11 +78,12 @@ var Movements = {
     return 'M' + Util.pad(Settings.next('seq_movement', 0), 6);
   },
 
-  /** Issue slip number for a date: D-MMDD-NNN, NNN = next free number that day. */
-  nextSlip: function (date) {
+  /** Issue slip number for a date: D-MMDD-NNN, NNN = next free number that day (taken: {key: no} of this save). */
+  nextSlip: function (date, taken) {
     var prefix = 'D-' + date.slice(5, 7) + date.slice(8, 10) + '-';
     var max = 0;
-    Repo.column('Movements', 'doc_no').forEach(function (d) {
+    var given = Object.keys(taken || {}).map(function (k) { return taken[k]; });
+    Repo.column('Movements', 'doc_no').concat(given).forEach(function (d) {
       d = String(d);
       if (d.indexOf(prefix) === 0) {
         var n = Number(d.slice(prefix.length));
@@ -116,9 +117,13 @@ var Movements = {
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
         item = Movements.validate(m);
+        // receiving, issuing and returns only in the user's stores (production is not limited for now)
+        if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item));
         if (m.kind === 'ISSUE' && !m.doc_no) {
-          slip[m.date] = slip[m.date] || Movements.nextSlip(m.date);
-          m.doc_no = slip[m.date];
+          // one slip per store: lines of two stores saved together get two slip numbers
+          var sk = m.date + '|' + Stores.of(item);
+          slip[sk] = slip[sk] || Movements.nextSlip(m.date, slip);
+          m.doc_no = slip[sk];
         }
         Util.require(m.kind !== 'ISSUE' || m.doc_no, 'doc_required');
         m.movement_id = Movements.nextId();
@@ -161,6 +166,10 @@ var Movements = {
         Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
         Perm.canKind(session, cur.kind);
       }
+      if (SAVE_KINDS.indexOf(cur.kind) >= 0) {
+        Stores.requireItem(session, cur.item_id);
+        if (payload.changes && payload.changes.item_id) Stores.requireItem(session, payload.changes.item_id);
+      }
       var src = {};
       EDITABLE.forEach(function (f) { src[f] = cur[f]; });
       src.qty = Math.abs(Number(cur.qty));
@@ -191,6 +200,8 @@ var Movements = {
       // already deleted (on another device, or this delete sent twice): the wanted result is there
       if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
       Movements.requireActive(cur);
+      if (!Perm.has(session, 'edit_any')) Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
+      if (SAVE_KINDS.indexOf(cur.kind) >= 0) Stores.requireItem(session, cur.item_id);
       var res = Repo.update('Movements', 'movement_id', cur.movement_id,
         { status: 'deleted', updated_by: session.user_id, updated_at: Util.nowIso() });
       var d = {};

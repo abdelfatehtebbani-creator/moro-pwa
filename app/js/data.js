@@ -6,6 +6,9 @@ import { daysBetween } from './ui.js';
 
 const objects = (raw) => (raw && raw.rows ? raw.rows.map((r) => Object.fromEntries(raw.columns.map((c, i) => [c, r[i]]))) : []);
 
+/** The four stores, in the order the buttons show them. */
+export const STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL'];
+
 export const Data = {
   boot: null,
   user: null,
@@ -84,6 +87,18 @@ export const Data = {
   },
 
   can(action) { return this.perms.has(action); },
+
+  /** Store of an item or location (rows not yet sorted fall back to their category). */
+  storeOf(row) {
+    if (!row) return '';
+    return STORES.includes(row.store) ? row.store : row.category === 'Packaging' ? 'PACK' : 'DRY';
+  },
+  /** Stores the user may receive / issue in (an older cached profile without stores: all). */
+  myStores() {
+    const s = this.user && this.user.stores;
+    return Array.isArray(s) ? s.filter((x) => STORES.includes(x)) : STORES.slice();
+  },
+  canStore(store) { return this.myStores().includes(store); },
 
   /** Active units (combo options), with `extra` added when it is not in the list. */
   unitOptions(extra) {

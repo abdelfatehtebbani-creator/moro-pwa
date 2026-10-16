@@ -35,7 +35,7 @@ var Production = {
     if (it) return it;
     var n = 0;
     Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-    it = { item_id: 'I' + Util.pad(n + 1, 4), name: Util.clean(product), category: 'Food', unit: (unit || 'KG').toUpperCase(),
+    it = { item_id: 'I' + Util.pad(n + 1, 4), name: Util.clean(product), category: 'Food', store: 'FINAL', unit: (unit || 'KG').toUpperCase(),
            min_stock: 0, image: '', active: true, aliases: '', created_at: Util.nowIso() };
     Repo.append('Items', [it]);
     return it;

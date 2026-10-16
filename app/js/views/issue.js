@@ -6,7 +6,7 @@ import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
-import { combo, field, zoneToggle, doublePress, newId } from '../components.js';
+import { combo, field, storePicker, storePill, doublePress, newId } from '../components.js';
 
 let cleanup = null;
 
@@ -15,10 +15,11 @@ export async function render(root) {
   let lines = [];          // {item_id, qty, unit, category}
   let editIndex = -1;
 
-  const zone = zoneToggle(() => { item.clear(); info.textContent = ''; item.input.focus(); }, 'Food');
+  if (!Data.myStores().length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
+  const zone = storePicker(() => { item.clear(); info.textContent = ''; loadRecords(); item.input.focus(); });
   const deptOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
-  const itemOpts = () => Data.activeItems().filter((i) => i.category === zone.value)
+  const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
 
   const dept = combo({ id: 'i-dept', options: deptOpts });
@@ -46,12 +47,13 @@ export async function render(root) {
     lineBody.replaceChildren(...(lines.length ? lines.map((l, i) => {
       const it = Data.items.get(l.item_id);
       return h('tr.click', { class: i === editIndex ? 'selected' : '', onclick: () => pickLine(i) },
-        h('td.num', i + 1), h('td.wrap', h('bdi', it.name)), h('td', h('span', { class: 'pill ' + (it.category === 'Food' ? 'food' : 'pack') }, t(it.category === 'Food' ? 'food' : 'packaging'))),
+        h('td.num', i + 1), h('td.wrap', h('bdi', it.name)), h('td', storePill(Data.storeOf(it))),
         h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td', h('button.link', { type: 'button', onclick: (e) => { e.stopPropagation(); removeLine(i, e.currentTarget); } }, t('delete'))));
     }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
     count.textContent = t('lines_count', { n: lines.length });
     dept.input.disabled = lines.length > 0;      // department fixed while the slip has lines (v13)
+    zone.lock(lines.length > 0);                 // one slip, one store
   }
 
   function addLine() {
@@ -62,7 +64,7 @@ export async function render(root) {
     if (!(Number(qty.value) > 0)) bad.push(qty);
     if (bad.length) { bad.forEach((b) => flash(b)); bad[0].focus(); status.textContent = t('fill_highlighted'); status.className = 'form-status err'; return; }
     const it = Data.items.get(item.value);
-    const line = { item_id: it.item_id, qty: Number(qty.value), unit: it.unit, category: it.category };
+    const line = { item_id: it.item_id, qty: Number(qty.value), unit: it.unit, store: Data.storeOf(it) };
     if (editIndex >= 0) lines[editIndex] = line; else lines.push(line);
     editIndex = -1;
     addBtn.textContent = t('add_line');
@@ -75,7 +77,6 @@ export async function render(root) {
   function pickLine(i) {
     editIndex = i;
     const l = lines[i];
-    zone.set(l.category, true);
     item.set(l.item_id); qty.value = String(l.qty); qty.dispatchEvent(new Event('change'));
     addBtn.textContent = t('update_line');
     drawLines();
@@ -155,7 +156,7 @@ export async function render(root) {
   async function loadRecords() {
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter((m) => m.kind === 'ISSUE').map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
+      records = res.list.filter((m) => m.kind === 'ISSUE' && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -163,8 +164,9 @@ export async function render(root) {
   async function editRecord(m) {
     if (m.pending) return;
     const own = Data.can('edit_any') || m.created_by === Data.user.user_id;
-    if (!own) { toast(t('err.forbidden'), 'err'); return; }
+    if (!own) { toast(t('own_records_only'), 'err'); return; }
     const it = Data.items.get(m.item_id);
+    if (!Data.canStore(Data.storeOf(it))) { toast(t('store_not_yours'), 'err'); return; }
     const res = await dialog((close) => {
       const q = trackFilled(h('input.input.num#e-qty', { type: 'number', step: 'any', min: 0, value: Math.abs(Number(m.qty)) }));
       const d = trackFilled(h('input.input#e-date', { type: 'date', value: m.date }));

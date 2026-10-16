@@ -8,6 +8,7 @@
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('MORO')
     .addItem('Reset a user PIN', 'resetPinFromSheet')
+    .addItem('Apply store changes made in the sheet', 'applyStoresFromSheet')
     .addToUi();
 }
 
@@ -27,6 +28,16 @@ var Recovery = {
     });
   }
 };
+
+function applyStoresFromSheet() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var n = Stores.applySheetEdits();
+    ui.alert('Done. Stores are now in use on every device (' + n.items + ' item and ' + n.locations + ' location cells corrected).');
+  } catch (e) {
+    ui.alert('Not applied: ' + (e && e.code ? e.code : e));
+  }
+}
 
 function resetPinFromSheet() {
   var ui = SpreadsheetApp.getUi();

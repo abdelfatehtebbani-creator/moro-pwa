@@ -7,21 +7,22 @@ var PARTY_KINDS = ['supplier', 'section'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 
 var Masters = {
-  /** payload: {item_id?, name, category, unit, min_stock, image, active} */
+  /** payload: {item_id?, name, store (or category from older apps), unit, min_stock, image, active} */
   saveItem: function (session, p) {
     return withLock(function () {
       var name = Util.clean(p.name);
       Util.require(name, 'name_required');
       var dup = Repo.all('Items').filter(function (i) { return Util.key(i.name) === Util.key(name) && i.item_id !== p.item_id; });
       Util.require(!dup.length, 'name_taken', dup.length ? dup[0].item_id : '');
+      var store = p.store !== undefined ? p.store : (p.category === 'Packaging' ? 'PACK' : p.category === 'Food' ? 'DRY' : '');
       if (!p.item_id) {
-        Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid');
+        Util.require(Stores.valid(store), 'store_invalid');
         Util.require(Util.clean(p.unit), 'unit_required');
         var n = 0;
         Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-        var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: p.category, unit: Util.clean(p.unit).toUpperCase(),
+        var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: Stores.categoryOf(store), unit: Util.clean(p.unit).toUpperCase(),
                      min_stock: Util.num(p.min_stock) || 0, image: Util.clean(p.image), active: true, aliases: '',
-                     created_at: Util.nowIso() };
+                     created_at: Util.nowIso(), store: store };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -37,7 +38,17 @@ var Masters = {
         ch.aliases = aliases.join(' | ');
       }
       if (p.unit !== undefined) ch.unit = Util.clean(p.unit).toUpperCase() || cur.unit;
-      if (p.category !== undefined) { Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid'); ch.category = p.category; }
+      // moving an item to another store is the admin's (like a rename); older apps send only a category
+      if (p.store !== undefined || p.category !== undefined) {
+        var curStore = Stores.of(cur);
+        var to = p.store !== undefined ? p.store : (Stores.categoryOf(curStore) === p.category ? curStore : store);
+        Util.require(Stores.valid(to), 'store_invalid');
+        if (to !== curStore || to !== cur.store) {
+          if (to !== curStore) Perm.require(session, 'rename');
+          ch.store = to;
+          ch.category = Stores.categoryOf(to);
+        }
+      }
       if (p.min_stock !== undefined) {
         Perm.require(session, 'min_stock');
         var mn = Util.num(p.min_stock);
@@ -87,7 +98,7 @@ var Masters = {
   },
 
   /**
-   * payload: {location_id?, name, category, active}. Receipts keep the location's name as it was,
+   * payload: {location_id?, name, store, active}. Receipts keep the location's name as it was,
    * so a rename shows in new receipts only. Like parties: anyone with "masters" adds, the admin
    * renames or switches off (a switched-off location leaves the list, its history stays).
    */
@@ -97,11 +108,12 @@ var Masters = {
       Util.require(name, 'name_required');
       var dup = Repo.all('Locations').filter(function (x) { return Util.key(x.name) === Util.key(name) && x.location_id !== p.location_id; });
       Util.require(!dup.length, 'name_taken', dup.length ? dup[0].location_id : '');
+      var store = p.store !== undefined ? p.store : (p.category === 'Packaging' ? 'PACK' : p.category === 'Food' ? 'DRY' : '');
       if (!p.location_id) {
-        Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid');
+        Util.require(Stores.valid(store), 'store_invalid');
         var n = 0;
         Repo.column('Locations', 'location_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-        var loc = { location_id: 'L' + Util.pad(n + 1, 2), name: name, category: p.category, active: true };
+        var loc = { location_id: 'L' + Util.pad(n + 1, 2), name: name, category: Stores.categoryOf(store), active: true, store: store };
         Repo.append('Locations', [loc]);
         Audit.log(session.user_id, 'location_create', 'Locations', loc.location_id, null, loc);
         return { location: loc, version: Version.bump() };
@@ -110,10 +122,12 @@ var Masters = {
       Util.require(cur, 'not_found');
       var ch = {};
       if (name !== cur.name) { Perm.require(session, 'rename'); ch.name = name; }
-      if (p.category !== undefined && p.category !== cur.category) {
-        Util.require(CATEGORIES.indexOf(p.category) >= 0, 'category_invalid');
+      if ((p.store !== undefined || p.category !== undefined) && store !== Stores.of(cur) &&
+          !(p.store === undefined && Stores.categoryOf(Stores.of(cur)) === p.category)) {
+        Util.require(Stores.valid(store), 'store_invalid');
         Perm.require(session, 'rename');
-        ch.category = p.category;
+        ch.store = store;
+        ch.category = Stores.categoryOf(store);
       }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename');

@@ -4,9 +4,9 @@
  * IDs are stable text keys (I0001, P001, M000001 ...); names are never used as keys.
  */
 var SCHEMA = {
-  Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at'],
+  Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store'],
   Parties:      ['party_id', 'name', 'kind', 'active'],
-  Locations:    ['location_id', 'name', 'category', 'active'],
+  Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
   Purposes:     ['purpose_id', 'name', 'active'],
   Movements:    ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
@@ -22,7 +22,7 @@ var SCHEMA = {
                  'client_id'],
   RequestLines: ['request_id', 'line_no', 'item_id', 'qty', 'unit', 'issued_qty', 'movement_id'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms', 'caps'],
+                 'pin_changed_ms', 'caps', 'stores'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
   Reminders:    ['date', 'message'],

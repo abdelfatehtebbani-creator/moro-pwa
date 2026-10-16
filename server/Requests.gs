@@ -32,12 +32,15 @@ var Requests = {
   list: function (session, p) {
     p = p || {};
     var lines = Repo.all('RequestLines');
+    var storeOf = {};
+    Repo.all('Items').forEach(function (i) { storeOf[i.item_id] = Stores.of(i); });
     return Repo.all('Requests').filter(function (r) {
       if (p.status && r.status !== p.status) return false;
       if (!Perm.has(session, 'requests.all') && r.requested_by !== session.user_id) return false;
       return true;
     }).reverse().slice(0, Number(p.limit) || 300).map(function (r) {
-      r.lines = lines.filter(function (l) { return l.request_id === r.request_id; });
+      r.lines = lines.filter(function (l) { return l.request_id === r.request_id; })
+        .map(function (l) { l.store = storeOf[l.item_id] || ''; return l; });
       return r;
     });
   },
@@ -50,8 +53,11 @@ var Requests = {
     var give = {};
     (p.lines || lines.map(function (l) { return { line_no: l.line_no }; })).forEach(function (x) { give[x.line_no] = x.qty; });
     var movs = [];
+    var mine = function (l) { return (session.stores || []).indexOf(Stores.of(Repo.find('Items', 'item_id', l.item_id))) >= 0; };
+    // asked for explicitly: the line must be in the user's stores; "everything left" means their lines only
+    if (p.lines) lines.forEach(function (l) { if (l.line_no in give && !mine(l)) Stores.requireItem(session, l.item_id); });
     lines.forEach(function (l) {
-      if (!(l.line_no in give)) return;
+      if (!(l.line_no in give) || !mine(l)) return;
       var left = Util.round(Number(l.qty) - Number(l.issued_qty || 0));
       var q = give[l.line_no] === undefined || give[l.line_no] === '' ? left : Util.num(give[l.line_no]);
       if (q > 0) movs.push({ client_id: (p.client_id || req.request_id) + '-' + l.line_no, kind: 'ISSUE',

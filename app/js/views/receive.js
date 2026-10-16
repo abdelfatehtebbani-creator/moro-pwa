@@ -6,7 +6,7 @@ import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, fmtNum, fmtDate, trackFilled } from '../ui.js';
-import { combo, field, enterNav, checkAll, zoneToggle, doublePress, newId } from '../components.js';
+import { combo, field, enterNav, checkAll, storePicker, doublePress, newId } from '../components.js';
 
 let cleanup = null;
 
@@ -16,14 +16,15 @@ export async function render(root) {
   const today = Data.todayIso();
 
   // ---------- fields
-  const zone = zoneToggle(onZone, 'Food');
-  const itemOpts = () => Data.activeItems().filter((i) => i.category === zone.value)
+  if (!Data.myStores().length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
+  const zone = storePicker(onZone);
+  const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
   // the units in use, plus the chosen item's own unit even if it was switched off
   const unitOpts = () => Data.unitOptions(item && item.value ? (Data.items.get(item.value) || {}).unit : '');
-  const locOpts = () => Data.locations.filter((l) => l.category === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
+  const locOpts = () => Data.locations.filter((l) => Data.storeOf(l) === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
   const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
@@ -93,7 +94,7 @@ export async function render(root) {
     { input: price, required: () => !isRet() },
     { input: per.input, required: () => !isRet() },
     { input: discount, required: () => false, valid: () => Number(discount.value) >= 0 && Number(discount.value) <= 100 },
-    { input: expiry, required: () => !isRet() && zone.value === 'Food' },
+    { input: expiry, required: () => !isRet() && zone.value !== 'PACK' },
     { input: location.input, required: () => !isRet() },
   ];
   enterNav(steps, () => saveBtn.focus());
@@ -161,9 +162,10 @@ export async function render(root) {
 
   function edit(m) {
     if (m.pending) return;
-    if (!(Data.can('edit_any') || m.created_by === Data.user.user_id)) { toast(t('err.forbidden'), 'err'); return; }
+    if (!(Data.can('edit_any') || m.created_by === Data.user.user_id)) { toast(t('own_records_only'), 'err'); return; }
     const it = Data.items.get(m.item_id);
-    if (it && it.category !== zone.value) zone.set(it.category, true);
+    if (!Data.canStore(Data.storeOf(it))) { toast(t('store_not_yours'), 'err'); return; }
+    if (Data.storeOf(it) !== zone.value) zone.set(Data.storeOf(it), true);
     editing = m;
     item.set(m.item_id); supplier.set(m.party_id); date.value = m.date; invoice.value = m.doc_no;
     parcels.value = ''; retail.value = '1'; qty.value = String(Math.abs(Number(m.qty)));
@@ -202,7 +204,7 @@ export async function render(root) {
   search.addEventListener('input', fillRecords);
 
   async function loadRecords() {
-    const keep = (m) => (m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN') && (Data.items.get(m.item_id) || {}).category === zone.value;
+    const keep = (m) => (m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN') && Data.storeOf(Data.items.get(m.item_id)) === zone.value;
     try {
       const res = await MovStore.all();          // local copy: works without internet
       records = res.list.filter(keep).slice(0, 1500);

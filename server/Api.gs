@@ -65,13 +65,14 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '4';
+var SCHEMA_VERSION = '5';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {
     setupSheets();
     Repo.reset();
     Masters.seedUnits();
+    if (Number(Settings.get('schema_version', '0')) < 5) Stores.seed();
     Settings.set('schema_version', SCHEMA_VERSION);
   });
 }

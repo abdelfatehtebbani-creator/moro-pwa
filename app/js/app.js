@@ -191,7 +191,14 @@ async function changePin() {
 
 window.addEventListener('hashchange', () => { if (content) route(); });
 // fresh data redraws the dashboard only; work screens read the data live and keep what is being typed
-window.addEventListener('moro:data', () => { if (content && current === dashboard) route(); });
+let storesSeen = '';
+window.addEventListener('moro:data', () => {
+  // the admin changed this user's stores: redraw the screen so the store buttons follow at once
+  const now = Data.myStores().join(',');
+  const changed = storesSeen && now !== storesSeen;
+  storesSeen = now;
+  if (content && (current === dashboard || changed)) route();
+});
 window.addEventListener('online', () => sync(false));
 window.addEventListener('offline', updateSync);
 window.addEventListener('moro:outbox', updateSync);

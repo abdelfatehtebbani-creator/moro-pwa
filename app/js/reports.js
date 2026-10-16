@@ -1,7 +1,7 @@
 // The 13 MORO v13 reports, computed on the device from the movements and balances.
 // Every report returns {title, subtitle, columns:[{label, type}], rows:[[...]]}.
 // Column types: t text, n number, m money, d date (YYYY-MM-DD), p share (0–1).
-import { Data } from './data.js';
+import { Data, STORES } from './data.js';
 import { daysBetween } from './ui.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -12,16 +12,20 @@ const byName = (a, b) => String(a).localeCompare(String(b));
 const inRange = (m, p) => (!p.from || m.date >= p.from) && (!p.to || m.date <= p.to);
 const periodText = (p) => 'Period: ' + p.from + '  to  ' + p.to;
 const todayText = () => 'Date: ' + Data.todayIso();
+const STORE_NAMES = { CHILLED: 'Chilled foods', DRY: 'Dry foods', PACK: 'Packaging', FINAL: 'Final products' };
+/** Store filter of a report: true when the item is in one of the chosen stores (no filter: all). */
+const inStores = (p, id) => !p.stores || p.stores.size === STORES.length || p.stores.has(Data.storeOf(Data.items.get(id)));
+const storesText = (p) => (!p.stores || p.stores.size === STORES.length ? '' : '  ·  Stores: ' + STORES.filter((s) => p.stores.has(s)).map((s) => STORE_NAMES[s]).join(', '));
 
 /** Report catalogue: id, group, the options it uses, and its builder. */
 export const REPORTS = [
   { id: 'fast', group: 'stock', opts: ['list'], build: (p) => itemList('FAST', 'Fast Moving Items Report') },
-  { id: 'min', group: 'stock', opts: [], build: minStock },
+  { id: 'min', group: 'stock', opts: ['stores'], build: minStock },
   { id: 'sensitive', group: 'stock', opts: ['list'], build: () => itemList('SENSITIVE', 'Sensitive Items Report') },
-  { id: 'expiry', group: 'stock', opts: ['foodPack', 'zero', 'items?'], build: stockExpiry },
-  { id: 'near', group: 'stock', opts: ['days', 'zero'], build: nearExpiry },
+  { id: 'expiry', group: 'stock', opts: ['stores', 'foodPack', 'zero', 'items?'], build: stockExpiry },
+  { id: 'near', group: 'stock', opts: ['days', 'stores', 'zero'], build: nearExpiry },
   { id: 'changes', group: 'move', opts: ['dates', 'mode', 'items?'], build: changes },
-  { id: 'bySection', group: 'move', opts: ['dates', 'sections'], build: (p, m) => consumption(p, m, false) },
+  { id: 'bySection', group: 'move', opts: ['dates', 'stores', 'sections'], build: (p, m) => consumption(p, m, false) },
   { id: 'byItem', group: 'move', opts: ['dates', 'zoneItems'], build: (p, m) => consumption(p, m, true) },
   { id: 'itemOut', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, true) },
   { id: 'itemIn', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, false) },
@@ -38,9 +42,9 @@ function itemList(list, title) {
   return { title, subtitle: todayText(), columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
 }
 
-function minStock() {
-  const rows = Data.lowStock().map((x) => [x.item.name, x.qty, x.min, x.item.unit]);
-  return { title: 'Items at or below minimum stock', subtitle: todayText(),
+function minStock(p) {
+  const rows = Data.lowStock().filter((x) => inStores(p, x.item.item_id)).map((x) => [x.item.name, x.qty, x.min, x.item.unit]);
+  return { title: 'Items at or below minimum stock', subtitle: todayText() + storesText(p),
     columns: cols(['Item', 't'], ['Available', 'n'], ['Minimum stock', 'n'], ['Unit', 't']), rows };
 }
 
@@ -55,7 +59,7 @@ function stockExpiry(p) {
   const sel = p.items && p.items.size ? p.items : null;
   const rows = [];
   for (const it of Data.activeItems()) {
-    if (sel && !sel.has(it.item_id)) continue;
+    if ((sel && !sel.has(it.item_id)) || !inStores(p, it.item_id)) continue;
     const q = Data.qty(it.item_id);
     if (!p.zero && q <= 0) continue;
     const b = Data.balances.get(it.item_id);
@@ -69,25 +73,25 @@ function stockExpiry(p) {
     }
   }
   rows.sort((a, b) => (a[0] === b[0] ? byName(a[1], b[1]) : a[0] === 'Packaging' ? -1 : 1));
-  return { title: 'Stock with expiry', subtitle: todayText(),
+  return { title: 'Stock with expiry', subtitle: todayText() + storesText(p),
     columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Expiry date', 'd'], ['Status', 't']), rows };
 }
 
 function nearExpiry(p) {
   const days = Number(p.days) || 90;
-  const rows = Data.expiring(days).filter((x) => x.left >= 0 && (p.zero || x.qty > 0))
+  const rows = Data.expiring(days).filter((x) => x.left >= 0 && (p.zero || x.qty > 0) && inStores(p, x.item.item_id))
     .map((x) => [x.item.name, x.expiry, x.left, x.qty, x.item.unit]);
   if (p.zero) {
     const today = Data.todayIso();
     for (const b of Data.balances.values()) {
       const it = Data.items.get(b.item_id);
-      if (!it || !b.last_expiry || Number(b.qty) > 0) continue;
+      if (!it || !b.last_expiry || Number(b.qty) > 0 || !inStores(p, it.item_id)) continue;
       const left = daysBetween(today, b.last_expiry);
       if (left >= 0 && left <= days) rows.push([it.name, b.last_expiry, left, Number(b.qty), it.unit]);
     }
     rows.sort((a, b) => a[2] - b[2]);
   }
-  return { title: 'Products near expiry (within ' + days + ' days)', subtitle: todayText(),
+  return { title: 'Products near expiry (within ' + days + ' days)', subtitle: todayText() + storesText(p),
     columns: cols(['Item', 't'], ['Expiry date', 'd'], ['Days left', 'n'], ['Quantity', 'n'], ['Unit', 't']), rows };
 }
 
@@ -115,7 +119,7 @@ function consumption(p, movs, byItem) {
   const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
   const groups = new Map();
   for (const m of movs) {
-    if (!inRange(m, p) || !sel.has(byItem ? m.item_id : m.party_id) || !isSection(m.party_id)) continue;
+    if (!inRange(m, p) || !sel.has(byItem ? m.item_id : m.party_id) || !isSection(m.party_id) || !inStores(p, m.item_id)) continue;
     const k1 = byItem ? m.item_id : m.party_id;
     const k2 = byItem ? m.party_id : m.item_id;
     if (!groups.has(k1)) groups.set(k1, new Map());
@@ -129,7 +133,7 @@ function consumption(p, movs, byItem) {
     const g = groups.get(k1);
     [...g.keys()].sort((a, b) => byName(n2(a), n2(b))).forEach((k2) => rows.push([n1(k1), n2(k2), g.get(k2)]));
   });
-  return { title: 'Consumption by ' + (byItem ? 'item' : 'department'), subtitle: periodText(p),
+  return { title: 'Consumption by ' + (byItem ? 'item' : 'department'), subtitle: periodText(p) + storesText(p),
     columns: byItem ? cols(['Item', 't'], ['Department', 't'], ['Quantity issued', 'n']) : cols(['Department', 't'], ['Item', 't'], ['Quantity issued', 'n']), rows };
 }
 
