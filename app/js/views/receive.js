@@ -36,8 +36,7 @@ export async function render(root) {
   const date = trackFilled(h('input.input#r-date', { type: 'date', value: today }));
   const invoice = trackFilled(h('input.input#r-invoice', { autocomplete: 'off' }));
   const parcels = trackFilled(h('input.input.num#r-parcels', { type: 'number', step: 'any', inputmode: 'decimal' }));
-  // the unit the parcels are counted in (BOX…), for items with packaging units: "units per parcel" follows from it
-  const pUnit = h('select.input.pack-unit#r-punit', { 'aria-label': t('parcel_unit'), hidden: true });
+
   const retail = trackFilled(h('input.input.num#r-retail', { type: 'number', step: 'any', inputmode: 'decimal', value: 1 }));
   const qty = trackFilled(h('input.input.num#r-qty', { type: 'number', step: 'any', inputmode: 'decimal' }));
   const unit = combo({ id: 'r-unit', options: unitOpts });
@@ -67,11 +66,6 @@ export async function render(root) {
   // stock units in one `u` of the chosen item, or null (items without packaging units: only their own unit)
   const fOf = (u) => { const it = Data.items.get(item.value); return it && Data.packsOf(it).length ? Data.factorOf(it, String(u || '').trim()) : null; };
   const recalc = () => {
-    // parcels in BOX, quantity in TRAY: 12 per parcel, worked out
-    if (!pUnit.hidden && pUnit.value && fOf(pUnit.value) && fOf(unit.input.value)) {
-      retail.value = String(Math.round((fOf(pUnit.value) / fOf(unit.input.value)) * 1e6) / 1e6);
-      retail.dispatchEvent(new Event('change'));
-    }
     const p = parcels.value === '' ? null : Number(parcels.value);
     const r = retail.value === '' ? null : Number(retail.value);
     if (p !== null && r !== null) qty.value = String(Math.round(p * r * 1e6) / 1e6);
@@ -94,8 +88,15 @@ export async function render(root) {
     [qty, amount, net].forEach((x) => x.dispatchEvent(new Event('change')));
   };
   [parcels, retail, price, discount, qty].forEach((x) => x.addEventListener('input', recalc));
-  pUnit.addEventListener('change', recalc);
-  [unit.input, per.input].forEach((x) => x.addEventListener('change', recalc));
+  // items with a purchase unit: "Per" follows the unit typed (BOX → BOX), and can still be changed
+  let lastUnit = '';
+  unit.input.addEventListener('change', () => {
+    const u = unit.input.value.trim().toUpperCase();
+    if (fOf(u) && (!per.input.value || per.input.value.trim().toUpperCase() === lastUnit)) per.set(u);
+    lastUnit = u;
+    recalc();
+  });
+  per.input.addEventListener('change', recalc);
   [qty, unit.input, parcels].forEach((x) => { x.addEventListener('input', showConv); x.addEventListener('change', showConv); });
 
   function showItem(id) {
@@ -105,11 +106,7 @@ export async function render(root) {
     const first = it.report_unit && Data.factorOf(it, it.report_unit) ? String(it.report_unit).toUpperCase() : it.unit;
     if (!unit.value) unit.set(first);
     if (!per.value) per.set(first);
-    const units = Data.packsOf(it).length ? Data.unitsOf(it) : [];
-    pUnit.replaceChildren(h('option', { value: '' }, '—'), ...units.map((u) => h('option', { value: u }, u)));
-    pUnit.hidden = !units.length;
-    if (units.length) pUnit.value = first;
-    retail.readOnly = !!units.length;
+    lastUnit = unit.input.value.trim().toUpperCase();
     recalc();
     showConv();
     const q = Data.qty(id);
@@ -148,7 +145,7 @@ export async function render(root) {
 
   function reset(full) {
     editing = null;
-    item.clear(); parcels.value = ''; retail.value = '1'; retail.readOnly = false; pUnit.hidden = true; qty.value = ''; unit.clear(); price.value = '';
+    item.clear(); parcels.value = ''; retail.value = '1'; qty.value = ''; unit.clear(); price.value = '';
     per.clear(); amount.value = ''; discount.value = '0'; net.value = ''; expiry.value = ''; isReturn.checked = false;
     if (full) { supplier.clear(); invoice.value = ''; location.clear(); date.value = Data.todayIso(); }
     [parcels, retail, qty, price, amount, discount, net, expiry, invoice, date].forEach((x) => x.dispatchEvent(new Event('change')));
@@ -262,7 +259,7 @@ export async function render(root) {
         field(t('item'), item, { wide: true }), info,
         field(t('supplier'), supplier, { wide: true }),
         field(t('date'), date), field(t('invoice_no'), invoice),
-        field(t('parcels'), h('div.unit-pair', parcels, pUnit)), field(t('per_parcel'), retail),
+        field(t('parcels'), parcels), field(t('per_parcel'), retail),
         field(t('qty'), qty), field(t('unit'), unit), conv,
         field(t('price'), price), field(t('per'), per),
         field(t('amount'), amount), field(t('discount_pct'), discount),

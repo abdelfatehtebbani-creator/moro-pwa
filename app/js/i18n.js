@@ -25,7 +25,8 @@ const DICT = {
     reason: 'السبب', picture: 'الصورة', approve_buy: 'موافقة وشراء', reject: 'رفض', existing_item: 'مادة موجودة (اختياري)',
     approve_buy_help: 'اختر مادة موجودة إن كانت في القائمة، وإلا تُنشأ مادة جديدة بالاسم والمخزن والوحدة.',
     disposal: 'إتلاف', disposal_reason: 'سبب الإتلاف', goes_into_stock: 'يدخل المخزون:', taken_from_stock: 'يُخصم من المخزون:',
-    pack_units: 'وحدات التعبئة', report_unit: 'وحدة التقارير', stock_unit: 'وحدة المخزون', units_of_item: 'وحدات المادة', parcel_unit: 'وحدة الطرود',
+    pack_units: 'وحدات التعبئة', report_unit: 'وحدة التقارير', stock_unit: 'وحدة المخزون (للصرف)', units_of_item: 'وحدات المادة', buy_unit: 'وحدة الشراء (كرتونة، علبة…)',
+    buy_unit_help: 'اختياري. اكتب مثلًا 1 BOX = 4 PC: تُستلم بالـ BOX وتُصرف بالـ PC، والتقارير ولوحة التحكم بالـ BOX. اتركها فارغة إن كانت المادة بوحدة واحدة.', parcel_unit: 'وحدة الطرود',
     min_stock_in: 'الحد الأدنى (بوحدة المخزون {u})', change_stock_unit: 'تغيير وحدة المخزون',
     pack_units_help: 'المخزون يُحسب بوحدة المخزون، والتقارير ولوحة التحكم بوحدة التقارير، والاستلام والصرف بأي منها. اكتب العلاقة في سطر واحد:',
     change_stock_unit_help: 'وحدة المخزون الحالية {u}. يُضرب الرصيد والحد الأدنى وكل الحركات السابقة في المعامل، وتصبح {u} وحدة تعبئة.',
@@ -320,7 +321,8 @@ const DICT = {
     reason: 'Reason', picture: 'Picture', approve_buy: 'Approve and buy', reject: 'Reject', existing_item: 'Existing item (optional)',
     approve_buy_help: 'Choose an existing item if it is in the list; otherwise a new item is created with this name, store and unit.',
     disposal: 'Disposal', disposal_reason: 'Reason for disposal', goes_into_stock: 'Goes into stock:', taken_from_stock: 'Taken from stock:',
-    pack_units: 'Packaging units', report_unit: 'Report unit', stock_unit: 'Stock unit', units_of_item: 'Units of the item', parcel_unit: 'Parcel unit',
+    pack_units: 'Packaging units', report_unit: 'Report unit', stock_unit: 'Stock unit (issued in)', units_of_item: 'Units of the item', buy_unit: 'Purchase unit (carton, box…)',
+    buy_unit_help: 'Optional. E.g. 1 BOX = 4 PC: received in BOX, issued in PC, reports and the dashboard in BOX. Leave empty for an item with one unit.', parcel_unit: 'Parcel unit',
     min_stock_in: 'Minimum (in the stock unit {u})', change_stock_unit: 'Change the stock unit',
     pack_units_help: 'Stock is counted in the stock unit, reports and the dashboard use the report unit, receiving and issues any of them. Write the relation on one line:',
     change_stock_unit_help: 'The stock unit is now {u}. Balance, minimum and every past movement are multiplied by the factor, and {u} becomes a packaging unit.',
@@ -615,7 +617,7 @@ export function applyLang() {
 export function t(key, vars) {
   let s = (DICT[lang] && DICT[lang][key]) ?? DICT.ar[key] ?? key;
   // values are isolated (FSI…PDI) so codes like D-1012-001 or English names keep their order inside Arabic text
-  if (vars) for (const k of Object.keys(vars)) s = s.replace('{' + k + '}', '⁨' + vars[k] + '⁩');
+  if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join('⁨' + vars[k] + '⁩');
   return s;
 }
 

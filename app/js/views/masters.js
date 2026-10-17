@@ -66,9 +66,14 @@ function items(body, isAdmin) {
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
     const canPack = Data.can('packaging');
-    const packs = trackFilled(h('input.input#e-packs', { value: it ? Data.packsOf(it).map((x) => Data.packText(it, x)).join(', ') || it.pack_units || '' : '', placeholder: '1 BOX = 12 TRAY = 360 PC', dir: 'ltr', disabled: !canPack }));
-    const reportUnit = trackFilled(h('input.input#e-repunit', { value: it ? it.report_unit || '' : '', placeholder: 'BOX', dir: 'ltr', disabled: !canPack }));
-    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
+    // the purchase unit (carton, box…) with how many stock units it holds; reports and the dashboard use it
+    const allPacks = it ? Data.packsOf(it) : [];
+    const cur = allPacks.find((x) => x.unit === String((it && it.report_unit) || '').toUpperCase()) || allPacks.find((x) => x.factor > 1) || null;
+    const buyUnit = trackFilled(h('input.input#e-buyunit', { value: cur ? cur.unit : '', placeholder: 'BOX', dir: 'ltr', disabled: !canPack, autocomplete: 'off' }));
+    const buyQty = trackFilled(h('input.input.num#e-buyqty', { type: 'number', min: 0, step: 'any', value: cur ? cur.factor : '', placeholder: '4', disabled: !canPack }));
+    const stockLbl = h('span.buy-stock', it ? it.unit : '');
+    unit.input.addEventListener('input', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
+    unit.input.addEventListener('change', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
     const image = trackFilled(h('input.input#e-image', { type: 'url', value: it ? it.image || '' : '', placeholder: 'https://…', dir: 'ltr' }));
     const err = h('p.err-text', '');
     const ok = () => {
@@ -78,13 +83,23 @@ function items(body, isAdmin) {
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
-      if (canPack) { p.pack_units = packs.value.trim(); p.report_unit = reportUnit.value.trim(); }
+      if (canPack) {
+        const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
+        if (bu && !(bq > 0)) return flash(buyQty);
+        if (!bu && buyQty.value !== '') return flash(buyUnit);
+        // other units written in the sheet (TRAY…) are kept as they are
+        const others = allPacks.filter((x) => !cur || x.unit !== cur.unit).filter((x) => x.unit !== bu).map((x) => ({ unit: x.unit, factor: x.factor }));
+        p.pack_units = [...(bu ? [{ unit: bu, factor: bq }] : []), ...others];
+        p.report_unit = bu;
+      }
       save('items.save', p, close, err);
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat),
       h('fieldset.units-box', h('legend', t('units_of_item')),
-        field(t('stock_unit'), unit), field(t('report_unit'), reportUnit), field(t('pack_units'), packs),
-        h('small.muted', t('pack_units_help'), ' ', h('bdi', { dir: 'ltr' }, '1 BOX = 12 TRAY = 360 PC')), convertBtn),
+        field(t('stock_unit'), unit),
+        h('div.field', h('label', { for: 'e-buyunit' }, t('buy_unit')),
+          h('div.buy-line', { dir: 'ltr' }, h('span', '1'), buyUnit, h('span', '='), buyQty, stockLbl)),
+        h('small.muted', ...t('buy_unit_help').split('1 BOX = 4 PC').flatMap((s, i) => (i ? [h('bdi', { dir: 'ltr' }, '1 BOX = 4 PC'), s] : [s])))),
       field(t('min_stock_in', { u: it ? it.unit : '' }), min),
       field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
