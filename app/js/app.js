@@ -124,7 +124,9 @@ function buildShell() {
 
   title = h('h1', '');
   // a click on the indicator opens the list of refused saves (the phone also has it under "more")
-  syncEl = h('div.sync', { onclick: () => { if (canSeeFailed()) location.hash = '#/failed'; } }, h('span.dot'), h('span', ''));
+  syncEl = h('div.sync', { title: t('refresh_now') }, h('span.dot'),
+    h('button.sync-text', { type: 'button', onclick: refreshNow }, ''),
+    h('button.sync-warn', { type: 'button', hidden: true, title: t('rejected_title'), onclick: () => { location.hash = '#/failed'; } }, ''));
   content = h('section.content');
   root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
   updateSync();
@@ -234,16 +236,30 @@ async function sync(force) {
   updateSync();
 }
 
+/** Click on the connection line: send what is waiting, reload the data now, redraw the screen. */
+let refreshing = false;
+async function refreshNow() {
+  if (refreshing) return;
+  refreshing = true;
+  syncEl.querySelector('.sync-text').textContent = t('refreshing');
+  try {
+    await Outbox.flush();
+    await sync(true);
+    toast(lastSyncOk ? t('refreshed') : t('offline'), lastSyncOk ? 'ok' : 'err');
+  } finally { refreshing = false; updateSync(); }
+}
+
 function updateSync() {
-  if (!syncEl) return;
+  if (!syncEl || refreshing) return;
   const online = navigator.onLine && lastSyncOk;
   syncEl.classList.toggle('offline', !online);
   syncEl.classList.toggle('pending', online && Outbox.pending > 0);
-  syncEl.classList.toggle('has-failed', canSeeFailed());
-  syncEl.title = canSeeFailed() ? t('rejected_title') : '';
   const at = Data.syncedAt ? new Date(Data.syncedAt).toLocaleTimeString(getLang() === 'ar' ? 'ar-QA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-  syncEl.lastChild.textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
-    (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '') + (canSeeFailed() ? ' · ⚠ ' + Outbox.failed.length : '');
+  syncEl.querySelector('.sync-text').textContent = (online ? t('online') : t('offline')) + (at ? ' · ' + t('updated_at', { t: at }) : '') +
+    (Outbox.pending ? ' · ' + t('waiting_to_send', { n: Outbox.pending }) : '');
+  const warn = syncEl.querySelector('.sync-warn');
+  warn.hidden = !canSeeFailed();
+  warn.textContent = '⚠ ' + Outbox.failed.length;
 }
 
 function toggleLang() {
