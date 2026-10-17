@@ -104,11 +104,22 @@ export const Data = {
   canStore(store) { return this.myStores().includes(store); },
   /** Packaging units of an item: [{unit, factor}] (factor in stock units), from "TRAY=30, BOX=360". */
   packsOf(item) {
+    // "BOX=10" or "1 BOX = 10 PC", either way round (same reading as the server's Packs.parse)
+    const stock = String((item && item.unit) || '').toUpperCase();
     return String((item && item.pack_units) || '').split(/[,;\n]/).map((p) => {
-      const [u, f] = p.split('=');
-      const unit = String(u || '').trim().toUpperCase(), factor = Number(f);
-      return unit && factor > 0 ? { unit, factor } : null;
+      const m = p.trim().toUpperCase().match(/^([\d.]*)\s*([^\s\d=.]+)\s*=\s*([\d.]+)\s*([^\s\d=.]*)$/);
+      if (!m) return null;
+      const a = m[1] === '' ? 1 : Number(m[1]), u1 = m[2], b = Number(m[3]), u2 = m[4] || stock;
+      if (!(a > 0) || !(b > 0)) return null;
+      if (u1 !== stock && u2 === stock) return { unit: u1, factor: b / a };
+      if (u1 === stock && u2 !== stock) return { unit: u2, factor: a / b };
+      return null;
     }).filter(Boolean);
+  },
+  /** "1 BOX = 10 PC" for one packaging unit, whichever is larger. */
+  packText(item, p) {
+    const r = (n) => Math.round(n * 1e6) / 1e6;
+    return p.factor >= 1 ? '1 ' + p.unit + ' = ' + r(p.factor) + ' ' + item.unit : '1 ' + item.unit + ' = ' + r(1 / p.factor) + ' ' + p.unit;
   },
   /** Stock units in one `unit` of the item (1 for the stock unit, null when not defined). */
   factorOf(item, unit) {
@@ -120,7 +131,7 @@ export const Data = {
   /** The units an item can be entered in: its stock unit first, then its packaging units. */
   unitsOf(item) { return item ? [String(item.unit).toUpperCase(), ...this.packsOf(item).map((p) => p.unit)] : []; },
   /** "TRAY = 30 PC · BOX = 360 PC" */
-  packsText(item) { return this.packsOf(item).map((p) => p.unit + ' = ' + p.factor + ' ' + item.unit).join(' · '); },
+  packsText(item) { return this.packsOf(item).map((p) => this.packText(item, p)).join(' · '); },
   /** A stock-unit quantity in the item's report unit: [qty, unit]. */
   inReportUnit(item, qty) {
     const f = item && item.report_unit ? this.factorOf(item, item.report_unit) : null;

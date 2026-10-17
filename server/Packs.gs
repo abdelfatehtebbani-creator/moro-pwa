@@ -8,13 +8,32 @@
  * unit the reports show (empty = stock unit). An item without packaging units works exactly as before.
  */
 var Packs = {
+  /**
+   * One packaging unit written either way round, against the stock unit:
+   * "BOX=10", "1 BOX = 10 PC" (stock PC) or "1 BOX = 10 PC" (stock BOX: PC is a tenth of a BOX).
+   * Returns {unit, factor} (factor in stock units) or null.
+   */
+  parse: function (text, stockUnit) {
+    var m = String(text || '').trim().toUpperCase().match(/^([\d.]*)\s*([^\s\d=.]+)\s*=\s*([\d.]+)\s*([^\s\d=.]*)$/);
+    if (!m) return null;
+    var stock = String(stockUnit || '').toUpperCase();
+    var a = m[1] === '' ? 1 : Number(m[1]), u1 = m[2], b = Number(m[3]), u2 = m[4] || stock;
+    if (!(a > 0) || !(b > 0)) return null;
+    if (u1 !== stock && u2 === stock) return { unit: u1, factor: Util.round(b / a) };
+    if (u1 === stock && u2 !== stock) return { unit: u2, factor: Util.round(a / b) };
+    return null;
+  },
+
   /** [{unit, factor}] of an item row. */
   list: function (item) {
     return String((item && item.pack_units) || '').split(/[,;\n]/).map(function (p) {
-      var m = p.split('=');
-      var unit = Util.clean(m[0]).toUpperCase(), factor = Util.num(m[1]);
-      return unit && factor > 0 ? { unit: unit, factor: factor } : null;
+      return Packs.parse(p, item.unit);
     }).filter(Boolean);
+  },
+
+  /** Stored text of one packaging unit: "BOX=10", or "1 BOX=10 PC" for a unit smaller than the stock unit. */
+  text: function (stockUnit, p) {
+    return p.factor >= 1 ? p.unit + '=' + Util.round(p.factor) : '1 ' + String(stockUnit).toUpperCase() + '=' + Util.round(1 / p.factor) + ' ' + p.unit;
   },
 
   /** Stock units in one `unit` of the item (1 for the stock unit), or null when the unit is not defined. */
@@ -27,14 +46,15 @@ var Packs = {
 
   /** Cleans packaging units sent by the app ([{unit, factor}] or text) into the stored text. */
   pack: function (stockUnit, value) {
-    var list = Array.isArray(value) ? value : Packs.list({ pack_units: value });
+    var list = Array.isArray(value) ? value : String(value || '').split(/[,;\n]/).filter(function (s) { return s.trim(); })
+      .map(function (s) { var p = Packs.parse(s, stockUnit); Util.require(p, 'pack_invalid', s.trim()); return p; });
     var seen = {};
     return list.map(function (p) {
       var unit = Util.clean(p.unit).toUpperCase(), factor = Util.num(p.factor);
       Util.require(unit && factor > 0, 'pack_invalid', unit);
       Util.require(unit !== String(stockUnit).toUpperCase() && !seen[unit], 'pack_invalid', unit);
       seen[unit] = true;
-      return unit + '=' + Util.round(factor);
+      return Packs.text(stockUnit, { unit: unit, factor: factor });
     }).join(', ');
   },
 

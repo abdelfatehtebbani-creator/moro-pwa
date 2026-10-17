@@ -66,7 +66,7 @@ function items(body, isAdmin) {
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
     const canPack = Data.can('packaging');
-    const packs = trackFilled(h('input.input#e-packs', { value: it ? it.pack_units || '' : '', placeholder: 'TRAY=30, BOX=360', dir: 'ltr', disabled: !canPack }));
+    const packs = trackFilled(h('input.input#e-packs', { value: it ? it.pack_units || '' : '', placeholder: '1 BOX = 10 PC', dir: 'ltr', disabled: !canPack }));
     const reportUnit = trackFilled(h('input.input#e-repunit', { value: it ? it.report_unit || '' : '', placeholder: 'BOX', dir: 'ltr', disabled: !canPack }));
     const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
     const image = trackFilled(h('input.input#e-image', { type: 'url', value: it ? it.image || '' : '', placeholder: 'https://…', dir: 'ltr' }));
@@ -83,7 +83,7 @@ function items(body, isAdmin) {
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat), field(t('unit'), unit),
       field(t('min_stock'), min), field(t('pack_units'), packs), field(t('report_unit'), reportUnit),
-      h('small.muted', t('pack_units_help'), ' ', h('bdi', { dir: 'ltr' }, 'PC  ·  TRAY=30, BOX=360  ·  BOX')), convertBtn,
+      h('small.muted', t('pack_units_help'), ' ', h('bdi', { dir: 'ltr' }, '1 BOX = 10 PC,  1 TRAY = 30 PC')), convertBtn,
       field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });

@@ -26,7 +26,7 @@ export async function render(root) {
   // an item with packaging units is received in one of them (BOX, TRAY…) or its stock unit; others as before
   const unitOpts = () => {
     const it = item && item.value ? Data.items.get(item.value) : null;
-    if (it && Data.packsOf(it).length) return Data.unitsOf(it).map((u) => ({ value: u, label: u, hint: Data.factorOf(it, u) === 1 ? '' : '= ' + Data.factorOf(it, u) + ' ' + it.unit }));
+    if (it && Data.packsOf(it).length) return Data.unitsOf(it).map((u) => ({ value: u, label: u, hint: Data.factorOf(it, u) === 1 ? '' : Data.packText(it, { unit: u, factor: Data.factorOf(it, u) }) }));
     return Data.unitOptions(it ? it.unit : '');
   };
   const locOpts = () => Data.locations.filter((l) => Data.storeOf(l) === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
