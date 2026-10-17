@@ -23,7 +23,8 @@ var CAPS = {
   delete:         ['movements.delete'],
   masters:        ['items.save', 'parties.save', 'locations.save', 'units.save'],
   min_stock:      ['items.save', 'min_stock'],
-  rename:         ['items.save', 'parties.save', 'locations.save', 'units.save', 'rename'],
+  rename:         ['items.save', 'parties.save', 'locations.save', 'units.save', 'rename', 'items.convertUnit'],
+  packaging:      ['items.save', 'packaging'],
   lists:          ['lists.save'],
   recipes:        ['recipes.save'],
   see_prices:     ['see_prices'],
@@ -34,7 +35,7 @@ var CAPS = {
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
   storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices'],
-  purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special'],
+  purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging'],
   production:  ['request_create']
 };
 

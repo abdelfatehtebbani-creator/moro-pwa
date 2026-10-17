@@ -21,6 +21,7 @@ var ROUTES = {
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
   'units.save':       function (s, p) { return Masters.saveUnit(s, p); },
+  'items.convertUnit': function (s, p) { return Packs.convert(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
@@ -72,7 +73,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '8';
+var SCHEMA_VERSION = '9';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {

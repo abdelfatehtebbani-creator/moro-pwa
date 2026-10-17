@@ -23,6 +23,8 @@ var Masters = {
         var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: Stores.categoryOf(store), unit: Util.clean(p.unit).toUpperCase(),
                      min_stock: Util.num(p.min_stock) || 0, image: Util.clean(p.image), active: true, aliases: '',
                      created_at: Util.nowIso(), store: store,
+                     pack_units: p.pack_units !== undefined && Perm.has(session, 'packaging') ? Packs.pack(Util.clean(p.unit).toUpperCase(), p.pack_units) : '',
+                     report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '',
                      sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
@@ -57,6 +59,15 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      if (p.pack_units !== undefined || p.report_unit !== undefined) {
+        Perm.require(session, 'packaging');
+        var stockUnit = ch.unit || cur.unit;
+        var packs = p.pack_units !== undefined ? Packs.pack(stockUnit, p.pack_units) : cur.pack_units;
+        var ru = p.report_unit !== undefined ? Util.clean(p.report_unit).toUpperCase() : String(cur.report_unit || '');
+        Util.require(!ru || ru === String(stockUnit).toUpperCase() || Packs.factor({ unit: stockUnit, pack_units: packs }, ru), 'unit_not_defined', ru);
+        ch.pack_units = packs;
+        ch.report_unit = ru;
+      }
       if (p.sale_price !== undefined) {
         Perm.require(session, 'see_prices');
         var sp = Util.num(p.sale_price);

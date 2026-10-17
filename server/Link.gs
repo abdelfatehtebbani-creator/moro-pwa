@@ -57,7 +57,7 @@ var Link = {
     var items = Repo.all('Items').map(function (i) {
       var qty = Shop.balance(i.item_id);
       var r = reserved[i.item_id] || 0;
-      return { item_id: i.item_id, name: i.name, store: Stores.of(i), category: i.category, unit: i.unit, image: i.image,
+      return { item_id: i.item_id, name: i.name, store: Stores.of(i), category: i.category, unit: i.unit, image: i.image, pack_units: Packs.list(i),
         sale_price: i.sale_price === '' ? '' : Number(i.sale_price), shop_orderable: i.shop_orderable === true, active: i.active === true,
         qty: qty, reserved: r, available: Util.round(qty - r),
         last_purchase_price: lastBuy[i.item_id] ? lastBuy[i.item_id].price : '', last_purchase_date: lastBuy[i.item_id] ? lastBuy[i.item_id].date : '' };
