@@ -16,6 +16,7 @@ var Masters = {
       Util.require(!dup.length, 'name_taken', dup.length ? dup[0].item_id : '');
       var store = p.store !== undefined ? p.store : (p.category === 'Packaging' ? 'PACK' : p.category === 'Food' ? 'DRY' : '');
       if (!p.item_id) {
+        Perm.require(session, 'add_items');
         Util.require(Stores.valid(store), 'store_invalid');
         Util.require(Util.clean(p.unit), 'unit_required');
         var n = 0;

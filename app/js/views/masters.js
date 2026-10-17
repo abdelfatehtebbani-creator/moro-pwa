@@ -102,7 +102,7 @@ function items(body, isAdmin) {
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
 
-  body.replaceChildren(h('div.search', search, h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item'))),
+  body.replaceChildren(h('div.search', search, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
       h('th', t('min_stock')), h('th', t('balance')), h('th', ''))), tb)));
@@ -132,7 +132,7 @@ function parties(body, isAdmin) {
       h('label.check', active, ' ', t('active')), err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
-  body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party'))),
+  body.replaceChildren(h('div.form-actions', Data.can('parties.save') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party')) : null),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('kind')), h('th', ''))), tb)));
   fill();
 }
@@ -184,7 +184,7 @@ function locations(body, isAdmin) {
       h('small.muted', t('location_help')), err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
-  body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_location'))),
+  body.replaceChildren(h('div.form-actions', Data.can('locations.save') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_location')) : null),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('store')), h('th', ''))), tb)));
   fill();
 }
