@@ -105,16 +105,23 @@ export const Data = {
   /** Packaging units of an item: [{unit, factor}] (factor in stock units), from "TRAY=30, BOX=360". */
   packsOf(item) {
     // "BOX=10" or "1 BOX = 10 PC", either way round (same reading as the server's Packs.parse)
+    // also a chain: "1 BOX = 12 TRAY = 360 PC"
     const stock = String((item && item.unit) || '').toUpperCase();
-    return String((item && item.pack_units) || '').split(/[,;\n]/).map((p) => {
-      const m = p.trim().toUpperCase().match(/^([\d.]*)\s*([^\s\d=.]+)\s*=\s*([\d.]+)\s*([^\s\d=.]*)$/);
-      if (!m) return null;
-      const a = m[1] === '' ? 1 : Number(m[1]), u1 = m[2], b = Number(m[3]), u2 = m[4] || stock;
-      if (!(a > 0) || !(b > 0)) return null;
-      if (u1 !== stock && u2 === stock) return { unit: u1, factor: b / a };
-      if (u1 === stock && u2 !== stock) return { unit: u2, factor: a / b };
-      return null;
-    }).filter(Boolean);
+    return String((item && item.pack_units) || '').split(/[,;\n]/).flatMap((p) => {
+      const parts = p.trim().toUpperCase().split('=');
+      if (parts.length < 2) return [];
+      const terms = [];
+      for (let i = 0; i < parts.length; i++) {
+        const m = parts[i].trim().match(/^([\d.]*)\s*([^\s\d=.]*)$/);
+        if (!m) return [];
+        const n = m[1] === '' ? 1 : Number(m[1]), unit = m[2] || (i === parts.length - 1 ? stock : '');
+        if (!(n > 0) || !unit) return [];
+        terms.push({ n, unit });
+      }
+      const base = terms.filter((x) => x.unit === stock);
+      if (base.length !== 1) return [];
+      return terms.filter((x) => x.unit !== stock).map((x) => ({ unit: x.unit, factor: base[0].n / x.n }));
+    });
   },
   /** "1 BOX = 10 PC" for one packaging unit, whichever is larger. */
   packText(item, p) {
@@ -132,6 +139,8 @@ export const Data = {
   unitsOf(item) { return item ? [String(item.unit).toUpperCase(), ...this.packsOf(item).map((p) => p.unit)] : []; },
   /** "TRAY = 30 PC · BOX = 360 PC" */
   packsText(item) { return this.packsOf(item).map((p) => this.packText(item, p)).join(' · '); },
+  /** "12.8 BOX" for a stock-unit quantity, in the item's report unit (screens that act as reports). */
+  fmtReport(item, qty, fmt) { const [q, u] = this.inReportUnit(item, qty); return fmt(q) + ' ' + u; },
   /** A stock-unit quantity in the item's report unit: [qty, unit]. */
   inReportUnit(item, qty) {
     const f = item && item.report_unit ? this.factorOf(item, item.report_unit) : null;

@@ -40,6 +40,9 @@ test('packaging units: set by purchasing / admin only, factors checked', () => {
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 TRAY = 30 PC, 1 box=360pc', report_unit: 'BOX' }, tok.buyer).ok, true);
   assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').pack_units, 'TRAY=30, BOX=360');
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 BOX = 10 KG' }, tok.buyer).error.code, 'pack_invalid');
+  // one chain for all of them
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'BOX = 12 TRAY = 360 PC' }, tok.buyer).ok, true);
+  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').pack_units, 'BOX=360, TRAY=30');
 });
 
 test('the other way round: stock in BOX, issued in PC (1 BOX = 10 PC)', () => {

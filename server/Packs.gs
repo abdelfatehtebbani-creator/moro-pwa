@@ -9,26 +9,36 @@
  */
 var Packs = {
   /**
-   * One packaging unit written either way round, against the stock unit:
-   * "BOX=10", "1 BOX = 10 PC" (stock PC) or "1 BOX = 10 PC" (stock BOX: PC is a tenth of a BOX).
-   * Returns {unit, factor} (factor in stock units) or null.
+   * One part of the packaging text, written any way round against the stock unit:
+   * "BOX=10" (stock units implied), "1 BOX = 10 PC", or a chain "1 BOX = 12 TRAY = 360 PC".
+   * The stock unit must appear (or be implied as the last unit); a stock unit of BOX with
+   * "1 BOX = 10 PC" makes PC a tenth of a BOX. Returns [{unit, factor}] (factor in stock units) or null.
    */
   parse: function (text, stockUnit) {
-    var m = String(text || '').trim().toUpperCase().match(/^([\d.]*)\s*([^\s\d=.]+)\s*=\s*([\d.]+)\s*([^\s\d=.]*)$/);
-    if (!m) return null;
     var stock = String(stockUnit || '').toUpperCase();
-    var a = m[1] === '' ? 1 : Number(m[1]), u1 = m[2], b = Number(m[3]), u2 = m[4] || stock;
-    if (!(a > 0) || !(b > 0)) return null;
-    if (u1 !== stock && u2 === stock) return { unit: u1, factor: Util.round(b / a) };
-    if (u1 === stock && u2 !== stock) return { unit: u2, factor: Util.round(a / b) };
-    return null;
+    var parts = String(text || '').trim().toUpperCase().split('=');
+    if (parts.length < 2) return null;
+    var terms = [];
+    for (var i = 0; i < parts.length; i++) {
+      var m = parts[i].trim().match(/^([\d.]*)\s*([^\s\d=.]*)$/);
+      if (!m) return null;
+      var n = m[1] === '' ? 1 : Number(m[1]), u = m[2] || (i === parts.length - 1 ? stock : '');
+      if (!(n > 0) || !u) return null;
+      terms.push({ n: n, unit: u });
+    }
+    var base = terms.filter(function (x) { return x.unit === stock; })[0];
+    if (!base || terms.filter(function (x) { return x.unit === stock; }).length > 1) return null;
+    return terms.filter(function (x) { return x.unit !== stock; })
+      .map(function (x) { return { unit: x.unit, factor: Util.round(base.n / x.n) }; });
   },
 
   /** [{unit, factor}] of an item row. */
   list: function (item) {
-    return String((item && item.pack_units) || '').split(/[,;\n]/).map(function (p) {
-      return Packs.parse(p, item.unit);
-    }).filter(Boolean);
+    var out = [];
+    String((item && item.pack_units) || '').split(/[,;\n]/).forEach(function (p) {
+      (Packs.parse(p, item.unit) || []).forEach(function (x) { out.push(x); });
+    });
+    return out;
   },
 
   /** Stored text of one packaging unit: "BOX=10", or "1 BOX=10 PC" for a unit smaller than the stock unit. */
@@ -46,8 +56,15 @@ var Packs = {
 
   /** Cleans packaging units sent by the app ([{unit, factor}] or text) into the stored text. */
   pack: function (stockUnit, value) {
-    var list = Array.isArray(value) ? value : String(value || '').split(/[,;\n]/).filter(function (s) { return s.trim(); })
-      .map(function (s) { var p = Packs.parse(s, stockUnit); Util.require(p, 'pack_invalid', s.trim()); return p; });
+    var list = value;
+    if (!Array.isArray(value)) {
+      list = [];
+      String(value || '').split(/[,;\n]/).filter(function (s) { return s.trim(); }).forEach(function (s) {
+        var p = Packs.parse(s, stockUnit);
+        Util.require(p && p.length, 'pack_invalid', s.trim());
+        p.forEach(function (x) { list.push(x); });
+      });
+    }
     var seen = {};
     return list.map(function (p) {
       var unit = Util.clean(p.unit).toUpperCase(), factor = Util.num(p.factor);
