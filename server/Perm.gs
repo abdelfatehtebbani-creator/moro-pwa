@@ -34,7 +34,7 @@ var CAPS = {
 
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
-  storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices'],
+  storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging'],
   purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging'],
   production:  ['request_create']
 };

@@ -61,6 +61,8 @@ var Masters = {
       if (p.image !== undefined) ch.image = Util.clean(p.image);
       if (p.pack_units !== undefined || p.report_unit !== undefined) {
         Perm.require(session, 'packaging');
+        // a storekeeper sets the purchase unit only for the items of their own stores
+        if (session.role === 'storekeeper') Stores.require(session, Stores.of(cur));
         var stockUnit = ch.unit || cur.unit;
         var packs = p.pack_units !== undefined ? Packs.pack(stockUnit, p.pack_units) : cur.pack_units;
         var ru = p.report_unit !== undefined ? Util.clean(p.report_unit).toUpperCase() : String(cur.report_unit || '');

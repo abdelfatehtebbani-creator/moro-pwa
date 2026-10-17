@@ -109,6 +109,7 @@ var Packs = {
       Repo.setColumn('Movements', 'unit', function (m) { return m.item_id === item.item_id ? newUnit : m.unit; });
       if (bal) Repo.update('Balances', 'item_id', item.item_id, { qty: x(bal.qty), unit: newUnit });
       ['RequestLines', 'ShopOrderLines'].forEach(function (t) {
+        if (!SCHEMA[t]) return;
         ['qty', 'issued_qty', 'reserved_qty', 'handed_qty', 'returned_qty'].forEach(function (c) {
           if (Repo.raw(t).columns.indexOf(c) < 0) return;
           Repo.setColumn(t, c, function (r) { return r.item_id === item.item_id ? x(r[c]) : r[c]; });

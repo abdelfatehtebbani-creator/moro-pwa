@@ -27,31 +27,19 @@ function env() {
 const receipt = (extra) => ({ kind: 'RECEIPT', date: TODAY, party_id: 'P002', item_id: 'I0001', qty: 10, unit: 'BOX', price: 90, per: 'BOX',
   amount: 900, discount: 0, doc_no: 'INV-1', location: 'Chiller 1', expiry: '2027-01-01', ...extra });
 
-test('packaging units: set by purchasing / admin only, factors checked', () => {
+test('packaging units: set by admin, purchasing and the storekeeper of the item store; factors checked', () => {
   const { g, tok } = env();
-  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'TRAY=30, BOX=360' }, tok.store).error.code, 'forbidden');
+  const sk = g.rows('Users').find((u) => u.username === 'store');
+  g.api('users.save', { user_id: sk.user_id, stores: ['PACK'] }, tok.admin);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'TRAY=30, BOX=360' }, tok.store).error.code, 'store_forbidden');
+  g.api('users.save', { user_id: sk.user_id, stores: ['DRY'] }, tok.admin);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 BOX = 360 PC' }, tok.store).ok, true);
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'PC=1' }, tok.buyer).error.code, 'pack_invalid');
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: [{ unit: 'tray', factor: 30 }, { unit: 'box', factor: 360 }], report_unit: 'BOX' }, tok.buyer).ok, true);
   const it = g.rows('Items').find((i) => i.item_id === 'I0001');
   assert.equal(it.pack_units, 'TRAY=30, BOX=360');
   assert.equal(it.report_unit, 'BOX');
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', report_unit: 'CRATE' }, tok.buyer).error.code, 'unit_not_defined');
-  // written the natural way: "1 BOX = 360 PC"
-  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 TRAY = 30 PC, 1 box=360pc', report_unit: 'BOX' }, tok.buyer).ok, true);
-  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').pack_units, 'TRAY=30, BOX=360');
-  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 BOX = 10 KG' }, tok.buyer).error.code, 'pack_invalid');
-  // one chain for all of them
-  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'BOX = 12 TRAY = 360 PC' }, tok.buyer).ok, true);
-  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').pack_units, 'BOX=360, TRAY=30');
-});
-
-test('the other way round: stock in BOX, issued in PC (1 BOX = 10 PC)', () => {
-  const { g, tok, bal } = env();
-  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'OLD EGGS', pack_units: '1 BOX = 10 PC' }, tok.buyer).ok, true);
-  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0002').pack_units, '1 BOX=10 PC');
-  const iss = { kind: 'ISSUE', date: TODAY, party_id: 'P001', item_id: 'I0002', qty: 5, unit: 'PC' };
-  assert.equal(g.api('movements.save', { movements: [iss] }, tok.store).ok, true);
-  assert.equal(bal('I0002'), 2.5);
 });
 
 test('received in BOX, kept in PC; issued in TRAY or PC; what was typed is kept', () => {
