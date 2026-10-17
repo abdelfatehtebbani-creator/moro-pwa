@@ -50,13 +50,27 @@ export async function render(root) {
     }));
   };
   search.addEventListener('input', fillLookup);
-  const storeTabs = h('div.tabs.store-tabs');
-  const drawStoreTabs = () => storeTabs.replaceChildren(...['', ...STORES].map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
-    onclick: () => { lookStore = s; drawStoreTabs(); fillLookup(); search.focus(); } }, s ? t('store_' + s) : t('all_stores'))));
-  drawStoreTabs();
+  const inStore = (item) => !lookStore || Data.storeOf(item) === lookStore;
+  const storeBars = [];
+  const storeTabs = () => {
+    const bar = h('div.tabs.store-tabs');
+    storeBars.push(bar);
+    drawStoreTabs();
+    return bar;
+  };
+  function drawStoreTabs() {
+    storeBars.forEach((bar) => bar.replaceChildren(...['', ...STORES].map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
+      onclick: () => { lookStore = s; drawStoreTabs(); refill(); } }, s ? t('store_' + s) : t('all_stores')))));
+  }
+  const refill = () => {
+    fillLookup();
+    if (panel === 'low' || panel === 'exp') showAlerts(panel);
+    if (lastRecent) fillRecent(lastRecent);
+    if (panel === 'items') search.focus();
+  };
   const lookup = h('div.card',
     h('div.card-head', h('h2', t('lookup')), count),
-    storeTabs,
+    storeTabs(),
     h('div.search', search),
     canEditMin ? h('small.muted', t('click_to_edit')) : null,
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('unit')), h('th', t('balance')), h('th', t('min_stock')), h('th', t('last_expiry')))), lookBody)));
@@ -65,21 +79,21 @@ export async function render(root) {
   const alertTitle = h('h2', '');
   const alertHead = h('thead');
   const alertBody = h('tbody');
-  const alerts = h('div.card', h('div.card-head', alertTitle),
+  const alerts = h('div.card', h('div.card-head', alertTitle), storeTabs(),
     h('div.table-wrap', h('table', alertHead, alertBody)));
   function showAlerts(tab) {
     alertTitle.textContent = t(tab === 'low' ? 'kpi_low' : 'kpi_exp');
     if (tab === 'low') {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('available')), h('th', t('min_stock'))));
-      const rows = Data.lowStock();
+      const rows = Data.lowStock().filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(r.item) : null },
-        h('td.wrap', h('bdi', r.item.name)), h('td.num.qty-neg', fmtNum(r.qty) + ' ' + r.item.unit), h('td.num', fmtNum(r.min))))
+        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num.qty-neg', fmtNum(r.qty) + ' ' + r.item.unit), h('td.num', fmtNum(r.min))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_low')))]));
     } else {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('balance')), h('th', t('expiry'))));
-      const rows = Data.expiring(30);
+      const rows = Data.expiring(30).filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr',
-        h('td.wrap', h('bdi', r.item.name)), h('td.num', fmtNum(r.qty) + ' ' + r.item.unit),
+        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num', fmtNum(r.qty) + ' ' + r.item.unit),
         h('td', fmtDate(r.expiry), ' ', h('span', { class: 'pill ' + (r.left < 0 ? 'low' : 'soon') }, r.left < 0 ? t('expired') : t('days_left', { n: r.left })))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_exp')))]));
     }
@@ -87,16 +101,18 @@ export async function render(root) {
 
   // ---------- latest movements
   const recentBody = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
-  const recentCard = h('div.card', h('h2', t('recent')),
+  let lastRecent = null;
+  const recentCard = h('div.card', h('h2', t('recent')), storeTabs(),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('kind')), h('th', t('party')), h('th', t('item')), h('th', t('qty')), h('th', t('doc')))), recentBody)));
   const fillRecent = (res) => {
-    const rows = objects(res);
+    lastRecent = res;
+    const rows = objects(res).filter((m) => inStore(Data.items.get(m.item_id)));
     recentBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id);
       const p = Data.parties.get(m.party_id);
       const q = Number(m.qty);
       return h('tr', h('td.num', fmtDate(m.date)), h('td', h('span', { class: 'pill ' + (q >= 0 ? 'in' : 'out') }, t('kind_' + m.kind))),
-        h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? it.name : m.item_id)),
+        h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? it.name : m.item_id), it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
         h('td.num', { class: q < 0 ? 'qty-neg' : '' }, fmtNum(q) + ' ' + (m.unit || '')), h('td.num', m.doc_no || ''));
     }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
   };
