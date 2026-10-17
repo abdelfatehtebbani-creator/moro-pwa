@@ -5,7 +5,7 @@ import { Data } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
-import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
+import { h, toast, flash, fmtNum, fmtDate, fmtMoveQty, trackFilled, dialog } from '../ui.js';
 import { combo, field, storePicker, storePill, doublePress, newId } from '../components.js';
 
 let cleanup = null;
@@ -27,6 +27,18 @@ export async function render(root) {
   const item = combo({ id: 'i-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
   const qty = trackFilled(h('input.input.num#i-qty', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' }));
   const info = h('p.item-info', '');
+  const unitSel = h('select.input#i-unit');
+  const unitField = h('div.field', { hidden: true }, h('label', { for: 'i-unit' }, t('unit')), unitSel);
+  const conv = h('p.conv-info', { hidden: true });
+  const showConv = () => {
+    const it = Data.items.get(item.value);
+    const f = it ? Data.factorOf(it, unitSel.value) : null;
+    const q = Number(qty.value) || 0;
+    conv.hidden = !(it && f && f !== 1 && q);
+    if (!conv.hidden) conv.replaceChildren(t('taken_from_stock'), ' ', h('bdi', fmtNum(Math.round(q * f * 1e6) / 1e6) + ' ' + it.unit));
+  };
+  qty.addEventListener('input', showConv);
+  unitSel.addEventListener('change', showConv);
   const addBtn = h('button.btn#i-add', { type: 'button', onclick: addLine }, t('add_line'));
   const postBtn = h('button.btn.save-btn#i-post', { type: 'button', onclick: post }, t('post_slip'));
   const clearBtn = h('button.btn.secondary', { type: 'button', onclick: clearSlip }, t('new_slip'));
@@ -36,11 +48,16 @@ export async function render(root) {
 
   function showItem(id) {
     const it = Data.items.get(id);
+    const units = it ? Data.unitsOf(it) : [];
+    unitSel.replaceChildren(...units.map((u) => h('option', { value: u }, u)));
+    unitField.hidden = units.length < 2;
+    showConv();
     if (!it) { info.textContent = ''; return; }
     const q = Data.qty(id);
     const low = Number(it.min_stock) > 0 && q <= Number(it.min_stock);
     info.className = 'item-info' + (low ? ' low' : '');
-    info.textContent = t('available') + ': ' + fmtNum(q) + ' ' + it.unit + (Number(it.min_stock) > 0 ? '   |   ' + t('min_stock') + ': ' + fmtNum(it.min_stock) : '');
+    info.textContent = t('available') + ': ' + fmtNum(q) + ' ' + it.unit + (Number(it.min_stock) > 0 ? '   |   ' + t('min_stock') + ': ' + fmtNum(it.min_stock) : '') +
+      (Data.packsOf(it).length ? '   |   ' + Data.packsText(it) : '');
   }
 
   function drawLines() {
@@ -48,7 +65,7 @@ export async function render(root) {
       const it = Data.items.get(l.item_id);
       return h('tr.click', { class: i === editIndex ? 'selected' : '', onclick: () => pickLine(i) },
         h('td.num', i + 1), h('td.wrap', h('bdi', it.name)), h('td', storePill(Data.storeOf(it))),
-        h('td.num', fmtNum(l.qty) + ' ' + l.unit),
+        h('td.num', fmtNum(l.qty) + ' ' + l.unit + (l.unit !== it.unit ? ' (' + fmtNum(Math.round(l.qty * (Data.factorOf(it, l.unit) || 1) * 1e6) / 1e6) + ' ' + it.unit + ')' : '')),
         h('td', h('button.link', { type: 'button', onclick: (e) => { e.stopPropagation(); removeLine(i, e.currentTarget); } }, t('delete'))));
     }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
     count.textContent = t('lines_count', { n: lines.length });
@@ -64,11 +81,11 @@ export async function render(root) {
     if (!(Number(qty.value) > 0)) bad.push(qty);
     if (bad.length) { bad.forEach((b) => flash(b)); bad[0].focus(); status.textContent = t('fill_highlighted'); status.className = 'form-status err'; return; }
     const it = Data.items.get(item.value);
-    const line = { item_id: it.item_id, qty: Number(qty.value), unit: it.unit, store: Data.storeOf(it) };
+    const line = { item_id: it.item_id, qty: Number(qty.value), unit: unitField.hidden ? it.unit : unitSel.value, store: Data.storeOf(it) };
     if (editIndex >= 0) lines[editIndex] = line; else lines.push(line);
     editIndex = -1;
     addBtn.textContent = t('add_line');
-    item.clear(); qty.value = ''; qty.dispatchEvent(new Event('change')); info.textContent = '';
+    item.clear(); qty.value = ''; qty.dispatchEvent(new Event('change')); info.textContent = ''; unitField.hidden = true; conv.hidden = true;
     status.textContent = t('dont_forget_post'); status.className = 'form-status warn';
     drawLines();
     item.input.focus();
@@ -78,6 +95,7 @@ export async function render(root) {
     editIndex = i;
     const l = lines[i];
     item.set(l.item_id); qty.value = String(l.qty); qty.dispatchEvent(new Event('change'));
+    if (!unitField.hidden) { unitSel.value = l.unit; showConv(); }
     addBtn.textContent = t('update_line');
     drawLines();
     qty.focus();
@@ -147,7 +165,7 @@ export async function render(root) {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
         h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', p ? p.name : '')),
-        h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtNum(Math.abs(Number(m.qty))) + ' ' + (m.unit || '')),
+        h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtMoveQty(m)),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''));
     }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
   };
@@ -190,7 +208,7 @@ export async function render(root) {
       h('div.card-head', h('h2', t('issue_slip')), zone.el),
       h('div.form-grid',
         field(t('department'), dept, { wide: true }), field(t('date'), date), h('div.field', h('label', t('slip_no')), h('div.slip-auto', t('slip_auto'))),
-        field(t('item'), item, { wide: true }), info, field(t('qty'), qty), h('div.field.end', addBtn)),
+        field(t('item'), item, { wide: true }), info, field(t('qty'), qty), unitField, h('div.field.end', addBtn), conv),
       h('div.card-head', h('h2', t('slip_lines')), count),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('kind')), h('th', t('qty')), h('th', ''))), lineBody)),
       h('div.form-actions', postBtn, clearBtn), status,
