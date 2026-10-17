@@ -5,7 +5,7 @@ import { Data } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
-import { h, toast, fmtNum, fmtDate, trackFilled } from '../ui.js';
+import { h, toast, fmtNum, fmtDate, fmtMoveQty, trackFilled } from '../ui.js';
 import { combo, field, enterNav, checkAll, storePicker, doublePress, newId } from '../components.js';
 
 let cleanup = null;
@@ -23,7 +23,12 @@ export async function render(root) {
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
   // the units in use, plus the chosen item's own unit even if it was switched off
-  const unitOpts = () => Data.unitOptions(item && item.value ? (Data.items.get(item.value) || {}).unit : '');
+  // an item with packaging units is received in one of them (BOX, TRAY…) or its stock unit; others as before
+  const unitOpts = () => {
+    const it = item && item.value ? Data.items.get(item.value) : null;
+    if (it && Data.packsOf(it).length) return Data.unitsOf(it).map((u) => ({ value: u, label: u, hint: Data.factorOf(it, u) === 1 ? '' : '= ' + Data.factorOf(it, u) + ' ' + it.unit }));
+    return Data.unitOptions(it ? it.unit : '');
+  };
   const locOpts = () => Data.locations.filter((l) => Data.storeOf(l) === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
   const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
@@ -43,6 +48,15 @@ export async function render(root) {
   const location = combo({ id: 'r-location', options: locOpts });
   const isReturn = h('input#r-return', { type: 'checkbox' });
   const info = h('p.item-info', '');
+  const conv = h('p.conv-info', { hidden: true });
+  // "goes into stock: 3,600 PC" under a quantity typed in a packaging unit
+  const showConv = () => {
+    const it = Data.items.get(item.value);
+    const f = it ? Data.factorOf(it, unit.input.value) : null;
+    const q = Math.abs(Number(qty.value)) || 0;
+    conv.hidden = !(it && f && f !== 1 && q);
+    if (!conv.hidden) conv.replaceChildren(t('goes_into_stock'), ' ', h('bdi', fmtNum(Math.round(q * f * 1e6) / 1e6) + ' ' + it.unit), '   ·   ', h('bdi', Data.packsText(it)));
+  };
   const saveBtn = h('button.btn.save-btn#r-save', { type: 'button', onclick: save }, t('save_entry'));
   const newBtn = h('button.btn.secondary', { type: 'button', onclick: () => reset(true) }, t('new_entry'));
   const delBtn = h('button.btn.danger', { type: 'button', hidden: true, onclick: remove }, t('delete'));
@@ -65,12 +79,16 @@ export async function render(root) {
     [qty, amount, net].forEach((x) => x.dispatchEvent(new Event('change')));
   };
   [parcels, retail, price, discount].forEach((x) => x.addEventListener('input', recalc));
+  [qty, unit.input].forEach((x) => { x.addEventListener('input', showConv); x.addEventListener('change', showConv); });
 
   function showItem(id) {
     const it = Data.items.get(id);
     if (!it) { info.textContent = ''; return; }
-    if (!unit.value) unit.set(it.unit);
-    if (!per.value) per.set(it.unit);
+    // packaging units: the report / purchase unit is offered first (as on the supplier invoice)
+    const first = it.report_unit && Data.factorOf(it, it.report_unit) ? String(it.report_unit).toUpperCase() : it.unit;
+    if (!unit.value) unit.set(first);
+    if (!per.value) per.set(first);
+    showConv();
     const q = Data.qty(id);
     const b = Data.balances.get(id);
     const low = Number(it.min_stock) > 0 && q <= Number(it.min_stock);
@@ -168,8 +186,10 @@ export async function render(root) {
     if (Data.storeOf(it) !== zone.value) zone.set(Data.storeOf(it), true);
     editing = m;
     item.set(m.item_id); supplier.set(m.party_id); date.value = m.date; invoice.value = m.doc_no;
-    parcels.value = ''; retail.value = '1'; qty.value = String(Math.abs(Number(m.qty)));
-    unit.set(m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0;
+    parcels.value = ''; retail.value = '1';
+    // edited as it was typed (10 BOX), not as stored (3600 PC)
+    qty.value = String(m.entry_unit ? m.entry_qty : Math.abs(Number(m.qty)));
+    unit.set(m.entry_unit || m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0;
     amount.value = m.amount; net.value = m.final_amount; expiry.value = m.expiry || '';
     location.set(m.location); isReturn.checked = m.kind === 'SUPPLIER_RETURN';
     if (!location.value && m.location) location.input.value = m.location;
@@ -196,7 +216,7 @@ export async function render(root) {
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => edit(m) },
         h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? it.name : m.item_id)),
         h('td.num', { class: Number(m.qty) < 0 || m.kind === 'SUPPLIER_RETURN' ? 'qty-neg' : '' },
-          (m.kind === 'SUPPLIER_RETURN' ? '-' : '') + fmtNum(Math.abs(Number(m.qty))) + ' ' + (m.unit || '')),
+          (m.kind === 'SUPPLIER_RETURN' ? '-' : '') + fmtMoveQty(m)),
         h('td.num', m.final_amount === '' ? '' : fmtNum(m.final_amount)), h('td.num', m.doc_no || ''),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.wrap', h('bdi', p ? p.name : '')));
     }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
@@ -220,7 +240,7 @@ export async function render(root) {
         field(t('supplier'), supplier, { wide: true }),
         field(t('date'), date), field(t('invoice_no'), invoice),
         field(t('parcels'), parcels), field(t('per_parcel'), retail),
-        field(t('qty'), qty), field(t('unit'), unit),
+        field(t('qty'), qty), field(t('unit'), unit), conv,
         field(t('price'), price), field(t('per'), per),
         field(t('amount'), amount), field(t('discount_pct'), discount),
         field(t('net'), net), field(t('expiry'), expiry),

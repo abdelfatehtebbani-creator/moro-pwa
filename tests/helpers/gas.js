@@ -114,6 +114,7 @@ function createGas(opts = {}) {
       const sh = spreadsheet.sheets[sheetName];
       const head = sh.data[0];
       records.forEach((r) => sh.data.push(head.map((c) => (r[c] === undefined ? '' : r[c]))));
+      sh.maxRows = Math.max(sh.maxRows, sh.data.length);           // a sheet always has room for its rows
     },
     rows(sheetName) {
       const sh = spreadsheet.sheets[sheetName];

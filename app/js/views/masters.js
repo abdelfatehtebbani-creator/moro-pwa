@@ -65,6 +65,10 @@ function items(body, isAdmin) {
     if (it) unit.set(it.unit);
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
+    const canPack = Data.can('packaging');
+    const packs = trackFilled(h('input.input#e-packs', { value: it ? it.pack_units || '' : '', placeholder: 'TRAY=30, BOX=360', dir: 'ltr', disabled: !canPack }));
+    const reportUnit = trackFilled(h('input.input#e-repunit', { value: it ? it.report_unit || '' : '', placeholder: 'BOX', dir: 'ltr', disabled: !canPack }));
+    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
     const image = trackFilled(h('input.input#e-image', { type: 'url', value: it ? it.image || '' : '', placeholder: 'https://…', dir: 'ltr' }));
     const err = h('p.err-text', '');
     const ok = () => {
@@ -74,10 +78,13 @@ function items(body, isAdmin) {
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
+      if (canPack) { p.pack_units = packs.value.trim(); p.report_unit = reportUnit.value.trim(); }
       save('items.save', p, close, err);
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat), field(t('unit'), unit),
-      field(t('min_stock'), min), field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
+      field(t('min_stock'), min), field(t('pack_units'), packs), field(t('report_unit'), reportUnit),
+      h('small.muted', t('pack_units_help'), ' ', h('bdi', { dir: 'ltr' }, 'PC  ·  TRAY=30, BOX=360  ·  BOX')), convertBtn,
+      field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
 
@@ -114,6 +121,29 @@ function parties(body, isAdmin) {
   body.replaceChildren(h('div.form-actions', h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party'))),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('kind')), h('th', ''))), tb)));
   fill();
+}
+
+/** Admin: the item's stock unit becomes a smaller one (BOX → PC, 1 BOX = 360 PC); preview first. */
+async function convertUnit(it) {
+  const asked = await dialog((close) => {
+    const nu = trackFilled(h('input.input#cv-unit', { placeholder: 'PC', dir: 'ltr' }));
+    const f = trackFilled(h('input.input.num#cv-factor', { type: 'number', min: 0, step: 'any', placeholder: '360' }));
+    const ok = () => { if (!nu.value.trim()) return flash(nu); if (!(Number(f.value) > 0)) return flash(f); close({ new_unit: nu.value.trim().toUpperCase(), factor: Number(f.value) }); };
+    return [h('h3', t('change_stock_unit'), ': ', h('bdi', it.name)), h('small.muted', t('change_stock_unit_help', { u: it.unit })),
+      field(t('new_stock_unit'), nu), field(t('factor_old_to_new', { u: it.unit }), f),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('preview_change')))];
+  });
+  if (!asked) return;
+  let pv;
+  try { pv = await call('items.convertUnit', { item_id: it.item_id, ...asked, preview: true }); } catch (e) { toast(errText(e), 'err'); return; }
+  const go = await dialog((close) => [h('h3', t('change_stock_unit'), ': ', h('bdi', pv.name)),
+    h('p', t('convert_balance', { a: fmtNum(pv.balance_before) + ' ' + pv.old_unit, b: fmtNum(pv.balance_after) + ' ' + pv.new_unit })),
+    h('p', t('convert_min', { a: fmtNum(pv.min_before) + ' ' + pv.old_unit, b: fmtNum(pv.min_after) + ' ' + pv.new_unit })),
+    h('p.muted', t('convert_history', { n: pv.movements, f: pv.factor })),
+    h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('convert_now')))]);
+  if (!go) return;
+  try { await call('items.convertUnit', { item_id: it.item_id, ...asked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+  catch (e) { toast(errText(e), 'err'); }
 }
 
 function locations(body, isAdmin) {

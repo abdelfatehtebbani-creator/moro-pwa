@@ -102,6 +102,31 @@ export const Data = {
     return Array.isArray(s) ? s.filter((x) => STORES.includes(x)) : STORES.slice();
   },
   canStore(store) { return this.myStores().includes(store); },
+  /** Packaging units of an item: [{unit, factor}] (factor in stock units), from "TRAY=30, BOX=360". */
+  packsOf(item) {
+    return String((item && item.pack_units) || '').split(/[,;\n]/).map((p) => {
+      const [u, f] = p.split('=');
+      const unit = String(u || '').trim().toUpperCase(), factor = Number(f);
+      return unit && factor > 0 ? { unit, factor } : null;
+    }).filter(Boolean);
+  },
+  /** Stock units in one `unit` of the item (1 for the stock unit, null when not defined). */
+  factorOf(item, unit) {
+    const u = String(unit || '').trim().toUpperCase();
+    if (!item || !u || u === String(item.unit).toUpperCase()) return 1;
+    const p = this.packsOf(item).find((x) => x.unit === u);
+    return p ? p.factor : null;
+  },
+  /** The units an item can be entered in: its stock unit first, then its packaging units. */
+  unitsOf(item) { return item ? [String(item.unit).toUpperCase(), ...this.packsOf(item).map((p) => p.unit)] : []; },
+  /** "TRAY = 30 PC · BOX = 360 PC" */
+  packsText(item) { return this.packsOf(item).map((p) => p.unit + ' = ' + p.factor + ' ' + item.unit).join(' · '); },
+  /** A stock-unit quantity in the item's report unit: [qty, unit]. */
+  inReportUnit(item, qty) {
+    const f = item && item.report_unit ? this.factorOf(item, item.report_unit) : null;
+    return f && f !== 1 ? [Math.round((qty / f) * 1e6) / 1e6, String(item.report_unit).toUpperCase()] : [qty, item ? item.unit : ''];
+  },
+
   /** Quantity held for shop orders, and what is left for everything else. */
   reserved(id) { return Number((this.reservedQty || {})[id]) || 0; },
   available(id) { return Math.round((this.qty(id) - this.reserved(id)) * 1e6) / 1e6; },

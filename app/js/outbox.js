@@ -25,7 +25,10 @@ export function pendingDeltas() {
   const d = {};
   for (const job of queue) {
     if (job.action !== 'movements.save') continue;
-    for (const m of job.payload.movements) d[m.item_id] = (d[m.item_id] || 0) + Math.abs(Number(m.qty)) * (SIGN[m.kind] || 1);
+    for (const m of job.payload.movements) {
+      const f = Data.factorOf(Data.items.get(m.item_id), m.unit) || 1;      // typed in a packaging unit: counted in stock units
+      d[m.item_id] = (d[m.item_id] || 0) + Math.abs(Number(m.qty)) * f * (SIGN[m.kind] || 1);
+    }
   }
   return d;
 }

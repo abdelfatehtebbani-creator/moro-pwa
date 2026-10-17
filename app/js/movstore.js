@@ -34,11 +34,15 @@ export const MovStore = {
 
   /** Movements saved on this device that are still waiting to be sent, in the same shape. */
   pending() {
-    return Outbox.queued('movements.save').flatMap((job) => job.payload.movements.map((m) => ({
-      ...m, movement_id: '~' + m.client_id, qty: Math.abs(Number(m.qty)) * (SIGN[m.kind] || 1), status: 'pending',
+    return Outbox.queued('movements.save').flatMap((job) => job.payload.movements.map((m) => {
+      const it = Data.items.get(m.item_id);
+      const f = Data.factorOf(it, m.unit) || 1;
+      const typed = f !== 1 ? { entry_qty: Math.abs(Number(m.qty)), entry_unit: m.unit, unit: it.unit } : {};
+      return {
+      ...m, ...typed, movement_id: '~' + m.client_id, qty: Math.abs(Number(m.qty)) * f * (SIGN[m.kind] || 1), status: 'pending',
       created_by: Data.user && Data.user.user_id, final_amount: '', category: (Data.items.get(m.item_id) || {}).category || '',
       pending: true,
-    })));
+    }; }));
   },
 
   /** History + pending, newest first. */
