@@ -112,6 +112,21 @@ test('goods handed but not sent come back as a return from the shop; Masar sees 
   assert.equal(bal('I0001'), 9);
 });
 
+test('a line sent before the distribution approval is shown only; it is reserved and handed after approval', () => {
+  const { g, tok, link } = env();
+  const l = link('link.orders.push', { lines: [line('P1', 'I0002', 3, { approved: false })] }).data.lines[0];
+  assert.equal(l.approved, false);
+  assert.equal(l.reserved_qty, 0);
+  assert.equal(l.shortage, 0);
+  assert.deepEqual(g.api('shop.list', {}, tok.pack).data.map((x) => [x.order_item_id, x.approved]), [['P1', false]]);
+  assert.equal(g.api('shop.hand', { lines: [{ line_id: l.line_id, qty: 1 }] }, tok.pack).error.code, 'not_approved');
+  assert.equal(g.api('shop.unavailable', { line_id: l.line_id, reason: 'x' }, tok.pack).error.code, 'not_approved');
+  // approved with a changed quantity
+  const a = link('link.orders.push', { lines: [line('P1', 'I0002', 2, { approved: true })] }).data.lines[0];
+  assert.deepEqual([a.approved, a.qty, a.reserved_qty], [true, 2, 2]);
+  assert.equal(g.api('shop.hand', { client_id: 'p', lines: [{ line_id: l.line_id, qty: 2 }] }, tok.pack).ok, true);
+});
+
 test('stock that comes in covers waiting shop orders, oldest first', () => {
   const { g, tok, link } = env();
   link('link.orders.push', { lines: [line('A', 'I0002', 4)] });

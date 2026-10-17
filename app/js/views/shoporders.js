@@ -58,14 +58,15 @@ export async function render(root) {
     const rows = ls.map((l) => {
       const it = itemOf(l.item_id);
       const left = Math.max(0, Math.round((l.qty - l.handed_qty) * 1e6) / 1e6);
-      const open = tab === 'open' && left > 0;
+      const open = tab === 'open' && left > 0 && l.approved !== false;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
       const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
         canBack && Data.canStore(l.store) ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
-        t('line_' + l.status)) : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
+        t('line_' + l.status)) : l.approved === false ? h('span.pill.soon', t('awaiting_approval'))
+        : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
       return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
         h('td', inp || '', ' ', no || ''));
