@@ -57,9 +57,9 @@ export async function render(root) {
       const low = Number(i.min_stock) > 0 && qty <= Number(i.min_stock);
       return h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(i) : null },
         h('td.wrap', h('bdi', i.name), ' ', storePill(Data.storeOf(i))),
-        h('td', i.unit),
-        h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(qty)),
-        h('td.num', Number(i.min_stock) > 0 ? fmtNum(i.min_stock) : ''),
+        h('td', Data.inReportUnit(i, 0)[1]),
+        h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(Data.inReportUnit(i, qty)[0])),
+        h('td.num', Number(i.min_stock) > 0 ? fmtNum(Data.inReportUnit(i, Number(i.min_stock))[0]) : ''),
         h('td.num', b && b.last_expiry ? fmtDate(b.last_expiry) : ''));
     }));
   };
@@ -97,13 +97,13 @@ export async function render(root) {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('available')), h('th', t('min_stock'))));
       const rows = Data.lowStock().filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(r.item) : null },
-        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num.qty-neg', fmtNum(r.qty) + ' ' + r.item.unit), h('td.num', fmtNum(r.min))))
+        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num.qty-neg', Data.fmtReport(r.item, r.qty, fmtNum)), h('td.num', Data.fmtReport(r.item, r.min, fmtNum))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_low')))]));
     } else {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('balance')), h('th', t('expiry'))));
       const rows = Data.expiring(30).filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr',
-        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num', fmtNum(r.qty) + ' ' + r.item.unit),
+        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num', Data.fmtReport(r.item, r.qty, fmtNum)),
         h('td', fmtDate(r.expiry), ' ', h('span', { class: 'pill ' + (r.left < 0 ? 'low' : 'soon') }, r.left < 0 ? t('expired') : t('days_left', { n: r.left })))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_exp')))]));
     }
@@ -123,7 +123,7 @@ export async function render(root) {
       const q = Number(m.qty);
       return h('tr', h('td.num', fmtDate(m.date)), h('td', h('span', { class: 'pill ' + (q >= 0 ? 'in' : 'out') }, t('kind_' + m.kind))),
         h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? it.name : m.item_id), it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
-        h('td.num', { class: q < 0 ? 'qty-neg' : '' }, fmtNum(q) + ' ' + (m.unit || '')), h('td.num', m.doc_no || ''));
+        h('td.num', { class: q < 0 ? 'qty-neg' : '' }, it && q ? (q < 0 ? '-' : '') + Data.fmtReport(it, Math.abs(q), fmtNum) : fmtNum(q) + ' ' + (m.unit || '')), h('td.num', m.doc_no || ''));
     }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
   };
 
@@ -176,7 +176,7 @@ export async function render(root) {
         } catch (e) { err.textContent = errText(e); flash(inp); }
       };
       inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
-      return [h('h3', t('edit_min_for', { name: '' }), h('bdi', item.name)), inp, err,
+      return [h('h3', t('edit_min_for', { name: '' }), h('bdi', item.name)), h('small.muted', t('min_stock_in', { u: item.unit })), inp, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
           h('button.btn', { type: 'button', onclick: save }, t('save')))];
     });

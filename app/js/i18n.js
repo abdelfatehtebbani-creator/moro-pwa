@@ -19,6 +19,10 @@ const DICT = {
     // dashboard
     kpi_items: 'مواد متوفرة في المخزن', kpi_low: 'مواد عند الحد الأدنى أو أقل', kpi_exp: 'صلاحية خلال 30 يومًا',
     kpi_today: 'حركات اليوم (استلام / صرف)', lookup: 'بحث سريع عن مادة', lookup_hint: 'اكتب أي جزء من اسم المادة', store: 'المخزن', stores: 'المخازن',
+    goes_into_stock: 'يدخل المخزون:', taken_from_stock: 'يُخصم من المخزون:',
+    stock_unit: 'وحدة المخزون (للصرف)', units_of_item: 'وحدات المادة', buy_unit: 'وحدة الشراء (كرتونة، علبة…)',
+    buy_unit_help: 'اختياري. اكتب مثلًا 1 BOX = 4 PC: تُستلم بالـ BOX وتُصرف بالـ PC، والتقارير ولوحة التحكم بالـ BOX. اتركها فارغة إن كانت المادة بوحدة واحدة.',
+    min_stock_in: 'الحد الأدنى (بوحدة المخزون {u})',
     kpi_hint: 'اضغط على بطاقة لعرض تفاصيلها', all_stores: 'كل المخازن', my_stores: 'كل مخازني',
     refresh_now: 'اضغط للتحديث الآن', refreshed: 'تم التحديث',
     store_CHILLED: 'مواد مبرَّدة', store_DRY: 'مواد جافة', store_PACK: 'تغليف', store_FINAL: 'منتجات نهائية',
@@ -280,6 +284,7 @@ const DICT = {
     'err.forbidden': 'ليست لديك صلاحية لهذه العملية', 'err.busy': 'الخادم مشغول، حاول بعد لحظات',
     'err.auth_required': 'سجّل الدخول من جديد', 'err.auth_expired': 'انتهت الجلسة، سجّل الدخول من جديد',
     'err.min_invalid': 'أدخل رقمًا صحيحًا', 'err.not_found': 'السجل غير موجود', 'err.store_forbidden': 'هذا المخزن ليس من صلاحياتك', 'err.store_invalid': 'اختر المخزن', 'err.already_deleted': 'حذف هذا السجلَّ {by} في {at}',
+    'err.unit_not_defined': 'هذه الوحدة غير معرّفة لهذه المادة', 'err.pack_invalid': 'وحدة الشراء غير صحيحة', 'err.factor_invalid': 'المعامل غير صحيح',
     'job.movements.save': 'حفظ', 'job.movements.update': 'تعديل', 'job.movements.delete': 'حذف',
     'job.requests.create': 'طلب قسم', 'job.requests.fulfil': 'صرف طلب', 'job.requests.cancel': 'إلغاء طلب', 'job.production.post': 'إنتاج',
   },
@@ -297,6 +302,10 @@ const DICT = {
     online: 'Online', offline: 'Offline', updated_at: 'Updated {t}', refreshing: 'Updating…', connecting: 'Connecting…',
     kpi_items: 'Items in stock', kpi_low: 'Items at or below minimum', kpi_exp: 'Expiring within 30 days',
     kpi_today: "Today's movements (in / out)", lookup: 'Quick item search', lookup_hint: 'Type any part of the item name', store: 'Store', stores: 'Stores',
+    goes_into_stock: 'Goes into stock:', taken_from_stock: 'Taken from stock:',
+    stock_unit: 'Stock unit (issued in)', units_of_item: 'Units of the item', buy_unit: 'Purchase unit (carton, box…)',
+    buy_unit_help: 'Optional. E.g. 1 BOX = 4 PC: received in BOX, issued in PC, reports and the dashboard in BOX. Leave empty for an item with one unit.',
+    min_stock_in: 'Minimum (in the stock unit {u})',
     kpi_hint: 'Press a card to see its details', all_stores: 'All stores', my_stores: 'All my stores',
     refresh_now: 'Click to refresh now', refreshed: 'Updated',
     store_CHILLED: 'Chilled foods', store_DRY: 'Dry foods', store_PACK: 'Packaging', store_FINAL: 'Final products',
@@ -557,6 +566,7 @@ const DICT = {
     'err.forbidden': "You don't have permission for this", 'err.busy': 'Server busy, try again in a moment',
     'err.auth_required': 'Please sign in again', 'err.auth_expired': 'Your session ended, please sign in again',
     'err.min_invalid': 'Enter a valid number', 'err.not_found': 'Record not found', 'err.store_forbidden': 'This store is not one of yours', 'err.store_invalid': 'Choose the store', 'err.already_deleted': 'Deleted by {by} on {at}',
+    'err.unit_not_defined': 'This unit is not defined for this item', 'err.pack_invalid': 'The purchase unit is not valid', 'err.factor_invalid': 'The factor is not valid',
     'job.movements.save': 'Save', 'job.movements.update': 'Edit', 'job.movements.delete': 'Delete',
     'job.requests.create': 'Department request', 'job.requests.fulfil': 'Request issue', 'job.requests.cancel': 'Request cancel', 'job.production.post': 'Production',
   },
@@ -581,7 +591,7 @@ export function applyLang() {
 export function t(key, vars) {
   let s = (DICT[lang] && DICT[lang][key]) ?? DICT.ar[key] ?? key;
   // values are isolated (FSI…PDI) so codes like D-1012-001 or English names keep their order inside Arabic text
-  if (vars) for (const k of Object.keys(vars)) s = s.replace('{' + k + '}', '⁨' + vars[k] + '⁩');
+  if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join('⁨' + vars[k] + '⁩');
   return s;
 }
 

@@ -8,13 +8,42 @@
  * unit the reports show (empty = stock unit). An item without packaging units works exactly as before.
  */
 var Packs = {
+  /**
+   * One part of the packaging text, written any way round against the stock unit:
+   * "BOX=10" (stock units implied), "1 BOX = 10 PC", or a chain "1 BOX = 12 TRAY = 360 PC".
+   * The stock unit must appear (or be implied as the last unit); a stock unit of BOX with
+   * "1 BOX = 10 PC" makes PC a tenth of a BOX. Returns [{unit, factor}] (factor in stock units) or null.
+   */
+  parse: function (text, stockUnit) {
+    var stock = String(stockUnit || '').toUpperCase();
+    var parts = String(text || '').trim().toUpperCase().split('=');
+    if (parts.length < 2) return null;
+    var terms = [];
+    for (var i = 0; i < parts.length; i++) {
+      var m = parts[i].trim().match(/^([\d.]*)\s*([^\s\d=.]*)$/);
+      if (!m) return null;
+      var n = m[1] === '' ? 1 : Number(m[1]), u = m[2] || (i === parts.length - 1 ? stock : '');
+      if (!(n > 0) || !u) return null;
+      terms.push({ n: n, unit: u });
+    }
+    var base = terms.filter(function (x) { return x.unit === stock; })[0];
+    if (!base || terms.filter(function (x) { return x.unit === stock; }).length > 1) return null;
+    return terms.filter(function (x) { return x.unit !== stock; })
+      .map(function (x) { return { unit: x.unit, factor: Util.round(base.n / x.n) }; });
+  },
+
   /** [{unit, factor}] of an item row. */
   list: function (item) {
-    return String((item && item.pack_units) || '').split(/[,;\n]/).map(function (p) {
-      var m = p.split('=');
-      var unit = Util.clean(m[0]).toUpperCase(), factor = Util.num(m[1]);
-      return unit && factor > 0 ? { unit: unit, factor: factor } : null;
-    }).filter(Boolean);
+    var out = [];
+    String((item && item.pack_units) || '').split(/[,;\n]/).forEach(function (p) {
+      (Packs.parse(p, item.unit) || []).forEach(function (x) { out.push(x); });
+    });
+    return out;
+  },
+
+  /** Stored text of one packaging unit: "BOX=10", or "1 BOX=10 PC" for a unit smaller than the stock unit. */
+  text: function (stockUnit, p) {
+    return p.factor >= 1 ? p.unit + '=' + Util.round(p.factor) : '1 ' + String(stockUnit).toUpperCase() + '=' + Util.round(1 / p.factor) + ' ' + p.unit;
   },
 
   /** Stock units in one `unit` of the item (1 for the stock unit), or null when the unit is not defined. */
@@ -27,14 +56,22 @@ var Packs = {
 
   /** Cleans packaging units sent by the app ([{unit, factor}] or text) into the stored text. */
   pack: function (stockUnit, value) {
-    var list = Array.isArray(value) ? value : Packs.list({ pack_units: value });
+    var list = value;
+    if (!Array.isArray(value)) {
+      list = [];
+      String(value || '').split(/[,;\n]/).filter(function (s) { return s.trim(); }).forEach(function (s) {
+        var p = Packs.parse(s, stockUnit);
+        Util.require(p && p.length, 'pack_invalid', s.trim());
+        p.forEach(function (x) { list.push(x); });
+      });
+    }
     var seen = {};
     return list.map(function (p) {
       var unit = Util.clean(p.unit).toUpperCase(), factor = Util.num(p.factor);
       Util.require(unit && factor > 0, 'pack_invalid', unit);
       Util.require(unit !== String(stockUnit).toUpperCase() && !seen[unit], 'pack_invalid', unit);
       seen[unit] = true;
-      return unit + '=' + Util.round(factor);
+      return Packs.text(stockUnit, { unit: unit, factor: factor });
     }).join(', ');
   },
 

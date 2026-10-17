@@ -59,6 +59,12 @@ export function fmtNum(n) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** '2026-10-12' → '12-Oct-26' (same style as MORO v13). */
+/** Quantity of a movement as typed, with the stock quantity when a packaging unit was used. */
+export function fmtMoveQty(m) {
+  const q = fmtNum(Math.abs(Number(m.qty))) + ' ' + (m.unit || '');
+  return m.entry_unit && m.entry_unit !== m.unit ? fmtNum(m.entry_qty) + ' ' + m.entry_unit + ' (' + q + ')' : q;
+}
+
 export function fmtDate(s) {
   if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return s || '';
   return s.slice(8, 10) + '-' + MONTHS[Number(s.slice(5, 7)) - 1] + '-' + s.slice(2, 4);

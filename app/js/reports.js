@@ -7,6 +7,8 @@ import { daysBetween } from './ui.js';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const r6 = (n) => Math.round(n * 1e6) / 1e6;
 const itemName = (id) => (Data.items.get(id) || {}).name || id;
+/** [qty, unit] of a stock-unit quantity in the item's report unit (eggs: 720 PC -> 2 BOX). */
+const ru = (id, qty) => Data.inReportUnit(Data.items.get(id), qty);
 const partyName = (id) => (Data.parties.get(id) || {}).name || id;
 const byName = (a, b) => String(a).localeCompare(String(b));
 const inRange = (m, p) => (!p.from || m.date >= p.from) && (!p.to || m.date <= p.to);
@@ -38,12 +40,12 @@ function itemList(list, title) {
   const ids = Data.list(list);
   const rows = [...ids].map((id) => Data.items.get(id)).filter(Boolean)
     .sort((a, b) => (a.category === b.category ? byName(a.name, b.name) : a.category === 'Food' ? -1 : 1))
-    .map((it) => [it.category, it.name, Data.qty(it.item_id), it.unit]);
+    .map((it) => [it.category, it.name, ...ru(it.item_id, Data.qty(it.item_id))]);
   return { title, subtitle: todayText(), columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
 }
 
 function minStock(p) {
-  const rows = Data.lowStock().filter((x) => inStores(p, x.item.item_id)).map((x) => [x.item.name, x.qty, x.min, x.item.unit]);
+  const rows = Data.lowStock().filter((x) => inStores(p, x.item.item_id)).map((x) => { const [q, u] = ru(x.item.item_id, x.qty); return [x.item.name, q, ru(x.item.item_id, x.min)[0], u]; });
   return { title: 'Items at or below minimum stock', subtitle: todayText() + storesText(p),
     columns: cols(['Item', 't'], ['Available', 'n'], ['Minimum stock', 'n'], ['Unit', 't']), rows };
 }
@@ -66,10 +68,10 @@ function stockExpiry(p) {
     const exp = b && b.last_expiry;
     if (exp) {
       if (p.packOnly) continue;
-      rows.push(['Food', it.name, q, it.unit, exp, expiryStatus(daysBetween(today, exp))]);
+      rows.push(['Food', it.name, ...ru(it.item_id, q), exp, expiryStatus(daysBetween(today, exp))]);
     } else {
       if (p.foodOnly) continue;
-      rows.push(['Packaging', it.name, q, it.unit, '', 'No expiry']);
+      rows.push(['Packaging', it.name, ...ru(it.item_id, q), '', 'No expiry']);
     }
   }
   rows.sort((a, b) => (a[0] === b[0] ? byName(a[1], b[1]) : a[0] === 'Packaging' ? -1 : 1));
@@ -80,14 +82,14 @@ function stockExpiry(p) {
 function nearExpiry(p) {
   const days = Number(p.days) || 90;
   const rows = Data.expiring(days).filter((x) => x.left >= 0 && (p.zero || x.qty > 0) && inStores(p, x.item.item_id))
-    .map((x) => [x.item.name, x.expiry, x.left, x.qty, x.item.unit]);
+    .map((x) => [x.item.name, x.expiry, x.left, ...ru(x.item.item_id, x.qty)]);
   if (p.zero) {
     const today = Data.todayIso();
     for (const b of Data.balances.values()) {
       const it = Data.items.get(b.item_id);
       if (!it || !b.last_expiry || Number(b.qty) > 0 || !inStores(p, it.item_id)) continue;
       const left = daysBetween(today, b.last_expiry);
-      if (left >= 0 && left <= days) rows.push([it.name, b.last_expiry, left, Number(b.qty), it.unit]);
+      if (left >= 0 && left <= days) rows.push([it.name, b.last_expiry, left, ...ru(it.item_id, Number(b.qty))]);
     }
     rows.sort((a, b) => a[2] - b[2]);
   }
@@ -106,7 +108,7 @@ function changes(p, movs) {
   }
   const rows = [];
   const add = (label, map) => [...map.keys()].sort((a, b) => byName(itemName(a), itemName(b)))
-    .forEach((id) => rows.push([label, itemName(id), map.get(id), Data.qty(id), (Data.items.get(id) || {}).unit || '']));
+    .forEach((id) => { const [q, u] = ru(id, map.get(id)); rows.push([label, itemName(id), q, ru(id, Data.qty(id))[0], u]); });
   if (p.mode !== 'out') add('Incoming', inc);
   if (p.mode !== 'in') add('Outgoing', out);
   return { title: 'Inventory changes', subtitle: periodText(p),
@@ -149,18 +151,20 @@ function itemMovement(p, movs, outgoing) {
   }
   const rows = [];
   for (const k of [...groups.keys()].sort((a, b) => byName(itemName(a.split('|')[0]), itemName(b.split('|')[0])))) {
-    const [id, unit] = k.split('|');
+    const [id, stockUnit] = k.split('|');
     const list = groups.get(k);
+    const unit = stockUnit === (Data.items.get(id) || {}).unit ? ru(id, 0)[1] : stockUnit;
+    const rq = (q) => (unit === stockUnit ? q : ru(id, q)[0]);
     const per = new Map(); let tot = 0;
     list.forEach((m) => { const q = Math.abs(Number(m.qty)); per.set(m.party_id, r6((per.get(m.party_id) || 0) + q)); tot += q; });
     if (p.detail === 'detailed') {
       [...per.keys()].sort((a, b) => byName(partyName(a), partyName(b))).forEach((pid) => {
         const byDate = new Map();
         list.filter((m) => m.party_id === pid).forEach((m) => byDate.set(m.date, r6((byDate.get(m.date) || 0) + Math.abs(Number(m.qty)))));
-        [...byDate.keys()].sort().forEach((d) => rows.push([itemName(id), unit, partyName(pid), d, byDate.get(d)]));
+        [...byDate.keys()].sort().forEach((d) => rows.push([itemName(id), unit, partyName(pid), d, rq(byDate.get(d))]));
       });
     } else {
-      [...per.keys()].sort((a, b) => per.get(b) - per.get(a)).forEach((pid) => rows.push([itemName(id), unit, partyName(pid), per.get(pid), tot ? per.get(pid) / tot : 0]));
+      [...per.keys()].sort((a, b) => per.get(b) - per.get(a)).forEach((pid) => rows.push([itemName(id), unit, partyName(pid), rq(per.get(pid)), tot ? per.get(pid) / tot : 0]));
     }
   }
   const title = (outgoing ? 'Item consumption' : 'Item receipts') + (p.detail === 'detailed' ? ' (detailed)' : ' (summary)');
@@ -181,7 +185,7 @@ function multiMonth(p, movs) {
     total.set(k, r6((total.get(k) || 0) + Number(m.qty)));
   }
   const rows = [...total.keys()].sort((a, b) => Number(a.split('|')[0]) - Number(b.split('|')[0]) || byName(itemName(a.split('|')[1]), itemName(b.split('|')[1])))
-    .map((k) => { const [mo, id] = k.split('|'); return [MONTHS[mo - 1], itemName(id), (Data.items.get(id) || {}).unit || '', total.get(k)]; });
+    .map((k) => { const [mo, id] = k.split('|'); const [q, u] = ru(id, total.get(k)); return [MONTHS[mo - 1], itemName(id), u, q]; });
   return { title: 'Multi-month item report ' + p.year, subtitle: todayText(),
     columns: cols(['Month', 't'], ['Item', 't'], ['Unit', 't'], ['Total quantity', 'n']), rows };
 }
