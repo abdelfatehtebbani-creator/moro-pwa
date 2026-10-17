@@ -41,6 +41,18 @@ test('link: wrong or missing key is refused; the catalogue shows stores, balance
   assert.equal(flour.store, 'DRY');
   assert.equal(flour.available, 10);
   assert.equal(cat.find((i) => i.item_id === 'I0002').store, 'PACK');
+  assert.equal(flour.last_purchase_price, '');
+});
+
+test('catalogue: last purchase price per item unit from the latest receipt', () => {
+  const { g, tok, link } = env();
+  const rec = (date, qty, price, per, amount) => g.api('movements.save', { movements: [{ kind: 'RECEIPT', date, party_id: 'P002', item_id: 'I0002', qty, unit: 'BOX',
+    price, per, amount, discount: 0, doc_no: 'INV', location: 'Shelves D 01' }] }, tok.admin);
+  rec('2026-10-01', 10, 3, 'BOX', 30);
+  rec('2026-10-05', 4, 20, 'CTN', 40);            // 2 cartons of 2 boxes: 40 / 4 boxes = 10 a box
+  const box = link('link.catalog', {}).data.items.find((i) => i.item_id === 'I0002');
+  assert.equal(box.last_purchase_price, 10);
+  assert.equal(box.last_purchase_date, '2026-10-05');
 });
 
 test('shop order: reserved at once, shortage for the rest, each storekeeper sees only their store, hand to distribution', () => {

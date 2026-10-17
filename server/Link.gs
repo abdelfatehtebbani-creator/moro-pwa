@@ -42,12 +42,25 @@ var Link = {
 
   catalog: function () {
     var reserved = Shop.reservedMap();
+    // last purchase price per item unit (latest active receipt): Masar sells raw materials to shops at this price
+    var lastBuy = {}, lastKey = {};
+    Repo.all('Movements').forEach(function (m) {
+      if (m.kind !== 'RECEIPT' || m.status === 'deleted') return;
+      var k = String(m.date) + '|' + String(m.created_at) + '|' + String(m.movement_id);
+      if (lastKey[m.item_id] && k <= lastKey[m.item_id]) return;
+      var qty = Math.abs(Number(m.qty)) || 0, amount = Util.num(m.amount), price = Util.num(m.price);
+      var unitPrice = amount !== null && qty > 0 ? Util.round(amount / qty) : price;
+      if (unitPrice === null) return;
+      lastKey[m.item_id] = k;
+      lastBuy[m.item_id] = { price: Math.round(unitPrice * 100) / 100, date: String(m.date) };
+    });
     var items = Repo.all('Items').map(function (i) {
       var qty = Shop.balance(i.item_id);
       var r = reserved[i.item_id] || 0;
       return { item_id: i.item_id, name: i.name, store: Stores.of(i), category: i.category, unit: i.unit, image: i.image,
         sale_price: i.sale_price === '' ? '' : Number(i.sale_price), shop_orderable: i.shop_orderable === true, active: i.active === true,
-        qty: qty, reserved: r, available: Util.round(qty - r) };
+        qty: qty, reserved: r, available: Util.round(qty - r),
+        last_purchase_price: lastBuy[i.item_id] ? lastBuy[i.item_id].price : '', last_purchase_date: lastBuy[i.item_id] ? lastBuy[i.item_id].date : '' };
     });
     return { items: items, version: Version.get(), at: Util.nowIso() };
   },

@@ -66,9 +66,6 @@ function items(body, isAdmin) {
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
     const image = trackFilled(h('input.input#e-image', { type: 'url', value: it ? it.image || '' : '', placeholder: 'https://…', dir: 'ltr' }));
-    const canPrice = Data.can('see_prices');
-    const price = trackFilled(h('input.input.num#e-price', { type: 'number', min: 0, step: 'any', value: it && it.sale_price !== '' && it.sale_price !== undefined ? it.sale_price : '', disabled: !canPrice }));
-    const orderable = h('input#e-orderable', { type: 'checkbox', checked: !!(it && it.shop_orderable === true) });
     const err = h('p.err-text', '');
     const ok = () => {
       if (!name.value.trim()) return flash(name);
@@ -77,13 +74,10 @@ function items(body, isAdmin) {
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
-      p.shop_orderable = orderable.checked;
-      if (canPrice) p.sale_price = price.value === '' ? '' : Number(price.value);
       save('items.save', p, close, err);
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat), field(t('unit'), unit),
-      field(t('min_stock'), min), field(t('picture_link'), image), canPrice ? field(t('shop_price'), price) : null,
-      h('label.check', orderable, ' ', t('shop_orderable')), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
+      field(t('min_stock'), min), field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
 
