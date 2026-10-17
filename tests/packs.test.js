@@ -34,6 +34,10 @@ test('packaging units: set by admin, purchasing and the storekeeper of the item 
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'TRAY=30, BOX=360' }, tok.store).error.code, 'store_forbidden');
   g.api('users.save', { user_id: sk.user_id, stores: ['DRY'] }, tok.admin);
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 BOX = 360 PC' }, tok.store).ok, true);
+  // the purchase-unit permission alone does not add items
+  g.api('users.save', { user_id: sk.user_id, caps: ['receive', 'issue', 'packaging'] }, tok.admin);
+  assert.equal(g.api('items.save', { name: 'NEW CUPS', store: 'DRY', unit: 'PC' }, tok.store).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: '1 BOX = 30 PC' }, tok.store).ok, true);
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: 'PC=1' }, tok.buyer).error.code, 'pack_invalid');
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: [{ unit: 'tray', factor: 30 }, { unit: 'box', factor: 360 }], report_unit: 'BOX' }, tok.buyer).ok, true);
   const it = g.rows('Items').find((i) => i.item_id === 'I0001');

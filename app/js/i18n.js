@@ -276,6 +276,8 @@ const DICT = {
     "capd_see_prices": "الأسعار والمبالغ وتقرير فرق الأسعار وجهات الاتصال",
     "cap_users": "إدارة المستخدمين",
     "capd_users": "المستخدمون وصلاحياتهم وسجل العمليات",
+    "cap_packaging": "وحدة الشراء",
+    "capd_packaging": "تحديد وحدة الشراء للمادة (مثل 1 BOX = 4 PC)؛ أمين المخزن لمواد مخزنه فقط",
     // errors
     'err.offline': 'لا يوجد اتصال بالإنترنت', 'err.server_error': 'حدث خطأ في الخادم، حاول مرة أخرى',
     'err.login_failed': 'اسم المستخدم أو الرمز غير صحيح', 'err.login_locked': 'محاولات كثيرة خاطئة. حاول بعد {d} دقائق',
@@ -559,6 +561,8 @@ const DICT = {
     "capd_see_prices": "Prices, amounts, price report and contacts",
     "cap_users": "Manage users",
     "capd_users": "Users, their permissions and the activity log",
+    "cap_packaging": "Purchase unit",
+    "capd_packaging": "Set an item's purchase unit (e.g. 1 BOX = 4 PC); a storekeeper only for items of their stores",
     'err.offline': 'No internet connection', 'err.server_error': 'Server error, please try again',
     'err.login_failed': 'Wrong username or PIN', 'err.login_locked': 'Too many wrong attempts. Try again in {d} minutes',
     'err.pin_format': 'PIN must be 4 to 8 digits', 'err.username_format': 'Username: 3 to 30 Latin letters or digits',

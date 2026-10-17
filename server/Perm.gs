@@ -20,7 +20,7 @@ var CAPS = {
   edit_own:       ['movements.update'],
   edit_all:       ['movements.update', 'edit_any'],
   delete:         ['movements.delete'],
-  masters:        ['items.save', 'parties.save', 'locations.save', 'units.save'],
+  masters:        ['items.save', 'parties.save', 'locations.save', 'units.save', 'add_items'],
   min_stock:      ['items.save', 'min_stock'],
   rename:         ['items.save', 'parties.save', 'locations.save', 'units.save', 'rename', 'items.convertUnit'],
   packaging:      ['items.save', 'packaging'],
