@@ -15,15 +15,19 @@ let lookStore = '';
 
 export async function render(root) {
   const canEditMin = Data.can('min_stock');
+  // the user's stores: the cards and tables count only these (the admin has every store)
+  const mine = Data.myStores();
+  const inMine = (item) => !!item && mine.includes(Data.storeOf(item));
+  if (lookStore && !mine.includes(lookStore)) lookStore = '';
 
   // ---------- KPIs
   const kToday = h('b', '…');
   const card = (cls, key, num, label) => h('button.kpi.' + cls, { type: 'button', 'data-panel': key, 'aria-expanded': String(panel === key),
     onclick: () => open(panel === key ? '' : key) }, num, h('span', label));
   const kpis = h('div.kpis',
-    card('k1', 'items', h('b', fmtNum(Data.inStockCount())), t('kpi_items')),
-    card('k2', 'low', h('b', fmtNum(Data.lowStock().length)), t('kpi_low')),
-    card('k3', 'exp', h('b', fmtNum(Data.expiring(30).length)), t('kpi_exp')),
+    card('k1', 'items', h('b', fmtNum(Data.activeItems().filter((i) => inMine(i) && Data.qty(i.item_id) > 0).length)), t('kpi_items')),
+    card('k2', 'low', h('b', fmtNum(Data.lowStock().filter((r) => inMine(r.item)).length)), t('kpi_low')),
+    card('k3', 'exp', h('b', fmtNum(Data.expiring(30).filter((r) => inMine(r.item)).length)), t('kpi_exp')),
     card('k4', 'today', kToday, t('kpi_today')));
   const hint = h('p.muted.kpi-hint', t('kpi_hint'));
   const panelBox = h('div.panel-box');
@@ -34,7 +38,7 @@ export async function render(root) {
   const lookBody = h('tbody');
   const fillLookup = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = Data.activeItems().filter((i) => (!q || i.name.toLowerCase().includes(q)) && (!lookStore || Data.storeOf(i) === lookStore))
+    const rows = Data.activeItems().filter((i) => (!q || i.name.toLowerCase().includes(q)) && inStore(i))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 300);
     count.textContent = t('items_count', { n: rows.length });
     lookBody.replaceChildren(...rows.map((i) => {
@@ -50,7 +54,9 @@ export async function render(root) {
     }));
   };
   search.addEventListener('input', fillLookup);
-  const inStore = (item) => !lookStore || Data.storeOf(item) === lookStore;
+  const inStore = (item) => inMine(item) && (!lookStore || Data.storeOf(item) === lookStore);
+  // buttons: "all" + each of the user's stores; none when the user has a single store
+  const choices = mine.length > 1 ? ['', ...STORES.filter((s) => mine.includes(s))] : [];
   const storeBars = [];
   const storeTabs = () => {
     const bar = h('div.tabs.store-tabs');
@@ -59,8 +65,8 @@ export async function render(root) {
     return bar;
   };
   function drawStoreTabs() {
-    storeBars.forEach((bar) => bar.replaceChildren(...['', ...STORES].map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
-      onclick: () => { lookStore = s; drawStoreTabs(); refill(); } }, s ? t('store_' + s) : t('all_stores')))));
+    storeBars.forEach((bar) => bar.replaceChildren(...choices.map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
+      onclick: () => { lookStore = s; drawStoreTabs(); refill(); } }, s ? t('store_' + s) : mine.length === STORES.length ? t('all_stores') : t('my_stores')))));
   }
   const refill = () => {
     fillLookup();
@@ -140,7 +146,7 @@ export async function render(root) {
       call('movements.query', { limit: 40, kinds: ['RECEIPT', 'ISSUE', 'SUPPLIER_RETURN', 'DEPT_RETURN', 'PROD_CONSUME', 'PROD_OUTPUT'] }),
       call('movements.query', { from: today, to: today }),
     ]);
-    const tr = objects(todays);
+    const tr = objects(todays).filter((m) => inMine(Data.items.get(m.item_id)));
     const tIn = tr.filter((m) => Number(m.qty) > 0).length;
     const tOut = tr.filter((m) => Number(m.qty) < 0).length;
     kToday.textContent = tIn + ' / ' + tOut;
