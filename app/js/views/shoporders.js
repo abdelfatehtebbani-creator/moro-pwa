@@ -72,6 +72,11 @@ export async function render(root) {
         h('td', inp || '', ' ', no || ''));
     });
     const actions = h('div.form-actions');
+    // lines still awaiting Masar's distribution approval: the button shows, greyed out, until approval
+    if (!inputs.length && tab === 'open' && ls.some((l) => l.approved === false)) {
+      actions.append(h('button.btn.save-btn', { type: 'button', disabled: true, title: t('awaiting_approval') }, t('hand_to_distribution')),
+        h('small.muted', ' ' + t('awaiting_approval')));
+    }
     if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
