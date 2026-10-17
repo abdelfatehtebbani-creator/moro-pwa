@@ -4,14 +4,16 @@
  * IDs are stable text keys (I0001, P001, M000001 ...); names are never used as keys.
  */
 var SCHEMA = {
-  Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store'],
+  Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
+                 'pack_units', 'report_unit'],
   Parties:      ['party_id', 'name', 'kind', 'active'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
   Purposes:     ['purpose_id', 'name', 'active'],
   Movements:    ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
-                 'created_by', 'created_at', 'legacy_ref', 'status', 'client_id', 'updated_by', 'updated_at'],
+                 'created_by', 'created_at', 'legacy_ref', 'status', 'client_id', 'updated_by', 'updated_at',
+                 'entry_qty', 'entry_unit'],
   Archive:      ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status'],

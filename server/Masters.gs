@@ -22,7 +22,9 @@ var Masters = {
         Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
         var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: Stores.categoryOf(store), unit: Util.clean(p.unit).toUpperCase(),
                      min_stock: Util.num(p.min_stock) || 0, image: Util.clean(p.image), active: true, aliases: '',
-                     created_at: Util.nowIso(), store: store };
+                     created_at: Util.nowIso(), store: store,
+                     pack_units: p.pack_units !== undefined && Perm.has(session, 'packaging') ? Packs.pack(Util.clean(p.unit).toUpperCase(), p.pack_units) : '',
+                     report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -56,6 +58,17 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      if (p.pack_units !== undefined || p.report_unit !== undefined) {
+        Perm.require(session, 'packaging');
+        // a storekeeper sets the purchase unit only for the items of their own stores
+        if (session.role === 'storekeeper') Stores.require(session, Stores.of(cur));
+        var stockUnit = ch.unit || cur.unit;
+        var packs = p.pack_units !== undefined ? Packs.pack(stockUnit, p.pack_units) : cur.pack_units;
+        var ru = p.report_unit !== undefined ? Util.clean(p.report_unit).toUpperCase() : String(cur.report_unit || '');
+        Util.require(!ru || ru === String(stockUnit).toUpperCase() || Packs.factor({ unit: stockUnit, pack_units: packs }, ru), 'unit_not_defined', ru);
+        ch.pack_units = packs;
+        ch.report_unit = ru;
+      }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename');
         ch.active = p.active === true;

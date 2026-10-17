@@ -61,8 +61,18 @@ var Movements = {
       location: Util.clean(src.location),
       expiry: String(src.expiry || ''),
       purpose: Util.clean(src.purpose),
-      image: Util.clean(src.image)
+      image: Util.clean(src.image),
+      entry_qty: '',
+      entry_unit: ''
     };
+    if (item && Packs.list(item).length && m.unit !== String(item.unit).toUpperCase()) {
+      var f = Packs.factor(item, m.unit);
+      Util.require(f, 'unit_not_defined', m.unit);
+      m.entry_qty = Math.abs(m.qty);
+      m.entry_unit = m.unit;
+      m.qty = Util.round(m.qty * f);
+      m.unit = String(item.unit).toUpperCase();
+    }
     return m;
   },
 
@@ -181,6 +191,10 @@ var Movements = {
       var newItem = Movements.validate(m);
       var changes = {};
       EDITABLE.forEach(function (f) { changes[f] = m[f]; });
+      // a change of date or price alone keeps what was typed; a new quantity or unit replaces it
+      var retyped = 'qty' in ch || 'unit' in ch;
+      changes.entry_qty = retyped ? m.entry_qty : (cur.entry_qty === undefined ? '' : cur.entry_qty);
+      changes.entry_unit = retyped ? m.entry_unit : (cur.entry_unit || '');
       changes.category = newItem.category;
       changes.updated_by = session.user_id;
       changes.updated_at = Util.nowIso();
