@@ -21,14 +21,24 @@ export async function render(root) {
   if (lookStore && !mine.includes(lookStore)) lookStore = '';
 
   // ---------- KPIs
-  const kToday = h('b', '…');
+  const kItems = h('b', '…'), kLow = h('b', '…'), kExp = h('b', '…'), kToday = h('b', '…');
   const card = (cls, key, num, label) => h('button.kpi.' + cls, { type: 'button', 'data-panel': key, 'aria-expanded': String(panel === key),
     onclick: () => open(panel === key ? '' : key) }, num, h('span', label));
   const kpis = h('div.kpis',
-    card('k1', 'items', h('b', fmtNum(Data.activeItems().filter((i) => inMine(i) && Data.qty(i.item_id) > 0).length)), t('kpi_items')),
-    card('k2', 'low', h('b', fmtNum(Data.lowStock().filter((r) => inMine(r.item)).length)), t('kpi_low')),
-    card('k3', 'exp', h('b', fmtNum(Data.expiring(30).filter((r) => inMine(r.item)).length)), t('kpi_exp')),
+    card('k1', 'items', kItems, t('kpi_items')),
+    card('k2', 'low', kLow, t('kpi_low')),
+    card('k3', 'exp', kExp, t('kpi_exp')),
     card('k4', 'today', kToday, t('kpi_today')));
+  let todays = null;       // today's movements (from the server), counted per store on the card
+  function updateCards() {
+    kItems.textContent = fmtNum(Data.activeItems().filter((i) => inStore(i) && Data.qty(i.item_id) > 0).length);
+    kLow.textContent = fmtNum(Data.lowStock().filter((r) => inStore(r.item)).length);
+    kExp.textContent = fmtNum(Data.expiring(30).filter((r) => inStore(r.item)).length);
+    if (todays) {
+      const tr = objects(todays).filter((m) => inStore(Data.items.get(m.item_id)));
+      kToday.textContent = tr.filter((m) => Number(m.qty) > 0).length + ' / ' + tr.filter((m) => Number(m.qty) < 0).length;
+    }
+  }
   const hint = h('p.muted.kpi-hint', t('kpi_hint'));
   const panelBox = h('div.panel-box');
 
@@ -57,18 +67,13 @@ export async function render(root) {
   const inStore = (item) => inMine(item) && (!lookStore || Data.storeOf(item) === lookStore);
   // buttons: "all" + each of the user's stores; none when the user has a single store
   const choices = mine.length > 1 ? ['', ...STORES.filter((s) => mine.includes(s))] : [];
-  const storeBars = [];
-  const storeTabs = () => {
-    const bar = h('div.tabs.store-tabs');
-    storeBars.push(bar);
-    drawStoreTabs();
-    return bar;
-  };
+  const storeBar = h('div.tabs.store-tabs.dash-stores');
   function drawStoreTabs() {
-    storeBars.forEach((bar) => bar.replaceChildren(...choices.map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
+    [storeBar].forEach((bar) => bar.replaceChildren(...choices.map((s) => h('button', { type: 'button', class: s === lookStore ? 'on' : '',
       onclick: () => { lookStore = s; drawStoreTabs(); refill(); } }, s ? t('store_' + s) : mine.length === STORES.length ? t('all_stores') : t('my_stores')))));
   }
   const refill = () => {
+    updateCards();
     fillLookup();
     if (panel === 'low' || panel === 'exp') showAlerts(panel);
     if (lastRecent) fillRecent(lastRecent);
@@ -76,7 +81,6 @@ export async function render(root) {
   };
   const lookup = h('div.card',
     h('div.card-head', h('h2', t('lookup')), count),
-    storeTabs(),
     h('div.search', search),
     canEditMin ? h('small.muted', t('click_to_edit')) : null,
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('unit')), h('th', t('balance')), h('th', t('min_stock')), h('th', t('last_expiry')))), lookBody)));
@@ -85,7 +89,7 @@ export async function render(root) {
   const alertTitle = h('h2', '');
   const alertHead = h('thead');
   const alertBody = h('tbody');
-  const alerts = h('div.card', h('div.card-head', alertTitle), storeTabs(),
+  const alerts = h('div.card', h('div.card-head', alertTitle),
     h('div.table-wrap', h('table', alertHead, alertBody)));
   function showAlerts(tab) {
     alertTitle.textContent = t(tab === 'low' ? 'kpi_low' : 'kpi_exp');
@@ -108,7 +112,7 @@ export async function render(root) {
   // ---------- latest movements
   const recentBody = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
   let lastRecent = null;
-  const recentCard = h('div.card', h('h2', t('recent')), storeTabs(),
+  const recentCard = h('div.card', h('h2', t('recent')),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('kind')), h('th', t('party')), h('th', t('item')), h('th', t('qty')), h('th', t('doc')))), recentBody)));
   const fillRecent = (res) => {
     lastRecent = res;
@@ -133,25 +137,25 @@ export async function render(root) {
     if (key === 'items') search.focus();
     if (key) panelBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
-  root.replaceChildren(requestsNote, kpis, hint, panelBox);
+  drawStoreTabs();
+  updateCards();
+  root.replaceChildren(requestsNote, choices.length ? storeBar : '', kpis, hint, panelBox);
   fillLookup();
   open(panel);
 
   // movements: cached copy first (offline), then the server
   const cached = await kv.get('recent');
-  if (cached) { fillRecent(cached.recent); kToday.textContent = cached.today; }
+  if (cached) { fillRecent(cached.recent); if (cached.todays) { todays = cached.todays; updateCards(); } }
   try {
     const today = Data.todayIso();
-    const [recent, todays] = await Promise.all([
+    const [recent, todayRows] = await Promise.all([
       call('movements.query', { limit: 40, kinds: ['RECEIPT', 'ISSUE', 'SUPPLIER_RETURN', 'DEPT_RETURN', 'PROD_CONSUME', 'PROD_OUTPUT'] }),
       call('movements.query', { from: today, to: today }),
     ]);
-    const tr = objects(todays).filter((m) => inMine(Data.items.get(m.item_id)));
-    const tIn = tr.filter((m) => Number(m.qty) > 0).length;
-    const tOut = tr.filter((m) => Number(m.qty) < 0).length;
-    kToday.textContent = tIn + ' / ' + tOut;
+    todays = todayRows;
+    updateCards();
     fillRecent(recent);
-    kv.set('recent', { recent, today: kToday.textContent });
+    kv.set('recent', { recent, todays });
     if (Data.can('requests.fulfil')) {
       const open = (await call('requests.list', { status: 'open' })).length;
       requestsNote.replaceChildren(open ? h('div.card', h('a.link', { href: '#/requests' }, t('open_requests', { n: open }))) : '');

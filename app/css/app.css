@@ -96,6 +96,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .kpi.on { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--navy); }
 .kpi-hint { text-align: center; margin: 4px 0 0; }
 .store-tabs { flex-wrap: wrap; margin-bottom: 8px; }
+.dash-stores { margin-bottom: 12px; }
 
 .btn { border: 0; border-radius: var(--radius); padding: 9px 16px; background: var(--teal); color: #fff; font-weight: 600; cursor: pointer; }
 .btn:active { transform: translateY(1px); filter: brightness(.9); }
