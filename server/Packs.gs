@@ -29,7 +29,7 @@ var Packs = {
     var base = terms.filter(function (x) { return x.unit === stock; })[0];
     if (!base || terms.filter(function (x) { return x.unit === stock; }).length > 1) return null;
     return terms.filter(function (x) { return x.unit !== stock; })
-      .map(function (x) { return { unit: x.unit, factor: Util.round(base.n / x.n) }; });
+      .map(function (x) { return { unit: x.unit, factor: base.n / x.n }; });
   },
 
   /** [{unit, factor}] of an item row. */
@@ -87,7 +87,8 @@ var Packs = {
     var newUnit = Util.clean(p.new_unit).toUpperCase(), factor = Util.num(p.factor);
     var oldUnit = String(item.unit).toUpperCase();
     Util.require(newUnit && newUnit !== oldUnit, 'unit_required');
-    Util.require(factor > 0 && factor !== 1, 'factor_invalid');
+    Util.require(factor > 0, 'factor_invalid');
+    var rename = factor === 1;                                 // PC -> TIN: same quantities, new name
     var bal = Repo.find('Balances', 'item_id', item.item_id);
     var before = bal ? Number(bal.qty) || 0 : 0;
     var movs = Repo.all('Movements').filter(function (m) { return m.item_id === item.item_id; });
@@ -97,13 +98,25 @@ var Packs = {
     if (p.preview) return preview;
     return withLock(function () {
       var x = function (v) { return v === '' || v === null || v === undefined ? v : Util.round(Number(v) * factor); };
-      Repo.setColumn('Movements', 'entry_qty', function (m) {
-        if (m.item_id !== item.item_id) return m.entry_qty;
-        return m.entry_qty !== '' && m.entry_qty !== undefined ? m.entry_qty : Math.abs(Number(m.qty));
-      });
-      Repo.setColumn('Movements', 'entry_unit', function (m) {
-        if (m.item_id !== item.item_id) return m.entry_unit;
-        return m.entry_unit ? m.entry_unit : (m.unit || oldUnit);
+      if (rename) {
+        // what was typed in the old unit now reads in the new one; nothing else to keep
+        Repo.setColumn('Movements', 'entry_unit', function (m) {
+          if (m.item_id !== item.item_id) return m.entry_unit;
+          return String(m.entry_unit || '').toUpperCase() === oldUnit ? newUnit : m.entry_unit;
+        });
+      } else {
+        Repo.setColumn('Movements', 'entry_qty', function (m) {
+          if (m.item_id !== item.item_id) return m.entry_qty;
+          return m.entry_qty !== '' && m.entry_qty !== undefined ? m.entry_qty : Math.abs(Number(m.qty));
+        });
+        Repo.setColumn('Movements', 'entry_unit', function (m) {
+          if (m.item_id !== item.item_id) return m.entry_unit;
+          return m.entry_unit ? m.entry_unit : (m.unit || oldUnit);
+        });
+      }
+      // the price unit of past receipts follows (a price per PC becomes a price per TIN)
+      Repo.setColumn('Movements', 'per', function (m) {
+        return m.item_id === item.item_id && String(m.per || '').toUpperCase() === oldUnit ? newUnit : m.per;
       });
       Repo.setColumn('Movements', 'qty', function (m) { return m.item_id === item.item_id ? x(m.qty) : m.qty; });
       Repo.setColumn('Movements', 'unit', function (m) { return m.item_id === item.item_id ? newUnit : m.unit; });
@@ -120,9 +133,11 @@ var Packs = {
       // packaging units were counted in the old unit; the old unit itself becomes one
       var packs = Packs.list(item).map(function (q) { return { unit: q.unit, factor: q.factor * factor }; })
         .filter(function (q) { return q.unit !== newUnit; });
-      if (!packs.some(function (q) { return q.unit === oldUnit; })) packs.push({ unit: oldUnit, factor: factor });
+      if (!rename && !packs.some(function (q) { return q.unit === oldUnit; })) packs.push({ unit: oldUnit, factor: factor });
+      var ru = String(item.report_unit || '').toUpperCase();
       Repo.update('Items', 'item_id', item.item_id, { unit: newUnit, min_stock: x(item.min_stock) || 0,
-        pack_units: Packs.pack(newUnit, packs), report_unit: item.report_unit || oldUnit });
+        pack_units: Packs.pack(newUnit, packs),
+        report_unit: rename ? (ru === oldUnit || ru === newUnit ? '' : ru) : (ru || oldUnit) });
       Audit.log(session.user_id, 'item_unit_convert', 'Items', item.item_id, null, preview);
       preview.done = true;
       preview.version = Version.bump();

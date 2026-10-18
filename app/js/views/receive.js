@@ -103,7 +103,8 @@ export async function render(root) {
     const it = Data.items.get(id);
     if (!it) { info.textContent = ''; return; }
     // packaging units: the report / purchase unit is offered first (as on the supplier invoice)
-    const first = it.report_unit && Data.factorOf(it, it.report_unit) ? String(it.report_unit).toUpperCase() : it.unit;
+    // (a purchase unit smaller than the stock unit, 18 KG = 1 TIN, is for reports: receiving stays in TIN)
+    const first = it.report_unit && Data.factorOf(it, it.report_unit) > 1 ? String(it.report_unit).toUpperCase() : it.unit;
     if (!unit.value) unit.set(first);
     if (!per.value) per.set(first);
     lastUnit = unit.input.value.trim().toUpperCase();

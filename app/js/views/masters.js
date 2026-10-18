@@ -62,7 +62,8 @@ function items(body, isAdmin) {
     const name = trackFilled(h('input.input#e-name', { value: it ? it.name : '', disabled: it && !isAdmin }));
     const cat = storeSelect('e-cat', it ? Data.storeOf(it) : 'DRY', it && !isAdmin);
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
-    if (it) unit.set(it.unit);
+    if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
+    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
     const canPack = Data.can('packaging');
@@ -70,7 +71,9 @@ function items(body, isAdmin) {
     const allPacks = it ? Data.packsOf(it) : [];
     const cur = allPacks.find((x) => x.unit === String((it && it.report_unit) || '').toUpperCase()) || allPacks.find((x) => x.factor > 1) || null;
     const buyUnit = trackFilled(h('input.input#e-buyunit', { value: cur ? cur.unit : '', placeholder: 'BOX', dir: 'ltr', disabled: !canPack, autocomplete: 'off' }));
-    const buyQty = trackFilled(h('input.input.num#e-buyqty', { type: 'number', min: 0, step: 'any', value: cur ? cur.factor : '', placeholder: '4', disabled: !canPack }));
+    const r6 = (n) => Math.round(n * 1e6) / 1e6;
+    const buyA = trackFilled(h('input.input.num#e-buya', { type: 'number', min: 0, step: 'any', value: cur ? (cur.factor >= 1 ? 1 : r6(1 / cur.factor)) : 1, disabled: !canPack }));
+    const buyQty = trackFilled(h('input.input.num#e-buyqty', { type: 'number', min: 0, step: 'any', value: cur ? (cur.factor >= 1 ? r6(cur.factor) : 1) : '', placeholder: '4', disabled: !canPack }));
     const stockLbl = h('span.buy-stock', it ? it.unit : '');
     unit.input.addEventListener('input', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
     unit.input.addEventListener('change', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
@@ -78,12 +81,13 @@ function items(body, isAdmin) {
     const ok = () => {
       if (!name.value.trim()) return flash(name);
       if (!unit.input.value.trim()) return flash(unit.input);
-      const p = { name: name.value, store: cat.value, unit: unit.input.value.trim().toUpperCase() };
+      const p = { name: name.value, store: cat.value, unit: it ? it.unit : unit.input.value.trim().toUpperCase() };
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       if (canPack) {
-        const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
+        const bu = buyUnit.value.trim().toUpperCase(), ba = Number(buyA.value) || 1, bq = Number(buyQty.value) / ba;
         if (bu && !(bq > 0)) return flash(buyQty);
+        if (bu && bu === unit.input.value.trim().toUpperCase()) return flash(buyUnit);
         if (!bu && buyQty.value !== '') return flash(buyUnit);
         // other units written in the sheet (TRAY…) are kept as they are
         const others = allPacks.filter((x) => !cur || x.unit !== cur.unit).filter((x) => x.unit !== bu).map((x) => ({ unit: x.unit, factor: x.factor }));
@@ -94,10 +98,10 @@ function items(body, isAdmin) {
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat),
       h('fieldset.units-box', h('legend', t('units_of_item')),
-        field(t('stock_unit'), unit),
+        field(t('stock_unit'), unit), convertBtn,
         h('div.field', h('label', { for: 'e-buyunit' }, t('buy_unit')),
-          h('div.buy-line', { dir: 'ltr' }, h('span', '1'), buyUnit, h('span', '='), buyQty, stockLbl)),
-        h('small.muted', ...t('buy_unit_help').split('1 BOX = 4 PC').flatMap((s, i) => (i ? [h('bdi', { dir: 'ltr' }, '1 BOX = 4 PC'), s] : [s])))),
+          h('div.buy-line', { dir: 'ltr' }, buyA, buyUnit, h('span', '='), buyQty, stockLbl)),
+        h('small.muted', ...t('buy_unit_help').split(/(1 BOX = 4 PC|18 KG = 1 TIN)/).map((s, i) => (i % 2 ? h('bdi', { dir: 'ltr' }, s) : s)))),
       field(t('min_stock_in', { u: it ? it.unit : '' }), min), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
@@ -141,10 +145,10 @@ function parties(body, isAdmin) {
 async function convertUnit(it) {
   const asked = await dialog((close) => {
     const nu = trackFilled(h('input.input#cv-unit', { placeholder: 'PC', dir: 'ltr' }));
-    const f = trackFilled(h('input.input.num#cv-factor', { type: 'number', min: 0, step: 'any', placeholder: '360' }));
+    const f = trackFilled(h('input.input.num#cv-factor', { type: 'number', min: 0, step: 'any', value: 1 }));
     const ok = () => { if (!nu.value.trim()) return flash(nu); if (!(Number(f.value) > 0)) return flash(f); close({ new_unit: nu.value.trim().toUpperCase(), factor: Number(f.value) }); };
     return [h('h3', t('change_stock_unit'), ': ', h('bdi', it.name)), h('small.muted', t('change_stock_unit_help', { u: it.unit })),
-      field(t('new_stock_unit'), nu), field(t('factor_old_to_new', { u: it.unit }), f),
+      field(t('new_stock_unit'), nu), field(t('factor_old_to_new', { u: it.unit }), f), h('small.muted', t('factor_one_rename')),
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('preview_change')))];
   });
   if (!asked) return;
