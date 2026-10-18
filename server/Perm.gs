@@ -24,6 +24,7 @@ var CAPS = {
   min_stock:      ['items.save', 'min_stock'],
   rename:         ['items.save', 'parties.save', 'locations.save', 'units.save', 'rename', 'items.convertUnit'],
   packaging:      ['items.save', 'packaging'],
+  final_price:    ['items.save', 'final_price'],
   lists:          ['lists.save'],
   recipes:        ['recipes.save'],
   see_prices:     ['see_prices'],

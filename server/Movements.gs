@@ -76,6 +76,20 @@ var Movements = {
     return m;
   },
 
+  /**
+   * Final products (FINAL store): the price of a receipt is the admin's fixed price of the product, per
+   * stock unit, whatever was sent. `keep` = the price already on a record being edited (same product).
+   */
+  fixedPrice: function (m, item, keep) {
+    if (!item || Stores.of(item) !== 'FINAL' || (m.kind !== 'RECEIPT' && m.kind !== 'SUPPLIER_RETURN')) return;
+    var fp = keep !== undefined && keep !== '' && keep !== null ? Number(keep) : Util.num(item.final_price);
+    Util.require(fp !== null && fp >= 0 && (keep !== undefined || String(item.final_price) !== ''), 'final_price_missing', item.name);
+    m.price = fp;
+    m.per = String(item.unit).toUpperCase();
+    m.amount = Util.round(Math.abs(m.qty) * fp);
+    m.final_amount = Util.round(m.amount - m.amount * (m.discount || 0) / 100);
+  },
+
   nextId: function () {
     if (!Settings.get('seq_movement', '')) {
       var max = 0;
@@ -126,6 +140,7 @@ var Movements = {
         Perm.canKind(session, src.kind);
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
+        Movements.fixedPrice(m, item);
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
         if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item));
@@ -188,6 +203,8 @@ var Movements = {
       src.kind = cur.kind;
       var item = Repo.find('Items', 'item_id', src.item_id);
       var m = Movements.normalise(src, item);
+      // an edited final-product receipt keeps its own price (the product's price may have changed since)
+      Movements.fixedPrice(m, item, src.item_id === cur.item_id && cur.price !== '' ? cur.price : undefined);
       var newItem = Movements.validate(m);
       var changes = {};
       EDITABLE.forEach(function (f) { changes[f] = m[f]; });
