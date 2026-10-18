@@ -71,6 +71,22 @@ test('received in BOX, kept in PC; issued in TRAY or PC; what was typed is kept'
   assert.equal(cat.last_purchase_price, 0.25);
 });
 
+test('renaming the stock unit (factor 1): PC -> TIN in the item, balance and history, quantities unchanged', () => {
+  const { g, tok, bal } = env();
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'OLD EGGS', unit: 'TIN' }, tok.admin).error.code, 'unit_change_use_convert');
+  assert.equal(g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'TIN', factor: 1 }, tok.admin).ok, true);
+  assert.equal(bal('I0002'), 3);
+  const it = g.rows('Items').find((i) => i.item_id === 'I0002');
+  assert.deepEqual([it.unit, it.min_stock, it.pack_units, it.report_unit], ['TIN', 2, '', '']);
+  const open = g.rows('Movements').find((m) => m.movement_id === 'M000001');
+  assert.deepEqual([open.qty, open.unit, open.entry_unit], [3, 'TIN', '']);
+  // then the purchase unit the other way round: 1 TIN = 18 KG, reports in KG
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'OLD EGGS', pack_units: [{ unit: 'KG', factor: 1 / 18 }], report_unit: 'KG' }, tok.admin).ok, true);
+  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0002').pack_units, '1 TIN=18 KG');
+  assert.equal(g.api('movements.save', { movements: [{ kind: 'ISSUE', date: TODAY, party_id: 'P001', item_id: 'I0002', qty: 36, unit: 'KG' }] }, tok.admin).ok, true);
+  assert.equal(bal('I0002'), 1);
+});
+
 test('changing the stock unit: preview first, then balance, history and minimum converted (admin only)', () => {
   const { g, tok, bal } = env();
   const pv = g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360, preview: true }, tok.admin).data;
