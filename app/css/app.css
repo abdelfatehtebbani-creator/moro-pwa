@@ -212,6 +212,7 @@ body[data-zone="final"] .form-card h2 { color: var(--final); }
 .units-box { border: 1px solid var(--line, #d0d7de); border-radius: 10px; padding: 4px 12px 10px; margin: 6px 0 10px; display: grid; gap: 8px; }
 .buy-line { display: flex; align-items: center; gap: 8px; }
 .buy-line #e-buyunit { width: 7em; }
+.buy-line #e-buya { width: 4.5em; }
 .buy-line #e-buyqty { width: 6em; }
 .buy-line .buy-stock { font-weight: 700; }
 .input.locked { background: var(--bg-soft, #eef1f4); color: inherit; cursor: not-allowed; }

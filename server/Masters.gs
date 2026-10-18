@@ -49,7 +49,11 @@ var Masters = {
         if (aliases.indexOf(cur.name) < 0) aliases.push(cur.name);
         ch.aliases = aliases.join(' | ');
       }
-      if (p.unit !== undefined) ch.unit = Util.clean(p.unit).toUpperCase() || cur.unit;
+      if (p.unit !== undefined && Util.clean(p.unit) && Util.clean(p.unit).toUpperCase() !== String(cur.unit).toUpperCase()) {
+        var used = Repo.all('Movements').some(function (m) { return m.item_id === cur.item_id; });
+        Util.require(!used, 'unit_change_use_convert');
+        ch.unit = Util.clean(p.unit).toUpperCase();
+      }
       // moving an item to another store is the admin's (like a rename); older apps send only a category
       if (p.store !== undefined || p.category !== undefined) {
         var curStore = Stores.of(cur);
