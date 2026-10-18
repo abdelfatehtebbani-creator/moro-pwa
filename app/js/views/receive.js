@@ -65,7 +65,21 @@ export async function render(root) {
 
   // stock units in one `u` of the chosen item, or null (items without packaging units: only their own unit)
   const fOf = (u) => { const it = Data.items.get(item.value); return it && Data.packsOf(it).length ? Data.factorOf(it, String(u || '').trim()) : null; };
+  // the admin's fixed price of a final product (null when not a final product or not set)
+  const fixedOf = (it) => (it && Data.storeOf(it) === 'FINAL' && it.final_price !== '' && it.final_price !== undefined && it.final_price !== null ? Number(it.final_price) : null);
+  const lockPrice = (on) => { price.readOnly = on; per.input.disabled = on; price.classList.toggle('locked', on); };
   const recalc = () => {
+    if (price.readOnly) {
+      // final product: quantity × the fixed price per stock unit
+      const it = Data.items.get(item.value);
+      const p0 = parcels.value === '' ? null : Number(parcels.value), r0 = retail.value === '' ? null : Number(retail.value);
+      if (p0 !== null && r0 !== null) qty.value = String(Math.round(p0 * r0 * 1e6) / 1e6);
+      const a = Math.round(Math.abs(Number(qty.value) || 0) * (Data.factorOf(it, unit.input.value) || 1) * Number(price.value) * 100) / 100;
+      amount.value = qty.value === '' ? '' : String(a);
+      net.value = qty.value === '' ? '' : String(Math.round((a - a * (Number(discount.value) || 0) / 100) * 100) / 100);
+      [qty, amount, net].forEach((x) => x.dispatchEvent(new Event('change')));
+      return;
+    }
     const p = parcels.value === '' ? null : Number(parcels.value);
     const r = retail.value === '' ? null : Number(retail.value);
     if (p !== null && r !== null) qty.value = String(Math.round(p * r * 1e6) / 1e6);
@@ -92,7 +106,7 @@ export async function render(root) {
   let lastUnit = '';
   unit.input.addEventListener('change', () => {
     const u = unit.input.value.trim().toUpperCase();
-    if (fOf(u) && (!per.input.value || per.input.value.trim().toUpperCase() === lastUnit)) per.set(u);
+    if (!price.readOnly && fOf(u) && (!per.input.value || per.input.value.trim().toUpperCase() === lastUnit)) per.set(u);
     lastUnit = u;
     recalc();
   });
@@ -101,7 +115,10 @@ export async function render(root) {
 
   function showItem(id) {
     const it = Data.items.get(id);
-    if (!it) { info.textContent = ''; return; }
+    if (!it) { info.textContent = ''; lockPrice(false); return; }
+    const fixed = fixedOf(it);
+    lockPrice(fixed !== null);
+    if (fixed !== null) { price.value = String(fixed); per.set(it.unit); price.dispatchEvent(new Event('change')); }
     // packaging units: the report / purchase unit is offered first (as on the supplier invoice)
     const first = it.report_unit && Data.factorOf(it, it.report_unit) ? String(it.report_unit).toUpperCase() : it.unit;
     if (!unit.value) unit.set(first);
@@ -115,7 +132,8 @@ export async function render(root) {
     info.className = 'item-info' + (low ? ' low' : '');
     info.textContent = t('available') + ': ' + fmtNum(q) + ' ' + it.unit +
       (Number(it.min_stock) > 0 ? '   |   ' + t('min_stock') + ': ' + fmtNum(it.min_stock) : '') +
-      (b && b.last_expiry ? '   |   ' + t('last_expiry') + ': ' + fmtDate(b.last_expiry) : '');
+      (b && b.last_expiry ? '   |   ' + t('last_expiry') + ': ' + fmtDate(b.last_expiry) : '') +
+      (fixed !== null ? '   |   ' + t('final_price_fixed') : Data.storeOf(it) === 'FINAL' ? '   |   ' + t('err.final_price_missing') : '');
   }
 
   // required fields follow v13: a return to the supplier needs only supplier, date, item, unit and quantity
@@ -138,14 +156,14 @@ export async function render(root) {
   enterNav(steps, () => saveBtn.focus());
 
   function onZone() {
-    item.clear(); location.clear(); info.textContent = '';
+    item.clear(); location.clear(); info.textContent = ''; lockPrice(false);
     loadRecords();
     item.input.focus();
   }
 
   function reset(full) {
     editing = null;
-    item.clear(); parcels.value = ''; retail.value = '1'; qty.value = ''; unit.clear(); price.value = '';
+    item.clear(); lockPrice(false); parcels.value = ''; retail.value = '1'; qty.value = ''; unit.clear(); price.value = '';
     per.clear(); amount.value = ''; discount.value = '0'; net.value = ''; expiry.value = ''; isReturn.checked = false;
     if (full) { supplier.clear(); invoice.value = ''; location.clear(); date.value = Data.todayIso(); }
     [parcels, retail, qty, price, amount, discount, net, expiry, invoice, date].forEach((x) => x.dispatchEvent(new Event('change')));
@@ -210,6 +228,8 @@ export async function render(root) {
     // edited as it was typed (10 BOX), not as stored (3600 PC)
     qty.value = String(m.entry_unit ? m.entry_qty : Math.abs(Number(m.qty)));
     unit.set(m.entry_unit || m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0;
+    // an edited final-product receipt keeps its own price, locked
+    lockPrice(fixedOf(Data.items.get(m.item_id)) !== null || (Data.storeOf(Data.items.get(m.item_id)) === 'FINAL' && m.price !== ''));
     amount.value = m.amount; net.value = m.final_amount; expiry.value = m.expiry || '';
     location.set(m.location); isReturn.checked = m.kind === 'SUPPLIER_RETURN';
     if (!location.value && m.location) location.input.value = m.location;

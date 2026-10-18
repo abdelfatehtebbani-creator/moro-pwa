@@ -74,6 +74,13 @@ function items(body, isAdmin) {
     const stockLbl = h('span.buy-stock', it ? it.unit : '');
     unit.input.addEventListener('input', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
     unit.input.addEventListener('change', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); });
+    // final products: a fixed price per stock unit, set by the admin, used by every receipt
+    const canFinal = Data.can('final_price');
+    const finalPrice = trackFilled(h('input.input.num#e-fprice', { type: 'number', min: 0, step: 'any', value: it && it.final_price !== undefined ? it.final_price : '', disabled: !canFinal }));
+    const finalField = h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice);
+    const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };
+    cat.addEventListener('change', showFinal);
+    showFinal();
     const err = h('p.err-text', '');
     const ok = () => {
       if (!name.value.trim()) return flash(name);
@@ -90,9 +97,13 @@ function items(body, isAdmin) {
         p.pack_units = [...(bu ? [{ unit: bu, factor: bq }] : []), ...others];
         p.report_unit = bu;
       }
+      if (canFinal && cat.value === 'FINAL') {
+        if (finalPrice.value !== '' && !(Number(finalPrice.value) >= 0)) return flash(finalPrice);
+        p.final_price = finalPrice.value;
+      }
       save('items.save', p, close, err);
     };
-    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat),
+    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat), finalField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
         field(t('stock_unit'), unit),
         h('div.field', h('label', { for: 'e-buyunit' }, t('buy_unit')),

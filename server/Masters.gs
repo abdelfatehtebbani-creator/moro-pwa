@@ -7,6 +7,14 @@ var PARTY_KINDS = ['supplier', 'section'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 
 var Masters = {
+  /** The admin's fixed price of a final product (per stock unit); '' = not set. */
+  finalPrice: function (v) {
+    if (v === '' || v === null || v === undefined) return '';
+    var n = Util.num(v);
+    Util.require(n !== null && n >= 0, 'price_invalid');
+    return Util.round(n);
+  },
+
   /** payload: {item_id?, name, store (or category from older apps), unit, min_stock, image, active} */
   saveItem: function (session, p) {
     return withLock(function () {
@@ -25,7 +33,8 @@ var Masters = {
                      min_stock: Util.num(p.min_stock) || 0, image: Util.clean(p.image), active: true, aliases: '',
                      created_at: Util.nowIso(), store: store,
                      pack_units: p.pack_units !== undefined && Perm.has(session, 'packaging') ? Packs.pack(Util.clean(p.unit).toUpperCase(), p.pack_units) : '',
-                     report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '' };
+                     report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '',
+                     final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -59,6 +68,10 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      if (p.final_price !== undefined && String(p.final_price) !== String(cur.final_price === undefined ? '' : cur.final_price)) {
+        Perm.require(session, 'final_price');
+        ch.final_price = Masters.finalPrice(p.final_price);
+      }
       if (p.pack_units !== undefined || p.report_unit !== undefined) {
         Perm.require(session, 'packaging');
         // a storekeeper sets the purchase unit only for the items of their own stores

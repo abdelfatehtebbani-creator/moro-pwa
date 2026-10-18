@@ -5,7 +5,7 @@
  */
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
-                 'pack_units', 'report_unit'],
+                 'pack_units', 'report_unit', 'final_price'],
   Parties:      ['party_id', 'name', 'kind', 'active'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
