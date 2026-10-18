@@ -214,6 +214,7 @@ body[data-zone="final"] .form-card h2 { color: var(--final); }
 .buy-line #e-buyunit { width: 7em; }
 .buy-line #e-buyqty { width: 6em; }
 .buy-line .buy-stock { font-weight: 700; }
+.input.locked { background: var(--bg-soft, #eef1f4); color: inherit; cursor: not-allowed; }
 .units-box legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
 .conv-info { grid-column: 1 / -1; margin: -4px 0 4px; font-size: 13px; color: var(--teal, #00796b); font-weight: 600; }
 .table-wrap.tall { max-height: 620px; }
