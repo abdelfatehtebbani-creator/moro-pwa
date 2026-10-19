@@ -45,14 +45,20 @@ var Counts = {
     return out;
   },
 
+  /** Whoever approves counts sees every store; a storekeeper only the counts of their own stores. */
+  visible: function (session, c) {
+    return Perm.has(session, 'counts.approve') || (session.stores || []).indexOf(c.store) >= 0;
+  },
+
   list: function (session) {
-    return { counts: Repo.all('Counts').sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.count_id).localeCompare(String(a.count_id)); }) };
+    return { counts: Repo.all('Counts').filter(function (c) { return Counts.visible(session, c); }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.count_id).localeCompare(String(a.count_id)); }) };
   },
 
   /** One count with its lines; an open count shows the theory as it stands now (late entries included). */
   get: function (session, p) {
     var c = Repo.find('Counts', 'count_id', p.count_id);
     Util.require(c, 'not_found');
+    Util.require(Counts.visible(session, c), 'store_forbidden', c.store);
     var lines = Repo.all('CountLines').filter(function (l) { return l.count_id === c.count_id; });
     if (c.status === 'open') {
       var th = Counts.theory(String(c.date), lines.map(function (l) { return l.item_id; }));

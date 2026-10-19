@@ -41,6 +41,11 @@ test('count: opened by the storekeeper of the store, theory on the count date, n
   assert.equal(g.api('counts.save', { count_id: id, lines: [{ item_id: 'I0001', counted_qty: 7, unit: 'BOX' }, { item_id: 'I0002', counted_qty: 9, unit: 'KG' }] }, tok.store).data.saved, 2);
   assert.equal(bal('I0001'), 96);
   assert.equal(g.api('counts.approve', { count_id: id }, tok.store).error.code, 'forbidden');
+  // a storekeeper sees only the counts of their own stores; the admin sees all
+  const dry = g.api('counts.open', { store: 'DRY', date: '2026-09-30', period: 'monthly' }, tok.admin).data.count.count_id;
+  assert.deepEqual(g.api('counts.list', {}, tok.store).data.counts.map((c) => c.count_id), [id]);
+  assert.equal(g.api('counts.get', { count_id: dry }, tok.store).error.code, 'store_forbidden');
+  assert.equal(g.api('counts.list', {}, tok.admin).data.counts.length, 2);
 });
 
 test('count: the expiry found on the shelf replaces the last expiry on approval (with or without a quantity)', () => {

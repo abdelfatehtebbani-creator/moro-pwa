@@ -326,3 +326,5 @@ input[type="date"].input { min-width: 0; }
 .count-exp-cell .count-exp { width: 100%; }
 .exp-changed .count-exp { border-color: #e67e22; background: #fff4e5; }
 .btn.small { padding: 4px 12px; font-size: 13px; min-height: 0; }
+tr.count-diff td { background: #fff4e5; }
+tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weight: 600; }
