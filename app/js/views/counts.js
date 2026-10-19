@@ -63,6 +63,7 @@ export async function render(root) {
       const sel = h('select.input.count-unit', { disabled: !editable }, units.map((u) => h('option', { value: u }, u)));
       sel.value = show;
       const diffCell = h('td.num'), valueCell = h('td.num');
+      const exp = h('input.input.count-exp', { type: 'date', value: l.counted_expiry || '', disabled: !editable, title: t('expiry_on_shelf') });
       const row = { l, it, inp, sel, f, base: () => (inp.value === '' ? '' : r6(Number(inp.value) * f(sel.value))) };
       row.paint = () => {
         const b = row.base();
@@ -72,6 +73,11 @@ export async function render(root) {
         valueCell.textContent = d === '' || l.price === '' || l.price === undefined ? '' : money(d * Number(l.price));
       };
       row.dirty = false;
+      row.exp = exp;
+      const expCell = h('td', h('div.count-exp-cell', h('small.muted', l.theory_expiry ? fmtDate(l.theory_expiry) : '—'), exp));
+      const paintExp = () => expCell.classList.toggle('exp-changed', !!exp.value && exp.value !== String(l.theory_expiry || ''));
+      paintExp();
+      exp.addEventListener('change', () => { row.dirty = true; paintExp(); });
       inp.addEventListener('input', () => { row.dirty = true; row.paint(); });
       sel.addEventListener('change', () => {
         // the typed quantity keeps its meaning: 7 BOX shown as 84 PC
@@ -80,7 +86,7 @@ export async function render(root) {
       });
       row.lastUnit = show;
       row.tr = h('tr', h('td.wrap', h('bdi', it.name)), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
-        h('td', h('div.count-in', inp, sel)), diffCell, prices ? valueCell : null);
+        h('td', h('div.count-in', inp, sel)), diffCell, prices ? valueCell : null, expCell);
       row.paint();
       return row;
     });
@@ -90,7 +96,8 @@ export async function render(root) {
     const draw = () => {
       const q = search.value.trim().toLowerCase();
       body.replaceChildren(...rows.filter((r) => (!q || r.it.name.toLowerCase().includes(q)) &&
-        (!onlyDiff.checked || (r.base() !== '' && r6(r.base() - Number(r.l.theory_qty)) !== 0))).map((r) => r.tr));
+        (!onlyDiff.checked || (r.base() !== '' && r6(r.base() - Number(r.l.theory_qty)) !== 0) ||
+          (r.exp.value && r.exp.value !== String(r.l.theory_expiry || '')))).map((r) => r.tr));
     };
     search.addEventListener('input', draw);
     onlyDiff.addEventListener('change', draw);
@@ -99,11 +106,12 @@ export async function render(root) {
     const status = h('p.form-status', t('count_progress', { n: counted(), total: rows.length }));
 
     async function save(silent) {
-      const lines = rows.filter((r) => r.dirty).map((r) => ({ item_id: r.l.item_id, counted_qty: r.inp.value === '' ? '' : Number(r.inp.value), unit: r.sel.value }));
+      const lines = rows.filter((r) => r.dirty).map((r) => ({ item_id: r.l.item_id, counted_qty: r.inp.value === '' ? '' : Number(r.inp.value), unit: r.sel.value,
+        counted_expiry: r.exp.value || '' }));
       if (!lines.length) { if (!silent) toast(t('nothing_changed')); return true; }
       try {
         await call('counts.save', { count_id: c.count_id, lines });
-        rows.forEach((r) => { if (r.dirty) { r.l.counted_qty = r.base(); r.dirty = false; } });
+        rows.forEach((r) => { if (r.dirty) { r.l.counted_qty = r.base(); r.l.counted_expiry = r.exp.value || ''; r.dirty = false; } });
         status.textContent = t('count_progress', { n: counted(), total: rows.length });
         if (!silent) toast(t('saved'), 'ok');
         return true;
@@ -112,11 +120,13 @@ export async function render(root) {
     async function approve() {
       if (!(await save(true))) return;
       const diffs = rows.filter((r) => r.base() !== '' && r6(r.base() - Number(r.l.theory_qty)) !== 0).length;
+      const exps = rows.filter((r) => r.exp.value && r.exp.value !== String(r.l.theory_expiry || '')).length;
       const go = await dialog((close) => [h('h3', t('approve_count'), ': ', c.count_id),
         h('p', t('approve_count_help', { n: diffs, c: counted(), total: rows.length })),
+        exps ? h('p', t('approve_count_expiry', { n: exps })) : null,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('approve_count')))]);
       if (!go) return;
-      try { const r = await call('counts.approve', { count_id: c.count_id }); await Data.refresh(); toast(t('count_approved', { n: r.adjustments }), 'ok'); loadList(c.count_id); }
+      try { const r = await call('counts.approve', { count_id: c.count_id }); await Data.refresh(); toast(t('count_approved', { n: r.adjustments }) + (r.expiries ? ' · ' + t('count_expiries', { n: r.expiries }) : ''), 'ok'); loadList(c.count_id); }
       catch (e) { toast(errText(e), 'err'); }
     }
     async function cancel() {
@@ -129,12 +139,14 @@ export async function render(root) {
     // the count report: theoretical, counted, correction (and its value), in the storekeeper's unit
     const report = () => {
       const columns = [{ label: 'Item', type: 't' }, { label: 'Unit', type: 't' }, { label: 'Theoretical', type: 'n' }, { label: 'Counted', type: 'n' },
-        { label: 'Correction', type: 'n' }, ...(prices ? [{ label: 'Value', type: 'm' }] : [])];
+        { label: 'Correction', type: 'n' }, ...(prices ? [{ label: 'Value', type: 'm' }] : []),
+        { label: 'Expiry (books)', type: 'd' }, { label: 'Expiry (counted)', type: 'd' }];
       const out = rows.map((r) => {
         const u = r.sel.value, b = r.base();
         const d = b === '' ? '' : r6(b - Number(r.l.theory_qty));
         return [r.it.name, u, r6(Number(r.l.theory_qty) / r.f(u)), b === '' ? '' : r6(b / r.f(u)), d === '' ? '' : r6(d / r.f(u)),
-          ...(prices ? [d === '' || r.l.price === '' ? '' : Math.round(d * Number(r.l.price) * 100) / 100] : [])];
+          ...(prices ? [d === '' || r.l.price === '' ? '' : Math.round(d * Number(r.l.price) * 100) / 100] : []),
+          r.l.theory_expiry || '', r.exp.value || ''];
       });
       return { title: 'Stock Count ' + c.count_id, subtitle: t('store_' + c.store) + ' · ' + c.period + ' · ' + c.date, columns, rows: out, company: 'ALAKER SWEETS' };
     };
@@ -150,7 +162,7 @@ export async function render(root) {
         h('div.pr-title', rep.title), h('div.pr-meta', h('b', rep.subtitle), h('span', 'Printed: ' + new Date().toLocaleString('en-GB'))),
         h('table.pr-table', h('thead', h('tr', rep.columns.map((col) => h('th', col.label)))),
           h('tbody', rep.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: rep.columns[i].type === 't' ? '' : 'num' },
-            v === '' ? '' : rep.columns[i].type === 'm' ? money(v) : rep.columns[i].type === 'n' ? fmtNum(v) : String(v))))))),
+            v === '' ? '' : rep.columns[i].type === 'm' ? money(v) : rep.columns[i].type === 'n' ? fmtNum(v) : rep.columns[i].type === 'd' ? fmtDate(v) : String(v))))))),
         h('div.pr-count', 'Number of items: ' + rep.rows.length));
       document.body.append(area);
       const done = () => { area.remove(); window.removeEventListener('afterprint', done); };
@@ -162,7 +174,7 @@ export async function render(root) {
       h('h2', t('count'), ' ', c.count_id, ' ', storePill(c.store), ' ', h('span.muted', fmtDate(c.date) + ' · ' + t('period_' + c.period) + ' · ' + t('count_st_' + c.status))),
       h('div.search', search), h('label.check', onlyDiff, ' ', t('only_differences')),
       h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('theoretical')), h('th', t('counted')), h('th', t('correction')),
-        prices ? h('th', t('value')) : null)), body)),
+        prices ? h('th', t('value')) : null, h('th', t('expiry_books_shelf')))), body)),
       status,
       h('div.form-actions',
         editable ? h('button.btn', { type: 'button', onclick: () => save(false) }, t('save')) : null,

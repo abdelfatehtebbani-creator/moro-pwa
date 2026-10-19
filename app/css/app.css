@@ -322,3 +322,6 @@ input[type="date"].input { min-width: 0; }
 .count-in .count-qty { flex: 1; min-width: 5em; }
 .count-in .count-unit { width: 6em; flex: none; }
 .qty-pos { color: #1b7f3b; font-weight: 600; }
+.count-exp-cell { display: flex; flex-direction: column; gap: 2px; min-width: 9.5em; }
+.count-exp-cell .count-exp { width: 100%; }
+.exp-changed .count-exp { border-color: #e67e22; background: #fff4e5; }

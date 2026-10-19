@@ -6,6 +6,8 @@
  * quantity typed by the storekeeper (base unit; empty = not counted). Nothing changes in the stock
  * until the admin approves: then one ADJUST movement per counted line with a difference, dated the
  * count date, brings the balance to what was counted. An uncounted line is never adjusted.
+ * The expiry date on the shelf may be corrected the same way: a line's counted_expiry replaces the
+ * item's last expiry (Balances.last_expiry) on approval; an empty one leaves it as it is.
  */
 var COUNT_PERIODS = ['monthly', 'quarterly', 'yearly'];
 
@@ -36,6 +38,13 @@ var Counts = {
     return out;
   },
 
+  /** The last expiry on the books of every item. */
+  expiries: function () {
+    var out = {};
+    Repo.all('Balances').forEach(function (b) { out[b.item_id] = String(b.last_expiry || ''); });
+    return out;
+  },
+
   list: function (session) {
     return { counts: Repo.all('Counts').sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.count_id).localeCompare(String(a.count_id)); }) };
   },
@@ -47,7 +56,8 @@ var Counts = {
     var lines = Repo.all('CountLines').filter(function (l) { return l.count_id === c.count_id; });
     if (c.status === 'open') {
       var th = Counts.theory(String(c.date), lines.map(function (l) { return l.item_id; }));
-      lines.forEach(function (l) { l.theory_qty = th[l.item_id]; });
+      var ex = Counts.expiries();
+      lines.forEach(function (l) { l.theory_qty = th[l.item_id]; l.theory_expiry = ex[l.item_id] || ''; });
     }
     var pr = Perm.has(session, 'see_prices') ? Counts.prices(lines.map(function (l) { return l.item_id; })) : {};
     lines.forEach(function (l) { l.price = c.status === 'open' ? (pr[l.item_id] === undefined ? '' : pr[l.item_id]) : (Perm.has(session, 'see_prices') ? l.price : ''); });
@@ -70,10 +80,11 @@ var Counts = {
                 created_by: session.user_id, created_at: Util.nowIso(), approved_by: '', approved_at: '', note: Util.clean(p.note) };
       var items = Repo.all('Items').filter(function (i) { return i.active === true && Stores.of(i) === store; });
       var th = Counts.theory(date, items.map(function (i) { return i.item_id; }));
+      var ex = Counts.expiries();
       Repo.append('Counts', [c]);
       Repo.append('CountLines', items.map(function (i) {
         return { count_id: c.count_id, item_id: i.item_id, theory_qty: th[i.item_id], counted_qty: '', counted_by: '', counted_at: '',
-                 adjust_movement_id: '', price: '' };
+                 adjust_movement_id: '', price: '', theory_expiry: ex[i.item_id] || '', counted_expiry: '' };
       }));
       Audit.log(session.user_id, 'count_open', 'Counts', c.count_id, null, c);
       return { count: c, version: Version.bump() };
@@ -93,6 +104,19 @@ var Counts = {
       (p.lines || []).forEach(function (src) {
         var l = lines[src.item_id];
         Util.require(l, 'item_unknown', src.item_id);
+        var ch = {};
+        if (src.counted_expiry !== undefined) {
+          var e = String(src.counted_expiry || '');
+          Util.require(!e || Util.isDate(e), 'expiry_invalid', src.item_id);
+          if (e !== String(l.counted_expiry || '')) ch.counted_expiry = e;
+        }
+        if (src.counted_qty === undefined) {
+          if (!Object.keys(ch).length) return;
+          ch.counted_by = session.user_id; ch.counted_at = Util.nowIso();
+          Repo.updateWhere('CountLines', function (r) { return r.count_id === c.count_id && r.item_id === src.item_id; }, ch);
+          n++;
+          return;
+        }
         var q = '';
         if (src.counted_qty !== '' && src.counted_qty !== null && src.counted_qty !== undefined) {
           var v = Util.num(src.counted_qty);
@@ -102,9 +126,10 @@ var Counts = {
           Util.require(f, 'unit_not_defined', src.unit);
           q = Util.round(v * f);
         }
-        if (String(q) === String(l.counted_qty)) return;
-        Repo.updateWhere('CountLines', function (r) { return r.count_id === c.count_id && r.item_id === src.item_id; },
-          { counted_qty: q, counted_by: session.user_id, counted_at: Util.nowIso() });
+        if (String(q) !== String(l.counted_qty)) ch.counted_qty = q;
+        if (!Object.keys(ch).length) return;
+        ch.counted_by = session.user_id; ch.counted_at = Util.nowIso();
+        Repo.updateWhere('CountLines', function (r) { return r.count_id === c.count_id && r.item_id === src.item_id; }, ch);
         n++;
       });
       return { saved: n, version: n ? Version.bump() : Version.get() };
@@ -133,13 +158,26 @@ var Counts = {
     var byItem = {};
     saved.forEach(function (s) { byItem[String(s.client_id).split('-').pop()] = s.movement_id; });
     return withLock(function () {
+      var ex = Counts.expiries(), fixed = 0;
       lines.forEach(function (l) {
         Repo.updateWhere('CountLines', function (r) { return r.count_id === c.count_id && r.item_id === l.item_id; },
-          { theory_qty: th[l.item_id], price: pr[l.item_id] === undefined ? '' : pr[l.item_id], adjust_movement_id: byItem[l.item_id] || '' });
+          { theory_qty: th[l.item_id], price: pr[l.item_id] === undefined ? '' : pr[l.item_id], adjust_movement_id: byItem[l.item_id] || '',
+            theory_expiry: ex[l.item_id] || '' });
+        // the expiry found on the shelf replaces the one on the books
+        var e = String(l.counted_expiry || '');
+        if (!e || e === (ex[l.item_id] || '')) return;
+        var b = Repo.find('Balances', 'item_id', l.item_id);
+        if (b) Repo.update('Balances', 'item_id', l.item_id, { last_expiry: e, updated_at: Util.nowIso() });
+        else {
+          var it = Repo.find('Items', 'item_id', l.item_id);
+          Repo.append('Balances', [{ item_id: l.item_id, qty: 0, unit: it ? it.unit : '', last_expiry: e, updated_at: Util.nowIso() }]);
+        }
+        Audit.log(session.user_id, 'count_expiry', 'Balances', l.item_id, { last_expiry: ex[l.item_id] || '' }, { last_expiry: e, count_id: c.count_id });
+        fixed++;
       });
       Repo.update('Counts', 'count_id', c.count_id, { status: 'approved', approved_by: session.user_id, approved_at: Util.nowIso() });
-      Audit.log(session.user_id, 'count_approve', 'Counts', c.count_id, null, { adjustments: saved.length });
-      return { adjustments: saved.length, version: Version.bump() };
+      Audit.log(session.user_id, 'count_approve', 'Counts', c.count_id, null, { adjustments: saved.length, expiries: fixed });
+      return { adjustments: saved.length, expiries: fixed, version: Version.bump() };
     });
   },
 
