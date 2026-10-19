@@ -76,7 +76,7 @@ export async function render(root) {
       row.dirty = false;
       row.exp = exp;
       const expCell = h('td', h('div.count-exp-cell', h('small.muted', l.theory_expiry ? fmtDate(l.theory_expiry) : '—'), exp));
-      const paintExp = () => expCell.classList.toggle('exp-changed', !!exp.value && exp.value !== String(l.theory_expiry || ''));
+      const paintExp = () => { expCell.classList.toggle('exp-changed', !!exp.value && exp.value !== String(l.theory_expiry || '')); row.mark && row.mark(); };
       paintExp();
       exp.addEventListener('change', () => { row.dirty = true; paintExp(); });
       inp.addEventListener('input', () => { row.dirty = true; row.paint(); });
@@ -88,7 +88,17 @@ export async function render(root) {
       row.lastUnit = show;
       row.tr = h('tr', h('td.wrap', h('bdi', it.name)), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
         h('td', h('div.count-in', inp, sel)), diffCell, prices ? valueCell : null, expCell);
+      // a line with a correction (quantity or expiry) stands out
+      row.mark = () => {
+        const b = row.base();
+        const q = b !== '' && r6(b - Number(l.theory_qty)) !== 0;
+        const e = !!exp.value && exp.value !== String(l.theory_expiry || '');
+        row.tr.classList.toggle('count-diff', q || e);
+      };
+      const paint0 = row.paint;
+      row.paint = () => { paint0(); row.mark(); };
       row.paint();
+      paintExp();
       return row;
     });
     const search = trackFilled(h('input.input', { type: 'search', placeholder: t('lookup_hint') }));
