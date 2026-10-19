@@ -76,18 +76,25 @@ export async function render(root) {
       };
       row.dirty = false;
       row.exp = exp;
+      const markEl = h('span.count-mark');
+      row.saved = () => String(l.counted_qty === undefined ? '' : l.counted_qty) !== '' || !!l.counted_expiry;
+      row.state = () => {
+        markEl.className = 'count-mark' + (row.dirty ? ' unsaved' : row.saved() ? ' saved' : '');
+        markEl.textContent = row.dirty ? '●' : row.saved() ? '✓' : '';
+        markEl.title = row.dirty ? t('count_unsaved') : row.saved() ? t('count_saved') : '';
+      };
       const expCell = h('td', h('div.count-exp-cell', h('small.muted', l.theory_expiry ? fmtDate(l.theory_expiry) : '—'), exp));
       const paintExp = () => { expCell.classList.toggle('exp-changed', !!exp.value && exp.value !== String(l.theory_expiry || '')); row.mark && row.mark(); };
       paintExp();
-      exp.addEventListener('change', () => { row.dirty = true; paintExp(); });
-      inp.addEventListener('input', () => { row.dirty = true; row.paint(); });
+      exp.addEventListener('change', () => { row.dirty = true; paintExp(); row.state(); refresh(); });
+      inp.addEventListener('input', () => { row.dirty = true; row.paint(); row.state(); refresh(); });
       sel.addEventListener('change', () => {
         // the typed quantity keeps its meaning: 7 BOX shown as 84 PC
         if (inp.value !== '') inp.value = String(r6(Number(inp.value) * f(row.lastUnit || show) / f(sel.value)));
         row.lastUnit = sel.value; row.paint();
       });
       row.lastUnit = show;
-      row.tr = h('tr', h('td.wrap', h('bdi', it.name)), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
+      row.tr = h('tr', h('td.wrap', markEl, h('bdi', it.name)), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
         h('td', h('div.count-in', inp, sel)), diffCell, prices ? valueCell : null, expCell);
       // a line with a correction (quantity or expiry) stands out
       row.mark = () => {
@@ -100,22 +107,34 @@ export async function render(root) {
       row.paint = () => { paint0(); row.mark(); };
       row.paint();
       paintExp();
+      row.state();
       return row;
     });
     const search = trackFilled(h('input.input', { type: 'search', placeholder: t('lookup_hint') }));
-    const onlyDiff = h('input', { type: 'checkbox' });
+    const filter = h('select.input.count-filter', ['all', 'saved', 'uncounted', 'diff', 'unsaved'].map((k) => h('option', { value: k }, t('cf_' + k))));
+    const isDiff = (r) => (r.base() !== '' && r6(r.base() - Number(r.l.theory_qty)) !== 0) || (r.exp.value && r.exp.value !== String(r.l.theory_expiry || ''));
+    const keep = { all: () => true, saved: (r) => r.saved(), uncounted: (r) => !r.saved() && !r.dirty, diff: isDiff, unsaved: (r) => r.dirty };
     const body = h('tbody');
     const draw = () => {
       const q = search.value.trim().toLowerCase();
-      body.replaceChildren(...rows.filter((r) => (!q || r.it.name.toLowerCase().includes(q)) &&
-        (!onlyDiff.checked || (r.base() !== '' && r6(r.base() - Number(r.l.theory_qty)) !== 0) ||
-          (r.exp.value && r.exp.value !== String(r.l.theory_expiry || '')))).map((r) => r.tr));
+      body.replaceChildren(...rows.filter((r) => (!q || r.it.name.toLowerCase().includes(q)) && keep[filter.value](r)).map((r) => r.tr));
     };
     search.addEventListener('input', draw);
-    onlyDiff.addEventListener('change', draw);
+    filter.addEventListener('change', draw);
     draw();
-    const counted = () => rows.filter((r) => r.base() !== '').length;
-    const status = h('p.form-status', t('count_progress', { n: counted(), total: rows.length }));
+    const counted = () => rows.filter((r) => r.saved()).length;
+    const status = h('p.form-status');
+    // progress: saved / all, and how many changes are still waiting for "Save"
+    function refresh() {
+      const waiting = rows.filter((r) => r.dirty).length;
+      status.replaceChildren(t('count_progress', { n: counted(), total: rows.length }),
+        waiting ? h('b.count-waiting', ' ' + t('count_waiting', { n: waiting })) : '');
+    }
+    refresh();
+    // closing the page with changes not saved asks first
+    const leaving = (e) => { if (rows.some((r) => r.dirty)) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', leaving);
+    window.addEventListener('hashchange', () => window.removeEventListener('beforeunload', leaving), { once: true });
 
     async function save(silent) {
       const lines = rows.filter((r) => r.dirty).map((r) => ({ item_id: r.l.item_id, counted_qty: r.inp.value === '' ? '' : Number(r.inp.value), unit: r.sel.value,
@@ -123,8 +142,9 @@ export async function render(root) {
       if (!lines.length) { if (!silent) toast(t('nothing_changed')); return true; }
       try {
         await call('counts.save', { count_id: c.count_id, lines });
-        rows.forEach((r) => { if (r.dirty) { r.l.counted_qty = r.base(); r.l.counted_expiry = r.exp.value || ''; r.dirty = false; } });
-        status.textContent = t('count_progress', { n: counted(), total: rows.length });
+        rows.forEach((r) => { if (r.dirty) { r.l.counted_qty = r.base(); r.l.counted_expiry = r.exp.value || ''; r.dirty = false; r.state(); } });
+        refresh();
+        draw();
         if (!silent) toast(t('saved'), 'ok');
         return true;
       } catch (e) { toast(errText(e), 'err'); return false; }
@@ -184,7 +204,7 @@ export async function render(root) {
 
     detail.replaceChildren(h('div.card',
       h('h2', t('count'), ' ', c.count_id, ' ', storePill(c.store), ' ', h('span.muted', fmtDate(c.date) + ' · ' + t('period_' + c.period) + ' · ' + t('count_st_' + c.status))),
-      h('div.search', search), h('label.check', onlyDiff, ' ', t('only_differences')),
+      h('div.count-tools', search, filter),
       h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('theoretical')), h('th', t('counted')), h('th', t('correction')),
         prices ? h('th', t('value')) : null, h('th', t('expiry_books_shelf')))), body)),
       status,

@@ -119,6 +119,10 @@ test('changing the stock unit: preview first, then balance, history and minimum 
   assert.deepEqual([pv.old_unit, pv.new_unit, pv.balance_before, pv.balance_after, pv.min_after], ['BOX', 'PC', 3, 1080, 720]);
   assert.equal(bal('I0002'), 3);                            // the preview changes nothing
   assert.equal(g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360 }, tok.buyer).error.code, 'forbidden');
+  // the admin may give the permission to another user
+  const buyer = g.rows('Users').find((u) => u.username === 'buyer');
+  g.api('users.save', { user_id: buyer.user_id, caps: ['receive', 'convert_unit'] }, tok.admin);
+  assert.equal(g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360, preview: true }, tok.buyer).ok, true);
   assert.equal(g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360 }, tok.admin).ok, true);
   assert.equal(bal('I0002'), 1080);
   const it = g.rows('Items').find((i) => i.item_id === 'I0002');
