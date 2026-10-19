@@ -38,4 +38,4 @@ var SCHEMA = {
 var TEXT_COLUMNS = ['item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
-                    'updated_at', 'legacy_ref'];
+                    'updated_at', 'legacy_ref', 'theory_expiry', 'counted_expiry', 'counted_at', 'approved_at', 'count_id'];

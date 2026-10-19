@@ -24,10 +24,29 @@ var Repo = (function () {
     return tables[name];
   }
 
+  /**
+   * A text column (dates, ids) that Sheets turned into a Date – a cell typed or pasted by hand, or one
+   * without text format – reads back as the text it stands for: 2027-06-02, or 2027-06-02T09:15:00.
+   */
+  function cell(h, v) {
+    if (v === undefined) return '';
+    if (v && typeof v.getTime === 'function' && typeof v.getFullYear === 'function' && TEXT_COLUMNS.indexOf(h) >= 0) {
+      return Utilities.formatDate(v, TZ, /(^|_)at$/.test(h) ? "yyyy-MM-dd'T'HH:mm:ss" : 'yyyy-MM-dd');
+    }
+    return v;
+  }
+
   function toObj(t, row) {
     var o = {};
-    t.head.forEach(function (h, i) { o[h] = row[i] === undefined ? '' : row[i]; });
+    t.head.forEach(function (h, i) { o[h] = cell(h, row[i]); });
     return o;
+  }
+
+  /** Text format on the text columns of the given rows, so Sheets never turns a date into a Date. */
+  function textFormat(t, startRow, n, only) {
+    t.head.forEach(function (h, c) {
+      if (TEXT_COLUMNS.indexOf(h) >= 0 && (!only || only.indexOf(h) >= 0)) t.sh.getRange(startRow, c + 1, n, 1).setNumberFormat('@');
+    });
   }
 
   function all(name) {
@@ -38,7 +57,7 @@ var Repo = (function () {
   /** Header + raw rows: compact payload for the app. */
   function raw(name) {
     var t = table(name);
-    return { columns: t.head.slice(), rows: t.rows.map(function (r) { return r.slice(); }) };
+    return { columns: t.head.slice(), rows: t.rows.map(function (r) { return t.head.map(function (h, i) { return cell(h, r[i]); }); }) };
   }
 
   function find(name, col, value) {
@@ -65,9 +84,7 @@ var Repo = (function () {
     var start = t.sh.getLastRow() + 1;
     var need = start + data.length - 1 - t.sh.getMaxRows();
     if (need > 0) t.sh.insertRowsAfter(t.sh.getMaxRows(), need + 100);
-    t.head.forEach(function (h, c) {
-      if (TEXT_COLUMNS.indexOf(h) >= 0) t.sh.getRange(start, c + 1, data.length, 1).setNumberFormat('@');
-    });
+    textFormat(t, start, data.length);
     t.sh.getRange(start, 1, data.length, t.head.length).setValues(data);
     data.forEach(function (r) { t.rows.push(r); });
   }
@@ -83,6 +100,7 @@ var Repo = (function () {
         if (!(c in t.idx)) throw new Error('Unknown column ' + name + '.' + c);
         t.rows[r][t.idx[c]] = changes[c] === null || changes[c] === undefined ? '' : changes[c];
       });
+      textFormat(t, r + 2, 1, Object.keys(changes));
       t.sh.getRange(r + 2, 1, 1, t.head.length).setValues([t.rows[r]]);
       return { before: before, after: toObj(t, t.rows[r]) };
     }
@@ -99,6 +117,7 @@ var Repo = (function () {
         if (!(c in t.idx)) throw new Error('Unknown column ' + name + '.' + c);
         t.rows[r][t.idx[c]] = changes[c] === null || changes[c] === undefined ? '' : changes[c];
       });
+      textFormat(t, r + 2, 1, Object.keys(changes));
       t.sh.getRange(r + 2, 1, 1, t.head.length).setValues([t.rows[r]]);
       return { before: before, after: toObj(t, t.rows[r]) };
     }
@@ -112,6 +131,7 @@ var Repo = (function () {
     if (c === undefined) throw new Error('Unknown column ' + name + '.' + col);
     if (!t.rows.length) return;
     var vals = t.rows.map(function (r) { var v = fn(toObj(t, r)); r[c] = v === null || v === undefined ? '' : v; return [r[c]]; });
+    if (TEXT_COLUMNS.indexOf(col) >= 0) t.sh.getRange(2, c + 1, vals.length, 1).setNumberFormat('@');
     t.sh.getRange(2, c + 1, vals.length, 1).setValues(vals);
   }
 
