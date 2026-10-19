@@ -87,6 +87,25 @@ test('renaming the stock unit (factor 1): PC -> TIN in the item, balance and his
   assert.equal(bal('I0002'), 1);
 });
 
+test('display units: purchasing and the storekeeper each choose theirs; quantities stay in the base unit', () => {
+  const { g, tok, bal } = env();
+  g.api('items.save', { item_id: 'I0001', name: 'EGGS', pack_units: [{ unit: 'BOX', factor: 12 }] }, tok.admin);
+  const sk = g.rows('Users').find((u) => u.username === 'store');
+  g.api('users.save', { user_id: sk.user_id, stores: ['DRY'] }, tok.admin);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', report_unit: 'PC' }, tok.buyer).ok, true);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', store_unit: 'BOX' }, tok.store).ok, true);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', store_unit: 'PC' }, tok.buyer).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', report_unit: 'BOX' }, tok.store).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'EGGS', store_unit: 'CRATE' }, tok.store).error.code, 'unit_not_defined');
+  const it = g.rows('Items').find((i) => i.item_id === 'I0001');
+  assert.deepEqual([it.unit, it.report_unit, it.store_unit], ['PC', 'PC', 'BOX']);
+  // 8 BOX received = 96 PC kept; changing a display unit changes no quantity
+  assert.equal(g.api('movements.save', { movements: [receipt({ qty: 8, unit: 'BOX', per: 'BOX', price: 10, amount: 80 })] }, tok.store).ok, true);
+  assert.equal(bal('I0001'), 96);
+  g.api('items.save', { item_id: 'I0001', name: 'EGGS', report_unit: 'BOX' }, tok.buyer);
+  assert.equal(bal('I0001'), 96);
+});
+
 test('changing the stock unit: preview first, then balance, history and minimum converted (admin only)', () => {
   const { g, tok, bal } = env();
   const pv = g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360, preview: true }, tok.admin).data;

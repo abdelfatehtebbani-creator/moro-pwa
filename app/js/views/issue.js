@@ -56,6 +56,8 @@ export async function render(root) {
     const units = it ? Data.unitsOf(it) : [];
     unitSel.replaceChildren(...units.map((u) => h('option', { value: u }, u)));
     unitField.hidden = units.length < 2;
+    // the storekeeper's display unit (chosen in the item form)
+    if (it && it.store_unit && units.includes(String(it.store_unit).toUpperCase())) unitSel.value = String(it.store_unit).toUpperCase();
     showConv();
     if (!it) { info.textContent = ''; return; }
     const q = Data.qty(id);
