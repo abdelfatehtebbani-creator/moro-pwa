@@ -43,6 +43,20 @@ test('count: opened by the storekeeper of the store, theory on the count date, n
   assert.equal(g.api('counts.approve', { count_id: id }, tok.store).error.code, 'forbidden');
 });
 
+test('count: the expiry found on the shelf replaces the last expiry on approval (with or without a quantity)', () => {
+  const { g, tok } = env();
+  g.run("Repo.update('Balances', 'item_id', 'I0002', { last_expiry: '2026-12-01' })");
+  const id = g.api('counts.open', { store: 'CHILLED', date: '2026-09-30', period: 'monthly' }, tok.store).data.count.count_id;
+  assert.equal(g.api('counts.get', { count_id: id }, tok.store).data.lines.find((l) => l.item_id === 'I0002').theory_expiry, '2026-12-01');
+  assert.equal(g.api('counts.save', { count_id: id, lines: [{ item_id: 'I0002', counted_expiry: 'bad' }] }, tok.store).error.code, 'expiry_invalid');
+  g.api('counts.save', { count_id: id, lines: [{ item_id: 'I0002', counted_expiry: '2026-11-15' }, { item_id: 'I0003', counted_qty: 20, unit: 'L', counted_expiry: '2026-10-20' }] }, tok.store);
+  const r = g.api('counts.approve', { count_id: id }, tok.admin).data;
+  assert.deepEqual([r.adjustments, r.expiries], [0, 2]);
+  const exp = (i) => g.rows('Balances').find((b) => b.item_id === i).last_expiry;
+  assert.deepEqual([exp('I0002'), exp('I0003')], ['2026-11-15', '2026-10-20']);
+  assert.equal(g.rows('Audit').filter((a) => a.action === 'count_expiry').length, 2);
+});
+
 test('count approved: adjustments dated the count date for counted lines only; then closed and protected', () => {
   const { g, tok, bal } = env();
   const id = g.api('counts.open', { store: 'CHILLED', date: '2026-09-30', period: 'quarterly' }, tok.store).data.count.count_id;
