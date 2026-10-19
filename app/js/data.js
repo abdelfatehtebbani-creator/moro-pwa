@@ -138,6 +138,14 @@ export const Data = {
   unitsOf(item) { return item ? [String(item.unit).toUpperCase(), ...this.packsOf(item).map((p) => p.unit)] : []; },
   /** "TRAY = 30 PC · BOX = 360 PC" */
   packsText(item) { return this.packsOf(item).map((p) => this.packText(item, p)).join(' · '); },
+  /** A base-unit quantity in `unit` of the item: [qty, unit] (the base unit when `unit` is not defined). */
+  inUnit(item, qty, unit) {
+    const f = item && unit ? this.factorOf(item, unit) : null;
+    return f && f !== 1 ? [Math.round((qty / f) * 1e6) / 1e6, String(unit).toUpperCase()] : [qty, item ? item.unit : ''];
+  },
+  /** The storekeeper's display unit (issues and the dashboard). */
+  inStoreUnit(item, qty) { return this.inUnit(item, qty, item && item.store_unit); },
+  fmtStore(item, qty, fmt) { const [q, u] = this.inStoreUnit(item, qty); return fmt(q) + ' ' + u; },
   /** "12.8 BOX" for a stock-unit quantity, in the item's report unit (screens that act as reports). */
   fmtReport(item, qty, fmt) { const [q, u] = this.inReportUnit(item, qty); return fmt(q) + ' ' + u; },
   /** A stock-unit quantity in the item's report unit: [qty, unit]. */

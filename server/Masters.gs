@@ -34,6 +34,7 @@ var Masters = {
                      created_at: Util.nowIso(), store: store,
                      pack_units: p.pack_units !== undefined && Perm.has(session, 'packaging') ? Packs.pack(Util.clean(p.unit).toUpperCase(), p.pack_units) : '',
                      report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '',
+                     store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
@@ -76,16 +77,24 @@ var Masters = {
         Perm.require(session, 'final_price');
         ch.final_price = Masters.finalPrice(p.final_price);
       }
-      if (p.pack_units !== undefined || p.report_unit !== undefined) {
+      if (p.pack_units !== undefined || p.report_unit !== undefined || p.store_unit !== undefined) {
         Perm.require(session, 'packaging');
-        // a storekeeper sets the purchase unit only for the items of their own stores
+        // a storekeeper sets units only for the items of their own stores
         if (session.role === 'storekeeper') Stores.require(session, Stores.of(cur));
         var stockUnit = ch.unit || cur.unit;
         var packs = p.pack_units !== undefined ? Packs.pack(stockUnit, p.pack_units) : cur.pack_units;
+        var defined = function (u) { return !u || u === String(stockUnit).toUpperCase() || Packs.factor({ unit: stockUnit, pack_units: packs }, u); };
+        // display units: purchasing chooses its own (receiving, reports), the storekeeper theirs (issues, dashboard)
         var ru = p.report_unit !== undefined ? Util.clean(p.report_unit).toUpperCase() : String(cur.report_unit || '');
-        Util.require(!ru || ru === String(stockUnit).toUpperCase() || Packs.factor({ unit: stockUnit, pack_units: packs }, ru), 'unit_not_defined', ru);
+        var su = p.store_unit !== undefined ? Util.clean(p.store_unit).toUpperCase() : String(cur.store_unit || '');
+        if (ru !== String(cur.report_unit || '')) Util.require(session.role !== 'storekeeper', 'forbidden');
+        if (su !== String(cur.store_unit || '')) Util.require(session.role !== 'purchasing', 'forbidden');
+        if (p.report_unit !== undefined) Util.require(defined(ru), 'unit_not_defined', ru);
+        if (p.store_unit !== undefined) Util.require(defined(su), 'unit_not_defined', su);
+        // a unit no longer defined (the larger unit removed) falls back to the base unit
         ch.pack_units = packs;
-        ch.report_unit = ru;
+        ch.report_unit = defined(ru) ? ru : '';
+        ch.store_unit = defined(su) ? su : '';
       }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename');
