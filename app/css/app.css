@@ -325,3 +325,4 @@ input[type="date"].input { min-width: 0; }
 .count-exp-cell { display: flex; flex-direction: column; gap: 2px; min-width: 9.5em; }
 .count-exp-cell .count-exp { width: 100%; }
 .exp-changed .count-exp { border-color: #e67e22; background: #fff4e5; }
+.btn.small { padding: 4px 12px; font-size: 13px; min-height: 0; }
