@@ -213,6 +213,9 @@ body[data-zone="final"] .form-card h2 { color: var(--final); }
 .buy-line { display: flex; align-items: center; gap: 8px; }
 .buy-line #e-buyunit { width: 7em; }
 .show-units { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.notice.warn { background: #fdecea; color: #b3261e; border-radius: 8px; padding: 8px 10px; font-weight: 600; }
+#cv-factor { width: 7em; }
+.nowrap { white-space: nowrap; }
 .units-box .notice { background: #fff4e5; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
 .buy-line #e-buya { width: 4.5em; }
 .buy-line #e-buyqty { width: 6em; }
