@@ -335,3 +335,4 @@ input[type="date"].input { min-width: 0; }
 .btn.small { padding: 4px 12px; font-size: 13px; min-height: 0; }
 tr.count-diff td { background: #fff4e5; }
 tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weight: 600; }
+.search select.input { width: auto; min-width: 9em; flex: none; }
