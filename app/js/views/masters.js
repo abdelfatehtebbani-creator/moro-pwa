@@ -152,7 +152,12 @@ function items(body, isAdmin) {
 
 function parties(body, isAdmin) {
   const tb = h('tbody');
+  // search by name or ID, and by kind (suppliers / departments)
+  const search = trackFilled(h('input.input#p-search', { type: 'search', placeholder: t('party_search_hint') }));
+  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));
   const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section')
+    .filter((p) => (!kindSel.value || p.kind === kindSel.value) &&
+      (!search.value.trim() || (p.name + ' ' + p.party_id).toLowerCase().includes(search.value.trim().toLowerCase())))
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
     .map((p) => h('tr.click', { onclick: () => edit(p) }, h('td.num', p.party_id), h('td.wrap', h('bdi', p.name)),
       h('td', t('party_' + p.kind)), h('td', p.active === true ? '' : h('span.pill.out', t('inactive'))))));
@@ -173,7 +178,9 @@ function parties(body, isAdmin) {
       h('label.check', active, ' ', t('active')), err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
-  body.replaceChildren(h('div.form-actions', Data.can('parties.save') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party')) : null),
+  search.addEventListener('input', fill);
+  kindSel.addEventListener('change', fill);
+  body.replaceChildren(h('div.search', search, kindSel, Data.can('parties.save') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party')) : null),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('kind')), h('th', ''))), tb)));
   fill();
 }
