@@ -155,7 +155,7 @@ tr.click { cursor: pointer; }
 .dialog h3 { margin: 0; font-size: 17px; }
 .dialog .actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-.soon { text-align: center; padding: 48px 16px; display: grid; gap: 8px; justify-items: center; color: var(--muted); }
+.soon:not(.pill) { text-align: center; padding: 48px 16px; display: grid; gap: 8px; justify-items: center; color: var(--muted); }
 .soon b { color: var(--ink); font-size: 18px; }
 
 /* ---------- phone ---------- */

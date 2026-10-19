@@ -15,7 +15,7 @@ const money = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 
 export async function render(root) {
   const canOpen = Data.can('counts.open');
   const canApprove = Data.can('counts.approve');
-  const list = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
+  const list = h('tbody', h('tr', h('td.empty', { colspan: 8 }, '…')));
   const detail = h('div');
 
   async function loadList(openId) {
@@ -24,9 +24,10 @@ export async function render(root) {
     const rows = res.counts;
     list.replaceChildren(...(rows.length ? rows.map((c) => h('tr.click', { onclick: () => show(c.count_id) },
       h('td.num', c.count_id), h('td.num', fmtDate(c.date)), h('td', storePill(c.store)), h('td', t('period_' + c.period)),
+      h('td.num', h('bdi', { dir: 'ltr' }, fmtNum(c.counted) + ' / ' + fmtNum(c.items))), h('td.num', c.status === 'approved' ? fmtNum(c.corrected) : ''),
       h('td', h('span', { class: 'pill ' + (c.status === 'open' ? 'soon' : c.status === 'approved' ? 'in' : 'out') }, t('count_st_' + c.status))),
       h('td', h('button.btn.small', { type: 'button', onclick: (e) => { e.stopPropagation(); show(c.count_id); } }, t(c.status === 'open' ? 'open_it' : 'view')))))
-      : [h('tr', h('td.empty', { colspan: 6 }, t('no_counts')))]));
+      : [h('tr', h('td.empty', { colspan: 8 }, t('no_counts')))]));
     if (openId) show(openId);
   }
 
@@ -198,7 +199,7 @@ export async function render(root) {
 
   root.replaceChildren(h('div.card', h('h2', t('counts')),
     canOpen ? h('div.form-actions', h('button.btn', { type: 'button', onclick: newCount }, '+ ' + t('new_count'))) : null,
-    h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('count_date')), h('th', t('store')), h('th', t('count_period')), h('th', ''), h('th', ''))), list))),
+    h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('count_date')), h('th', t('store')), h('th', t('count_period')), h('th', t('counted_items')), h('th', t('corrected_items')), h('th', ''), h('th', ''))), list))),
     detail);
   loadList();
 }
