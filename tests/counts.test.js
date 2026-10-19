@@ -80,3 +80,14 @@ test('count approved: adjustments dated the count date for counted lines only; t
   // a new count of the same store may now be opened
   assert.equal(g.api('counts.open', { store: 'CHILLED', date: '2026-10-31', period: 'monthly' }, tok.store).ok, true);
 });
+
+test('a date cell Sheets turned into a Date reads back as the date text', () => {
+  const { g, tok } = env();
+  const sh = g.spreadsheet.sheets.Balances;
+  const col = sh.data[0].indexOf('last_expiry');
+  const row = sh.data.findIndex((r) => r[0] === 'I0001');
+  sh.data[row][col] = new Date('2027-06-01T21:00:00Z');                     // 2 Jun 2027 in Qatar
+  const b = g.api('data.bootstrap', {}, tok.admin).data.balances;
+  const r = b.rows.find((x) => x[b.columns.indexOf('item_id')] === 'I0001');
+  assert.equal(r[b.columns.indexOf('last_expiry')], '2027-06-02');
+});

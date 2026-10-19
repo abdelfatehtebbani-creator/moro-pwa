@@ -165,10 +165,13 @@ var Counts = {
     saved.forEach(function (s) { byItem[String(s.client_id).split('-').pop()] = s.movement_id; });
     return withLock(function () {
       var ex = Counts.expiries(), fixed = 0;
+      // the lines keep what the stock was when approved (one write per column, not per line)
+      var mine = function (r) { return r.count_id === c.count_id; };
+      Repo.setColumn('CountLines', 'theory_qty', function (r) { return mine(r) ? th[r.item_id] : r.theory_qty; });
+      Repo.setColumn('CountLines', 'price', function (r) { return mine(r) ? (pr[r.item_id] === undefined ? '' : pr[r.item_id]) : r.price; });
+      Repo.setColumn('CountLines', 'adjust_movement_id', function (r) { return mine(r) ? (byItem[r.item_id] || '') : r.adjust_movement_id; });
+      Repo.setColumn('CountLines', 'theory_expiry', function (r) { return mine(r) ? (ex[r.item_id] || '') : r.theory_expiry; });
       lines.forEach(function (l) {
-        Repo.updateWhere('CountLines', function (r) { return r.count_id === c.count_id && r.item_id === l.item_id; },
-          { theory_qty: th[l.item_id], price: pr[l.item_id] === undefined ? '' : pr[l.item_id], adjust_movement_id: byItem[l.item_id] || '',
-            theory_expiry: ex[l.item_id] || '' });
         // the expiry found on the shelf replaces the one on the books
         var e = String(l.counted_expiry || '');
         if (!e || e === (ex[l.item_id] || '')) return;
