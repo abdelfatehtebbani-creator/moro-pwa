@@ -27,6 +27,12 @@ var ROUTES = {
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
   'production.post':  function (s, p) { return Production.post(s, p); },
   'requests.list':    function (s, p) { return Requests.list(s, p); },
+  'counts.list':      function (s, p) { return Counts.list(s, p); },
+  'counts.get':       function (s, p) { return Counts.get(s, p); },
+  'counts.open':      function (s, p) { return Counts.open(s, p); },
+  'counts.save':      function (s, p) { return Counts.save(s, p); },
+  'counts.approve':   function (s, p) { return Counts.approve(s, p); },
+  'counts.cancel':    function (s, p) { return Counts.cancel(s, p); },
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },
@@ -66,7 +72,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '8';
+var SCHEMA_VERSION = '9';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {
