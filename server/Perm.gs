@@ -26,6 +26,8 @@ var CAPS = {
   rename:         ['items.save', 'parties.save', 'locations.save', 'units.save', 'rename', 'items.convertUnit'],
   packaging:      ['items.save', 'packaging'],
   final_price:    ['items.save', 'final_price'],
+  count:          ['counts.list', 'counts.get', 'counts.open', 'counts.save'],
+  count_approve:  ['counts.list', 'counts.get', 'counts.approve', 'counts.cancel', 'kind.ADJUST'],
   lists:          ['lists.save'],
   recipes:        ['recipes.save'],
   see_prices:     ['see_prices'],
@@ -35,7 +37,7 @@ var CAPS = {
 
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
-  storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging'],
+  storekeeper: ['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count'],
   purchasing:  ['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging'],
   production:  ['request_create']
 };

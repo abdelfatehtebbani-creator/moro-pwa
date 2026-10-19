@@ -18,6 +18,7 @@ import * as masters from './views/masters.js';
 import * as users from './views/users.js';
 import * as reports from './views/reports.js';
 import * as shoporders from './views/shoporders.js';
+import * as counts from './views/counts.js';
 
 const ROUTES = {
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
@@ -27,6 +28,7 @@ const ROUTES = {
   requests:  { view: requests, perm: 'requests.list', group: 'nav_ops' },
   shoporders:{ view: shoporders, perm: 'shop.list', group: 'nav_ops' },
   reports:   { view: reports, perm: 'movements.query', group: 'nav_ops' },
+  counts:    { view: counts, perm: 'counts.list', group: 'nav_ops' },
   masters:   { view: masters, perm: 'items.save', group: 'nav_admin' },
   users:     { view: users, perm: 'users.list', group: 'nav_admin' },
 };

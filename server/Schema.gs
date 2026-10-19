@@ -30,6 +30,8 @@ var SCHEMA = {
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
                  'pin_changed_ms', 'caps', 'stores'],
+  Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
+  CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
   Reminders:    ['date', 'message'],

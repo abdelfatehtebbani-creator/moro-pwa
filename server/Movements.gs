@@ -45,7 +45,8 @@ var Movements = {
 
   normalise: function (src, item) {
     var kind = String(src.kind || '');
-    var qty = Math.abs(Util.num(src.qty) || 0) * (SIGN[kind] || 1);
+    // an adjustment keeps its own sign (a count found more or less than the books)
+    var qty = kind === 'ADJUST' ? (Util.num(src.qty) || 0) : Math.abs(Util.num(src.qty) || 0) * (SIGN[kind] || 1);
     var amount = Util.num(src.amount);
     var discount = Util.num(src.discount) || 0;
     Util.require(discount >= 0 && discount <= 100, 'discount_invalid');
@@ -195,6 +196,8 @@ var Movements = {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
       Movements.requireActive(cur);
+      // a count's adjustment is part of an approved count: it is not edited by hand
+      Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       if (!Perm.has(session, 'edit_any')) {
         Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
         Perm.canKind(session, cur.kind);
@@ -239,6 +242,7 @@ var Movements = {
       // already deleted (on another device, or this delete sent twice): the wanted result is there
       if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
       Movements.requireActive(cur);
+      Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       if (!Perm.has(session, 'edit_any')) Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
       if (SAVE_KINDS.indexOf(cur.kind) >= 0) Stores.requireItem(session, cur.item_id);
       var res = Repo.update('Movements', 'movement_id', cur.movement_id,
