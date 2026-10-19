@@ -51,7 +51,19 @@ var Counts = {
   },
 
   list: function (session) {
-    return { counts: Repo.all('Counts').filter(function (c) { return Counts.visible(session, c); }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.count_id).localeCompare(String(a.count_id)); }) };
+    // per count: items, items counted so far (quantity or expiry), corrections booked on approval
+    var tally = {};
+    Repo.all('CountLines').forEach(function (l) {
+      var s = tally[l.count_id] = tally[l.count_id] || { items: 0, counted: 0, corrected: 0 };
+      s.items++;
+      if (String(l.counted_qty) !== '' || String(l.counted_expiry || '') !== '') s.counted++;
+      if (l.adjust_movement_id || (l.counted_expiry && String(l.counted_expiry) !== String(l.theory_expiry || ''))) s.corrected++;
+    });
+    return { counts: Repo.all('Counts').filter(function (c) { return Counts.visible(session, c); }).map(function (c) {
+      var s = tally[c.count_id] || { items: 0, counted: 0, corrected: 0 };
+      c.items = s.items; c.counted = s.counted; c.corrected = c.status === 'approved' ? s.corrected : '';
+      return c;
+    }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.count_id).localeCompare(String(a.count_id)); }) };
   },
 
   /** One count with its lines; an open count shows the theory as it stands now (late entries included). */

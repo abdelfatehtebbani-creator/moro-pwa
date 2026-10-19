@@ -74,6 +74,8 @@ test('count approved: adjustments dated the count date for counted lines only; t
   assert.deepEqual(adj.map((m) => [m.item_id, m.qty, m.date, m.doc_no]), [['I0001', -12, '2026-09-30', id], ['I0002', -1, '2026-09-30', id]]);
   const c = g.api('counts.get', { count_id: id }, tok.admin).data;
   assert.equal(c.count.status, 'approved');
+  const row = g.api('counts.list', {}, tok.admin).data.counts.find((x) => x.count_id === id);
+  assert.deepEqual([row.items, row.counted, row.corrected], [3, 2, 2]);
   assert.equal(c.lines.find((l) => l.item_id === 'I0002').price, 5);
   assert.equal(g.api('counts.save', { count_id: id, lines: [{ item_id: 'I0003', counted_qty: 1 }] }, tok.store).error.code, 'count_closed');
   assert.equal(g.api('movements.delete', { movement_id: adj[0].movement_id }, tok.admin).error.code, 'count_adjustment');
