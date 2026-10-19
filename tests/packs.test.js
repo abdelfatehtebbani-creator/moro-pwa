@@ -101,6 +101,18 @@ test('display units: purchasing and the storekeeper each choose theirs; quantiti
   assert.equal(bal('I0001'), 96);
 });
 
+test('undoing a rename by mistake: rename back (factor 1), then convert with the real factor', () => {
+  const { g, tok, bal } = env();
+  const cv = (u, f) => g.api('items.convertUnit', { item_id: 'I0002', new_unit: u, factor: f }, tok.admin).ok;
+  assert.equal(cv('KG', 1), true);                         // the mistake: 3 BOX became 3 KG
+  assert.equal(bal('I0002'), 3);
+  assert.equal(cv('BOX', 1), true);                        // back to 3 BOX
+  assert.equal(cv('KG', 18.4), true);                      // 1 BOX = 18.4 KG
+  assert.equal(bal('I0002'), 55.2);
+  const it = g.rows('Items').find((i) => i.item_id === 'I0002');
+  assert.deepEqual([it.unit, it.pack_units], ['KG', 'BOX=18.4']);
+});
+
 test('changing the stock unit: preview first, then balance, history and minimum converted (admin only)', () => {
   const { g, tok, bal } = env();
   const pv = g.api('items.convertUnit', { item_id: 'I0002', new_unit: 'PC', factor: 360, preview: true }, tok.admin).data;
