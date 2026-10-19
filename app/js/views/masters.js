@@ -155,16 +155,12 @@ function items(body, isAdmin) {
 
 function parties(body, isAdmin) {
   const tb = h('tbody');
-<<<<<<< HEAD
-  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section' || p.kind === 'shop')
-=======
   // search by name or ID, and by kind (suppliers / departments)
   const search = trackFilled(h('input.input#p-search', { type: 'search', placeholder: t('party_search_hint') }));
-  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));
-  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section')
+  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section' || p.kind === 'shop')
     .filter((p) => (!kindSel.value || p.kind === kindSel.value) &&
       (!search.value.trim() || (p.name + ' ' + p.party_id).toLowerCase().includes(search.value.trim().toLowerCase())))
->>>>>>> feat/party-search
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
     .map((p) => h('tr.click', { onclick: () => edit(p) }, h('td.num', p.party_id), h('td.wrap', h('bdi', p.name)),
       h('td', t('party_' + p.kind)), h('td', p.active === true ? '' : h('span.pill.out', t('inactive'))))));
