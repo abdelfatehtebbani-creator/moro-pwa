@@ -212,6 +212,8 @@ body[data-zone="final"] .form-card h2 { color: var(--final); }
 .units-box { border: 1px solid var(--line, #d0d7de); border-radius: 10px; padding: 4px 12px 10px; margin: 6px 0 10px; display: grid; gap: 8px; }
 .buy-line { display: flex; align-items: center; gap: 8px; }
 .buy-line #e-buyunit { width: 7em; }
+.show-units { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.units-box .notice { background: #fff4e5; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
 .buy-line #e-buya { width: 4.5em; }
 .buy-line #e-buyqty { width: 6em; }
 .buy-line .buy-stock { font-weight: 700; }
