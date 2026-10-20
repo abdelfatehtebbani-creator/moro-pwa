@@ -10,7 +10,7 @@
  */
 var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1 };
 var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN'];
-var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'final_amount',
+var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'discount_kind', 'final_amount',
                 'doc_no', 'location', 'expiry', 'purpose', 'image'];
 
 var Movements = {
@@ -44,7 +44,9 @@ var Movements = {
     var qty = kind === 'ADJUST' ? (Util.num(src.qty) || 0) : Math.abs(Util.num(src.qty) || 0) * (SIGN[kind] || 1);
     var amount = Util.num(src.amount);
     var discount = Util.num(src.discount) || 0;
-    Util.require(discount >= 0 && discount <= 100, 'discount_invalid');
+    // discount_kind '' = percent of the amount, 'value' = an amount taken off
+    var dkind = src.discount_kind === 'value' ? 'value' : '';
+    Util.require(discount >= 0 && (dkind === 'value' ? (amount === null || discount <= amount) : discount <= 100), 'discount_invalid');
     var m = {
       kind: kind,
       date: String(src.date || ''),
@@ -56,8 +58,9 @@ var Movements = {
       per: Util.clean(src.per).toUpperCase(),
       amount: amount === null ? '' : Util.round(amount),
       discount: discount,
+      discount_kind: dkind,
       // the net amount is always derived from amount and discount
-      final_amount: amount === null ? '' : Util.round(amount - amount * discount / 100),
+      final_amount: amount === null ? '' : Movements.net(amount, discount, dkind),
       doc_no: Util.clean(src.doc_no),
       location: Util.clean(src.location),
       expiry: String(src.expiry || ''),
@@ -88,7 +91,14 @@ var Movements = {
     m.price = fp;
     m.per = String(item.unit).toUpperCase();
     m.amount = Util.round(Math.abs(m.qty) * fp);
-    m.final_amount = Util.round(m.amount - m.amount * (m.discount || 0) / 100);
+    if (m.discount_kind === 'value') m.discount = Math.min(Number(m.discount) || 0, m.amount);
+    m.final_amount = Movements.net(m.amount, m.discount, m.discount_kind);
+  },
+
+  /** Net amount: amount less the discount (a percentage, or a value when kind is 'value'). */
+  net: function (amount, discount, kind) {
+    var d = Number(discount) || 0;
+    return Util.round(kind === 'value' ? amount - d : amount - amount * d / 100);
   },
 
   nextId: function () {
@@ -273,7 +283,7 @@ var Movements = {
     });
     // production users see quantities, not prices
     if (!Perm.has(session, 'see_prices')) {
-      ['price', 'per', 'amount', 'discount', 'final_amount'].forEach(function (f) {
+      ['price', 'per', 'amount', 'discount', 'discount_kind', 'final_amount'].forEach(function (f) {
         out = out.map(function (r) { r = r.slice(); r[c[f]] = ''; return r; });
       });
     }
