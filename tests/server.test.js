@@ -103,6 +103,16 @@ test('receipt validation follows the v13 rules', () => {
   assert.equal(code({ kind: 'SUPPLIER_RETURN', date: TODAY, party_id: 'P002', item_id: 'I0001', qty: 1, unit: 'BAG' }), undefined);
 });
 
+test('receipt discount: a percentage, or a value taken off the amount', () => {
+  const { g, tok } = env();
+  const net = (id) => g.rows('Movements').find((m) => m.movement_id === id).final_amount;
+  const r1 = g.api('movements.save', { movements: [receipt({ client_id: 'd1', amount: 50, discount: 10 })] }, tok.admin);
+  assert.equal(net(r1.data.saved[0].movement_id), 45);
+  const r2 = g.api('movements.save', { movements: [receipt({ client_id: 'd2', amount: 50, discount: 7, discount_kind: 'value' })] }, tok.admin);
+  assert.equal(net(r2.data.saved[0].movement_id), 43);
+  assert.equal(g.api('movements.save', { movements: [receipt({ client_id: 'd3', amount: 50, discount: 60, discount_kind: 'value' })] }, tok.admin).error.code, 'discount_invalid');
+});
+
 test('saving the same client_id twice records it once (offline resend)', () => {
   const { g, tok, bal } = env();
   const m = receipt({ client_id: 'dev1-0001' });
