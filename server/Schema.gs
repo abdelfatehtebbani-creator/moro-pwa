@@ -13,7 +13,7 @@ var SCHEMA = {
   Movements:    ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status', 'client_id', 'updated_by', 'updated_at',
-                 'entry_qty', 'entry_unit'],
+                 'entry_qty', 'entry_unit', 'discount_kind'],
   Archive:      ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status'],

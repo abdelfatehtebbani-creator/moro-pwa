@@ -44,6 +44,9 @@ export async function render(root) {
   const per = combo({ id: 'r-per', options: unitOpts });
   const amount = trackFilled(h('input.input.num#r-amount', { type: 'number', step: 'any', readonly: true, tabindex: -1 }));
   const discount = trackFilled(h('input.input.num#r-discount', { type: 'number', step: 'any', inputmode: 'decimal', value: 0 }));
+  // the discount is a percentage or a value taken off the amount
+  const dkind = h('select.input.pack-unit#r-dkind', { 'aria-label': t('discount') }, h('option', { value: '' }, '%'), h('option', { value: 'value' }, t('discount_value')));
+  const netOf = (a) => Math.round((dkind.value === 'value' ? a - (Number(discount.value) || 0) : a - a * (Number(discount.value) || 0) / 100) * 100) / 100;
   const net = trackFilled(h('input.input.num#r-net', { type: 'number', step: 'any', readonly: true, tabindex: -1 }));
   const expiry = trackFilled(h('input.input#r-expiry', { type: 'date' }));
   const location = combo({ id: 'r-location', options: locOpts });
@@ -76,7 +79,7 @@ export async function render(root) {
       if (p0 !== null && r0 !== null) qty.value = String(Math.round(p0 * r0 * 1e6) / 1e6);
       const a = Math.round(Math.abs(Number(qty.value) || 0) * (Data.factorOf(it, unit.input.value) || 1) * Number(price.value) * 100) / 100;
       amount.value = qty.value === '' ? '' : String(a);
-      net.value = qty.value === '' ? '' : String(Math.round((a - a * (Number(discount.value) || 0) / 100) * 100) / 100);
+      net.value = qty.value === '' ? '' : String(netOf(a));
       [qty, amount, net].forEach((x) => x.dispatchEvent(new Event('change')));
       return;
     }
@@ -88,7 +91,7 @@ export async function render(root) {
       // packaging units: the price is per `Per`, whatever unit the quantity is in (24 TRAY at 90 per BOX = 180)
       const a = Math.round(Math.abs(Number(qty.value)) * (fu / fp) * Number(price.value) * 100) / 100;
       amount.value = String(a);
-      net.value = String(Math.round((a - a * (Number(discount.value) || 0) / 100) * 100) / 100);
+      net.value = String(netOf(a));
     } else if (p !== null && price.value !== '') {
       const a = Math.round(p * Number(price.value) * 100) / 100;
       amount.value = String(a);
@@ -97,11 +100,12 @@ export async function render(root) {
     } else if (price.value !== '' && qty.value !== '') {
       const a = Math.round(Math.abs(Number(qty.value)) * Number(price.value) * 100) / 100;
       amount.value = String(a);
-      net.value = String(Math.round((a - a * (Number(discount.value) || 0) / 100) * 100) / 100);
+      net.value = String(netOf(a));
     } else { amount.value = ''; net.value = ''; }
     [qty, amount, net].forEach((x) => x.dispatchEvent(new Event('change')));
   };
   [parcels, retail, price, discount, qty].forEach((x) => x.addEventListener('input', recalc));
+  dkind.addEventListener('change', recalc);
   // items with a purchase unit: "Per" follows the unit typed (BOX → BOX), and can still be changed
   let lastUnit = '';
   unit.input.addEventListener('change', () => {
@@ -150,7 +154,8 @@ export async function render(root) {
     { input: unit.input, required: () => true },
     { input: price, required: () => !isRet() },
     { input: per.input, required: () => !isRet() },
-    { input: discount, required: () => false, valid: () => Number(discount.value) >= 0 && Number(discount.value) <= 100 },
+    { input: discount, required: () => false, valid: () => Number(discount.value) >= 0 &&
+      (dkind.value === 'value' ? Number(discount.value) <= (Number(amount.value) || 0) : Number(discount.value) <= 100) },
     { input: expiry, required: () => !isRet() && zone.value !== 'PACK' },
     { input: location.input, required: () => !isRet() },
   ];
@@ -165,7 +170,7 @@ export async function render(root) {
   function reset(full) {
     editing = null;
     item.clear(); lockPrice(false); parcels.value = ''; retail.value = '1'; qty.value = ''; unit.clear(); price.value = '';
-    per.clear(); amount.value = ''; discount.value = '0'; net.value = ''; expiry.value = ''; isReturn.checked = false;
+    per.clear(); amount.value = ''; discount.value = '0'; dkind.value = ''; net.value = ''; expiry.value = ''; isReturn.checked = false;
     if (full) { supplier.clear(); invoice.value = ''; location.clear(); date.value = Data.todayIso(); }
     [parcels, retail, qty, price, amount, discount, net, expiry, invoice, date].forEach((x) => x.dispatchEvent(new Event('change')));
     info.textContent = '';
@@ -178,7 +183,7 @@ export async function render(root) {
     return {
       client_id: newId(), kind: isRet() ? 'SUPPLIER_RETURN' : 'RECEIPT', date: date.value, party_id: supplier.value,
       item_id: item.value, qty: Math.abs(Number(qty.value)), unit: unit.input.value.trim().toUpperCase(),
-      price: price.value, per: per.input.value.trim().toUpperCase(), amount: amount.value, discount: discount.value || 0,
+      price: price.value, per: per.input.value.trim().toUpperCase(), amount: amount.value, discount: discount.value || 0, discount_kind: dkind.value,
       doc_no: invoice.value.trim(), location: location.input.value.trim(), expiry: expiry.value,
     };
   }
@@ -228,7 +233,7 @@ export async function render(root) {
     parcels.value = ''; retail.value = '1';
     // edited as it was typed (10 BOX), not as stored (3600 PC)
     qty.value = String(m.entry_unit ? m.entry_qty : Math.abs(Number(m.qty)));
-    unit.set(m.entry_unit || m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0;
+    unit.set(m.entry_unit || m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0; dkind.value = m.discount_kind === 'value' ? 'value' : '';
     // an edited final-product receipt keeps its own price, locked
     lockPrice(fixedOf(Data.items.get(m.item_id)) !== null || (Data.storeOf(Data.items.get(m.item_id)) === 'FINAL' && m.price !== ''));
     amount.value = m.amount; net.value = m.final_amount; expiry.value = m.expiry || '';
@@ -283,7 +288,7 @@ export async function render(root) {
         field(t('parcels'), parcels), field(t('per_parcel'), retail),
         field(t('qty'), qty), field(t('unit'), unit), conv,
         field(t('price'), price), field(t('per'), per),
-        field(t('amount'), amount), field(t('discount_pct'), discount),
+        field(t('amount'), amount), field(t('discount'), h('div.unit-pair', discount, dkind)),
         field(t('net'), net), field(t('expiry'), expiry),
         field(t('location'), location, { wide: true }),
         h('label.check.wide', isReturn, ' ', t('supplier_return'))),

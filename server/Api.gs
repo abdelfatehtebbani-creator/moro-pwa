@@ -79,7 +79,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '15';
+var SCHEMA_VERSION = '16';
 function ensureSchema() {
   if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
   withLock(function () {
