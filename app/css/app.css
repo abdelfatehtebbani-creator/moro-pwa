@@ -322,6 +322,9 @@ input[type="date"].input { min-width: 0; }
 .count-in .count-qty { flex: 1; min-width: 5em; }
 .count-in .count-unit { width: 6em; flex: none; }
 .qty-pos { color: #1b7f3b; font-weight: 600; }
+.rec-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 8px; }
+.rec-filters .rf-who { width: auto; min-width: 10em; flex: 1; }
+.rec-filters .rf-date { width: auto; }
 .count-tools { display: flex; gap: 8px; margin-bottom: 10px; }
 .count-tools input { flex: 1; }
 .count-tools .count-filter { width: auto; min-width: 11em; }

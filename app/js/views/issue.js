@@ -6,7 +6,7 @@ import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, fmtMoveQty, trackFilled, dialog } from '../ui.js';
-import { combo, field, storePicker, storePill, doublePress, newId } from '../components.js';
+import { combo, field, storePicker, storePill, doublePress, newId, recordFilters, enteredBy } from '../components.js';
 
 let cleanup = null;
 
@@ -156,9 +156,11 @@ export async function render(root) {
   const search = trackFilled(h('input.input#i-search', { type: 'search', placeholder: t('search_records') }));
   const recBody = h('tbody');
   let records = [];
+  const filters = recordFilters(() => fillRecords());
   const fillRecords = () => {
     const q = search.value.trim().toLowerCase();
     const rows = records.filter((m) => {
+      if (!filters.test(m)) return false;
       if (!q) return true;
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return [it && it.name, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
@@ -168,15 +170,15 @@ export async function render(root) {
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
         h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', p ? p.name : '')),
         h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtMoveQty(m)),
-        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''));
-    }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
+        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''), h('td.wrap.muted', enteredBy(m)));
+    }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
   };
   search.addEventListener('input', fillRecords);
 
   async function loadRecords() {
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter((m) => m.kind === 'ISSUE' && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m)).slice(0, 1500);
+      records = res.list.filter((m) => m.kind === 'ISSUE' && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m));
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -215,8 +217,8 @@ export async function render(root) {
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('kind')), h('th', t('qty')), h('th', ''))), lineBody)),
       h('div.form-actions', postBtn, clearBtn), status,
       h('small.muted', t('issue_help'))),
-    h('div.card', h('div.card-head', h('h2', t('recent_issues'))), search,
-      h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('department')), h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', t('slip_no')))), recBody)))));
+    h('div.card', h('div.card-head', h('h2', t('recent_issues'))), search, filters.el,
+      h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('department')), h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', t('slip_no')), h('th', t('entered_by')))), recBody)))));
 
   const onSent = (e) => {
     const r = e.detail.result;

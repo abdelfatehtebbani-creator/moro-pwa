@@ -153,6 +153,22 @@ export function storePicker(onChange) {
 }
 
 /** A small coloured tag with the store's name. */
+/** Filters for a records list: who entered it, and a date range. onChange redraws the list. */
+export function recordFilters(onChange) {
+  const names = Data.userNames || {};
+  const who = h('select.input.rf-who', h('option', { value: '' }, t('all_users')),
+    ...Object.keys(names).sort((a, b) => String(names[a]).localeCompare(String(names[b]))).map((id) => h('option', { value: id }, names[id])));
+  const from = h('input.input.rf-date', { type: 'date', title: t('from') });
+  const to = h('input.input.rf-date', { type: 'date', title: t('to') });
+  [who, from, to].forEach((x) => x.addEventListener('change', onChange));
+  return {
+    el: h('div.rec-filters', who, h('span.muted', t('from')), from, h('span.muted', t('to')), to),
+    test: (m) => (!who.value || m.created_by === who.value) && (!from.value || String(m.date) >= from.value) && (!to.value || String(m.date) <= to.value),
+  };
+}
+/** "Entered by" of a record. */
+export const enteredBy = (m) => (m.pending ? Data.user && Data.user.display_name : m.created_by === 'migration' ? t('migrated') : (Data.userNames || {})[m.created_by]) || m.created_by || '';
+
 export function storePill(store) {
   return h('span', { class: 'pill st-' + String(store || 'DRY').toLowerCase() }, t('store_' + (store || 'DRY')));
 }
