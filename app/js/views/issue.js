@@ -165,7 +165,7 @@ export async function render(root) {
   const search = trackFilled(h('input.input#i-search', { type: 'search', placeholder: t('search_records') }));
   const recBody = h('tbody');
   let records = [];
-  const filters = recordFilters(() => fillRecords());
+  const filters = recordFilters(() => fillRecords(), zone);
   const fillRecords = () => {
     const q = search.value.trim().toLowerCase();
     const rows = records.filter((m) => {
@@ -178,7 +178,7 @@ export async function render(root) {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
         h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : '')),
-        h('td.wrap', h('bdi', it ? it.name : m.item_id)), h('td.num.qty-neg', fmtMoveQty(m)),
+        h('td.wrap', h('bdi', it ? it.name : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num.qty-neg', fmtMoveQty(m)),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''), h('td.wrap.muted', enteredBy(m)));
     }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
   };
@@ -187,7 +187,7 @@ export async function render(root) {
   async function loadRecords() {
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter((m) => (m.kind === 'ISSUE' || m.kind === 'DISPOSAL') && Data.storeOf(Data.items.get(m.item_id)) === zone.value).map((m) => (m.pending ? { ...m, doc_no: '…' } : m));
+      records = res.list.filter((m) => m.kind === 'ISSUE' || m.kind === 'DISPOSAL').map((m) => (m.pending ? { ...m, doc_no: '…' } : m));
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
