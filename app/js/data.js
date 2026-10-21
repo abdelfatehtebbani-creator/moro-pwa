@@ -31,6 +31,7 @@ export const Data = {
   index() {
     const b = this.boot;
     this.user = b.user;
+    this.userNames = b.user_names || {};
     this.perms = new Set(b.permissions);
     this.version = b.version;
     this.settings = b.settings || {};

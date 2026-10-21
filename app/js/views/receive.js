@@ -6,7 +6,7 @@ import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, fmtNum, fmtDate, fmtMoveQty, trackFilled } from '../ui.js';
-import { combo, field, enterNav, checkAll, storePicker, doublePress, newId } from '../components.js';
+import { combo, field, enterNav, checkAll, storePicker, doublePress, newId, recordFilters, enteredBy, storePill } from '../components.js';
 
 let cleanup = null;
 
@@ -249,9 +249,11 @@ export async function render(root) {
   const search = trackFilled(h('input.input#r-search', { type: 'search', placeholder: t('search_records') }));
   const recBody = h('tbody');
   let records = [];
+  const filters = recordFilters(() => fillRecords(), zone);
   const fillRecords = () => {
     const q = search.value.trim().toLowerCase();
     const rows = records.filter((m) => {
+      if (!filters.test(m)) return false;
       if (!q) return true;
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return [it && it.name, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
@@ -259,20 +261,20 @@ export async function render(root) {
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => edit(m) },
-        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? it.name : m.item_id)),
+        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? it.name : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
         h('td.num', { class: Number(m.qty) < 0 || m.kind === 'SUPPLIER_RETURN' ? 'qty-neg' : '' },
           (m.kind === 'SUPPLIER_RETURN' ? '-' : '') + fmtMoveQty(m)),
         h('td.num', m.final_amount === '' ? '' : fmtNum(m.final_amount)), h('td.num', m.doc_no || ''),
-        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.wrap', h('bdi', p ? p.name : '')));
-    }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
+        h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.wrap', h('bdi', p ? p.name : '')), h('td.wrap.muted', enteredBy(m)));
+    }) : [h('tr', h('td.empty', { colspan: 8 }, t('no_rows')))]));
   };
   search.addEventListener('input', fillRecords);
 
   async function loadRecords() {
-    const keep = (m) => (m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN') && Data.storeOf(Data.items.get(m.item_id)) === zone.value;
+    const keep = (m) => m.kind === 'RECEIPT' || m.kind === 'SUPPLIER_RETURN';   // the store is chosen in the filters
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter(keep).slice(0, 1500);
+      records = res.list.filter(keep);            // the whole history kept on this device; filters narrow it
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 7 }, errText(e)))); }
   }
@@ -294,9 +296,9 @@ export async function render(root) {
       h('div.form-actions', saveBtn, newBtn, delBtn), status,
       h('small.muted', t('receive_help'))),
     h('div.card',
-      h('div.card-head', h('h2', t('records'))), search,
+      h('div.card-head', h('h2', t('records'))), search, filters.el,
       h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('item')),
-        h('th', t('qty')), h('th', t('net')), h('th', t('invoice_no')), h('th', ''), h('th', t('supplier')))), recBody)))));
+        h('th', t('qty')), h('th', t('net')), h('th', t('invoice_no')), h('th', ''), h('th', t('supplier')), h('th', t('entered_by')))), recBody)))));
 
   const onSent = () => loadRecords();
   const onRejected = (e) => { toast(t('rejected', { what: e.detail.label || '' }) + ': ' + errText({ code: e.detail.error, detail: e.detail.detail }), 'err'); loadRecords(); };

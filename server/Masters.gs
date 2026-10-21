@@ -248,6 +248,8 @@ var Masters = {
       user: session,
       permissions: session.perms,
       caps: session.caps,
+      // who entered a record: names only, shown in the records lists
+      user_names: (function () { var o = {}; Repo.all('Users').forEach(function (u) { o[u.user_id] = u.display_name; }); return o; })(),
       cap_list: Perm.has(session, 'users.save') ? Object.keys(CAPS) : [],
       role_caps: Perm.has(session, 'users.save') ? ROLE_CAPS : {},
       version: Version.get(),

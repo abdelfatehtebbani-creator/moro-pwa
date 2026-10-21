@@ -153,6 +153,29 @@ export function storePicker(onChange) {
 }
 
 /** A small coloured tag with the store's name. */
+/** Filters for a records list: who entered it, and a date range. onChange redraws the list. */
+export function recordFilters(onChange, zone) {
+  const names = Data.userNames || {};
+  // the store tab's records, or all the user's stores at once
+  const where = h('select.input.rf-store', h('option', { value: '' }, t('this_store')), h('option', { value: '*' }, t('all_stores')));
+  const who = h('select.input.rf-who', h('option', { value: '' }, t('all_users')),
+    ...Object.keys(names).sort((a, b) => String(names[a]).localeCompare(String(names[b]))).map((id) => h('option', { value: id }, names[id])));
+  const from = h('input.input.rf-date', { type: 'date', title: t('from') });
+  const to = h('input.input.rf-date', { type: 'date', title: t('to') });
+  [where, who, from, to].forEach((x) => x.addEventListener('change', onChange));
+  const inStore = (m) => {
+    const s = Data.storeOf(Data.items.get(m.item_id));
+    return where.value === '*' ? Data.myStores().includes(s) : s === zone.value;
+  };
+  return {
+    el: h('div.rec-filters', where, who, h('span.muted', t('from')), from, h('span.muted', t('to')), to),
+    all: () => where.value === '*',
+    test: (m) => inStore(m) && (!who.value || m.created_by === who.value) && (!from.value || String(m.date) >= from.value) && (!to.value || String(m.date) <= to.value),
+  };
+}
+/** "Entered by" of a record. */
+export const enteredBy = (m) => (m.pending ? Data.user && Data.user.display_name : m.created_by === 'migration' ? t('migrated') : (Data.userNames || {})[m.created_by]) || m.created_by || '';
+
 export function storePill(store) {
   return h('span', { class: 'pill st-' + String(store || 'DRY').toLowerCase() }, t('store_' + (store || 'DRY')));
 }
