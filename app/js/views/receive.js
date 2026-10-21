@@ -95,8 +95,7 @@ export async function render(root) {
     } else if (p !== null && price.value !== '') {
       const a = Math.round(p * Number(price.value) * 100) / 100;
       amount.value = String(a);
-      const d = Number(discount.value) || 0;
-      net.value = String(Math.round((a - a * d / 100) * 100) / 100);
+      net.value = String(netOf(a));
     } else if (price.value !== '' && qty.value !== '') {
       const a = Math.round(Math.abs(Number(qty.value)) * Number(price.value) * 100) / 100;
       amount.value = String(a);
