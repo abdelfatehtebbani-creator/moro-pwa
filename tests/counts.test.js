@@ -83,6 +83,16 @@ test('count approved: adjustments dated the count date for counted lines only; t
   assert.equal(g.api('counts.open', { store: 'CHILLED', date: '2026-10-31', period: 'monthly' }, tok.store).ok, true);
 });
 
+test('the cleaning store: its items need no expiry date, and a storekeeper works there only when given it', () => {
+  const { g, tok } = env();
+  const it = g.api('items.save', { name: 'DISH SOAP 5L', store: 'CLEAN', unit: 'PC' }, tok.admin).data.item;
+  assert.deepEqual([it.store, it.category], ['CLEAN', 'Packaging']);
+  const rec = { kind: 'RECEIPT', date: '2026-10-01', party_id: 'P001', item_id: it.item_id, qty: 6, unit: 'PC', price: 2, per: 'PC',
+    amount: 12, doc_no: 'C-1', location: 'Shelf C' };
+  assert.equal(g.api('movements.save', { movements: [rec] }, tok.store).error.code, 'store_forbidden');
+  assert.equal(g.api('movements.save', { movements: [rec] }, tok.admin).ok, true);       // no expiry needed
+});
+
 test('a date cell Sheets turned into a Date reads back as the date text', () => {
   const { g, tok } = env();
   const sh = g.spreadsheet.sheets.Balances;

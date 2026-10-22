@@ -14,7 +14,7 @@ const byName = (a, b) => String(a).localeCompare(String(b));
 const inRange = (m, p) => (!p.from || m.date >= p.from) && (!p.to || m.date <= p.to);
 const periodText = (p) => 'Period: ' + p.from + '  to  ' + p.to;
 const todayText = () => 'Date: ' + Data.todayIso();
-const STORE_NAMES = { CHILLED: 'Chilled foods', DRY: 'Dry foods', PACK: 'Packaging', FINAL: 'Final products' };
+const STORE_NAMES = { CHILLED: 'Chilled foods', DRY: 'Dry foods', PACK: 'Packaging', FINAL: 'Final products', CLEAN: 'Cleaning' };
 /** Store filter of a report: true when the item is in one of the chosen stores (no filter: all). */
 const inStores = (p, id) => !p.stores || p.stores.size === STORES.length || p.stores.has(Data.storeOf(Data.items.get(id)));
 const storesText = (p) => (!p.stores || p.stores.size === STORES.length ? '' : '  ·  Stores: ' + STORES.filter((s) => p.stores.has(s)).map((s) => STORE_NAMES[s]).join(', '));
