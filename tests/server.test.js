@@ -267,7 +267,7 @@ test('stores: proposed on first run, and each storekeeper works only in their ow
   const store = (id) => g.rows('Items').find((i) => i.item_id === id).store;
   assert.equal(store('I0001'), 'DRY');
   assert.equal(store('I0002'), 'PACK');
-  assert.ok(g.rows('Users').every((u) => u.stores === 'CHILLED,DRY,PACK,FINAL'));
+  assert.ok(g.rows('Users').every((u) => u.stores === 'CHILLED,DRY,PACK,FINAL,CLEAN'));
   // the admin gives the storekeeper the packaging store only
   const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
   assert.equal(g.api('users.save', { user_id: sk.user_id, stores: ['PACK', 'BAD', 'PACK'] }, tok.admin).ok, true);

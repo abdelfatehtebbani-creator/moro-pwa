@@ -19,6 +19,8 @@
   --chilled-soft: #d6e8fb;
   --final: #6a3fa0;
   --final-soft: #e9dcf7;
+  --clean: #00838f;
+  --clean-soft: #d2f1f4;
   --danger: #c0392b;
   --danger-soft: #fde4e1;
   --warn: #b35c00;
@@ -136,6 +138,7 @@ tr.click { cursor: pointer; }
 .pill.st-chilled { background: var(--chilled-soft); color: var(--chilled); }
 .pill.st-pack { background: var(--pack-soft); color: var(--pack); }
 .pill.st-final { background: var(--final-soft); color: var(--final); }
+.pill.st-clean { background: var(--clean-soft); color: var(--clean); }
 .pill.low { background: var(--danger-soft); color: var(--danger); }
 .pill.soon { background: var(--warn-soft); color: var(--warn); }
 .pill.in { background: var(--ok-soft); color: var(--ok); }
@@ -182,10 +185,12 @@ body[data-zone="dry"] .form-card { background: var(--food-soft); border-color: #
 body[data-zone="pack"] .form-card { background: var(--pack-soft); border-color: #f4c99a; }
 body[data-zone="chilled"] .form-card { background: var(--chilled-soft); border-color: #a9c9ee; }
 body[data-zone="final"] .form-card { background: var(--final-soft); border-color: #cfb6ec; }
+body[data-zone="clean"] .form-card { background: var(--clean-soft); border-color: #9fdbe1; }
 body[data-zone="dry"] .form-card h2 { color: var(--food); }
 body[data-zone="pack"] .form-card h2 { color: var(--pack); }
 body[data-zone="chilled"] .form-card h2 { color: var(--chilled); }
 body[data-zone="final"] .form-card h2 { color: var(--final); }
+body[data-zone="clean"] .form-card h2 { color: var(--clean); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .form-grid .wide, .form-grid .item-info, .form-grid .check.wide { grid-column: 1 / -1; }
 .field.end { align-self: end; }
@@ -205,6 +210,7 @@ body[data-zone="final"] .form-card h2 { color: var(--final); }
 .zone-btn.on[data-store="PACK"] { background: var(--pack); border-color: var(--pack); color: #fff; }
 .zone-btn.on[data-store="CHILLED"] { background: var(--chilled); border-color: var(--chilled); color: #fff; }
 .zone-btn.on[data-store="FINAL"] { background: var(--final); border-color: var(--final); color: #fff; }
+.zone-btn.on[data-store="CLEAN"] { background: var(--clean); border-color: var(--clean); color: #fff; }
 .no-store { padding: 18px; text-align: center; }
 .unit-pair { display: flex; gap: 6px; }
 .unit-pair .input:first-child { flex: 1; min-width: 0; }
