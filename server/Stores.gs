@@ -1,5 +1,5 @@
 /**
- * Stores.gs – the four stores (Chilled foods, Dry foods, Packaging, Final products).
+ * Stores.gs – the stores (Chilled foods, Dry foods, Packaging, Final products, Cleaning materials).
  *
  * Every item and every storage location belongs to one store. A user may receive, issue and
  * fulfil requests only in the stores ticked for them (Users.stores, comma separated); the admin
@@ -7,11 +7,12 @@
  * The old Food / Packaging category follows the store (Packaging → Packaging, the others → Food),
  * so the expiry rule and the history keep working unchanged.
  */
-var STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL'];
+var STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN'];
 var COLD_LOCATION = /freezer|chiller/i;
 
 var Stores = {
-  categoryOf: function (store) { return store === 'PACK' ? 'Packaging' : 'Food'; },
+  // cleaning materials are not food: no expiry date is required, as for packaging
+  categoryOf: function (store) { return store === 'PACK' || store === 'CLEAN' ? 'Packaging' : 'Food'; },
 
   valid: function (store) { return STORES.indexOf(store) >= 0; },
 
@@ -84,7 +85,7 @@ var Stores = {
     });
   },
 
-  /** A drop-down of the four stores in the store column of Items and Locations (Google Sheets only). */
+  /** A drop-down of the stores in the store column of Items and Locations (Google Sheets only). */
   addDropdowns: function () {
     if (typeof SpreadsheetApp.newDataValidation !== 'function') return;
     var rule = SpreadsheetApp.newDataValidation().requireValueInList(STORES, true).setAllowInvalid(false).build();

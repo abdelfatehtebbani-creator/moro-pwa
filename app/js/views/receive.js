@@ -155,7 +155,7 @@ export async function render(root) {
     { input: per.input, required: () => !isRet() },
     { input: discount, required: () => false, valid: () => Number(discount.value) >= 0 &&
       (dkind.value === 'value' ? Number(discount.value) <= (Number(amount.value) || 0) : Number(discount.value) <= 100) },
-    { input: expiry, required: () => !isRet() && zone.value !== 'PACK' },
+    { input: expiry, required: () => !isRet() && zone.value !== 'PACK' && zone.value !== 'CLEAN' },
     { input: location.input, required: () => !isRet() },
   ];
   enterNav(steps, () => saveBtn.focus());
