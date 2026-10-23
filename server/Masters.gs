@@ -243,6 +243,7 @@ var Masters = {
   /** Everything the app needs to work offline, except the movement history. */
   bootstrap: function (session) {
     var settings = Settings.all();
+    var batches = Batches.all();
     ['seq_movement', 'migrated_from', 'migrated_at'].forEach(function (k) { delete settings[k]; });
     return {
       user: session,
@@ -262,7 +263,17 @@ var Masters = {
       purposes: Repo.raw('Purposes'),
       lists: Repo.raw('Lists'),
       recipes: Repo.raw('Recipes'),
-      balances: Repo.raw('Balances'),
+      balances: (function () {
+        // last_expiry = the nearest expiry of what is still in stock (not the last receipt's)
+        var raw = Repo.raw('Balances'), near = Batches.nearest(batches), c = raw.columns.indexOf('last_expiry'), k = raw.columns.indexOf('item_id');
+        raw.rows.forEach(function (r) { if (near[r[k]] !== undefined) r[c] = near[r[k]]; });
+        return raw;
+      })(),
+      batches: (function () {
+        var o = {};
+        Object.keys(batches).forEach(function (id) { o[id] = batches[id].map(function (x) { return [x.expiry, x.qty]; }); });
+        return o;
+      })(),
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }

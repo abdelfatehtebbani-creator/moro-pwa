@@ -38,10 +38,10 @@ var Counts = {
     return out;
   },
 
-  /** The last expiry on the books of every item. */
+  /** The nearest expiry of the stock on hand of every item (from the batches). */
   expiries: function () {
-    var out = {};
-    Repo.all('Balances').forEach(function (b) { out[b.item_id] = String(b.last_expiry || ''); });
+    var near = Batches.nearest(Batches.all()), out = {};
+    Repo.all('Balances').forEach(function (b) { out[b.item_id] = near[b.item_id] !== undefined ? near[b.item_id] : String(b.last_expiry || ''); });
     return out;
   },
 
@@ -187,11 +187,15 @@ var Counts = {
         // the expiry found on the shelf replaces the one on the books
         var e = String(l.counted_expiry || '');
         if (!e || e === (ex[l.item_id] || '')) return;
+        // everything counted carries this date from the count date on (one batch); later receipts are batches again
+        var counted = l.counted_qty === '' || l.counted_qty === null || l.counted_qty === undefined ? th[l.item_id] : Number(l.counted_qty);
+        var reset = { last_expiry: e, expiry_reset: e, expiry_reset_on: String(c.date), expiry_reset_qty: counted, updated_at: Util.nowIso() };
         var b = Repo.find('Balances', 'item_id', l.item_id);
-        if (b) Repo.update('Balances', 'item_id', l.item_id, { last_expiry: e, updated_at: Util.nowIso() });
+        if (b) Repo.update('Balances', 'item_id', l.item_id, reset);
         else {
           var it = Repo.find('Items', 'item_id', l.item_id);
-          Repo.append('Balances', [{ item_id: l.item_id, qty: 0, unit: it ? it.unit : '', last_expiry: e, updated_at: Util.nowIso() }]);
+          reset.item_id = l.item_id; reset.qty = 0; reset.unit = it ? it.unit : '';
+          Repo.append('Balances', [reset]);
         }
         Audit.log(session.user_id, 'count_expiry', 'Balances', l.item_id, { last_expiry: ex[l.item_id] || '' }, { last_expiry: e, count_id: c.count_id });
         fixed++;
