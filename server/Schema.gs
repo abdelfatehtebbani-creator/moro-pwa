@@ -17,7 +17,7 @@ var SCHEMA = {
   Archive:      ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status'],
-  Balances:     ['item_id', 'qty', 'unit', 'last_expiry', 'updated_at'],
+  Balances:     ['item_id', 'qty', 'unit', 'last_expiry', 'updated_at', 'expiry_reset', 'expiry_reset_on', 'expiry_reset_qty'],
   Recipes:      ['product', 'item_id', 'qty_per_unit'],
   Lists:        ['list', 'item_id'],
   Requests:     ['request_id', 'date', 'party_id', 'requested_by', 'status', 'note', 'created_at', 'fulfilled_by', 'fulfilled_at',
@@ -44,4 +44,5 @@ var TEXT_COLUMNS = ['item_id', 'party_id', 'location_id', 'purpose_id', 'movemen
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
-                    'shop_party_id', 'theory_expiry', 'counted_expiry', 'counted_at', 'approved_at', 'count_id'];
+                    'shop_party_id', 'theory_expiry', 'counted_expiry', 'counted_at', 'approved_at', 'count_id',
+                    'expiry_reset', 'expiry_reset_on'];

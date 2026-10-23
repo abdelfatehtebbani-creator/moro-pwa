@@ -38,6 +38,8 @@ export const Data = {
     this.items = new Map(objects(b.items).map((i) => [i.item_id, i]));
     this.parties = new Map(objects(b.parties).map((p) => [p.party_id, p]));
     this.serverBalances = new Map(objects(b.balances).map((x) => [x.item_id, x]));
+    // what is left of each expiry date: {item_id: [[expiry, qty], ...]} nearest first
+    this.batches = b.batches || {};
     this.applyPending(this.pendingDeltas || {});
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
@@ -180,15 +182,26 @@ export const Data = {
       .sort((a, b) => a.item.name.localeCompare(b.item.name));
   },
 
-  /** Items with stock whose last expiry is within `days` (expired ones included). */
+  /** Batches of an item still in stock: [{expiry, qty}] nearest first ('' = no date). */
+  batchesOf(id) {
+    const list = (this.batches && this.batches[id]) || [];
+    if (list.length) return list.map(([expiry, qty]) => ({ expiry, qty: Number(qty) }));
+    const b = this.balances.get(id);
+    return b && Number(b.qty) > 0 ? [{ expiry: b.last_expiry || '', qty: Number(b.qty) }] : [];
+  },
+
+  /** Quantities in stock whose expiry is within `days` (expired ones included), one line per expiry date. */
   expiring(days) {
     const today = this.todayIso();
     const out = [];
     for (const b of this.balances.values()) {
       const item = this.items.get(b.item_id);
-      if (!item || !b.last_expiry || Number(b.qty) <= 0) continue;
-      const left = daysBetween(today, b.last_expiry);
-      if (left <= days) out.push({ item, qty: Number(b.qty), expiry: b.last_expiry, left });
+      if (!item || Number(b.qty) <= 0) continue;
+      for (const x of this.batchesOf(b.item_id)) {
+        if (!x.expiry || !(x.qty > 0)) continue;
+        const left = daysBetween(today, x.expiry);
+        if (left <= days) out.push({ item, qty: x.qty, expiry: x.expiry, left });
+      }
     }
     return out.sort((a, b) => a.left - b.left);
   },
