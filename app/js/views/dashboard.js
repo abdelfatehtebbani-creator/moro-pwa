@@ -24,16 +24,25 @@ export async function render(root) {
   const kItems = h('b', '…'), kLow = h('b', '…'), kExp = h('b', '…'), kToday = h('b', '…');
   const card = (cls, key, num, label) => h('button.kpi.' + cls, { type: 'button', 'data-panel': key, 'aria-expanded': String(panel === key),
     onclick: () => open(panel === key ? '' : key) }, num, h('span', label));
+  // expired stock: the expiry card turns red and blinks, with how many lines are already expired
+  const kExpired = h('em.kpi-alarm', { hidden: true });
+  const expCard = card('k3', 'exp', kExp, t('kpi_exp'));
+  expCard.append(kExpired);
   const kpis = h('div.kpis',
     card('k1', 'items', kItems, t('kpi_items')),
     card('k2', 'low', kLow, t('kpi_low')),
-    card('k3', 'exp', kExp, t('kpi_exp')),
+    expCard,
     card('k4', 'today', kToday, t('kpi_today')));
   let todays = null;       // today's movements (from the server), counted per store on the card
   function updateCards() {
     kItems.textContent = fmtNum(Data.activeItems().filter((i) => inStore(i) && Data.qty(i.item_id) > 0).length);
     kLow.textContent = fmtNum(Data.lowStock().filter((r) => inStore(r.item)).length);
-    kExp.textContent = fmtNum(Data.expiring(30).filter((r) => inStore(r.item)).length);
+    const exp = Data.expiring(30).filter((r) => inStore(r.item));
+    kExp.textContent = fmtNum(exp.length);
+    const expired = exp.filter((r) => r.left < 0).length;
+    kExpired.hidden = !expired;
+    kExpired.textContent = expired ? '⚠ ' + t('kpi_expired', { n: expired }) : '';
+    expCard.classList.toggle('alarm', expired > 0);
     if (todays) {
       const tr = objects(todays).filter((m) => inStore(Data.items.get(m.item_id)));
       kToday.textContent = tr.filter((m) => Number(m.qty) > 0).length + ' / ' + tr.filter((m) => Number(m.qty) < 0).length;
