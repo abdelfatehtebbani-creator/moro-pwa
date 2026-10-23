@@ -39,3 +39,17 @@ test('a count that corrects the expiry replaces the batches up to the count date
   assert.equal(g.api('counts.approve', { count_id: id }, tok).ok, true);
   assert.deepEqual(boot().batches.I0001, [['2026-12-31', 101]]);
 });
+
+test('a batch used up long ago does not hide new stock: replayed in date order', () => {
+  const g = createGas();
+  g.seed('Items', [{ item_id: 'I0001', name: 'MILK', category: 'Food', unit: 'TIN', min_stock: 0, active: true, store: 'CHILLED' }]);
+  g.seed('Parties', [{ party_id: 'P001', name: 'Farm', kind: 'supplier', active: true }, { party_id: 'P002', name: 'Kitchen', kind: 'section', active: true }]);
+  g.seed('Movements', [
+    { movement_id: 'M000001', date: '2026-01-01', kind: 'RECEIPT', party_id: 'P001', item_id: 'I0001', qty: 10, unit: 'TIN', expiry: '2027-12-31', status: 'active' },
+    { movement_id: 'M000002', date: '2026-02-01', kind: 'ISSUE', party_id: 'P002', item_id: 'I0001', qty: -10, unit: 'TIN', status: 'active' },
+    { movement_id: 'M000003', date: '2026-10-01', kind: 'RECEIPT', party_id: 'P001', item_id: 'I0001', qty: 5, unit: 'TIN', expiry: '2026-10-10', status: 'active' }]);
+  g.seed('Balances', [{ item_id: 'I0001', qty: 5, unit: 'TIN', last_expiry: '2026-10-10' }]);
+  g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
+  const tok = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  assert.deepEqual(g.api('data.bootstrap', {}, tok).data.batches.I0001, [['2026-10-10', 5]]);
+});

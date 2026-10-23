@@ -2,9 +2,8 @@
  * Batches.gs – what is left of each expiry date, worked out from the movements (nothing new to type).
  *
  * Every inflow with an expiry date (a receipt, an opening balance, a return…) is a batch. Stock is
- * taken earliest-expiry first (FEFO), so what is still on the shelf is the batches that expire last:
- * the current balance is laid over the batches from the furthest expiry backwards until it is covered.
- *   100 tins expiring tomorrow + 1 tin next month, balance 90  →  1 next month, 89 tomorrow.
+ * taken earliest-expiry first (FEFO): each outflow takes from the batch in stock that expires first.
+ *   100 tins expiring tomorrow + 1 tin next month, 11 issued  →  89 tomorrow, 1 next month.
  * A count that corrects the expiry (Balances.expiry_reset) replaces every batch up to the count date
  * with one batch of what was counted; later inflows are batches again.
  * Inflows without a date count as the furthest (nothing known to expire).
@@ -12,43 +11,48 @@
 var INFLOW_KINDS = ['RECEIPT', 'OPENING', 'DEPT_RETURN', 'PROD_OUTPUT', 'ADJUST', 'SHOP_RETURN'];
 
 var Batches = {
-  /** {item_id: [{expiry, qty}]} nearest expiry first, only the quantities still in stock. */
+  /**
+   * {item_id: [{expiry, qty}]} nearest expiry first, only the quantities still in stock.
+   * The history is replayed in date order: an inflow adds a batch, an outflow takes from the batch
+   * that expires first among those in stock at that moment (FEFO).
+   */
   all: function () {
-    var inflows = {};
+    var moves = {};
     Repo.all('Movements').forEach(function (m) {
       var q = Number(m.qty) || 0;
-      if (m.status === 'deleted' || q <= 0 || INFLOW_KINDS.indexOf(m.kind) < 0) return;
-      (inflows[m.item_id] = inflows[m.item_id] || []).push({ date: String(m.date), expiry: Util.isDate(String(m.expiry || '')) ? String(m.expiry) : '', qty: q });
+      if (m.status === 'deleted' || !q) return;
+      (moves[m.item_id] = moves[m.item_id] || []).push({ date: String(m.date), id: String(m.movement_id), qty: q,
+        inflow: q > 0 && INFLOW_KINDS.indexOf(m.kind) >= 0, expiry: Util.isDate(String(m.expiry || '')) ? String(m.expiry) : '' });
     });
+    var earliestFirst = function (a, c) { return a.expiry === c.expiry ? 0 : !a.expiry ? 1 : !c.expiry ? -1 : (a.expiry < c.expiry ? -1 : 1); };
     var out = {};
     Repo.all('Balances').forEach(function (b) {
-      var left = Number(b.qty) || 0;
-      if (left <= 0) return;
-      var list = inflows[b.item_id] || [];
+      var balance = Number(b.qty) || 0;
+      if (balance <= 0) return;
+      var list = (moves[b.item_id] || []).sort(function (a, c) { return a.date === c.date ? (a.id < c.id ? -1 : 1) : (a.date < c.date ? -1 : 1); });
       var reset = Util.isDate(String(b.expiry_reset || '')) ? String(b.expiry_reset) : '';
-      if (reset) {
-        var on = String(b.expiry_reset_on || '');
-        list = list.filter(function (x) { return x.date > on; });
-        list.push({ date: on, expiry: reset, qty: Number(b.expiry_reset_qty) || 0 });
-      }
-      if (!list.some(function (x) { return x.expiry; })) return;            // no dates at all: nothing to show
-      // furthest expiry first ('' = no date = furthest), the newest inflow first within a date
-      list.sort(function (a, c) {
-        if (a.expiry !== c.expiry) return !a.expiry ? -1 : !c.expiry ? 1 : (a.expiry < c.expiry ? 1 : -1);
-        return a.date < c.date ? 1 : -1;
+      var on = String(b.expiry_reset_on || '');
+      var lots = [];
+      var take = function (q) {
+        lots.sort(earliestFirst);
+        for (var i = 0; i < lots.length && q > 0; i++) { var x = Math.min(q, lots[i].qty); lots[i].qty = Util.round(lots[i].qty - x); q = Util.round(q - x); }
+        lots = lots.filter(function (l) { return l.qty > 0; });
+      };
+      var applied = false;
+      list.forEach(function (m) {
+        // a count that set the expiry: what was counted carries that date from the count date on
+        if (reset && !applied && m.date > on) { lots = [{ expiry: reset, qty: Number(b.expiry_reset_qty) || 0 }]; applied = true; }
+        if (m.qty > 0) lots.push({ expiry: m.inflow ? m.expiry : '', qty: m.qty });
+        else take(-m.qty);
       });
+      if (reset && !applied) lots = [{ expiry: reset, qty: Number(b.expiry_reset_qty) || 0 }];
+      if (!lots.some(function (l) { return l.expiry; })) return;
+      // the replay and the balance may differ (old data, pending lines): fit the batches to the balance
+      var sum = lots.reduce(function (s, l) { return s + l.qty; }, 0);
+      if (sum > balance) take(Util.round(sum - balance));
+      else if (sum < balance) { lots.sort(earliestFirst); lots[0].qty = Util.round(lots[0].qty + balance - sum); }
       var kept = {};
-      for (var i = 0; i < list.length && left > 0; i++) {
-        var take = Math.min(left, list[i].qty);
-        kept[list[i].expiry] = Util.round((kept[list[i].expiry] || 0) + take);
-        left = Util.round(left - take);
-      }
-      // more in stock than the inflows explain (old data): the rest shows on the earliest date known
-      if (left > 0) {
-        var dated = list.filter(function (x) { return x.expiry; });
-        var oldest = dated.length ? dated[dated.length - 1].expiry : '';
-        kept[oldest] = Util.round((kept[oldest] || 0) + left);
-      }
+      lots.forEach(function (l) { kept[l.expiry] = Util.round((kept[l.expiry] || 0) + l.qty); });
       out[b.item_id] = Object.keys(kept).filter(function (e) { return kept[e] > 0; })
         .sort(function (a, c) { return !a ? 1 : !c ? -1 : (a < c ? -1 : 1); })
         .map(function (e) { return { expiry: e, qty: kept[e] }; });
