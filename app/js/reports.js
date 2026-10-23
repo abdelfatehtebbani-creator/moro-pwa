@@ -66,9 +66,13 @@ function stockExpiry(p) {
     if (!p.zero && q <= 0) continue;
     const b = Data.balances.get(it.item_id);
     const exp = b && b.last_expiry;
-    if (exp) {
+    const dated = Data.batchesOf(it.item_id).filter((x) => x.expiry);
+    if (exp || dated.length) {
       if (p.packOnly) continue;
-      rows.push(['Food', it.name, ...ru(it.item_id, q), exp, expiryStatus(daysBetween(today, exp))]);
+      // one line per expiry date still in stock (stock is taken earliest-expiry first)
+      if (q > 0 && dated.length) Data.batchesOf(it.item_id).forEach((x) => rows.push(['Food', it.name, ...ru(it.item_id, x.qty), x.expiry,
+        x.expiry ? expiryStatus(daysBetween(today, x.expiry)) : 'No expiry']));
+      else rows.push(['Food', it.name, ...ru(it.item_id, q), exp, expiryStatus(daysBetween(today, exp))]);
     } else {
       if (p.foodOnly) continue;
       rows.push(['Packaging', it.name, ...ru(it.item_id, q), '', 'No expiry']);
