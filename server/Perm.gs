@@ -27,7 +27,7 @@ var PERM_TREE = [
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
-    .concat([{ leaf: 'reports.lists' }]) },
+},
   { key: 'counts', children: [{ leaf: 'counts.view' }, { leaf: 'counts.open' }, { leaf: 'counts.save' }, { leaf: 'counts.approve' }, { leaf: 'counts.cancel' }] },
   { key: 'masters', children: [
     { key: 'tab_items', children: [{ leaf: 'items.view' }, { leaf: 'items.add' }, { leaf: 'items.rename' }, { leaf: 'items.min' },
@@ -70,7 +70,6 @@ var CAPS = (function () {
     'requests.create':   ['nav.requests', 'requests.create', 'requests.cancel'],
     'requests.fulfil':   ['nav.requests', 'requests.fulfil', 'requests.cancel', 'requests.all'],
     'reports.view':      ['nav.reports'],
-    'reports.lists':     ['lists.save'],
     'counts.view':       ['nav.counts', 'counts.list', 'counts.get'],
     'counts.open':       ['nav.counts', 'counts.list', 'counts.get', 'counts.open'],
     'counts.save':       ['nav.counts', 'counts.list', 'counts.get', 'counts.save'],
@@ -97,7 +96,8 @@ var CAPS = (function () {
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list'],
     'prices.see':        ['see_prices']
   };
-  REPORT_IDS.forEach(function (id) { c['report.' + id] = ['nav.reports', 'report.' + id]; });
+  // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it
+  REPORT_IDS.forEach(function (id) { c['report.' + id] = ['nav.reports', 'report.' + id].concat(id === 'fast' || id === 'sensitive' ? ['lists.save'] : []); });
   return c;
 })();
 
@@ -121,7 +121,7 @@ var OLD_CAPS = {
   final_price: ['items.view', 'items.final_price'],
   count: ['counts.view', 'counts.open', 'counts.save'],
   count_approve: ['counts.view', 'counts.approve', 'counts.cancel'],
-  lists: ['reports.lists'],
+  lists: [],
   recipes: ['recipes.view', 'recipes.edit'],
   see_prices: ['prices.see'],
   users: ['users.manage']

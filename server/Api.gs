@@ -79,7 +79,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '17';
+var SCHEMA_VERSION = '18';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
