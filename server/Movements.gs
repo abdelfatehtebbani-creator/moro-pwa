@@ -161,8 +161,8 @@ var Movements = {
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
         if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item));
         if (m.kind === 'ISSUE' && !m.doc_no) {
-          // one slip per store: lines of two stores saved together get two slip numbers
-          var sk = m.date + '|' + Stores.of(item);
+          // one slip per save and date: what one person hands over together is one slip, whatever the stores
+          var sk = m.date;
           slip[sk] = slip[sk] || Movements.nextSlip(m.date, slip);
           m.doc_no = slip[sk];
         }

@@ -124,17 +124,17 @@ test('saving the same client_id twice records it once (offline resend)', () => {
   assert.equal(bal('I0001'), 15);
 });
 
-test('issue: negative quantity, lines of one store saved together share one slip number per day', () => {
+test('issue: negative quantity, lines saved together share one slip number per day, whatever the store', () => {
   const { g, tok, bal } = env();
   const r = g.api('movements.save', { movements: [issue(), issue({ qty: 1 }), issue({ item_id: 'I0002', unit: 'BOX', qty: 3 })] }, tok.storekeeper);
   assert.equal(r.ok, true, JSON.stringify(r));
   const slip = 'D-' + TODAY.slice(5, 7) + TODAY.slice(8, 10) + '-001';
-  // flour (dry store) shares one slip; cups (packaging store) get the next number
-  assert.deepEqual(r.data.saved.map((s) => s.doc_no), [slip, slip, slip.replace('-001', '-002')]);
+  // flour (dry store) and cups (packaging store) handed over together: one slip
+  assert.deepEqual(r.data.saved.map((s) => s.doc_no), [slip, slip, slip]);
   assert.equal(bal('I0001'), 2);
   assert.equal(bal('I0002'), -3);
   const r2 = g.api('movements.save', { movements: [issue()] }, tok.storekeeper);
-  assert.equal(r2.data.saved[0].doc_no, slip.replace('-001', '-003'));
+  assert.equal(r2.data.saved[0].doc_no, slip.replace('-001', '-002'));
   assert.equal(g.api('movements.save', { movements: [issue({ party_id: 'P002' })] }, tok.admin).error.code, 'party_not_section');
 });
 
