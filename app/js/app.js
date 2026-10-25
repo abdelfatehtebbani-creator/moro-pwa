@@ -1,6 +1,7 @@
 // App start: service worker, sign-in, the shell (side menu / phone bottom bar), routing and sync.
 import { call, session, ApiError } from './api.js';
 import { APP_VERSION } from './config.js';
+import { CHANGELOG, cmpVersion } from './changelog.js';
 import { Outbox } from './outbox.js';
 import { MovStore } from './movstore.js';
 import { kv } from './db.js';
@@ -41,6 +42,7 @@ if ('serviceWorker' in navigator) {
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
     reg.update().catch(() => {});
+    setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
   }).catch(() => {});
   let reloaded = false;
@@ -91,12 +93,39 @@ async function start() {
   buildShell();
   route();
   window.__moroStarted = true;
+  whatsNew(false);
   if (cached) sync(true);
   setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
 function allowed(name) { return Data.can(ROUTES[name].perm); }
+
+// ---------- what's new: shown once after each update, with what the user needs to do
+const SEEN_KEY = 'moro.seen_version';
+function whatsNew(always) {
+  let seen = '';
+  try { seen = localStorage.getItem(SEEN_KEY) || ''; } catch { /* storage blocked */ }
+  if (!always && seen === APP_VERSION) return;
+  try { localStorage.setItem(SEEN_KEY, APP_VERSION); } catch { /* storage blocked */ }
+  // every version since the last one this device saw (the latest one only on a first visit)
+  const list = always ? CHANGELOG.slice(0, 5)
+    : CHANGELOG.filter((c) => cmpVersion(c.v, APP_VERSION) <= 0 && (seen ? cmpVersion(c.v, seen) > 0 : c.v === CHANGELOG[0].v));
+  if (!list.length) return;
+  const lang = getLang();
+  const admin = Data.can('users.save');
+  dialog((close) => [
+    h('h3', t('whats_new_title', { v: APP_VERSION })),
+    ...list.map((c) => {
+      const x = c[lang] || c.ar;
+      return h('div.wn-entry',
+        h('div.wn-ver', h('b', 'v' + c.v), ' ', h('span.muted', fmtDate(c.date))),
+        h('ul', x.news.map((n) => h('li', n))),
+        h('div.wn-todo', h('b', t('whats_new_todo')), ' ', x.todo),
+        admin && x.admin ? h('div.wn-todo.admin', h('b', t('whats_new_admin')), ' ', x.admin) : null);
+    }),
+    h('div.actions', h('button.btn', { type: 'button', onclick: () => close() }, t('whats_new_ok')))]);
+}
 
 function buildShell() {
   const u = Data.user;
@@ -112,6 +141,7 @@ function buildShell() {
     h('nav.nav', navLinks),
     h('div.side-foot',
       h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
+      h('button', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
       h('button', { type: 'button', onclick: changePin }, t('change_pin')),
       h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
       h('button', { type: 'button', onclick: logout }, t('logout'))));
@@ -157,6 +187,7 @@ function showMore() {
     h('div', h('b', u.display_name), ' · ', h('span.muted', t('role_' + u.role) + ' · v' + APP_VERSION)),
     h('nav.nav', { style: 'display:grid;gap:4px' }, Object.keys(ROUTES).filter(allowed).map((name) =>
       h('a', { href: '#/' + name, style: 'color:var(--ink)' }, icon(name), h('span', t(name))))),
+    h('button.btn.secondary', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
     h('button.btn.secondary', { type: 'button', onclick: changePin }, t('change_pin')),
     h('button.btn.secondary', { type: 'button', onclick: toggleLang }, t('lang_other')),
     h('button.btn.danger', { type: 'button', onclick: logout }, t('logout'))),
