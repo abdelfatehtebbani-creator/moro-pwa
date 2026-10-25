@@ -356,3 +356,8 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .pt-group { display: flex; align-items: center; gap: 4px; cursor: pointer; }
 .pt-leaf { display: flex; align-items: center; gap: 4px; padding-block: 3px; font-size: 14px; cursor: pointer; }
 .pt-leaf .pt-view { font-weight: 600; }
+/* what's new */
+.wn-entry { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+.wn-entry ul { margin: 6px 0; padding-inline-start: 20px; display: grid; gap: 4px; }
+.wn-todo { background: #e8f4ea; border-radius: 8px; padding: 6px 10px; margin-top: 4px; }
+.wn-todo.admin { background: #fff4e5; }
