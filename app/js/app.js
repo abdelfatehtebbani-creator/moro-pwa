@@ -22,15 +22,15 @@ import * as counts from './views/counts.js';
 
 const ROUTES = {
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
-  receive:   { view: receive, perm: 'kind.RECEIPT', group: 'nav_ops' },
-  issue:     { view: issue, perm: 'kind.ISSUE', group: 'nav_ops' },
-  production:{ view: production, perm: 'production.post', group: 'nav_ops' },
-  requests:  { view: requests, perm: 'requests.list', group: 'nav_ops' },
-  shoporders:{ view: shoporders, perm: 'shop.list', group: 'nav_ops' },
-  reports:   { view: reports, perm: 'movements.query', group: 'nav_ops' },
-  counts:    { view: counts, perm: 'counts.list', group: 'nav_ops' },
-  masters:   { view: masters, perm: 'items.save', group: 'nav_admin' },
-  users:     { view: users, perm: 'users.list', group: 'nav_admin' },
+  receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
+  issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
+  production:{ view: production, perm: 'nav.production', group: 'nav_ops' },
+  requests:  { view: requests, perm: 'nav.requests', group: 'nav_ops' },
+  shoporders:{ view: shoporders, perm: 'nav.shoporders', group: 'nav_ops' },
+  reports:   { view: reports, perm: 'nav.reports', group: 'nav_ops' },
+  counts:    { view: counts, perm: 'nav.counts', group: 'nav_ops' },
+  masters:   { view: masters, perm: 'nav.masters', group: 'nav_admin' },
+  users:     { view: users, perm: 'nav.users', group: 'nav_admin' },
 };
 
 const root = document.getElementById('app');

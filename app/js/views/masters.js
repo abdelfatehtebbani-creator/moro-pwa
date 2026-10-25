@@ -12,16 +12,16 @@ let cleanup = null;
 
 export function render(root) {
   if (cleanup) cleanup();
-  const isAdmin = Data.can('rename');
+  // tabs and renames follow the user's ticks, tab by tab
   const tabs = h('div.tabs');
   const body = h('div');
   const names = { items: t('items'), parties: t('parties'), locations: t('locations'), units: t('units'), recipes: t('recipes') };
-  const may = { recipes: 'recipes.save', locations: 'locations.save', units: 'units.save' };
-  if (may[tab] && !Data.can(may[tab])) tab = 'items';
-  Object.keys(names).filter((k) => !may[k] || Data.can(may[k])).forEach((k) =>
+  const may = (k) => Data.can('tab.' + k);
+  if (!may(tab)) tab = Object.keys(names).find(may) || 'items';
+  Object.keys(names).filter(may).forEach((k) =>
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('masters')), tabs), body));
-  ({ items, parties, locations, units, recipes })[tab](body, isAdmin);
+  ({ items, parties, locations, units, recipes })[tab](body, Data.can('rename.' + tab));
 }
 
 function watch(fill) {

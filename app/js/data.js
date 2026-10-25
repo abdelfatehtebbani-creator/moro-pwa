@@ -48,7 +48,7 @@ export const Data = {
     this.units = objects(b.units || { columns: [], rows: [] });
     this.purposes = objects(b.purposes);
     this.today = b.today;
-    this.capList = b.cap_list || [];
+    this.permTree = b.perm_tree || [];
     this.roleCaps = b.role_caps || {};
   },
 
@@ -93,6 +93,21 @@ export const Data = {
   },
 
   can(action) { return this.perms.has(action); },
+  /** May this user edit / delete movement m (per screen: own entries, or anyone's)? */
+  canEdit(m) {
+    const s = this.screenOf(m.kind), own = m.created_by === (this.user && this.user.user_id);
+    return this.can('edit_all.' + s) || (own && this.can('edit_own.' + s));
+  },
+  canDelete(m) {
+    const s = this.screenOf(m.kind), own = m.created_by === (this.user && this.user.user_id);
+    return this.can('delete.' + s) && (own || this.can('edit_all.' + s));
+  },
+  screenOf(kind) {
+    if (kind === 'RECEIPT' || kind === 'SUPPLIER_RETURN') return 'receive';
+    if (kind === 'ISSUE' || kind === 'DEPT_RETURN' || kind === 'DISPOSAL') return 'issue';
+    if (kind === 'PROD_CONSUME' || kind === 'PROD_OUTPUT') return 'production';
+    return 'other';
+  },
 
   /** Store of an item or location (rows not yet sorted fall back to their category). */
   storeOf(row) {

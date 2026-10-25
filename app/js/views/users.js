@@ -39,12 +39,37 @@ export async function render(root) {
 
       // capabilities: ticked = allowed. Changing the role resets the ticks to that role's defaults.
       let chosen = new Set(u ? u.caps : Data.roleCaps[role.value] || []);
-      const capBox = h('div.caps');
-      const drawCaps = () => capBox.replaceChildren(...Data.capList.map((c) => {
-        const cb = h('input', { type: 'checkbox', checked: chosen.has(c) });
-        cb.addEventListener('change', () => { cb.checked ? chosen.add(c) : chosen.delete(c); });
-        return h('label.check.cap', cb, h('span', h('b', t('cap_' + c)), h('small.muted', t('capd_' + c))));
-      }));
+      const capBox = h('div.perm-tree');
+      const open = new Set();
+      const leavesOf = (n) => (n.leaf ? [n.leaf] : n.children.flatMap(leavesOf));
+      // a screen's (or tab's) buttons need its "access" leaf: ticking a button ticks access, removing access removes its buttons
+      const viewOf = (n) => (n.children || []).map((c) => c.leaf).find((l) => l && /\.view$/.test(l));
+      const drawCaps = () => {
+        const node = (n, parent, depth) => {
+          if (n.leaf) {
+            const cb = h('input', { type: 'checkbox', checked: chosen.has(n.leaf) });
+            cb.addEventListener('change', () => {
+              const view = viewOf(parent);
+              if (cb.checked) { chosen.add(n.leaf); if (view) chosen.add(view); }
+              else { chosen.delete(n.leaf); if (n.leaf === view) leavesOf(parent).forEach((l) => chosen.delete(l)); }
+              drawCaps();
+            });
+            return h('label.pt-leaf', { style: 'padding-inline-start:' + (depth * 18 + 26) + 'px' }, cb, ' ',
+              h('span', { class: /\.view$/.test(n.leaf) ? 'pt-view' : '' }, t('pt_' + n.leaf)));
+          }
+          const all = leavesOf(n), on = all.filter((l) => chosen.has(l)).length;
+          const cb = h('input', { type: 'checkbox', checked: on === all.length && on > 0 });
+          cb.indeterminate = on > 0 && on < all.length;
+          cb.addEventListener('change', () => { all.forEach((l) => (cb.checked ? chosen.add(l) : chosen.delete(l))); drawCaps(); });
+          const isOpen = open.has(n.key);
+          const toggle = h('button.pt-toggle', { type: 'button', 'aria-expanded': String(isOpen),
+            onclick: () => { isOpen ? open.delete(n.key) : open.add(n.key); drawCaps(); } }, isOpen ? '▾' : (document.dir === 'rtl' ? '◂' : '▸'));
+          const head = h('div.pt-head', { style: 'padding-inline-start:' + depth * 18 + 'px' }, toggle,
+            h('label.pt-group', cb, ' ', h('b', t('pt_' + n.key)), h('small.muted', ' ', h('bdi', { dir: 'ltr' }, on + ' / ' + all.length))));
+          return h('div.pt-node', head, isOpen ? h('div', ...n.children.map((c) => node(c, n, depth + 1))) : null);
+        };
+        capBox.replaceChildren(...Data.permTree.map((n) => node(n, null, 0)));
+      };
       role.addEventListener('change', () => { chosen = new Set(Data.roleCaps[role.value] || []); drawCaps(); });
       drawCaps();
       const reset = h('button.link', { type: 'button', onclick: () => { chosen = new Set(Data.roleCaps[role.value] || []); drawCaps(); } }, t('reset_to_role'));
