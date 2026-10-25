@@ -101,6 +101,14 @@ var Movements = {
     return Util.round(kind === 'value' ? amount - d : amount - amount * d / 100);
   },
 
+  /** The screen a kind of movement belongs to (for edit and delete rights). */
+  screenOf: function (kind) {
+    if (kind === 'RECEIPT' || kind === 'SUPPLIER_RETURN') return 'receive';
+    if (kind === 'ISSUE' || kind === 'DEPT_RETURN' || kind === 'DISPOSAL') return 'issue';
+    if (kind === 'PROD_CONSUME' || kind === 'PROD_OUTPUT') return 'production';
+    return 'other';
+  },
+
   nextId: function () {
     if (!Settings.get('seq_movement', '')) {
       var max = 0;
@@ -200,10 +208,10 @@ var Movements = {
       Movements.requireActive(cur);
       // a count's adjustment is part of an approved count: it is not edited by hand
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
-      if (!Perm.has(session, 'edit_any')) {
-        Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
-        Perm.canKind(session, cur.kind);
-      }
+      // per screen: own entries with edit_own.<screen>, anyone's with edit_all.<screen>
+      var grp = Movements.screenOf(cur.kind);
+      Util.require(Perm.has(session, 'edit_all.' + grp) || (cur.created_by === session.user_id && Perm.has(session, 'edit_own.' + grp)),
+        'forbidden', cur.created_by === session.user_id ? grp : 'own_only');
       if (SAVE_KINDS.indexOf(cur.kind) >= 0) {
         Stores.requireItem(session, cur.item_id);
         if (payload.changes && payload.changes.item_id) Stores.requireItem(session, payload.changes.item_id);
@@ -245,7 +253,10 @@ var Movements = {
       if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
       Movements.requireActive(cur);
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
-      if (!Perm.has(session, 'edit_any')) Util.require(cur.created_by === session.user_id, 'forbidden', 'own_only');
+      // per screen: delete.<screen>; someone else's entry also needs edit_all.<screen>
+      var screen = Movements.screenOf(cur.kind);
+      Util.require(Perm.has(session, 'delete.' + screen), 'forbidden', screen);
+      if (cur.created_by !== session.user_id) Util.require(Perm.has(session, 'edit_all.' + screen), 'forbidden', 'own_only');
       if (SAVE_KINDS.indexOf(cur.kind) >= 0) Stores.requireItem(session, cur.item_id);
       var res = Repo.update('Movements', 'movement_id', cur.movement_id,
         { status: 'deleted', updated_by: session.user_id, updated_at: Util.nowIso() });

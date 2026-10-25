@@ -145,7 +145,10 @@ var Auth = {
     if (p.active !== undefined) changes.active = p.active === true;
     if (p.stores !== undefined) changes.stores = Stores.pack(p.stores);
     if (p.caps !== undefined) {
-      var caps = (p.caps || []).filter(function (c, i, a) { return CAPS[c] && a.indexOf(c) === i; });
+      // leaves of the tree; a list of the older bundles (receive, issue…) is read as leaves
+      var input = p.caps || [];
+      if (input.some(function (c) { return OLD_CAPS[c]; }) && !input.some(function (c) { return CAPS[c]; })) input = leavesFromOld(input);
+      var caps = input.filter(function (c, i, a) { return CAPS[c] && a.indexOf(c) === i; });
       var role = changes.role || u.role;
       var same = caps.length === ROLE_CAPS[role].length && caps.every(function (c) { return ROLE_CAPS[role].indexOf(c) >= 0; });
       changes.caps = p.caps === null || same ? '' : caps.join(',');
@@ -154,8 +157,8 @@ var Auth = {
     var after = {};
     Object.keys(u).forEach(function (k) { after[k] = u[k]; });
     Object.keys(changes).forEach(function (k) { after[k] = changes[k]; });
-    if (Perm.capsOf(u).indexOf('users') >= 0 && u.active === true && (after.active !== true || Perm.capsOf(after).indexOf('users') < 0)) {
-      var managers = Repo.all('Users').filter(function (x) { return x.user_id !== u.user_id && x.active === true && Perm.capsOf(x).indexOf('users') >= 0; });
+    if (Perm.capsOf(u).indexOf('users.manage') >= 0 && u.active === true && (after.active !== true || Perm.capsOf(after).indexOf('users.manage') < 0)) {
+      var managers = Repo.all('Users').filter(function (x) { return x.user_id !== u.user_id && x.active === true && Perm.capsOf(x).indexOf('users.manage') >= 0; });
       Util.require(managers.length > 0, 'last_admin');
     }
     var res = Repo.update('Users', 'user_id', u.user_id, changes);

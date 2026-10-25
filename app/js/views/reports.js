@@ -35,7 +35,7 @@ function multiSelect(id, options, chosen, hint = 'lookup_hint') {
 }
 
 export function render(root) {
-  const reports = REPORTS.filter((r) => !r.prices || Data.can('see_prices'));
+  const reports = REPORTS.filter((r) => Data.can('report.' + r.id) && (!r.prices || Data.can('see_prices')));
   const cards = h('div.rep-cards');
   const opts = h('div.rep-opts');
   const preview = h('div.rep-preview');
