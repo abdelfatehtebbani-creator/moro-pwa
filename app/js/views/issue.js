@@ -72,7 +72,7 @@ export async function render(root) {
     }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
     count.textContent = t('lines_count', { n: lines.length });
     dept.input.disabled = lines.length > 0;      // department fixed while the slip has lines (v13)
-    zone.lock(lines.length > 0);                 // one slip, one store
+    // the store may change within a slip: it stays one slip with one number
   }
 
   function addLine() {
@@ -96,6 +96,7 @@ export async function render(root) {
   function pickLine(i) {
     editIndex = i;
     const l = lines[i];
+    if (l.store && l.store !== zone.value) zone.set(l.store, true);     // the line's own store, quietly
     item.set(l.item_id); qty.value = String(l.qty); qty.dispatchEvent(new Event('change'));
     if (!unitField.hidden) { unitSel.value = l.unit; showConv(); }
     addBtn.textContent = t('update_line');
