@@ -44,7 +44,7 @@ var Masters = {
       Util.require(cur, 'not_found');
       var ch = {};
       if (Util.key(name) !== Util.key(cur.name) || name !== cur.name) {
-        Perm.require(session, 'rename');
+        Perm.require(session, 'rename.items');
         ch.name = name;
         var aliases = String(cur.aliases || '').split(' | ').filter(String);
         if (aliases.indexOf(cur.name) < 0) aliases.push(cur.name);
@@ -61,7 +61,7 @@ var Masters = {
         var to = p.store !== undefined ? p.store : (Stores.categoryOf(curStore) === p.category ? curStore : store);
         Util.require(Stores.valid(to), 'store_invalid');
         if (to !== curStore || to !== cur.store) {
-          if (to !== curStore) Perm.require(session, 'rename');
+          if (to !== curStore) Perm.require(session, 'rename.items');
           ch.store = to;
           ch.category = Stores.categoryOf(to);
         }
@@ -97,7 +97,7 @@ var Masters = {
         ch.store_unit = defined(su) ? su : '';
       }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
-        Perm.require(session, 'rename');
+        Perm.require(session, 'rename.items');
         ch.active = p.active === true;
       }
       var res = Repo.update('Items', 'item_id', cur.item_id, ch);
@@ -126,9 +126,9 @@ var Masters = {
       var cur = Repo.find('Parties', 'party_id', p.party_id);
       Util.require(cur, 'not_found');
       var ch = {};
-      if (name !== cur.name) { Perm.require(session, 'rename'); ch.name = name; }
+      if (name !== cur.name) { Perm.require(session, 'rename.parties'); ch.name = name; }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
-        Perm.require(session, 'rename');
+        Perm.require(session, 'rename.parties');
         ch.active = p.active === true;
       }
       var res = Repo.update('Parties', 'party_id', cur.party_id, ch);
@@ -161,16 +161,16 @@ var Masters = {
       var cur = Repo.find('Locations', 'location_id', p.location_id);
       Util.require(cur, 'not_found');
       var ch = {};
-      if (name !== cur.name) { Perm.require(session, 'rename'); ch.name = name; }
+      if (name !== cur.name) { Perm.require(session, 'rename.locations'); ch.name = name; }
       if ((p.store !== undefined || p.category !== undefined) && store !== Stores.of(cur) &&
           !(p.store === undefined && Stores.categoryOf(Stores.of(cur)) === p.category)) {
         Util.require(Stores.valid(store), 'store_invalid');
-        Perm.require(session, 'rename');
+        Perm.require(session, 'rename.locations');
         ch.store = store;
         ch.category = Stores.categoryOf(store);
       }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
-        Perm.require(session, 'rename');
+        Perm.require(session, 'rename.locations');
         ch.active = p.active === true;
       }
       var res = Repo.update('Locations', 'location_id', cur.location_id, ch);
@@ -204,7 +204,7 @@ var Masters = {
       }
       Util.require(p.active !== undefined, 'name_taken', unit);
       if ((p.active === true) === (cur.active === true)) return { unit: unit, version: Version.get() };
-      Perm.require(session, 'rename');
+      Perm.require(session, 'rename.units');
       var res = Repo.update('Units', 'unit', unit, { active: p.active === true });
       Audit.log(session.user_id, 'unit_update', 'Units', unit, res.before, res.after);
       return { unit: unit, version: Version.bump() };
@@ -251,7 +251,7 @@ var Masters = {
       caps: session.caps,
       // who entered a record: names only, shown in the records lists
       user_names: (function () { var o = {}; Repo.all('Users').forEach(function (u) { o[u.user_id] = u.display_name; }); return o; })(),
-      cap_list: Perm.has(session, 'users.save') ? Object.keys(CAPS) : [],
+      perm_tree: Perm.has(session, 'users.save') ? PERM_TREE : [],
       role_caps: Perm.has(session, 'users.save') ? ROLE_CAPS : {},
       version: Version.get(),
       today: Util.today(),

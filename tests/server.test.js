@@ -373,7 +373,7 @@ test('admin can give a user a custom set of capabilities, and reset it to the ro
   // production manager also allowed to receive goods, but still not to issue
   const r = g.api('users.save', { user_id: prod.user_id, caps: ['request_create', 'receive'] }, tok.admin);
   assert.equal(r.ok, true, JSON.stringify(r));
-  assert.deepEqual(r.data.caps, ['request_create', 'receive']);
+  assert.ok(r.data.caps.includes('receive.save') && r.data.caps.includes('requests.create') && !r.data.caps.includes('issue.post'));
   assert.equal(g.api('movements.save', { movements: [receipt()] }, tok.production).ok, true);
   assert.equal(g.api('movements.save', { movements: [issue()] }, tok.production).error.code, 'forbidden');
   assert.ok(g.api('data.bootstrap', {}, tok.production).data.permissions.includes('kind.RECEIPT'));
@@ -400,4 +400,23 @@ test('the spreadsheet owner can reset a forgotten PIN; the old PIN and sessions 
   assert.equal(g.rows('Audit').filter((a) => a.action === 'pin_reset_owner').length, 1);
   assert.throws(() => g.run("Recovery.resetPin('nobody', '1234')"));
   assert.throws(() => g.run("Recovery.resetPin('admin', '12')"));
+});
+
+test('permissions screen by screen and button by button', () => {
+  const { g, tok } = env();
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  // the receiving screen without its save button; issues with posting but no deleting
+  g.api('users.save', { user_id: sk.user_id, caps: ['receive.view', 'issue.view', 'issue.post', 'issue.edit_own'] }, tok.admin);
+  const perms = g.api('data.bootstrap', {}, tok.storekeeper).data.permissions;
+  assert.ok(perms.includes('nav.receive') && perms.includes('nav.issue') && !perms.includes('nav.masters') && !perms.includes('nav.reports'));
+  assert.equal(g.api('movements.save', { movements: [receipt()] }, tok.storekeeper).error.code, 'forbidden');
+  const r = g.api('movements.save', { movements: [issue()] }, tok.storekeeper);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const id = r.data.saved[0].movement_id;
+  assert.equal(g.api('movements.update', { movement_id: id, changes: { qty: 1 } }, tok.storekeeper).ok, true);
+  assert.equal(g.api('movements.delete', { movement_id: id }, tok.storekeeper).error.code, 'forbidden');
+  // renaming is per tab: suppliers yes, items no
+  g.api('users.save', { user_id: sk.user_id, caps: ['items.view', 'parties.view', 'parties.rename'] }, tok.admin);
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Kitchen 2' }, tok.storekeeper).ok, true);
+  assert.equal(g.api('items.save', { item_id: 'I0001', name: 'FLOUR 2' }, tok.storekeeper).error.code, 'forbidden');
 });

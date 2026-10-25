@@ -50,7 +50,7 @@ export async function render(root) {
   const net = trackFilled(h('input.input.num#r-net', { type: 'number', step: 'any', readonly: true, tabindex: -1 }));
   const expiry = trackFilled(h('input.input#r-expiry', { type: 'date' }));
   const location = combo({ id: 'r-location', options: locOpts });
-  const isReturn = h('input#r-return', { type: 'checkbox' });
+  const isReturn = h('input#r-return', { type: 'checkbox', disabled: !Data.can('kind.SUPPLIER_RETURN') });
   const info = h('p.item-info', '');
   const conv = h('p.conv-info', { hidden: true });
   // "goes into stock: 3,600 PC" under a quantity typed in a packaging unit
@@ -61,7 +61,7 @@ export async function render(root) {
     conv.hidden = !(it && f && f !== 1 && q);
     if (!conv.hidden) conv.replaceChildren(t('goes_into_stock'), ' ', h('bdi', fmtNum(Math.round(q * f * 1e6) / 1e6) + ' ' + it.unit), '   ·   ', h('bdi', Data.packsText(it)));
   };
-  const saveBtn = h('button.btn.save-btn#r-save', { type: 'button', onclick: save }, t('save_entry'));
+  const saveBtn = h('button.btn.save-btn#r-save', { type: 'button', onclick: save, hidden: !Data.can('kind.RECEIPT') && !Data.can('kind.SUPPLIER_RETURN') }, t('save_entry'));
   const newBtn = h('button.btn.secondary', { type: 'button', onclick: () => reset(true) }, t('new_entry'));
   const delBtn = h('button.btn.danger', { type: 'button', hidden: true, onclick: remove }, t('delete'));
   const status = h('p.form-status', '');
@@ -223,7 +223,7 @@ export async function render(root) {
 
   function edit(m) {
     if (m.pending) return;
-    if (!(Data.can('edit_any') || m.created_by === Data.user.user_id)) { toast(t('own_records_only'), 'err'); return; }
+    if (!Data.canEdit(m)) { toast(t('own_records_only'), 'err'); return; }
     const it = Data.items.get(m.item_id);
     if (!Data.canStore(Data.storeOf(it))) { toast(t('store_not_yours'), 'err'); return; }
     if (Data.storeOf(it) !== zone.value) zone.set(Data.storeOf(it), true);
@@ -240,7 +240,7 @@ export async function render(root) {
     if (!location.value && m.location) location.input.value = m.location;
     [date, invoice, parcels, retail, qty, price, discount, amount, net, expiry].forEach((x) => x.dispatchEvent(new Event('change')));
     saveBtn.textContent = t('save_changes');
-    delBtn.hidden = !Data.can('movements.delete');
+    delBtn.hidden = !Data.canDelete(m);
     status.textContent = t('editing_record', { id: m.movement_id }); status.className = 'form-status';
     item.input.focus();
   }
