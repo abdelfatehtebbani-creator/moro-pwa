@@ -338,7 +338,8 @@ test('lists and recipes are replaced as a whole', () => {
   assert.equal(g.api('lists.save', { list: 'FAST', item_ids: ['I0001', 'I0002', 'I0001'] }, tok.purchasing).data.count, 2);
   assert.equal(g.api('lists.save', { list: 'SENSITIVE', item_ids: ['I0002'] }, tok.admin).data.count, 1);
   assert.equal(g.api('lists.save', { list: 'FAST', item_ids: ['I0002'] }, tok.admin).data.count, 1);
-  assert.deepEqual(g.rows('Lists').map((r) => r.list + ':' + r.item_id).sort(), ['FAST:I0002', 'SENSITIVE:I0002']);
+  // lists are personal: the purchasing user's FAST list stays beside the admin's
+  assert.deepEqual(g.rows('Lists').map((r) => r.list + ':' + r.item_id).sort(), ['FAST:I0001', 'FAST:I0002', 'FAST:I0002', 'SENSITIVE:I0002']);
   g.api('recipes.save', { product: 'maamoul tamr', lines: [{ item_id: 'I0001', qty_per_unit: 0.08 }] }, tok.admin);
   g.api('recipes.save', { product: 'MAAMOUL TAMR', lines: [{ item_id: 'I0002', qty_per_unit: 0.6 }] }, tok.admin);
   assert.deepEqual(g.rows('Recipes').map((r) => r.item_id), ['I0002']);
@@ -400,6 +401,18 @@ test('the spreadsheet owner can reset a forgotten PIN; the old PIN and sessions 
   assert.equal(g.rows('Audit').filter((a) => a.action === 'pin_reset_owner').length, 1);
   assert.throws(() => g.run("Recovery.resetPin('nobody', '1234')"));
   assert.throws(() => g.run("Recovery.resetPin('admin', '12')"));
+});
+
+test('report lists are personal: one user editing the fast-moving list does not change the others', () => {
+  const { g, tok } = env();
+  g.api('lists.save', { list: 'FAST', item_ids: ['I0001', 'I0002'] }, tok.admin);
+  assert.equal(g.api('lists.save', { list: 'FAST', item_ids: ['I0002'] }, tok.purchasing).ok, true);
+  const listOf = (tk) => { const d = g.api('data.bootstrap', {}, tk).data.lists; return d.rows.filter((r) => r[0] === 'FAST').map((r) => r[1]); };
+  assert.deepEqual(listOf(tok.admin), ['I0001', 'I0002']);
+  assert.deepEqual(listOf(tok.purchasing), ['I0002']);
+  // emptied, it stays empty
+  g.api('lists.save', { list: 'FAST', item_ids: [] }, tok.purchasing);
+  assert.deepEqual(listOf(tok.purchasing), []);
 });
 
 test('permissions screen by screen and button by button', () => {

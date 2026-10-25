@@ -217,8 +217,16 @@ var Masters = {
     return withLock(function () {
       var ids = (p.item_ids || []).filter(function (id, i, a) { return a.indexOf(id) === i; });
       ids.forEach(function (id) { Util.require(Repo.find('Items', 'item_id', id), 'item_unknown', id); });
-      var keep = Repo.all('Lists').filter(function (r) { return r.list !== p.list; });
-      Repo.replaceAll('Lists', keep.concat(ids.map(function (id) { return { list: p.list, item_id: id }; })));
+      // each user keeps their own list; the others' lists (and the shared one) stay as they are.
+      // An emptied list is remembered by a marker row (LIST#), so the shared list does not come back.
+      Perm.require(session, 'report.' + (p.list === 'FAST' ? 'fast' : 'sensitive'));
+      var me = session.user_id;
+      var keep = Repo.all('Lists').filter(function (r) {
+        return !((r.list === p.list || r.list === p.list + '#') && String(r.user_id || '') === me);
+      });
+      var rows = ids.length ? ids.map(function (id) { return { list: p.list, item_id: id, user_id: me }; })
+                            : [{ list: p.list + '#', item_id: '', user_id: me }];
+      Repo.replaceAll('Lists', keep.concat(rows));
       Audit.log(session.user_id, 'list_save', 'Lists', p.list, null, { count: ids.length });
       return { count: ids.length, version: Version.bump() };
     });
@@ -261,7 +269,17 @@ var Masters = {
       locations: Repo.raw('Locations'),
       units: Repo.raw('Units'),
       purposes: Repo.raw('Purposes'),
-      lists: Repo.raw('Lists'),
+      // the user's own report lists; a list they never edited is the shared one (from before personal lists)
+      lists: (function () {
+        var all = Repo.all('Lists'), me = session.user_id, out = [];
+        ['FAST', 'SENSITIVE'].forEach(function (name) {
+          var own = all.filter(function (r) { return (r.list === name || r.list === name + '#') && String(r.user_id || '') === me; });
+          var rows = own.length ? own.filter(function (r) { return r.list === name; })
+                                : all.filter(function (r) { return r.list === name && !r.user_id; });
+          rows.forEach(function (r) { out.push([r.list, r.item_id]); });
+        });
+        return { columns: ['list', 'item_id'], rows: out };
+      })(),
       recipes: Repo.raw('Recipes'),
       balances: (function () {
         // last_expiry = the nearest expiry of what is still in stock (not the last receipt's)
