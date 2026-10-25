@@ -72,7 +72,7 @@ export async function render(root) {
     }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
     count.textContent = t('lines_count', { n: lines.length });
     dept.input.disabled = lines.length > 0;      // department fixed while the slip has lines (v13)
-    zone.lock(lines.length > 0);                 // one slip, one store
+    // the store may change within a slip: on posting, each store gets its own slip number
   }
 
   function addLine() {
@@ -96,6 +96,7 @@ export async function render(root) {
   function pickLine(i) {
     editIndex = i;
     const l = lines[i];
+    if (l.store && l.store !== zone.value) zone.set(l.store, true);     // the line's own store, quietly
     item.set(l.item_id); qty.value = String(l.qty); qty.dispatchEvent(new Event('change'));
     if (!unitField.hidden) { unitSel.value = l.unit; showConv(); }
     addBtn.textContent = t('update_line');
@@ -118,11 +119,12 @@ export async function render(root) {
       item_id: l.item_id, qty: l.qty, unit: l.unit }));
     const deptName = Data.parties.get(dept.value).name;
     const n = lines.length;
+    const stores = new Set(lines.map((l) => l.store)).size;
     lines = []; editIndex = -1;          // cleared before the await: a second Enter finds nothing to post
     drawLines();
     dept.input.disabled = false; dept.clear();
     await Outbox.add('movements.save', { movements }, deptName);
-    status.textContent = t('posted_lines', { n }); status.className = 'form-status ok';
+    status.textContent = t('posted_lines', { n }) + (stores > 1 ? ' ' + t('slips_per_store', { n: stores }) : ''); status.className = 'form-status ok';
     loadRecords();
     dept.input.focus();
   }
