@@ -3,6 +3,23 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.32', date: '2026-10-26',
+    ar: {
+      news: [
+        'حاسبة أكياس القهوة صارت داخل MORO، في قسم "أدوات" من القائمة، بنفس المعادلات: كم تشتري من البن الأخضر قبل التحميص، وكم من كل صنف في الخلطة.',
+      ],
+      todo: 'لا شيء. القيم التي تكتبها تبقى محفوظة على جهازك.',
+      admin: 'الحاسبة مفعّلة للمدير ومسؤول المشتريات. لمنحها لمستخدم آخر علّم "حاسبة أكياس القهوة" في صلاحياته.',
+    },
+    en: {
+      news: [
+        'The coffee bag calculator is now inside MORO, under "Tools" in the menu, with the same formulas: how much green coffee to buy before roasting, and how much of each origin in the blend.',
+      ],
+      todo: 'Nothing. The values you type stay saved on your device.',
+      admin: 'The calculator is on for the admin and purchasing. To give it to another user, tick "Coffee bag calculator" in their permissions.',
+    },
+  },
+  {
     v: '0.8.31', date: '2026-10-26',
     ar: {
       news: [

@@ -35,6 +35,7 @@ var PERM_TREE = [
     { key: 'tab_locations', children: [{ leaf: 'locations.view' }, { leaf: 'locations.add' }, { leaf: 'locations.rename' }] },
     { key: 'tab_units', children: [{ leaf: 'units.view' }, { leaf: 'units.add' }, { leaf: 'units.rename' }] },
     { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }] }] },
+  { key: 'coffee', children: [{ leaf: 'coffee.view' }] },
   { key: 'users', children: [{ leaf: 'users.manage' }] },
   { key: 'general', children: [{ leaf: 'prices.see' }] }
 ];
@@ -89,6 +90,7 @@ var CAPS = (function () {
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     'recipes.edit':      ['recipes.save'],
+    'coffee.view':       ['nav.coffee'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list'],
     'prices.see':        ['see_prices']
   };
@@ -133,7 +135,7 @@ function leavesFromOld(list) {
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
   storekeeper: leavesFromOld(['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']),
-  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']).concat(['lpo.view', 'lpo.create']),
+  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']).concat(['lpo.view', 'lpo.create', 'coffee.view']),
   production:  leavesFromOld(['request_create'])
 };
 
