@@ -26,6 +26,7 @@ var PERM_TREE = [
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
 },
+  { key: 'lpo', children: [{ leaf: 'lpo.view' }, { leaf: 'lpo.create' }, { leaf: 'lpo.approve' }, { leaf: 'lpo.terms' }] },
   { key: 'counts', children: [{ leaf: 'counts.view' }, { leaf: 'counts.open' }, { leaf: 'counts.save' }, { leaf: 'counts.approve' }, { leaf: 'counts.cancel' }] },
   { key: 'masters', children: [
     { key: 'tab_items', children: [{ leaf: 'items.view' }, { leaf: 'items.add' }, { leaf: 'items.rename' }, { leaf: 'items.min' },
@@ -61,6 +62,10 @@ var CAPS = (function () {
     'requests.create':   ['nav.requests', 'requests.create', 'requests.cancel'],
     'requests.fulfil':   ['nav.requests', 'requests.fulfil', 'requests.cancel', 'requests.all'],
     'reports.view':      ['nav.reports'],
+    'lpo.view':          ['nav.lpo', 'lpo.list', 'lpo.get'],
+    'lpo.create':        ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.save', 'lpo.delete'],
+    'lpo.approve':       ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.decide'],
+    'lpo.terms':         ['lpo.settings'],
     'counts.view':       ['nav.counts', 'counts.list', 'counts.get'],
     'counts.open':       ['nav.counts', 'counts.list', 'counts.get', 'counts.open'],
     'counts.save':       ['nav.counts', 'counts.list', 'counts.get', 'counts.save'],
@@ -128,7 +133,7 @@ function leavesFromOld(list) {
 var ROLE_CAPS = {
   admin:       Object.keys(CAPS),
   storekeeper: leavesFromOld(['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']),
-  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']),
+  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']).concat(['lpo.view', 'lpo.create']),
   production:  leavesFromOld(['request_create'])
 };
 

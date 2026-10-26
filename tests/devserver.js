@@ -44,7 +44,7 @@ if (fs.existsSync(OUT)) {
 }
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
-  '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
+  '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.svg': 'image/svg+xml' };
 
 http.createServer((req, res) => {
   // touch tests/out/OFFLINE to make /api fail like a lost connection (offline testing)
