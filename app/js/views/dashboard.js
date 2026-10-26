@@ -2,7 +2,7 @@
 import { call } from '../api.js';
 import { kv } from '../db.js';
 import { Data, objects, STORES } from '../data.js';
-import { storePill } from '../components.js';
+import { storePill, enteredBy } from '../components.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, trackFilled, fmtNum, fmtDate, dialog } from '../ui.js';
 
@@ -10,6 +10,10 @@ import { h, toast, flash, trackFilled, fmtNum, fmtDate, dialog } from '../ui.js'
 // kept while the app is open, so a refresh of the data does not close what the user opened
 let panel = '';
 let lookStore = '';
+// the latest-movements filter: '' all, 'in' receipts (and supplier returns), 'out' issues (and department returns)
+let recentKind = '';
+const RECENT_KINDS = { in: ['RECEIPT', 'SUPPLIER_RETURN'], out: ['ISSUE', 'DEPT_RETURN', 'DISPOSAL'] };
+const money = (n) => (n === '' || n === null || n === undefined ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 
 
@@ -118,22 +122,36 @@ export async function render(root) {
     }
   }
 
-  // ---------- latest movements
-  const recentBody = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
+  // ---------- latest movements: who entered what, from / to whom, and at what price (the admin and
+  // purchasing follow the storekeepers' entries here), filtered by receipts / issues
+  const prices = Data.can('see_prices');
+  const cols = 8 + (prices ? 2 : 0);
+  const recentBody = h('tbody', h('tr', h('td.empty', { colspan: cols }, '…')));
   let lastRecent = null;
-  const recentCard = h('div.card', h('h2', t('recent')),
-    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('kind')), h('th', t('party')), h('th', t('item')), h('th', t('qty')), h('th', t('doc')))), recentBody)));
+  const kindTabs = h('div.tabs');
+  const drawKindTabs = () => kindTabs.replaceChildren(...[['', 'all'], ['in', 'recent_in'], ['out', 'recent_out']].map(([k, label]) =>
+    h('button', { type: 'button', class: recentKind === k ? 'on' : '', onclick: () => { recentKind = k; drawKindTabs(); if (lastRecent) fillRecent(lastRecent); } }, t(label))));
+  drawKindTabs();
+  const recentCard = h('div.card', h('div.recent-head', h('h2', t('recent')), kindTabs),
+    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('kind')), h('th', t('party')), h('th', t('item')), h('th', t('qty')),
+      prices ? h('th', t('price')) : null, prices ? h('th', t('net_amount')) : null, h('th', t('entered_by')), h('th', t('doc')), h('th', ''))), recentBody)));
   const fillRecent = (res) => {
     lastRecent = res;
-    const rows = objects(res).filter((m) => inStore(Data.items.get(m.item_id)));
+    const keep = RECENT_KINDS[recentKind];
+    const rows = objects(res).filter((m) => inStore(Data.items.get(m.item_id)) && (!keep || keep.includes(m.kind))).slice(0, 60);
     recentBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id);
       const p = Data.parties.get(m.party_id);
       const q = Number(m.qty);
+      const priced = m.price !== '' && m.price !== undefined && m.price !== null;
       return h('tr', h('td.num', fmtDate(m.date)), h('td', h('span', { class: 'pill ' + (q >= 0 ? 'in' : 'out') }, t('kind_' + m.kind))),
         h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? it.name : m.item_id), it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
-        h('td.num', { class: q < 0 ? 'qty-neg' : '' }, it && q ? (q < 0 ? '-' : '') + Data.fmtStore(it, Math.abs(q), fmtNum) : fmtNum(q) + ' ' + (m.unit || '')), h('td.num', m.doc_no || ''));
-    }) : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]));
+        h('td.num', { class: q < 0 ? 'qty-neg' : '' }, m.entry_unit && m.entry_unit !== m.unit ? (q < 0 ? '-' : '') + fmtNum(m.entry_qty) + ' ' + m.entry_unit
+          : it && q ? (q < 0 ? '-' : '') + Data.fmtStore(it, Math.abs(q), fmtNum) : fmtNum(q) + ' ' + (m.unit || '')),
+        prices ? h('td.num', priced ? money(m.price) + (m.per ? ' / ' + m.per : '') : '') : null,
+        prices ? h('td.num', money(m.final_amount !== '' ? m.final_amount : m.amount)) : null,
+        h('td', enteredBy(m)), h('td.num', m.doc_no || ''), h('td.muted', m.updated_at ? h('small', { title: t('edited') }, '✎') : ''));
+    }) : [h('tr', h('td.empty', { colspan: cols }, t('no_rows')))]));
   };
 
   const requestsNote = h('div');
@@ -158,7 +176,7 @@ export async function render(root) {
   try {
     const today = Data.todayIso();
     const [recent, todayRows] = await Promise.all([
-      call('movements.query', { limit: 40, kinds: ['RECEIPT', 'ISSUE', 'SUPPLIER_RETURN', 'DEPT_RETURN', 'PROD_CONSUME', 'PROD_OUTPUT'] }),
+      call('movements.query', { limit: 250, kinds: ['RECEIPT', 'ISSUE', 'SUPPLIER_RETURN', 'DEPT_RETURN', 'DISPOSAL', 'PROD_CONSUME', 'PROD_OUTPUT'] }),
       call('movements.query', { from: today, to: today }),
     ]);
     todays = todayRows;
@@ -170,7 +188,7 @@ export async function render(root) {
       requestsNote.replaceChildren(open ? h('div.card', h('a.link', { href: '#/requests' }, t('open_requests', { n: open }))) : '');
     }
   } catch (e) {
-    if (!cached) { kToday.textContent = '–'; recentBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
+    if (!cached) { kToday.textContent = '–'; recentBody.replaceChildren(h('tr', h('td.empty', { colspan: cols }, errText(e)))); }
   }
 
   async function editMin(item) {

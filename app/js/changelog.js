@@ -3,6 +3,23 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.30', date: '2026-10-26',
+    ar: {
+      news: [
+        'بطاقة حركات اليوم في لوحة التحكم تعرض الآن آخر الحركات مع السعر والصافي ومن أدخلها، لمتابعة صحة الإدخال (السعر والمورد).',
+        'فلترة الحركات: الكل، استلام، صرف. علامة ✎ تعني أن الحركة عُدّلت بعد إدخالها.',
+      ],
+      todo: 'لا شيء. افتح بطاقة حركات اليوم لترى الجديد.',
+    },
+    en: {
+      news: [
+        'The dashboard card of today’s movements now lists the latest movements with price, net amount and who entered them, to check the entries (price and supplier).',
+        'Filter the movements: all, receipts, issues. A ✎ mark means the movement was edited after entry.',
+      ],
+      todo: 'Nothing. Open the today’s movements card to see it.',
+    },
+  },
+  {
     v: '0.8.29', date: '2026-10-26',
     ar: {
       news: [
