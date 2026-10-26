@@ -3,6 +3,7 @@ import { call, session, ApiError } from './api.js';
 import { APP_VERSION } from './config.js';
 import { CHANGELOG, cmpVersion } from './changelog.js';
 import { Outbox } from './outbox.js';
+import { Push } from './push.js';
 import { MovStore } from './movstore.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
@@ -98,6 +99,7 @@ async function start() {
   route();
   window.__moroStarted = true;
   whatsNew(false);
+  if (allowed('lpo')) Push.refresh();
   if (cached) sync(true);
   setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
@@ -146,6 +148,7 @@ function buildShell() {
     h('div.side-foot',
       h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
       h('button', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
+      pushButton('button'),
       h('button', { type: 'button', onclick: changePin }, t('change_pin')),
       h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
       h('button', { type: 'button', onclick: logout }, t('logout'))));
@@ -193,6 +196,7 @@ function showMore() {
     h('nav.nav', { style: 'display:grid;gap:4px' }, Object.keys(ROUTES).filter(allowed).map((name) =>
       h('a', { href: '#/' + name, style: 'color:var(--ink)' }, icon(name), h('span', t(name))))),
     h('button.btn.secondary', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
+    pushButton('button.btn.secondary'),
     h('button.btn.secondary', { type: 'button', onclick: changePin }, t('change_pin')),
     h('button.btn.secondary', { type: 'button', onclick: toggleLang }, t('lang_other')),
     h('button.btn.danger', { type: 'button', onclick: logout }, t('logout'))),
@@ -242,10 +246,28 @@ async function changePin() {
   if (ok) toast(t('saved'), 'ok');
 }
 
-/** LPOs waiting for the admin / decided for their writer: a number on the LPO menu link. */
+/** LPOs waiting for the admin / decided for their writer: a number on the LPO menu link and on the app icon. */
 function updateBadges() {
   const n = allowed('lpo') ? lpo.badgeCount() : 0;
   document.querySelectorAll('a[data-route="lpo"] .badge').forEach((b) => { b.hidden = !n; b.textContent = String(n); });
+  Push.badge(n);
+}
+
+/** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
+function pushButton(tag) {
+  if (!allowed('lpo')) return null;
+  const st = Push.state();
+  if (st === 'on' || st === 'off') return null;
+  if (st === 'blocked') return h('small.muted.push-note', t('push_blocked'));
+  const b = h(tag, { type: 'button', onclick: async () => {
+    b.disabled = true;
+    try {
+      const now = await Push.enable();
+      if (now === 'on') { toast(t('push_on'), 'ok'); b.remove(); }
+      else { toast(t('push_blocked'), 'err'); b.disabled = false; }
+    } catch { toast(t('push_failed'), 'err'); b.disabled = false; }
+  } }, '🔔 ' + t('push_enable'));
+  return b;
 }
 window.addEventListener('moro:badge', updateBadges);
 
@@ -313,6 +335,7 @@ function toggleLang() {
 }
 
 async function logout() {
+  await Push.signOut();
   session.token = '';
   await kv.clear();
   location.hash = '';

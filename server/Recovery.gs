@@ -10,6 +10,7 @@ function onOpen() {
     .addItem('Reset a user PIN', 'resetPinFromSheet')
     .addItem('Apply store changes made in the sheet', 'applyStoresFromSheet')
     .addItem('Create the Masar link key', 'newLinkKeyFromSheet')
+    .addItem('Set up phone notifications (Firebase)', 'setupPushFromSheet')
     .addToUi();
 }
 

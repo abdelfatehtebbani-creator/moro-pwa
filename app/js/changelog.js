@@ -3,6 +3,23 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.31', date: '2026-10-26',
+    ar: {
+      news: [
+        'إشعارات على الهاتف والحاسوب حتى والتطبيق مغلق: يصل المدير إشعار عند إرسال أمر شراء LPO، ويصل مسؤول المشتريات إشعار عند اعتماده أو رفضه.',
+        'يظهر رقم الأوامر المنتظرة على أيقونة التطبيق في الأجهزة التي تدعم ذلك.',
+      ],
+      todo: 'المدير ومسؤول المشتريات: اضغط "تفعيل الإشعارات" في القائمة على كل جهاز تستعمله، ثم "سماح". على الآيفون أضف التطبيق إلى الشاشة الرئيسية أولًا وافتحه منها.',
+    },
+    en: {
+      news: [
+        'Phone and computer notifications, even with the app closed: the admin is told when an LPO is sent, the purchasing officer when it is approved or rejected.',
+        'The number of waiting LPOs shows on the app icon where the device supports it.',
+      ],
+      todo: 'Admin and purchasing: tap "Turn on notifications" in the menu on every device you use, then "Allow". On an iPhone add the app to the home screen first and open it from there.',
+    },
+  },
+  {
     v: '0.8.30', date: '2026-10-26',
     ar: {
       news: [

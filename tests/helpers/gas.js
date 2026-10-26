@@ -72,6 +72,11 @@ function createGas(opts = {}) {
   const props = {};
   const cache = {};
   const logs = [];
+  const fetches = [];
+  const reply = (url, o) => {
+    const [code, body] = opts.fetchReply ? opts.fetchReply(url, o) : [200, url.includes('oauth2') ? '{"access_token":"AT"}' : '{}'];
+    return { getResponseCode: () => code, getContentText: () => body };
+  };
   const lock = { held: false, acquirable: opts.lockAcquirable !== false };
   const fmt = (date, tz, pattern) => {
     const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -90,6 +95,12 @@ function createGas(opts = {}) {
       base64EncodeWebSafe: (data) => Buffer.from(Uint8Array.from(data, (b) => b & 0xff)).toString('base64')
         .replace(/\+/g, '-').replace(/\//g, '_'),
       formatDate: fmt,
+      computeRsaSha256Signature: (input) => Array.from(Buffer.from('sig:' + input)),
+    },
+    // Firebase: the OAuth token and each message are recorded in `fetches`; fetchReply decides the answer
+    UrlFetchApp: {
+      fetch: (url, o) => { fetches.push({ url, o }); return reply(url, o); },
+      fetchAll: (reqs) => reqs.map((r) => { fetches.push({ url: r.url, o: r }); return reply(r.url, r); }),
     },
     PropertiesService: { getScriptProperties: () => ({
       getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = v; } }) },
@@ -108,7 +119,7 @@ function createGas(opts = {}) {
   const run = (code) => vm.runInContext(code, context);
   run('setupSheets()');
   return {
-    run, spreadsheet, props, cache, logs, lock,
+    run, spreadsheet, props, cache, logs, lock, fetches,
     /** Adds rows (objects) to a sheet after its header. */
     seed(sheetName, records) {
       const sh = spreadsheet.sheets[sheetName];

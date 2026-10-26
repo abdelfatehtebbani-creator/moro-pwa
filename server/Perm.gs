@@ -11,7 +11,7 @@
 var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
 
 /** Actions every signed-in user may call. */
-var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list'];
+var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production'];
 
