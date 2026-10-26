@@ -139,10 +139,21 @@ var Lpo = {
 };
 
 /**
- * Notify – who is told about an LPO. Phase 1: the app shows a badge (pending count in the bootstrap).
- * Phase 2 will send phone/computer notifications through Firebase from here.
+ * Notify – who is told about an LPO: the badge in the app, and a phone / computer notification (Push.gs).
+ * A sent LPO goes to whoever approves; the decision goes back to its writer.
  */
 var Notify = {
-  lpoSubmitted: function (id, no, supplier, total, session) {},
-  lpoDecided: function (lpo, ok, note, session) {}
+  lpoSubmitted: function (id, no, supplier, total, session) {
+    var pending = Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length;
+    Push.toUsers(Push.usersWith('lpo.decide').filter(function (u) { return u !== session.user_id; }), {
+      title: 'LPO ' + no + ' بانتظار اعتمادك', body: supplier + ' · ' + Number(total).toFixed(2) + ' QR · ' + session.display_name,
+      page: 'lpo', badge: pending });
+  },
+  lpoDecided: function (lpo, ok, note, session) {
+    if (lpo.created_by === session.user_id) return;
+    var party = Repo.find('Parties', 'party_id', lpo.party_id) || {};
+    Push.toUsers([lpo.created_by], {
+      title: 'LPO ' + lpo.lpo_no + (ok ? ' اعتُمد' : ' رُفض'), body: (party.name || '') + (ok ? ' · يمكنك طباعته الآن' : ' · ' + note),
+      page: 'lpo', badge: 1 });
+  }
 };

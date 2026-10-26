@@ -9,6 +9,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('MORO')
     .addItem('Reset a user PIN', 'resetPinFromSheet')
     .addItem('Apply store changes made in the sheet', 'applyStoresFromSheet')
+    .addItem('Set up phone notifications (Firebase)', 'setupPushFromSheet')
     .addToUi();
 }
 
