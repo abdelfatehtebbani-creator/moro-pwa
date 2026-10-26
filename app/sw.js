@@ -1,13 +1,13 @@
 /* Service worker: keeps the app shell available offline. Data never goes through here –
    it is cached in IndexedDB by the app (js/db.js). Bump VERSION on every release. */
-const VERSION = 'moro-v0.8.27';
+const VERSION = 'moro-v0.8.29';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/api.js', 'js/db.js', 'js/i18n.js', 'js/ui.js', 'js/data.js',
   'js/views/login.js', 'js/views/dashboard.js', 'js/views/soon.js', 'js/components.js', 'js/outbox.js',
   'js/views/receive.js', 'js/views/issue.js', 'js/views/production.js', 'js/views/requests.js', 'js/views/masters.js', 'js/views/users.js',
-  'js/reports.js', 'js/xlsx.js', 'js/views/reports.js', 'js/movstore.js',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.png'
+  'js/reports.js', 'js/xlsx.js', 'js/views/reports.js', 'js/movstore.js', 'js/views/counts.js', 'js/views/lpo.js', 'js/changelog.js',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.png', 'icons/lpo-logo.svg'
 ];
 
 self.addEventListener('install', (e) => {

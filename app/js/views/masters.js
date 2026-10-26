@@ -167,15 +167,25 @@ function parties(body, isAdmin) {
     const kind = h('select.input#e-kind', { disabled: !!p }, h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));
     kind.value = p ? p.kind : 'supplier';
     const active = h('input#e-pactive', { type: 'checkbox', checked: !p || p.active === true, disabled: !isAdmin });
+    // a supplier's contact details, printed on its LPOs
+    const canSave = Data.can('parties.save');
+    const contact = Object.fromEntries(['tel', 'fax', 'email', 'contact', 'contact_phone'].map((c) =>
+      [c, trackFilled(h('input.input#e-p' + c, { value: p ? p[c] || '' : '', disabled: !canSave, dir: c === 'contact' ? 'auto' : 'ltr' }))]));
+    const contactBox = h('div.party-contact', h('small.muted', t('party_contact_help')),
+      ...Object.entries(contact).map(([c, el]) => field(t('party_' + c), el)));
+    const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; };
+    kind.addEventListener('change', showContact);
+    showContact();
     const err = h('p.err-text', '');
     const ok = () => {
       if (!name.value.trim()) return flash(name);
       const pl = { name: name.value, kind: kind.value };
       if (p) { pl.party_id = p.party_id; pl.active = active.checked; }
+      if (kind.value === 'supplier') Object.entries(contact).forEach(([c, el]) => { pl[c] = el.value; });
       save('parties.save', pl, close, err);
     };
     return [h('h3', p ? t('edit_party') : t('new_party')), field(t('name'), name), field(t('kind'), kind),
-      h('label.check', active, ' ', t('active')), err,
+      h('label.check', active, ' ', t('active')), contactBox, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
   search.addEventListener('input', fill);
