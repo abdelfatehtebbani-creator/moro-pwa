@@ -423,3 +423,5 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 }
 /* the LPO page carries no app footer, like the paper form */
 @page lpo { margin: 14mm 10mm 12mm; @bottom-center { content: none; } @bottom-left { content: none; } }
+.recent-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.recent-head h2 { margin: 0; }
