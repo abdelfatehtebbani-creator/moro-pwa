@@ -425,3 +425,27 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 @page lpo { margin: 14mm 10mm 12mm; @bottom-center { content: none; } @bottom-left { content: none; } }
 .recent-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .recent-head h2 { margin: 0; }
+
+/* Coffee bag calculator */
+.cf { display: grid; gap: 14px; max-width: 640px; }
+.cf-result { background: #6b4423; color: #fff8f1; border-color: #6b4423; }
+.cf-result .muted { color: #e8d6c4; }
+.cf-big { font-size: 34px; font-weight: 700; }
+.cf-big span:last-child { font-size: 16px; font-weight: 600; }
+.cf-split { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #8a5d38; }
+.cf-split .cf-a { background: #9bbf63; } .cf-split .cf-b { background: #c89b6d; }
+.cf-buy { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cf-buy > div { display: grid; gap: 2px; }
+.cf-buy b { font-size: 19px; }
+.cf-lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #e8d6c4; }
+.cf-dot { width: 10px; height: 10px; border-radius: 50%; } .cf-dot.a { background: #9bbf63; } .cf-dot.b { background: #c89b6d; }
+.cf-roasted { display: flex; justify-content: space-between; border-top: 1px solid #8a5d38; padding-top: 10px; }
+.cf-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cf-row label { display: grid; font-weight: 600; }
+.cf-stepper { display: flex; align-items: center; gap: 6px; }
+.cf-stepper .input { width: 110px; text-align: center; }
+.cf-stepper .btn { min-width: 40px; padding: 6px 0; font-size: 18px; }
+.cf-blend { display: grid; gap: 6px; }
+.cf-blend-head, .cf-blend-ends, .cf-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cf-blend-head label { font-weight: 600; }
+.cf-blend input[type=range] { width: 100%; accent-color: #6b4423; }

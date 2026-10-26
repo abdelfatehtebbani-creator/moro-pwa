@@ -21,6 +21,7 @@ import * as users from './views/users.js';
 import * as reports from './views/reports.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
+import * as coffee from './views/coffee.js';
 
 const ROUTES = {
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
@@ -31,6 +32,7 @@ const ROUTES = {
   requests:  { view: requests, perm: 'nav.requests', group: 'nav_ops' },
   reports:   { view: reports, perm: 'nav.reports', group: 'nav_ops' },
   counts:    { view: counts, perm: 'nav.counts', group: 'nav_ops' },
+  coffee:    { view: coffee, perm: 'nav.coffee', group: 'nav_tools' },
   masters:   { view: masters, perm: 'nav.masters', group: 'nav_admin' },
   users:     { view: users, perm: 'nav.users', group: 'nav_admin' },
 };
