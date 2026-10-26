@@ -9,7 +9,8 @@ const DICT = {
     display_name: 'الاسم الظاهر', pin_repeat: 'أعد كتابة الرمز', create_admin: 'إنشاء الحساب والدخول',
     pin_mismatch: 'الرمزان غير متطابقين', logout: 'تسجيل الخروج', signed_out: 'انتهت الجلسة، سجّل الدخول من جديد',
     // nav
-    nav_main: 'الرئيسية', nav_ops: 'العمليات', nav_admin: 'الإدارة',
+    nav_main: 'الرئيسية', nav_ops: 'العمليات', nav_admin: 'الإدارة', nav_tools: 'أدوات', coffee: 'حاسبة أكياس القهوة', pt_coffee: 'حاسبة أكياس القهوة', 'pt_coffee.view': 'دخول الشاشة',
+    cf_green_total: 'إجمالي القهوة الخضراء المطلوبة قبل التحميص', cf_kg: 'كغ', cf_buy1: 'شراء الصنف الأول', cf_buy2: 'شراء الصنف الثاني', cf_roasted_total: 'إجمالي القهوة المحمصة المطلوبة', cf_count: 'عدد الأكياس المطلوبة', cf_weight: 'وزن الكيس بعد التحميص', cf_waste: 'هامش التبذير لكل كيس', cf_loss: 'فقدان الوزن بالتحميص', cf_grams: 'بالغرام', cf_ratio: 'نسبة الصنف الأول من الخلطة', cf_first: 'الصنف الأول', cf_second: 'الصنف الثاني', cf_hint: 'غيّر القيم وستتحدث النتائج تلقائيًا.', cf_reset: 'القيم الافتراضية', cf_err_loss: 'فقدان الوزن يجب أن يكون أقل من 100%.', cf_err_neg: 'أدخل قيمًا موجبة فقط.',
     dashboard: 'لوحة التحكم', receive: 'استلام البضاعة', issue: 'صرف للأقسام', production: 'الإنتاج',
     requests: 'طلبات الأقسام', reports: 'التقارير', masters: 'المواد والموردون', users: 'المستخدمون', more: 'المزيد',
     // roles
@@ -497,7 +498,8 @@ const DICT = {
     setup_title: 'First run: admin account', setup_hint: 'There are no users yet. Create your account as system admin.',
     display_name: 'Display name', pin_repeat: 'Repeat PIN', create_admin: 'Create account and sign in',
     pin_mismatch: 'The PINs do not match', logout: 'Sign out', signed_out: 'Your session ended, please sign in again',
-    nav_main: 'Main', nav_ops: 'Operations', nav_admin: 'Administration',
+    nav_main: 'Main', nav_ops: 'Operations', nav_admin: 'Administration', nav_tools: 'Tools', coffee: 'Coffee bag calculator', pt_coffee: 'Coffee bag calculator', 'pt_coffee.view': 'Open the screen',
+    cf_green_total: 'Total green coffee needed before roasting', cf_kg: 'kg', cf_buy1: 'First origin', cf_buy2: 'Second origin', cf_roasted_total: 'Total roasted coffee needed', cf_count: 'Number of bags', cf_weight: 'Bag weight after roasting', cf_waste: 'Waste allowance per bag', cf_loss: 'Roast weight loss', cf_grams: 'grams', cf_ratio: 'First origin share of the blend', cf_first: 'First origin', cf_second: 'Second origin', cf_hint: 'Change any value and the results update instantly.', cf_reset: 'Reset defaults', cf_err_loss: 'Roast loss must be below 100%.', cf_err_neg: 'Enter positive values only.',
     dashboard: 'Dashboard', receive: 'Goods receiving', issue: 'Department issues', production: 'Production',
     requests: 'Department requests', reports: 'Reports', masters: 'Items & suppliers', users: 'Users', more: 'More',
     role_admin: 'Admin', role_storekeeper: 'Storekeeper', role_purchasing: 'Purchasing', role_production: 'Production manager',
