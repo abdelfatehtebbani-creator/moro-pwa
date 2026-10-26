@@ -33,6 +33,12 @@ var ROUTES = {
   'counts.save':      function (s, p) { return Counts.save(s, p); },
   'counts.approve':   function (s, p) { return Counts.approve(s, p); },
   'counts.cancel':    function (s, p) { return Counts.cancel(s, p); },
+  'lpo.list':         function (s, p) { return Lpo.list(s, p); },
+  'lpo.get':          function (s, p) { return Lpo.get(s, p); },
+  'lpo.save':         function (s, p) { return Lpo.save(s, p); },
+  'lpo.decide':       function (s, p) { return Lpo.decide(s, p); },
+  'lpo.delete':       function (s, p) { return Lpo.remove(s, p); },
+  'lpo.settings':     function (s, p) { return Lpo.settings(s, p); },
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },
@@ -79,7 +85,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '18';
+var SCHEMA_VERSION = '19';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

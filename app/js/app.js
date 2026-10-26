@@ -20,10 +20,12 @@ import * as users from './views/users.js';
 import * as reports from './views/reports.js';
 import * as shoporders from './views/shoporders.js';
 import * as counts from './views/counts.js';
+import * as lpo from './views/lpo.js';
 
 const ROUTES = {
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
+  lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
   production:{ view: production, perm: 'nav.production', group: 'nav_ops' },
   requests:  { view: requests, perm: 'nav.requests', group: 'nav_ops' },
@@ -136,7 +138,7 @@ function buildShell() {
   for (const name of Object.keys(ROUTES)) {
     if (!allowed(name)) continue;
     if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name))));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -151,7 +153,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)))),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -162,6 +164,7 @@ function buildShell() {
   content = h('section.content');
   root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
   updateSync();
+  updateBadges();
 }
 
 const AUTO_REFRESH_MS = 30000;
@@ -239,6 +242,13 @@ async function changePin() {
   if (ok) toast(t('saved'), 'ok');
 }
 
+/** LPOs waiting for the admin / decided for their writer: a number on the LPO menu link. */
+function updateBadges() {
+  const n = allowed('lpo') ? lpo.badgeCount() : 0;
+  document.querySelectorAll('a[data-route="lpo"] .badge').forEach((b) => { b.hidden = !n; b.textContent = String(n); });
+}
+window.addEventListener('moro:badge', updateBadges);
+
 window.addEventListener('hashchange', () => { if (content) route(); });
 // fresh data redraws the dashboard only; work screens read the data live and keep what is being typed
 let storesSeen = '';
@@ -247,6 +257,7 @@ window.addEventListener('moro:data', () => {
   const now = Data.myStores().join(',');
   const changed = storesSeen && now !== storesSeen;
   storesSeen = now;
+  updateBadges();
   if (content && (current === dashboard || changed)) route();
 });
 window.addEventListener('online', () => sync(false));

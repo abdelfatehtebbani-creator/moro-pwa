@@ -6,7 +6,7 @@
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
                  'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit'],
-  Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id'],
+  Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
   Purposes:     ['purpose_id', 'name', 'active'],
@@ -33,6 +33,10 @@ var SCHEMA = {
   Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
   CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price',
                  'theory_expiry', 'counted_expiry'],
+  LPOs:         ['lpo_id', 'lpo_no', 'date', 'delivery_date', 'party_id', 'requisitioner', 'tender', 'non_tender_reason', 'pr_no',
+                 'note', 'total', 'status', 'created_by', 'created_at', 'submitted_at', 'decided_by', 'decided_at', 'decision_note',
+                 'updated_at'],
+  LPOLines:     ['lpo_id', 'line', 'item_id', 'description', 'qty', 'unit', 'price', 'total'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
   Reminders:    ['date', 'message'],
@@ -45,4 +49,5 @@ var TEXT_COLUMNS = ['item_id', 'party_id', 'location_id', 'purpose_id', 'movemen
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
                     'shop_party_id', 'theory_expiry', 'counted_expiry', 'counted_at', 'approved_at', 'count_id',
-                    'expiry_reset', 'expiry_reset_on'];
+                    'expiry_reset', 'expiry_reset_on', 'tel', 'fax', 'contact_phone', 'lpo_id', 'delivery_date', 'submitted_at',
+                    'pr_no'];

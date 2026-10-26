@@ -4,6 +4,8 @@
  */
 var CATEGORIES = ['Food', 'Packaging'];
 var PARTY_KINDS = ['supplier', 'section', 'shop'];
+/** A supplier's contact details, printed on its LPOs. */
+var PARTY_CONTACT = ['tel', 'fax', 'email', 'contact', 'contact_phone'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
 
 var Masters = {
@@ -116,6 +118,7 @@ var Masters = {
   },
 
   /** payload: {party_id?, name, kind, active} */
+  /** payload: {party_id?, name, kind, active, tel, fax, email, contact, contact_phone} */
   saveParty: function (session, p) {
     return withLock(function () {
       var name = Util.clean(p.name);
@@ -127,6 +130,7 @@ var Masters = {
         var n = 0;
         Repo.column('Parties', 'party_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
         var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true };
+        PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined) party[c] = Util.clean(p[c]); });
         Repo.append('Parties', [party]);
         Audit.log(session.user_id, 'party_create', 'Parties', party.party_id, null, party);
         return { party: party, version: Version.bump() };
@@ -139,6 +143,8 @@ var Masters = {
         Perm.require(session, 'rename.parties');
         ch.active = p.active === true;
       }
+      // a supplier's contact details (printed on the LPO): whoever may add suppliers keeps them up to date
+      PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined && Util.clean(p[c]) !== String(cur[c] || '')) ch[c] = Util.clean(p[c]); });
       var res = Repo.update('Parties', 'party_id', cur.party_id, ch);
       Audit.log(session.user_id, 'party_update', 'Parties', cur.party_id, res.before, res.after);
       return { party: res.after, version: Version.bump() };
@@ -301,6 +307,13 @@ var Masters = {
         return o;
       })(),
       reserved: Shop.reservedMap(),
+      lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
+      // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
+      lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {
+        return l.created_by === session.user_id && (l.status === 'approved' || l.status === 'rejected');
+      }).map(function (l) { return [l.lpo_id, l.status, l.decided_at]; }) : [],
+      lpo_terms: Perm.has(session, 'nav.lpo') ? Settings.get('lpo_terms', LPO_DEFAULT_TERMS) : '',
+      lpo_company: Perm.has(session, 'nav.lpo') ? Settings.get('lpo_company', LPO_DEFAULT_COMPANY) : '',
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }
