@@ -10,6 +10,7 @@ import { Data } from './data.js';
 import { t, applyLang, getLang, setLang, errText, fmtDateTime } from './i18n.js';
 import { h, icon, toast, flash, trackFilled, dialog, fmtDate } from './ui.js';
 import { showAuth } from './views/login.js';
+import * as home from './views/home.js';
 import * as dashboard from './views/dashboard.js';
 import * as soon from './views/soon.js';
 import * as receive from './views/receive.js';
@@ -25,6 +26,7 @@ import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
 
 const ROUTES = {
+  home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
@@ -78,6 +80,8 @@ async function start() {
     try { setupNeeded = (await call('ping')).setup_needed; } catch { /* offline: show login */ }
     window.__moroStarted = true;           // the sign-in screen is up
     await showAuth(root, setupNeeded);
+    // just signed in: the home screen first
+    history.replaceState(null, '', location.pathname + location.search);
   }
   step('cache');
   const cached = await Data.loadCached();
@@ -113,8 +117,8 @@ function allowed(name) {
   if (name === 'dashboard') return STOCK_PERMS.some((p) => Data.can(p));
   return Data.can(ROUTES[name].perm);
 }
-// the first screen: the dashboard, or the first screen this user may open
-function home() { return Object.keys(ROUTES).find(allowed) || 'dashboard'; }
+// the first screen: home (every user may open it)
+function firstScreen() { return Object.keys(ROUTES).find(allowed) || 'home'; }
 
 // ---------- what's new: shown once after each update, with what the user needs to do
 const SEEN_KEY = 'moro.seen_version';
@@ -183,14 +187,16 @@ const AUTO_REFRESH_MS = 30000;
 let current = null;
 function route() {
   if (current && current.dispose) current.dispose();
-  let name = (location.hash.replace(/^#\/?/, '') || home()).split('?')[0];
+  let name = (location.hash.replace(/^#\/?/, '') || firstScreen()).split('?')[0];
   if (name === 'more') return showMore();
   if (name === 'failed' && canSeeFailed()) return showFailed();
-  if (!ROUTES[name] || !allowed(name)) name = home();
+  if (!ROUTES[name] || !allowed(name)) name = firstScreen();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
   current = ROUTES[name].view;
-  current.render(content, name);
+  // home shows the other screens this user may open, as the menu does
+  current.render(content, name, { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)) });
+  if (name === 'home') updateBadges();
   window.scrollTo(0, 0);
 }
 

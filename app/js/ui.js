@@ -89,6 +89,8 @@ export function dialog(build) {
 }
 
 const ICONS = {
+  home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
+  shoporders: 'M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z',
   dashboard: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
   receive: 'M19 12v7H5v-7H3v9h18v-9h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z',
   issue: 'M19 12v7H5v-7H3v9h18v-9h-2zM11 6.83L8.41 9.41 7 8l5-5 5 5-1.41 1.41L13 6.83V16h-2V6.83z',
