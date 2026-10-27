@@ -149,6 +149,18 @@ var Notify = {
       title: 'LPO ' + no + ' بانتظار اعتمادك', body: supplier + ' · ' + Number(total).toFixed(2) + ' QR · ' + session.display_name,
       page: 'lpo', badge: pending });
   },
+  cashSubmitted: function (id, date, total, session) {
+    var pending = Repo.all('CashSheets').filter(function (l) { return l.status === 'submitted'; }).length;
+    Push.toUsers(Push.usersWith('cash.decide').filter(function (u) { return u !== session.user_id; }), {
+      title: 'مشتريات نقدية ' + date + ' بانتظار اعتمادك', body: Number(total).toFixed(2) + ' QR · ' + session.display_name,
+      page: 'lpo', badge: pending });
+  },
+  cashDecided: function (sheet, ok, note, session) {
+    if (sheet.created_by === session.user_id) return;
+    Push.toUsers([sheet.created_by], {
+      title: 'مشتريات نقدية ' + sheet.date + (ok ? ' اعتُمدت' : ' رُفضت'),
+      body: Number(sheet.total).toFixed(2) + ' QR' + (ok ? '' : ' · ' + note), page: 'lpo', badge: 1 });
+  },
   lpoDecided: function (lpo, ok, note, session) {
     if (lpo.created_by === session.user_id) return;
     var party = Repo.find('Parties', 'party_id', lpo.party_id) || {};

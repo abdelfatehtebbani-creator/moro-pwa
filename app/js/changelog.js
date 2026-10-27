@@ -3,6 +3,25 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.33', date: '2026-10-27',
+    ar: {
+      news: [
+        'في شاشة أوامر الشراء تبويب جديد "المشتريات النقدية" بدل شيت Petty Cash: ورقة يومية بالمصاريف النقدية (مواد من المحلات، مصاريف، دفعات للموردين) تُرسل للمدير للاعتماد ثم تُطبع.',
+        'رصيد نقدي متحرك: يُضاف إليه ما يسلّمه المدير، ويُخصم منه كل ورقة مرسلة أو معتمدة.',
+      ],
+      todo: 'مسؤول المشتريات: اكتب مصاريف اليوم النقدية في التبويب الجديد. المبلغ إجباري لكل سطر. المواد تُستلم في المخزن من شاشة الاستلام كالعادة.',
+      admin: 'سجّل النقد الذي تسلّمه لمسؤول المشتريات من زر "تسليم نقد" (ابدأ بالمبلغ المتوفر معه اليوم). من له صلاحيات مخصصة تعلّم له "كتابة وإرسال أوراق المشتريات النقدية".',
+    },
+    en: {
+      news: [
+        'The purchase orders screen has a new "Cash purchases" tab instead of the Petty Cash sheet: a daily sheet of cash payments (shop materials, expenses, supplier payments) sent to the admin for approval, then printed.',
+        'A running cash balance: what the admin hands over is added, every sent or approved sheet is taken off.',
+      ],
+      todo: 'Purchasing: write the day’s cash payments in the new tab. Every line needs an amount. Materials are still received in stock from the receive screen.',
+      admin: 'Record the cash you give the purchasing officer with "Hand over cash" (start with what they hold today). For users with custom permissions, tick "Write and send cash purchase sheets".',
+    },
+  },
+  {
     v: '0.8.32', date: '2026-10-26',
     ar: {
       news: [

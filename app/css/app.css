@@ -449,3 +449,22 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .cf-blend-head, .cf-blend-ends, .cf-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .cf-blend-head label { font-weight: 600; }
 .cf-blend input[type=range] { width: 100%; accent-color: #6b4423; }
+
+/* Cash purchases (petty cash) */
+.lpo-sections { margin-bottom: 12px; }
+.lpo-sections .badge { margin-inline-start: 6px; background: var(--brand); color: #fff; border-radius: 9px; font-size: 11px; padding: 0 6px; }
+.cash-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cash-head h2 { margin: 0; }
+.cash-sum { display: flex; gap: 18px; flex-wrap: wrap; padding: 8px 12px; background: #fafbfc; border: 1px solid var(--line); border-radius: var(--radius); }
+.cash-edit .cash-kind { width: 120px; }
+.cash-edit .cash-who, .cash-edit .cash-paid, .cash-edit .cash-req { width: 140px; }
+.cash-edit .cash-desc { min-width: 220px; }
+.cash-edit .cash-amount { width: 100px; }
+@media print {
+  .cash-print .cp-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .cash-print .cp-grid td { border: 1pt solid #000; padding: 2pt 4pt; font-size: 9pt; white-space: normal; }
+  .cash-print .cp-head td { font-weight: 700; font-size: 10.5pt; background: #d9d9d9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cash-print .cp-hand td, .cash-print .cp-total td { font-weight: 700; }
+  .cash-print .cp-num { text-align: right; }
+  .cash-print .lp-ok { margin-top: 8pt; }
+}
