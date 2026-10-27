@@ -12,6 +12,8 @@ function env() {
   const tok = { admin: g.api('auth.login', { username: 'admin', pin: '1234' }).data.token };
   g.api('users.save', { username: 'buyer', display_name: 'Buyer', role: 'purchasing', pin: '5678' }, tok.admin);
   g.api('users.save', { username: 'store', display_name: 'Store', role: 'storekeeper', pin: '4321' }, tok.admin);
+  g.api('users.save', { username: 'acc', display_name: 'Accountant', role: 'accountant', pin: '2468' }, tok.admin);
+  tok.acc = g.api('auth.login', { username: 'acc', pin: '2468' }).data.token;
   tok.buyer = g.api('auth.login', { username: 'buyer', pin: '5678' }).data.token;
   tok.store = g.api('auth.login', { username: 'store', pin: '4321' }).data.token;
   return { g, tok };
@@ -24,7 +26,8 @@ test('cash: running balance; a sent sheet takes from it; a rejection gives it ba
   const { g, tok } = env();
   assert.equal(g.api('cash.list', {}, tok.store).error.code, 'forbidden');
   assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.buyer).error.code, 'forbidden');
-  assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 675, note: 'from the manager' }, tok.admin).data.balance, 675);
+  assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.admin).error.code, 'forbidden', 'the accountant hands over the cash');
+  assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 675, note: 'from the manager' }, tok.acc).data.balance, 675);
   const r = g.api('cash.save', sheet(), tok.buyer).data;
   assert.deepEqual([r.status, r.total], ['draft', 140]);
   assert.equal(g.api('cash.list', {}, tok.buyer).data.balance, 675, 'a draft does not take money yet');
@@ -55,7 +58,7 @@ test('cash: amounts are required and numeric; a supplier payment needs a supplie
 
 test('cash: the admin refuses single lines with a reason; only the approved lines leave the cash; the ledger shows each step', () => {
   const { g, tok } = env();
-  g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.admin);
+  g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.acc);
   const id = g.api('cash.save', sheet({ submit: true }), tok.buyer).data.sheet_id;
   assert.equal(g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 2 }] }, tok.admin).error.code, 'reason_required');
   assert.equal(g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 1, note: 'a' }, { line: 2, note: 'b' }] }, tok.admin).error.code, 'cash_all_rejected');
@@ -86,4 +89,23 @@ test('cash: handing over cash is its own permission and tells the purchasing off
   assert.match(by['buyer-ar'], /استلمت نقدًا/);
   assert.match(by['buyer-en'], /Cash handed to you/);
   assert.ok(admin);
+});
+
+test('cash: the accountant sees the sheets but cannot write or approve them, and is told when a sheet is approved', () => {
+  const { g, tok } = env();
+  g.props.FCM_SERVICE_ACCOUNT = JSON.stringify({ project_id: 'p', client_email: 'x@p.iam.gserviceaccount.com', private_key: 'K' });
+  g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.acc);
+  const id = g.api('cash.save', sheet({ submit: true }), tok.buyer).data.sheet_id;
+  assert.equal(g.api('cash.save', sheet(), tok.acc).error.code, 'forbidden');
+  assert.equal(g.api('cash.decide', { sheet_id: id, approve: true }, tok.acc).error.code, 'forbidden');
+  assert.equal(g.api('cash.get', { sheet_id: id }, tok.acc).data.sheet.sheet_id, id);
+  assert.equal(g.api('lpo.list', {}, tok.acc).ok, true);
+  assert.equal(g.api('lpo.save', { party_id: 'P001', lines: [] }, tok.acc).error.code, 'forbidden');
+  assert.equal(g.api('movements.query', {}, tok.acc).ok, true);
+  g.api('push.register', { token: 'acc-ar', device: 'Android', lang: 'ar' }, tok.acc);
+  g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 2, note: 'no receipt' }] }, tok.admin);
+  const sent = g.fetches.filter((f) => f.url.includes('fcm')).map((f) => JSON.parse(f.o.payload).message).filter((m) => m.token === 'acc-ar');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].data.title, /90\.00 QR/);
+  assert.match(sent[0].data.body, /سلّم النقد/);
 });

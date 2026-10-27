@@ -8,7 +8,7 @@
  * Lists saved before the tree (receive, issue, masters…) are read through OLD_CAPS.
  * Every server action is checked once in the router; the finer rules (own records, stores…) in the services.
  */
-var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
+var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant'];
 
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
@@ -79,7 +79,7 @@ var CAPS = (function () {
     'lpo.terms':         ['lpo.settings'],
     'cash.create':       ['nav.lpo', 'cash.list', 'cash.get', 'cash.save', 'cash.delete', 'cash.ledger'],
     'cash.approve':      ['nav.lpo', 'cash.list', 'cash.get', 'cash.decide', 'cash.ledger'],
-    'cash.handover':     ['nav.lpo', 'cash.list', 'cash.float', 'cash.ledger'],
+    'cash.handover':     ['nav.lpo', 'cash.list', 'cash.get', 'cash.float', 'cash.ledger'],
     'counts.view':       ['nav.counts', 'counts.list', 'counts.get'],
     'counts.open':       ['nav.counts', 'counts.list', 'counts.get', 'counts.open'],
     'counts.save':       ['nav.counts', 'counts.list', 'counts.get', 'counts.save'],
@@ -148,10 +148,12 @@ function leavesFromOld(list) {
 }
 
 var ROLE_CAPS = {
-  admin:       Object.keys(CAPS),
+  // the accountant hands over the cash, not the admin (the admin can still be given it by hand)
+  admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
   storekeeper: leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
-  production:  leavesFromOld(['request_create'])
+  production:  leavesFromOld(['request_create']),
+  accountant:  ['lpo.view', 'cash.handover']
 };
 
 var Perm = {
