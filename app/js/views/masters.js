@@ -100,6 +100,7 @@ function items(body, isAdmin) {
     unit.input.addEventListener('change', () => { stockLbl.textContent = unit.input.value.trim().toUpperCase(); fillShow(); });
     buyUnit.addEventListener('input', fillShow);
     fillShow();
+    const image = trackFilled(h('input.input#e-image', { type: 'url', value: it ? it.image || '' : '', placeholder: 'https://…', dir: 'ltr' }));
     // final products: a fixed price per stock unit, set by the admin, used by every receipt
     const canFinal = Data.can('final_price');
     const finalPrice = trackFilled(h('input.input.num#e-fprice', { type: 'number', min: 0, step: 'any', value: it && it.final_price !== undefined ? it.final_price : '', disabled: !canFinal }));
@@ -114,6 +115,7 @@ function items(body, isAdmin) {
       const p = { name: name.value, store: cat.value, unit: it ? it.unit : unit.input.value.trim().toUpperCase() };
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
+      p.image = image.value.trim();
       if (canPack) {
         const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
         // the larger unit holds more than one base unit (the base is the smallest)
@@ -139,7 +141,8 @@ function items(body, isAdmin) {
           h('div.buy-line', { dir: 'ltr' }, h('span', '1'), buyUnit, h('span', '='), buyQty, stockLbl)),
         h('div.show-units', field(t('show_purchasing'), buyShow), field(t('show_store'), storeShow)),
         h('small.muted', t('item_units_help')), convertBtn),
-      field(t('min_stock_in', { u: it ? it.unit : '' }), min), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
+      field(t('min_stock_in', { u: it ? it.unit : '' }), min),
+      field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
 
@@ -154,8 +157,8 @@ function parties(body, isAdmin) {
   const tb = h('tbody');
   // search by name or ID, and by kind (suppliers / departments)
   const search = trackFilled(h('input.input#p-search', { type: 'search', placeholder: t('party_search_hint') }));
-  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));
-  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section')
+  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section' || p.kind === 'shop')
     .filter((p) => (!kindSel.value || p.kind === kindSel.value) &&
       (!search.value.trim() || (p.name + ' ' + p.party_id).toLowerCase().includes(search.value.trim().toLowerCase())))
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
@@ -164,7 +167,7 @@ function parties(body, isAdmin) {
   watch(fill);
   const edit = (p) => dialog((close) => {
     const name = trackFilled(h('input.input#e-pname', { value: p ? p.name : '', disabled: p && !isAdmin }));
-    const kind = h('select.input#e-kind', { disabled: !!p }, h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')));
+    const kind = h('select.input#e-kind', { disabled: !!p }, h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
     kind.value = p ? p.kind : 'supplier';
     const active = h('input#e-pactive', { type: 'checkbox', checked: !p || p.active === true, disabled: !isAdmin });
     // a supplier's contact details, printed on its LPOs

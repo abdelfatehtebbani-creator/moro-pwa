@@ -55,7 +55,13 @@ var ROUTES = {
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },
   'users.list':       function () { return Auth.listUsers(); },
   'users.save':       function (s, p) { return Auth.saveUser(s, p); },
-  'audit.list':       function (s, p) { return Audit.list(p || {}); }
+  'audit.list':       function (s, p) { return Audit.list(p || {}); },
+  'shop.list':        function (s, p) { return Shop.list(s, p); },
+  'shop.hand':        function (s, p) { return Shop.hand(s, p); },
+  'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
+  'shop.return':      function (s, p) { return Shop.returnLine(s, p); },
+  'special.list':     function (s, p) { return Shop.listSpecial(s, p); },
+  'special.decide':   function (s, p) { return Shop.decideSpecial(s, p); }
 };
 
 /** Actions that do not need a session. */
@@ -78,6 +84,7 @@ function handle(body) {
     var action = String(req.action || '');
     var payload = req.payload || {};
     if (PUBLIC[action]) return { ok: true, data: PUBLIC[action](payload) };
+    if (LINK_ROUTES[action]) { Link.check(payload.key); return { ok: true, data: LINK_ROUTES[action](payload) }; }
     var session = Auth.verify(req.token);
     Perm.check(action, session);
     return { ok: true, data: ROUTES[action](session, payload) };
@@ -89,7 +96,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '18';
+var SCHEMA_VERSION = '24';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

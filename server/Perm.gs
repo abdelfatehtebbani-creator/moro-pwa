@@ -20,10 +20,12 @@ var PERM_TREE = [
   { key: 'dashboard', children: [{ leaf: 'dash.min' }] },
   { key: 'receive', children: [{ leaf: 'receive.view' }, { leaf: 'receive.save' }, { leaf: 'receive.return' },
     { leaf: 'receive.edit_own' }, { leaf: 'receive.edit_all' }, { leaf: 'receive.delete' }] },
-  { key: 'issue', children: [{ leaf: 'issue.view' }, { leaf: 'issue.post' }, { leaf: 'issue.dept_return' },
+  { key: 'issue', children: [{ leaf: 'issue.view' }, { leaf: 'issue.post' }, { leaf: 'issue.dept_return' }, { leaf: 'issue.disposal' },
     { leaf: 'issue.edit_own' }, { leaf: 'issue.edit_all' }, { leaf: 'issue.delete' }] },
   { key: 'production', children: [{ leaf: 'production.view' }, { leaf: 'production.post' }, { leaf: 'production.edit' }] },
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
+  { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
+    { leaf: 'shop.shortage' }, { leaf: 'shop.special' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
 },
   { key: 'lpo', children: [{ leaf: 'lpo.view' }, { leaf: 'lpo.create' }, { leaf: 'lpo.approve' }, { leaf: 'lpo.terms' },
@@ -54,6 +56,13 @@ var CAPS = (function () {
     'issue.view':        ['nav.issue'],
     'issue.post':        ['nav.issue', 'movements.save', 'kind.ISSUE'],
     'issue.dept_return': ['nav.issue', 'movements.save', 'kind.DEPT_RETURN'],
+    'issue.disposal':    ['nav.issue', 'movements.save', 'kind.DISPOSAL'],
+    'shop.view':         ['nav.shoporders', 'shop.list'],
+    'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'movements.save', 'kind.ISSUE'],
+    'shop.unavailable':  ['shop.unavailable'],
+    'shop.return':       ['shop.return', 'movements.save', 'kind.DEPT_RETURN'],
+    'shop.shortage':     ['nav.shoporders', 'shop.list', 'shop.shortage'],
+    'shop.special':      ['nav.shoporders', 'shop.list', 'special.list', 'special.decide'],
     'issue.edit_own':    ['movements.update', 'edit_own.issue'],
     'issue.edit_all':    ['movements.update', 'edit_own.issue', 'edit_all.issue'],
     'issue.delete':      ['movements.delete', 'delete.issue'],
@@ -107,7 +116,9 @@ var CAPS = (function () {
 /** The bundles used before the tree, read as leaves (lists saved in Users.caps stay valid). */
 var OLD_CAPS = {
   receive: ['receive.view', 'receive.save', 'receive.return'],
-  issue: ['issue.view', 'issue.post', 'issue.dept_return'],
+  issue: ['issue.view', 'issue.post', 'issue.dept_return', 'issue.disposal'],
+  shop_orders: ['shop.view', 'shop.hand', 'shop.unavailable', 'shop.return'],
+  special: ['shop.special', 'shop.shortage'],
   production: ['production.view', 'production.post'],
   request_create: ['requests.view', 'requests.create'],
   request_fulfil: ['requests.view', 'requests.fulfil'],
@@ -140,8 +151,8 @@ function leavesFromOld(list) {
 var ROLE_CAPS = {
   // the accountant hands over the cash, not the admin (the admin can still be given it by hand)
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
-  storekeeper: leavesFromOld(['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']).concat(['coffee.view', 'coffee.pack']),
-  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
+  storekeeper: leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']).concat(['coffee.view', 'coffee.pack']),
+  purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
   production:  leavesFromOld(['request_create']),
   accountant:  ['lpo.view', 'cash.handover']
 };

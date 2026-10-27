@@ -3,6 +3,27 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.62', date: '2026-10-27',
+    ar: {
+      news: [
+        'شاشة جديدة "طلبيات المحلات": طلبيات المواد الأولية التي يرسلها كاشير المحل من مسار تصل هنا، ويُحجز رصيدها فورًا. يجهّز أمين كل مخزن أسطره (كاملة أو جزئية أو "لا يمكن توفيره" مع السبب) ثم يسلّمها للتوزيع، فيُسجَّل الصرف للمحل.',
+        'المحلات جهات جديدة بجانب الموردين والأقسام، والإتلاف حركة جديدة في شاشة الصرف بسبب إلزامي.',
+        'النقص والأصناف خارج القائمة (شراء خاص) تظهر لمسؤول المشتريات ليقرر فيها.',
+      ],
+      todo: 'أمين المخزن: تابع شاشة "طلبيات المحلات" وجهّز أسطر مخزنك ثم سلّمها للتوزيع.',
+      admin: 'من له صلاحيات مخصصة تعلّم له صلاحيات "طلبيات المحلات" (لأمناء المخازن) و"الشراء الخاص" (لمسؤول المشتريات).',
+    },
+    en: {
+      news: [
+        'A new "Shop orders" screen: raw-material orders sent by shop cashiers from Masar arrive here and their stock is reserved at once. Each storekeeper prepares the lines of their store (in full, in part, or "cannot supply" with a reason) and hands them to distribution, which records the issue to the shop.',
+        'Shops are a new kind of party beside suppliers and sections, and disposal is a new movement in the issue screen with a required reason.',
+        'Shortages and items outside the list (special purchases) go to the purchasing officer to decide.',
+      ],
+      todo: 'Storekeeper: follow the "Shop orders" screen, prepare the lines of your store and hand them to distribution.',
+      admin: 'Users with custom permissions need "Shop orders" (storekeepers) and "Special purchases" (purchasing) ticked.',
+    },
+  },
+  {
     v: '0.8.40', date: '2026-10-27',
     ar: { news: ['في الشاشة الرئيسية خلف القرص الدوار ثلاثة عقارب (الساعة والدقيقة والثانية) تعرض وقت جهازك.'] },
     en: { news: ['On the home screen, three hands (hour, minute and second) behind the turning disc show your device\u2019s time.'] },

@@ -64,6 +64,11 @@ test('received in BOX, kept in PC; issued in TRAY or PC; what was typed is kept'
   assert.equal(g.rows('Movements').find((x) => x.movement_id === id).entry_unit, 'BOX');
   assert.equal(g.api('movements.update', { movement_id: id, changes: { qty: 5, unit: 'BOX', amount: 450 } }, tok.store).ok, true);
   assert.equal(bal('I0001'), 1800 - 60 - 45);
+  // MORO's catalogue for Masar: last purchase price per PC
+  const key = g.run('Link.newSecret()');
+  const cat = g.api('link.catalog', { key }).data.items.find((i) => i.item_id === 'I0001');
+  assert.equal(cat.unit, 'PC');
+  assert.equal(cat.last_purchase_price, 0.25);
 });
 
 test('renaming the stock unit (factor 1): PC -> TIN in the item, balance and history, quantities unchanged', () => {
