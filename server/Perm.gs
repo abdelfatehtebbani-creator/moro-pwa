@@ -36,7 +36,7 @@ var PERM_TREE = [
     { key: 'tab_locations', children: [{ leaf: 'locations.view' }, { leaf: 'locations.add' }, { leaf: 'locations.rename' }] },
     { key: 'tab_units', children: [{ leaf: 'units.view' }, { leaf: 'units.add' }, { leaf: 'units.rename' }] },
     { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }] }] },
-  { key: 'coffee', children: [{ leaf: 'coffee.view' }] },
+  { key: 'coffee', children: [{ leaf: 'coffee.view' }, { leaf: 'coffee.pack' }] },
   { key: 'users', children: [{ leaf: 'users.manage' }] },
   { key: 'general', children: [{ leaf: 'prices.see' }] }
 ];
@@ -94,7 +94,8 @@ var CAPS = (function () {
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     'recipes.edit':      ['recipes.save'],
-    'coffee.view':       ['nav.coffee'],
+    'coffee.view':       ['nav.coffee', 'coffee.list'],
+    'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list'],
     'prices.see':        ['see_prices']
   };
@@ -139,7 +140,7 @@ function leavesFromOld(list) {
 var ROLE_CAPS = {
   // the accountant hands over the cash, not the admin (the admin can still be given it by hand)
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
-  storekeeper: leavesFromOld(['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']),
+  storekeeper: leavesFromOld(['receive', 'issue', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']).concat(['coffee.view', 'coffee.pack']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
   production:  leavesFromOld(['request_create']),
   accountant:  ['lpo.view', 'cash.handover']
