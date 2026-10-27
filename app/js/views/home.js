@@ -25,7 +25,14 @@ export function render(root, name, ctx) {
     }
     return a;
   }));
-  root.replaceChildren(h('div.home', h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), ctx && ctx.account));
+  // the user's own buttons, split between the two sides of the circle (wide screens; phones have "more")
+  const acc = ctx && ctx.account;
+  let sides = [null, null];
+  if (acc) {
+    const first = Math.ceil((acc.buttons.length + 1) / 2) - 1; // the name counts as one on the first side
+    sides = [h('div.home-side', acc.info, acc.buttons.slice(0, first)), h('div.home-side', acc.buttons.slice(first))];
+  }
+  root.replaceChildren(h('div.home', h('div.home-grid', sides[0], h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), sides[1])));
 
   let alive = true;
   let unmount = null;

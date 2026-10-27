@@ -7,13 +7,13 @@ export const CHANGELOG = [
     ar: {
       news: [
         'في الشاشة الرئيسية على الحاسوب اختفى الشريط الجانبي، وصارت الشاشات أزرارًا دائرية موزعة بالتساوي على دائرة حول القرص. يعود الشريط الجانبي في باقي الشاشات.',
-        'أزرار حسابك (ما الجديد، الإشعارات، تغيير الرمز، اللغة، الخروج) أسفل الشاشة الرئيسية.',
+        'أزرار حسابك (ما الجديد، الإشعارات، تغيير الرمز، اللغة، الخروج) موزعة على جانبي الدائرة في الشاشة الرئيسية.',
       ],
     },
     en: {
       news: [
         'On a computer the home screen no longer shows the side menu, and the screens are round buttons spread evenly on a circle around the disc. The side menu is back on every other screen.',
-        'Your account buttons (what\'s new, notifications, change PIN, language, sign out) are at the bottom of the home screen.',
+        'Your account buttons (what\'s new, notifications, change PIN, language, sign out) are on both sides of the circle on the home screen.',
       ],
     },
   },

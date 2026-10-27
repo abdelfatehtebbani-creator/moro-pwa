@@ -206,7 +206,8 @@ function route() {
   shellEl.classList.toggle('at-home', name === 'home');
   const u = Data.user;
   current.render(content, name, { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)),
-    account: name === 'home' ? h('div.home-account', h('span', h('b', u.display_name), ' · ' + t('role_' + u.role) + ' · v' + APP_VERSION), accountButtons()) : null });
+    account: name === 'home' ? { info: h('div.home-user', h('b', u.display_name), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
+      buttons: accountButtons().filter(Boolean) } : null });
   if (name === 'home') updateBadges();
   window.scrollTo(0, 0);
 }
