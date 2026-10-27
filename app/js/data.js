@@ -35,8 +35,10 @@ export const Data = {
     this.perms = new Set(b.permissions);
     this.version = b.version;
     this.settings = b.settings || {};
-    this.items = new Map(objects(b.items).map((i) => [i.item_id, i]));
-    this.parties = new Map(objects(b.parties).map((p) => [p.party_id, p]));
+    // a name typed as digits in the sheet comes back as a number: names are always text in the app
+    const named = (o) => ({ ...o, name: String(o.name === null || o.name === undefined ? '' : o.name) });
+    this.items = new Map(objects(b.items).map((i) => [i.item_id, named(i)]));
+    this.parties = new Map(objects(b.parties).map((p) => [p.party_id, named(p)]));
     this.serverBalances = new Map(objects(b.balances).map((x) => [x.item_id, x]));
     // what is left of each expiry date: {item_id: [[expiry, qty], ...]} nearest first
     this.batches = b.batches || {};

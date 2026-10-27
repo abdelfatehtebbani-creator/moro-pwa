@@ -50,6 +50,7 @@ export async function render(root) {
     let res;
     try { res = await call('cash.list', filter ? { status: filter } : {}); } catch (e) { toast(errText(e), 'err'); return; }
     names = res.names || names;
+    Object.keys(names).forEach((k) => { names[k] = (names[k] || []).map(String); });
     balance = res.balance;
     balanceEl.textContent = money(balance) + ' QR';
     balanceEl.classList.toggle('qty-neg', balance < 0);
@@ -214,7 +215,7 @@ export async function render(root) {
   root.replaceChildren(h('div.card',
     h('div.cash-head', h('h2', t('cash_purchases')), h('span', t('cash_balance') + ': ', balanceEl)),
     h('div.form-actions', tabs, h('div.spacer'),
-      canWrite ? h('button.btn', { type: 'button', onclick: () => editor(null, [], balance) }, '+ ' + t('cash_new')) : null,
+      canWrite ? h('button.btn', { type: 'button', onclick: () => { try { editor(null, [], balance); } catch (e) { toast(String(e && e.message || e), 'err'); } } }, '+ ' + t('cash_new')) : null,
       Data.can('cash.float') ? h('button.btn.secondary', { type: 'button', onclick: handOver }, t('cash_hand_over')) : null),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('date')), h('th', t('total') + ' (QR)'), h('th', ''), h('th', t('lpo_written_by')), h('th', ''))), list))),
     detail);
