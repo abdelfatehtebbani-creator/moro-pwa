@@ -61,11 +61,12 @@
 .home-clock .hand-hour { --len: var(--hand-h); --head: var(--head-h); --stem-cut: calc(24 * var(--head) - 4); }
 .home-clock .hand-minute { --len: var(--hand-m); --head: var(--head-m); --stem-cut: calc(24 * var(--head) - 4); }
 .home-clock .hand-second { --len: var(--hand-s); }
-.home-clock .head { transform-origin: 0 0; transform: translateY(calc(var(--len) * -1px)) scale(var(--head)); }
+.home-clock .head { transform-origin: 0 0; transform: translateY(calc(var(--len) * -1px)) scale(calc(var(--head) * var(--head-w, 1)), var(--head)); }
 .home-clock .hand-hour .head { fill: var(--navy); }
-.home-clock .hand-minute .head { fill: var(--teal); }
+.home-clock .hand-minute .head { fill: #000; }
+.home-clock .hand-minute { --head-w: .7; }
 .home-clock .hand-hour line { stroke: var(--navy); stroke-width: 6; }
-.home-clock .hand-minute line { stroke: var(--teal); stroke-width: 4; }
+.home-clock .hand-minute line { stroke: #000; stroke-width: 2.5; }
 .home-clock .hand-second line { stroke: var(--brand); stroke-width: 2; }
 @keyframes clock-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
