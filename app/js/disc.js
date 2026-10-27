@@ -25,6 +25,13 @@ function clockHands() {
     // a unit segment, placed and stretched in disc.css: from just outside the disc to the hand's tip
     line.setAttribute('x1', '0'); line.setAttribute('y1', '0'); line.setAttribute('x2', '0'); line.setAttribute('y2', '-1');
     g.append(line);
+    if (k !== 'second') {
+      // a leaf-shaped head, its point at the hand's tip (placed and sized in disc.css)
+      const head = document.createElementNS(SVG, 'path');
+      head.setAttribute('class', 'head');
+      head.setAttribute('d', 'M0 0 C7 7 7 17 0 24 C-7 17 -7 7 0 0 Z');
+      g.append(head);
+    }
     svg.append(g);
     return g;
   });
