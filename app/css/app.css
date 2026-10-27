@@ -480,13 +480,19 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .home-ico .ico { width: 22px; height: 22px; }
   .home-label { font-size: 12.5px; }
 }
-/* wide and tall enough: the screens on an ellipse around the disc, using the whole width (the side menu is hidden on home) */
-@container (min-width: 760px) {
+/* wide and tall enough: round buttons on a circle around the disc (the side menu is hidden on home) */
+@container (min-width: 600px) {
   @media (min-height: 600px) {
-    .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, 1080px); height: max(560px, calc(100vh - 160px)); }
-    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: min(24cqw, 34vh); margin: 0; translate: -50% -50%; }
+    .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, max(540px, calc(100vh - 150px))); aspect-ratio: 1; }
+    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 36%; margin: 0; translate: -50% -50%; }
     .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
-    .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); width: 136px; translate: -50% -50%; padding: 12px 8px 10px; }
+    .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); translate: -50% -50%;
+      width: clamp(96px, 16%, 118px); aspect-ratio: 1; border-radius: 50%; padding: 8px; gap: 4px; align-content: center;
+      box-shadow: 0 4px 14px rgba(22, 38, 63, .10); }
+    .home-stage.ring .home-ico { width: 40px; height: 40px; }
+    .home-stage.ring .home-ico .ico { width: 22px; height: 22px; }
+    .home-stage.ring .home-label { font-size: 12px; line-height: 1.25; max-width: 92%; }
+    .home-stage.ring .home-tab .badge { top: 4px; inset-inline-end: 10px; }
   }
 }
 @media (min-width: 861px) {
