@@ -61,7 +61,7 @@
 .home-clock .hand-minute line { --len: var(--hand-m); }
 .home-clock .hand-second line { --len: var(--hand-s); }
 .home-clock .hand-hour line { stroke: var(--navy); stroke-width: 6; }
-.home-clock .hand-minute line { stroke: var(--navy); stroke-width: 4; }
+.home-clock .hand-minute line { stroke: var(--teal); stroke-width: 4; }
 .home-clock .hand-second line { stroke: var(--brand); stroke-width: 2; }
 @keyframes clock-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
