@@ -3,6 +3,27 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.39', date: '2026-10-27',
+    ar: {
+      news: [
+        'تبويب "أكياس القهوة" فيه الآن ثلاثة أقسام: الحاسبة، وتجهيز الأكياس، والمخزون والسجل.',
+        'تجهيز الأكياس: يُدخل أمين المخزن القهوة الخضراء المأخوذة ووزنها بعد التحميص وعدد الأكياس المعبأة؛ تنقص القهوة الخضراء وكيس فارغ (Coffee Pouch) لكل كيس معبأ من المخزون، ويزيد صنف COFFEE BAG 200G، ويُحسب الهدر الفعلي مقابل نسب الحاسبة.',
+        'تسليم الأكياس للزبون من شاشة "صرف للأقسام" كأي صنف، وتظهر التسليمات في سجل القهوة.',
+      ],
+      todo: 'أمين المخزن: سجّل كل دفعة أكياس من "تجهيز الأكياس" بالكميات الحقيقية.',
+      admin: 'أضف "مؤسسة الجيش" مرة واحدة في شاشة المواد والموردين كجهة صرف. من له صلاحيات مخصصة تعلّم له "تجهيز أكياس القهوة".',
+    },
+    en: {
+      news: [
+        'The "Coffee bags" tab now has three parts: the calculator, preparing bags, and stock & history.',
+        'Preparing bags: the storekeeper enters the green coffee taken, its weight after roasting and the bags filled; the green coffee and one empty pouch (Coffee Pouch) per bag leave the stock, COFFEE BAG 200G is added, and the real loss is set against the calculator.',
+        'Bags go to the customer from the "Department issues" screen like any item, and appear in the coffee history.',
+      ],
+      todo: 'Storekeeper: record every batch of bags from "Prepare bags" with the real quantities.',
+      admin: 'Add the army customer once in the materials and suppliers screen as an issue destination. Users with custom permissions need "Prepare coffee bags" ticked.',
+    },
+  },
+  {
     v: '0.8.38', date: '2026-10-27',
     ar: { news: ['على الهاتف تظهر الشاشة الرئيسية دون الشريط السفلي، وأزرار حسابك (ما الجديد، تغيير الرمز، اللغة، الخروج) أسفل الشاشات. يعود الشريط في باقي الشاشات.'] },
     en: { news: ['On the phone the home screen shows without the bottom bar, with your account buttons (What\u2019s new, change PIN, language, sign out) under the screens. The bar is back on every other screen.'] },
