@@ -14,7 +14,7 @@ const DICT = {
     dashboard: 'لوحة التحكم', receive: 'استلام البضاعة', issue: 'صرف للأقسام', production: 'الإنتاج',
     requests: 'طلبات الأقسام', reports: 'التقارير', masters: 'المواد والموردون', users: 'المستخدمون', more: 'المزيد',
     // roles
-    role_admin: 'مدير', role_storekeeper: 'أمين المخزن', role_purchasing: 'مسؤول المشتريات', role_production: 'مسؤول الإنتاج',
+    role_admin: 'مدير', role_storekeeper: 'أمين المخزن', role_purchasing: 'مسؤول المشتريات', role_production: 'مسؤول الإنتاج', role_accountant: 'محاسب',
     // sync
     online: 'متصل', offline: 'دون اتصال', updated_at: 'آخر تحديث {t}', refreshing: 'جارٍ التحديث…', connecting: 'جارٍ الاتصال…',
     // dashboard
@@ -513,7 +513,7 @@ const DICT = {
     cf_green_total: 'Total green coffee needed before roasting', cf_kg: 'kg', cf_buy1: 'First origin', cf_buy2: 'Second origin', cf_roasted_total: 'Total roasted coffee needed', cf_count: 'Number of bags', cf_weight: 'Bag weight after roasting', cf_waste: 'Waste allowance per bag', cf_loss: 'Roast weight loss', cf_grams: 'grams', cf_ratio: 'First origin share of the blend', cf_first: 'First origin', cf_second: 'Second origin', cf_hint: 'Change any value and the results update instantly.', cf_reset: 'Reset defaults', cf_err_loss: 'Roast loss must be below 100%.', cf_err_neg: 'Enter positive values only.',
     dashboard: 'Dashboard', receive: 'Goods receiving', issue: 'Department issues', production: 'Production',
     requests: 'Department requests', reports: 'Reports', masters: 'Items & suppliers', users: 'Users', more: 'More',
-    role_admin: 'Admin', role_storekeeper: 'Storekeeper', role_purchasing: 'Purchasing', role_production: 'Production manager',
+    role_admin: 'Admin', role_storekeeper: 'Storekeeper', role_purchasing: 'Purchasing', role_production: 'Production manager', role_accountant: 'Accountant',
     online: 'Online', offline: 'Offline', updated_at: 'Updated {t}', refreshing: 'Updating…', connecting: 'Connecting…',
     kpi_items: 'Items in stock', kpi_low: 'Items at or below minimum', kpi_exp: 'Expiring within 30 days',
     kpi_today: "Today's movements (in / out)", lookup: 'Quick item search', lookup_hint: 'Type any part of the item name', store: 'Store', stores: 'Stores',

@@ -45,7 +45,7 @@ var Cash = {
 
   list: function (session, p) {
     var all = Repo.all('CashSheets').filter(function (s) { return s.status !== 'cancelled'; });
-    if (!Perm.has(session, 'cash.decide')) all = all.filter(function (s) { return s.created_by === session.user_id; });
+    if (!Perm.has(session, 'cash.decide')) all = all.filter(function (s) { return Cash.sees(session, s); });
     if (p && p.status) all = all.filter(function (s) { return s.status === p.status; });
     all.sort(function (a, b) { return String(b.sheet_id).localeCompare(String(a.sheet_id)); });
     // names typed before (shops, who received the money, who asked): offered while typing
@@ -56,10 +56,15 @@ var Cash = {
       floats: Repo.all('CashFloat').sort(function (a, b) { return String(b.entry_id).localeCompare(String(a.entry_id)); }).slice(0, 50) };
   },
 
+  /** Its writer sees a sheet; whoever hands over the cash (the accountant) sees every sent one. */
+  sees: function (session, s) {
+    return s.created_by === session.user_id || (Perm.has(session, 'cash.float') && s.status !== 'draft' && s.status !== 'cancelled');
+  },
+
   get: function (session, p) {
     var s = Repo.find('CashSheets', 'sheet_id', p.sheet_id);
     Util.require(s, 'not_found');
-    Util.require(Perm.has(session, 'cash.decide') || s.created_by === session.user_id, 'forbidden');
+    Util.require(Perm.has(session, 'cash.decide') || Cash.sees(session, s), 'forbidden');
     var lines = Repo.all('CashLines').filter(function (x) { return x.sheet_id === s.sheet_id; })
       .sort(function (a, b) { return Number(a.line) - Number(b.line); });
     return { sheet: s, lines: lines, balance: Cash.balance(s.sheet_id) };

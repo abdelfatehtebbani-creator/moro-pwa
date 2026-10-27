@@ -6,7 +6,7 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { field, storePill } from '../components.js';
 
-const ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
+const ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant'];
 
 export async function render(root) {
   const tb = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));

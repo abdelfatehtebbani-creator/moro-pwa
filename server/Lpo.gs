@@ -166,13 +166,24 @@ var Notify = {
       page: 'lpo', badge: pending });
   },
   cashDecided: function (sheet, ok, note, session, refused) {
-    if (sheet.created_by === session.user_id) return;
+    if (sheet.created_by === session.user_id) { if (ok) Notify.cashToHandOver(sheet, session); return; }
     var amount = Number(sheet.total).toFixed(2) + ' QR';
     Push.toUsers([sheet.created_by], {
       ar: { title: 'مشتريات نقدية ' + sheet.date + (ok ? ' اعتُمدت' : ' رُفضت'),
             body: amount + (ok ? (refused ? ' · رُفض ' + refused + ' سطر، افتحها لترى السبب' : '') : ' · ' + note) },
       en: { title: 'Cash purchases ' + sheet.date + (ok ? ' approved' : ' rejected'),
             body: amount + (ok ? (refused ? ' · ' + refused + ' line(s) refused, open it for the reason' : '') : ' · ' + note) },
+      page: 'lpo', badge: 1 });
+    if (ok) Notify.cashToHandOver(sheet, session);
+  },
+  /** An approved sheet: whoever hands over the cash (the accountant) is told how much to give purchasing. */
+  cashToHandOver: function (sheet, session) {
+    var s = Repo.find('CashSheets', 'sheet_id', sheet.sheet_id) || sheet;
+    var amount = Number(s.approved_total !== '' && s.approved_total !== undefined ? s.approved_total : s.total).toFixed(2) + ' QR';
+    var buyer = (Repo.find('Users', 'user_id', s.created_by) || {}).display_name || '';
+    Push.toUsers(Push.usersWith('cash.float').filter(function (u) { return u !== session.user_id; }), {
+      ar: { title: 'اعتُمدت مشتريات نقدية ' + s.date + ': ' + amount, body: 'سلّم النقد لمسؤول المشتريات' + (buyer ? ' · ' + buyer : '') },
+      en: { title: 'Cash purchases ' + s.date + ' approved: ' + amount, body: 'Hand the cash over to purchasing' + (buyer ? ' · ' + buyer : '') },
       page: 'lpo', badge: 1 });
   },
   /** Cash handed over: whoever writes the cash sheets is told, with the new balance. */
