@@ -468,3 +468,13 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .cash-print .cp-num { text-align: right; }
   .cash-print .lp-ok { margin-top: 8pt; }
 }
+.cash-bal { font-weight: 600; }
+tr.cash-off td { background: #fdecea; }
+tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
+.cash-why { margin-top: 4px; width: 180px; }
+.cash-refused { font-size: 12.5px; margin-top: 2px; }
+.cash-ledger { max-height: 60vh; overflow: auto; }
+@media print {
+  .cash-print tr.cp-off td { color: #666; }
+  .cash-print .cp-note { font-size: 8pt; font-weight: 700; color: #000; }
+}

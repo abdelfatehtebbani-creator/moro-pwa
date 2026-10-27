@@ -83,24 +83,54 @@ export async function render(root) {
         });
         if (!note) return;
       }
-      try { await call('cash.decide', { sheet_id: s.sheet_id, approve, note }); toast(t(approve ? 'cash_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
+      // lines the admin refuses while approving: each needs its reason
+      const rejected_lines = [];
+      if (approve) {
+        for (const r of refuse) {
+          if (!r.box.checked) continue;
+          if (!r.why.value.trim()) { toast(t('err.reason_required'), 'err'); return flash(r.why); }
+          rejected_lines.push({ line: r.line, note: r.why.value.trim() });
+        }
+        if (rejected_lines.length === lines.length) { toast(t('err.cash_all_rejected'), 'err'); return; }
+      }
+      try { await call('cash.decide', { sheet_id: s.sheet_id, approve, note, rejected_lines }); toast(t(approve ? 'cash_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
       catch (e) { toast(errText(e), 'err'); return; }
       Data.refresh().catch(() => {});
       loadList(s.sheet_id);
+    };
+    const deciding = canDecide && s.status === 'submitted';
+    const refuse = [];
+    const approvedTotal = s.status === 'approved' && s.approved_total !== '' ? Number(s.approved_total) : Number(s.total);
+    const lineRow = (x) => {
+      const cells = [h('td', t('cash_k_' + x.kind)), h('td.wrap', h('bdi', lineText(x)),
+        x.status === 'rejected' ? h('div.err-text.cash-refused', t('cash_line_refused') + ': ' + x.reject_note) : null),
+        h('td.num', x.status === 'rejected' ? h('s', money(x.amount)) : money(x.amount)), h('td', x.paid_by), h('td', x.requested_by)];
+      let tr;
+      if (deciding) {
+        const why = h('input.input.cash-why', { placeholder: t('lpo_reject_why'), hidden: true });
+        const box = h('input', { type: 'checkbox', onchange: () => { why.hidden = !box.checked; tr.classList.toggle('cash-off', box.checked); if (box.checked) why.focus(); } });
+        refuse.push({ line: x.line, box, why });
+        cells.push(h('td', h('label.check', box, ' ', t('cash_refuse_line')), why));
+      }
+      tr = h('tr', { class: x.status === 'rejected' ? 'cash-off' : '' }, cells);
+      return tr;
     };
     detail.replaceChildren(h('div.card',
       h('h2', t('cash_sheet'), ' ', s.sheet_id, ' ', h('span', { class: 'pill ' + PILL[s.status] }, t('lpo_st_' + s.status))),
       h('div.lpo-facts',
         fact(t('date'), fmtDate(s.date)), fact(t('cash_on_hand'), s.opening === '' ? '' : money(s.opening)),
-        fact(t('total'), money(s.total)), fact(t('cash_after'), s.opening === '' ? '' : money(Number(s.opening) - Number(s.total))),
+        fact(t('total'), money(s.total)), approvedTotal !== Number(s.total) ? fact(t('cash_approved_total'), h('b', money(approvedTotal))) : null,
+        fact(t('cash_after'), s.opening === '' ? '' : money(Number(s.opening) - approvedTotal)),
         fact(t('note'), s.note),
         fact(t('lpo_written_by'), userName(s.created_by) + (s.submitted_at ? ' · ' + fmtDateTime(new Date(s.submitted_at + '+03:00')) : '')),
         s.decided_by ? fact(t(s.status === 'approved' ? 'lpo_approved_by' : 'lpo_rejected_by'),
           userName(s.decided_by) + ' · ' + fmtDateTime(new Date(s.decided_at + '+03:00'))) : null,
         s.decision_note ? fact(t('lpo_reject_why'), h('b.err-text', s.decision_note)) : null),
-      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('cash_kind')), h('th', t('lpo_desc')), h('th', t('cash_amount')), h('th', t('cash_paid_by')), h('th', t('cash_requested_by')))),
-        h('tbody', lines.map((x) => h('tr', h('td', t('cash_k_' + x.kind)), h('td.wrap', h('bdi', lineText(x))), h('td.num', money(x.amount)), h('td', x.paid_by), h('td', x.requested_by))),
-          h('tr', h('td', { colspan: 2 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(s.total))), h('td'), h('td'))))),
+      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('cash_kind')), h('th', t('lpo_desc')), h('th', t('cash_amount')), h('th', t('cash_paid_by')), h('th', t('cash_requested_by')),
+        deciding ? h('th', '') : null)),
+        h('tbody', lines.map(lineRow),
+          h('tr', h('td', { colspan: 2 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(approvedTotal))), h('td'), h('td'), deciding ? h('td') : null)))),
+      deciding ? h('small.muted', t('cash_refuse_help')) : null,
       h('div.form-actions',
         canDecide && s.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
         canDecide && s.status === 'submitted' ? h('button.btn.danger', { type: 'button', onclick: () => decide(false) }, t('lpo_reject')) : null,
@@ -196,6 +226,21 @@ export async function render(root) {
     detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // the cash history: every hand-over and every sheet, with the balance after each
+  async function ledger() {
+    let res;
+    try { res = await call('cash.ledger', {}); } catch (e) { toast(errText(e), 'err'); return; }
+    await dialog((close) => [h('h3', t('cash_ledger')),
+      h('div', t('cash_balance') + ': ', h('b.num', money(res.balance) + ' QR')),
+      h('div.table-wrap.cash-ledger', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('cash_movement')), h('th', t('cash_amount')), h('th', t('cash_balance')), h('th', t('entered_by')))),
+        h('tbody', res.rows.length ? res.rows.map((r) => h('tr',
+          h('td.num', fmtDate(r.date)),
+          h('td.wrap', r.kind === 'float' ? t(r.amount > 0 ? 'cash_l_float' : 'cash_l_back') : t('cash_sheet') + ' ' + r.ref + ' · ' + t('lpo_st_' + r.status), r.note ? h('small.muted', ' · ' + r.note) : null),
+          h('td.num', { class: r.amount < 0 ? 'qty-neg' : 'qty-pos' }, (r.amount > 0 ? '+' : '') + money(r.amount)),
+          h('td.num', h('b', money(r.balance))), h('td', userName(r.by)))) : [h('tr', h('td.empty', { colspan: 5 }, t('no_rows')))]))),
+      h('div.actions', h('button.btn', { type: 'button', onclick: () => close() }, t('close')))]);
+  }
+
   // admin: cash handed over to the purchasing officer (a negative amount takes cash back)
   async function handOver() {
     const r = await dialog((close) => {
@@ -213,7 +258,8 @@ export async function render(root) {
 
   drawTabs();
   root.replaceChildren(h('div.card',
-    h('div.cash-head', h('h2', t('cash_purchases')), h('span', t('cash_balance') + ': ', balanceEl)),
+    h('div.cash-head', h('h2', t('cash_purchases')),
+      h('button.btn.secondary.cash-bal', { type: 'button', title: t('cash_ledger'), onclick: ledger }, t('cash_balance') + ': ', balanceEl, ' ›')),
     h('div.form-actions', tabs, h('div.spacer'),
       canWrite ? h('button.btn', { type: 'button', onclick: () => { try { editor(null, [], balance); } catch (e) { toast(String(e && e.message || e), 'err'); } } }, '+ ' + t('cash_new')) : null,
       Data.can('cash.float') ? h('button.btn.secondary', { type: 'button', onclick: handOver }, t('cash_hand_over')) : null),
@@ -237,15 +283,18 @@ function printSheet(s, lines) {
   const d = String(s.date);
   const by = (Data.userNames || {})[s.decided_by] || '';
   const opening = s.opening === '' ? null : Number(s.opening);
+  const approved = s.approved_total !== '' && s.approved_total !== undefined ? Number(s.approved_total) : Number(s.total);
   const area = h('div#print-area.lpo-print.cash-print', { dir: 'ltr' },
     h('table.cp-grid',
       h('colgroup', h('col', { style: 'width:62%' }), h('col', { style: 'width:14%' }), h('col', { style: 'width:24%' })),
       h('tbody',
         h('tr.cp-head', h('td', 'CASH PURCHASE - ' + d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4)), h('td', 'QAR'), h('td', 'Beneficiary')),
         opening !== null ? h('tr.cp-hand', h('td', 'CASH ON HAND'), h('td.cp-num', money(opening)), h('td')) : null,
-        lines.map((x) => h('tr', h('td', lineText(x) + (x.requested_by ? ' - ' + x.requested_by : '')), h('td.cp-num', money(x.amount)), h('td', x.paid_by || ''))),
-        h('tr.cp-total', h('td', 'TOTAL'), h('td.cp-num', money(s.total)), h('td')),
-        opening !== null ? h('tr.cp-total', h('td', 'BALANCE'), h('td.cp-num', money(opening - Number(s.total))), h('td')) : null)),
+        lines.map((x) => h('tr', { class: x.status === 'rejected' ? 'cp-off' : '' },
+          h('td', lineText(x) + (x.requested_by ? ' - ' + x.requested_by : ''), x.status === 'rejected' ? h('div.cp-note', 'NOT APPROVED: ' + x.reject_note) : null),
+          h('td.cp-num', x.status === 'rejected' ? h('s', money(x.amount)) : money(x.amount)), h('td', x.paid_by || ''))),
+        h('tr.cp-total', h('td', 'TOTAL'), h('td.cp-num', money(approved)), h('td')),
+        opening !== null ? h('tr.cp-total', h('td', 'BALANCE'), h('td.cp-num', money(opening - approved)), h('td')) : null)),
     h('div.lp-ok', 'Approved by ' + by + ' on ' + fmtDate(String(s.decided_at).slice(0, 10))),
     h('div.lp-sign', h('div', h('span'), 'Purchasing Manager'), h('div', h('span'), 'Finance Manager')));
   document.body.append(area);

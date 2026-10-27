@@ -145,27 +145,42 @@ var Lpo = {
 var Notify = {
   lpoSubmitted: function (id, no, supplier, total, session) {
     var pending = Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length;
+    var body = supplier + ' · ' + Number(total).toFixed(2) + ' QR · ' + session.display_name;
     Push.toUsers(Push.usersWith('lpo.decide').filter(function (u) { return u !== session.user_id; }), {
-      title: 'LPO ' + no + ' بانتظار اعتمادك', body: supplier + ' · ' + Number(total).toFixed(2) + ' QR · ' + session.display_name,
+      ar: { title: 'LPO ' + no + ' بانتظار اعتمادك', body: body }, en: { title: 'LPO ' + no + ' awaits your approval', body: body },
       page: 'lpo', badge: pending });
-  },
-  cashSubmitted: function (id, date, total, session) {
-    var pending = Repo.all('CashSheets').filter(function (l) { return l.status === 'submitted'; }).length;
-    Push.toUsers(Push.usersWith('cash.decide').filter(function (u) { return u !== session.user_id; }), {
-      title: 'مشتريات نقدية ' + date + ' بانتظار اعتمادك', body: Number(total).toFixed(2) + ' QR · ' + session.display_name,
-      page: 'lpo', badge: pending });
-  },
-  cashDecided: function (sheet, ok, note, session) {
-    if (sheet.created_by === session.user_id) return;
-    Push.toUsers([sheet.created_by], {
-      title: 'مشتريات نقدية ' + sheet.date + (ok ? ' اعتُمدت' : ' رُفضت'),
-      body: Number(sheet.total).toFixed(2) + ' QR' + (ok ? '' : ' · ' + note), page: 'lpo', badge: 1 });
   },
   lpoDecided: function (lpo, ok, note, session) {
     if (lpo.created_by === session.user_id) return;
-    var party = Repo.find('Parties', 'party_id', lpo.party_id) || {};
+    var party = (Repo.find('Parties', 'party_id', lpo.party_id) || {}).name || '';
     Push.toUsers([lpo.created_by], {
-      title: 'LPO ' + lpo.lpo_no + (ok ? ' اعتُمد' : ' رُفض'), body: (party.name || '') + (ok ? ' · يمكنك طباعته الآن' : ' · ' + note),
+      ar: { title: 'LPO ' + lpo.lpo_no + (ok ? ' اعتُمد' : ' رُفض'), body: party + (ok ? ' · يمكنك طباعته الآن' : ' · ' + note) },
+      en: { title: 'LPO ' + lpo.lpo_no + (ok ? ' approved' : ' rejected'), body: party + (ok ? ' · you can print it now' : ' · ' + note) },
+      page: 'lpo', badge: 1 });
+  },
+  cashSubmitted: function (id, date, total, session) {
+    var pending = Repo.all('CashSheets').filter(function (l) { return l.status === 'submitted'; }).length;
+    var body = Number(total).toFixed(2) + ' QR · ' + session.display_name;
+    Push.toUsers(Push.usersWith('cash.decide').filter(function (u) { return u !== session.user_id; }), {
+      ar: { title: 'مشتريات نقدية ' + date + ' بانتظار اعتمادك', body: body }, en: { title: 'Cash purchases ' + date + ' await your approval', body: body },
+      page: 'lpo', badge: pending });
+  },
+  cashDecided: function (sheet, ok, note, session, refused) {
+    if (sheet.created_by === session.user_id) return;
+    var amount = Number(sheet.total).toFixed(2) + ' QR';
+    Push.toUsers([sheet.created_by], {
+      ar: { title: 'مشتريات نقدية ' + sheet.date + (ok ? ' اعتُمدت' : ' رُفضت'),
+            body: amount + (ok ? (refused ? ' · رُفض ' + refused + ' سطر، افتحها لترى السبب' : '') : ' · ' + note) },
+      en: { title: 'Cash purchases ' + sheet.date + (ok ? ' approved' : ' rejected'),
+            body: amount + (ok ? (refused ? ' · ' + refused + ' line(s) refused, open it for the reason' : '') : ' · ' + note) },
+      page: 'lpo', badge: 1 });
+  },
+  /** Cash handed over: whoever writes the cash sheets is told, with the new balance. */
+  cashFloat: function (row, balance, session) {
+    var amount = Number(row.amount).toFixed(2) + ' QR', bal = Number(balance).toFixed(2) + ' QR';
+    Push.toUsers(Push.usersWith('cash.save').filter(function (u) { return u !== session.user_id; }), {
+      ar: { title: (row.amount > 0 ? 'استلمت نقدًا: ' : 'استُرجع نقد: ') + amount, body: 'الرصيد النقدي الآن ' + bal + (row.note ? ' · ' + row.note : '') },
+      en: { title: (row.amount > 0 ? 'Cash handed to you: ' : 'Cash taken back: ') + amount, body: 'Cash balance now ' + bal + (row.note ? ' · ' + row.note : '') },
       page: 'lpo', badge: 1 });
   }
 };

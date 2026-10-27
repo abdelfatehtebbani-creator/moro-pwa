@@ -27,7 +27,7 @@ var PERM_TREE = [
   { key: 'reports', children: [{ leaf: 'reports.view' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
 },
   { key: 'lpo', children: [{ leaf: 'lpo.view' }, { leaf: 'lpo.create' }, { leaf: 'lpo.approve' }, { leaf: 'lpo.terms' },
-    { leaf: 'cash.create' }, { leaf: 'cash.approve' }] },
+    { leaf: 'cash.create' }, { leaf: 'cash.approve' }, { leaf: 'cash.handover' }] },
   { key: 'counts', children: [{ leaf: 'counts.view' }, { leaf: 'counts.open' }, { leaf: 'counts.save' }, { leaf: 'counts.approve' }, { leaf: 'counts.cancel' }] },
   { key: 'masters', children: [
     { key: 'tab_items', children: [{ leaf: 'items.view' }, { leaf: 'items.add' }, { leaf: 'items.rename' }, { leaf: 'items.min' },
@@ -68,8 +68,9 @@ var CAPS = (function () {
     'lpo.create':        ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.save', 'lpo.delete'],
     'lpo.approve':       ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.decide'],
     'lpo.terms':         ['lpo.settings'],
-    'cash.create':       ['nav.lpo', 'cash.list', 'cash.get', 'cash.save', 'cash.delete'],
-    'cash.approve':      ['nav.lpo', 'cash.list', 'cash.get', 'cash.decide', 'cash.float'],
+    'cash.create':       ['nav.lpo', 'cash.list', 'cash.get', 'cash.save', 'cash.delete', 'cash.ledger'],
+    'cash.approve':      ['nav.lpo', 'cash.list', 'cash.get', 'cash.decide', 'cash.ledger'],
+    'cash.handover':     ['nav.lpo', 'cash.list', 'cash.float', 'cash.ledger'],
     'counts.view':       ['nav.counts', 'counts.list', 'counts.get'],
     'counts.open':       ['nav.counts', 'counts.list', 'counts.get', 'counts.open'],
     'counts.save':       ['nav.counts', 'counts.list', 'counts.get', 'counts.save'],
