@@ -37,6 +37,10 @@ var SCHEMA = {
                  'note', 'total', 'status', 'created_by', 'created_at', 'submitted_at', 'decided_by', 'decided_at', 'decision_note',
                  'updated_at'],
   LPOLines:     ['lpo_id', 'line', 'item_id', 'description', 'qty', 'unit', 'price', 'total'],
+  CashSheets:   ['sheet_id', 'date', 'note', 'total', 'opening', 'status', 'created_by', 'created_at', 'submitted_at', 'decided_by',
+                 'decided_at', 'decision_note', 'updated_at'],
+  CashLines:    ['sheet_id', 'line', 'kind', 'party_id', 'payee', 'item_id', 'description', 'amount', 'paid_by', 'requested_by'],
+  CashFloat:    ['entry_id', 'date', 'amount', 'note', 'created_by', 'created_at'],
   PushDevices:  ['device_id', 'user_id', 'token', 'device', 'created_at', 'seen_at', 'revoked_at', 'last_sent_at', 'last_error'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
@@ -51,4 +55,4 @@ var TEXT_COLUMNS = ['item_id', 'party_id', 'location_id', 'purpose_id', 'movemen
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
                     'shop_party_id', 'theory_expiry', 'counted_expiry', 'counted_at', 'approved_at', 'count_id',
                     'expiry_reset', 'expiry_reset_on', 'tel', 'fax', 'contact_phone', 'lpo_id', 'delivery_date', 'submitted_at',
-                    'pr_no', 'device_id', 'seen_at', 'revoked_at', 'last_sent_at'];
+                    'pr_no', 'device_id', 'seen_at', 'revoked_at', 'last_sent_at', 'sheet_id', 'entry_id'];

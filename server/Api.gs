@@ -35,6 +35,12 @@ var ROUTES = {
   'counts.cancel':    function (s, p) { return Counts.cancel(s, p); },
   'push.register':    function (s, p) { return Push.register(s, p); },
   'push.unregister':  function (s, p) { return Push.unregister(s, p); },
+  'cash.list':        function (s, p) { return Cash.list(s, p); },
+  'cash.get':         function (s, p) { return Cash.get(s, p); },
+  'cash.save':        function (s, p) { return Cash.save(s, p); },
+  'cash.decide':      function (s, p) { return Cash.decide(s, p); },
+  'cash.delete':      function (s, p) { return Cash.remove(s, p); },
+  'cash.float':       function (s, p) { return Cash.addFloat(s, p); },
   'lpo.list':         function (s, p) { return Lpo.list(s, p); },
   'lpo.get':          function (s, p) { return Lpo.get(s, p); },
   'lpo.save':         function (s, p) { return Lpo.save(s, p); },
@@ -87,7 +93,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '20';
+var SCHEMA_VERSION = '21';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

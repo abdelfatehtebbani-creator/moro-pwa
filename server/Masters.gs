@@ -312,6 +312,10 @@ var Masters = {
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {
         return l.created_by === session.user_id && (l.status === 'approved' || l.status === 'rejected');
       }).map(function (l) { return [l.lpo_id, l.status, l.decided_at]; }) : [],
+      cash_pending: Perm.has(session, 'cash.decide') ? Repo.all('CashSheets').filter(function (l) { return l.status === 'submitted'; }).length : 0,
+      cash_decided: Perm.has(session, 'cash.save') ? Repo.all('CashSheets').filter(function (l) {
+        return l.created_by === session.user_id && (l.status === 'approved' || l.status === 'rejected');
+      }).map(function (l) { return [l.sheet_id, l.status, l.decided_at]; }) : [],
       lpo_terms: Perm.has(session, 'nav.lpo') ? Settings.get('lpo_terms', LPO_DEFAULT_TERMS) : '',
       lpo_company: Perm.has(session, 'nav.lpo') ? Settings.get('lpo_company', LPO_DEFAULT_COMPANY) : '',
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
