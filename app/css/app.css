@@ -480,11 +480,47 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .home-ico .ico { width: 22px; height: 22px; }
   .home-label { font-size: 12.5px; }
 }
-@container (min-width: 620px) {
-  .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, 760px, calc(100vh - 130px)); min-width: 560px; aspect-ratio: 1; }
-  .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 34%; margin: 0; translate: -50% -50%; }
-  .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
-  .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); width: 19%; min-width: 108px; translate: -50% -50%; padding: 12px 8px 10px; }
+/* wide and tall enough: round buttons on a circle around the disc (the side menu is hidden on home) */
+@container (min-width: 600px) {
+  @media (min-height: 600px) {
+    .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, max(540px, calc(100vh - 150px))); aspect-ratio: 1; }
+    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 36%; margin: 0; translate: -50% -50%; }
+    .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
+    .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); translate: -50% -50%;
+      width: clamp(96px, 16%, 118px); aspect-ratio: 1; border-radius: 50%; padding: 8px; gap: 4px; align-content: center;
+      box-shadow: 0 4px 14px rgba(22, 38, 63, .10); }
+    .home-stage.ring .home-ico { width: 40px; height: 40px; }
+    .home-stage.ring .home-ico .ico { width: 22px; height: 22px; }
+    .home-stage.ring .home-label { font-size: 12px; line-height: 1.25; max-width: 92%; }
+    .home-stage.ring .home-tab .badge { top: 4px; inset-inline-end: 10px; }
+  }
+}
+@media (min-width: 861px) {
+  .shell.at-home { grid-template-columns: 1fr; }
+  .shell.at-home .side { display: none; }
+}
+/* the user's own buttons: in rows under the circle, or on its two sides when there is room (phones: under "more") */
+.home-grid { width: 100%; display: grid; justify-items: center; gap: 18px; }
+.home-grid > .home-stage { order: 1; }
+.home-side { display: none; order: 2; }
+.home-side + .home-stage + .home-side { order: 3; }
+.home-user { display: grid; justify-items: center; text-align: center; padding: 10px 18px; line-height: 1.35; }
+.home-user small { color: var(--muted); }
+.home-side button { min-width: 180px; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); font-size: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(22, 38, 63, .06);
+  transition: transform .18s ease, border-color .18s ease, color .18s ease; }
+.home-side button:hover { transform: translateY(-2px); border-color: var(--brand); color: var(--brand); }
+.home-side button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.home-side .push-note { max-width: 200px; text-align: center; }
+@media (min-width: 861px) {
+  .home-side { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+}
+@container (min-width: 900px) {
+  @media (min-width: 861px) and (min-height: 600px) {
+    .home-grid { grid-template-columns: minmax(0, 1fr) minmax(0, max(540px, calc(100vh - 150px))) minmax(0, 1fr); align-items: stretch; gap: 0 16px; }
+    .home-grid > .home-stage, .home-side, .home-side + .home-stage + .home-side { order: 0; }
+    .home-side { flex-direction: column; flex-wrap: nowrap; justify-content: space-evenly; }
+  }
 }
 @media (prefers-reduced-motion: reduce) { .home-tab, .home-ico { transition: none; } }
 

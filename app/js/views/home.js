@@ -25,7 +25,13 @@ export function render(root, name, ctx) {
     }
     return a;
   }));
-  root.replaceChildren(h('div.home', h('div.home-stage' + (ring ? '.ring' : ''), slot, nav)));
+  // the user's own buttons, split between the two sides of the circle (wide screens; phones have "more")
+  const acc = ctx && ctx.account;
+  let sides = [null, null];
+  if (acc) {
+    sides = [h('div.home-side', acc.info, acc.buttons.slice(0, 2)), h('div.home-side', acc.buttons.slice(2))];
+  }
+  root.replaceChildren(h('div.home', h('div.home-grid', sides[0], h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), sides[1])));
 
   let alive = true;
   let unmount = null;
