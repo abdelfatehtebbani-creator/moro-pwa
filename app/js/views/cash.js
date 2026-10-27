@@ -101,6 +101,16 @@ export async function render(root) {
     const deciding = canDecide && s.status === 'submitted';
     const refuse = [];
     const approvedTotal = s.status === 'approved' && s.approved_total !== '' ? Number(s.approved_total) : Number(s.total);
+    const totalCell = h('b', money(approvedTotal));
+    const totalCell2 = h('span', money(approvedTotal) + ' QR');
+    const afterCell = h('span', s.opening === '' ? '' : money(Number(s.opening) - approvedTotal));
+    // while deciding, the total leaves out the lines ticked "refuse"
+    const retotal = () => {
+      const off = new Set(refuse.filter((r) => r.box.checked).map((r) => String(r.line)));
+      totalCell.textContent = money(lines.filter((x) => !off.has(String(x.line))).reduce((sum, x) => sum + Number(x.amount || 0), 0));
+      totalCell2.textContent = totalCell.textContent + ' QR';
+      if (s.opening !== '') afterCell.textContent = money(Number(s.opening) - Number(totalCell.textContent.replace(/,/g, '')));
+    };
     const lineRow = (x) => {
       const cells = [h('td', t('cash_k_' + x.kind)), h('td.wrap', h('bdi', lineText(x)),
         x.status === 'rejected' ? h('div.err-text.cash-refused', t('cash_line_refused') + ': ' + x.reject_note) : null),
@@ -108,7 +118,7 @@ export async function render(root) {
       let tr;
       if (deciding) {
         const why = h('input.input.cash-why', { placeholder: t('lpo_reject_why'), hidden: true });
-        const box = h('input', { type: 'checkbox', onchange: () => { why.hidden = !box.checked; tr.classList.toggle('cash-off', box.checked); if (box.checked) why.focus(); } });
+        const box = h('input', { type: 'checkbox', onchange: () => { why.hidden = !box.checked; tr.classList.toggle('cash-off', box.checked); if (box.checked) why.focus(); retotal(); } });
         refuse.push({ line: x.line, box, why });
         cells.push(h('td', h('label.check', box, ' ', t('cash_refuse_line')), why));
       }
@@ -120,7 +130,7 @@ export async function render(root) {
       h('div.lpo-facts',
         fact(t('date'), fmtDate(s.date)), fact(t('cash_on_hand'), s.opening === '' ? '' : money(s.opening)),
         fact(t('total'), money(s.total)), approvedTotal !== Number(s.total) ? fact(t('cash_approved_total'), h('b', money(approvedTotal))) : null,
-        fact(t('cash_after'), s.opening === '' ? '' : money(Number(s.opening) - approvedTotal)),
+        fact(t('cash_after'), s.opening === '' ? '' : afterCell),
         fact(t('note'), s.note),
         fact(t('lpo_written_by'), userName(s.created_by) + (s.submitted_at ? ' · ' + fmtDateTime(new Date(s.submitted_at + '+03:00')) : '')),
         s.decided_by ? fact(t(s.status === 'approved' ? 'lpo_approved_by' : 'lpo_rejected_by'),
@@ -128,8 +138,9 @@ export async function render(root) {
         s.decision_note ? fact(t('lpo_reject_why'), h('b.err-text', s.decision_note)) : null),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('cash_kind')), h('th', t('lpo_desc')), h('th', t('cash_amount')), h('th', t('cash_paid_by')), h('th', t('cash_requested_by')),
         deciding ? h('th', '') : null)),
-        h('tbody', lines.map(lineRow),
-          h('tr', h('td', { colspan: 2 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(approvedTotal))), h('td'), h('td'), deciding ? h('td') : null)))),
+        h('tbody', lines.map(lineRow)),
+        h('tfoot', h('tr', h('td', { colspan: 2 }, h('b', t('total') + ' (QR)')), h('td.num', totalCell), h('td'), h('td'), deciding ? h('td') : null)))),
+      h('div.grand-total', t('lpo_grand_total') + ': ', h('b.num', totalCell2)),
       deciding ? h('small.muted', t('cash_refuse_help')) : null,
       h('div.form-actions',
         canDecide && s.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
@@ -270,7 +281,7 @@ export async function render(root) {
 }
 
 function fact(label, value) {
-  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', value));
+  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', h('bdi', value)));
 }
 
 function confirmBox(text) {
