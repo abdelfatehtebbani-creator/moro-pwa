@@ -52,3 +52,38 @@ test('cash: amounts are required and numeric; a supplier payment needs a supplie
   assert.equal(g.api('cash.save', sheet({ lines: [{ kind: 'supplier', party_id: 'P002', description: 'x', amount: 5 }] }), tok.buyer).error.code, 'party_not_supplier');
   assert.equal(g.api('cash.save', sheet({ lines: [{ kind: 'supplier', party_id: 'P001', description: 'part payment', amount: 6000 }] }), tok.buyer).ok, true);
 });
+
+test('cash: the admin refuses single lines with a reason; only the approved lines leave the cash; the ledger shows each step', () => {
+  const { g, tok } = env();
+  g.api('cash.float', { date: '2026-10-27', amount: 675 }, tok.admin);
+  const id = g.api('cash.save', sheet({ submit: true }), tok.buyer).data.sheet_id;
+  assert.equal(g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 2 }] }, tok.admin).error.code, 'reason_required');
+  assert.equal(g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 1, note: 'a' }, { line: 2, note: 'b' }] }, tok.admin).error.code, 'cash_all_rejected');
+  assert.equal(g.api('cash.decide', { sheet_id: id, approve: true, rejected_lines: [{ line: 2, note: 'no petrol receipt' }] }, tok.admin).data.status, 'approved');
+  const got = g.api('cash.get', { sheet_id: id }, tok.buyer).data;
+  assert.equal(got.sheet.approved_total, 90);
+  assert.deepEqual(got.lines.map((l) => [l.status, l.reject_note]), [['', ''], ['rejected', 'no petrol receipt']]);
+  const led = g.api('cash.ledger', {}, tok.buyer).data;
+  assert.equal(led.balance, 585);
+  assert.deepEqual(led.rows.map((r) => [r.kind, r.amount, r.balance]), [['sheet', -90, 585], ['float', 675, 675]]);
+});
+
+test('cash: handing over cash is its own permission and tells the purchasing officer, in the language of each device', () => {
+  const { g, tok } = env();
+  g.props.FCM_SERVICE_ACCOUNT = JSON.stringify({ project_id: 'p', client_email: 'x@p.iam.gserviceaccount.com', private_key: 'K' });
+  assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 100 }, tok.buyer).error.code, 'forbidden');
+  const admin = g.rows('Users').find((u) => u.username === 'admin');
+  g.api('users.save', { username: 'cashier', display_name: 'Cashier', role: 'storekeeper', pin: '1111' }, tok.admin);
+  const c = g.rows('Users').find((u) => u.username === 'cashier');
+  g.api('users.save', { user_id: c.user_id, caps: ['cash.handover'] }, tok.admin);
+  const ct = g.api('auth.login', { username: 'cashier', pin: '1111' }).data.token;
+  assert.equal(g.api('cash.decide', { sheet_id: 'PC0001', approve: true }, ct).error.code, 'forbidden');
+  g.api('push.register', { token: 'buyer-ar', device: 'Android', lang: 'ar' }, tok.buyer);
+  g.api('push.register', { token: 'buyer-en', device: 'Windows', lang: 'en' }, tok.buyer);
+  assert.equal(g.api('cash.float', { date: '2026-10-27', amount: 500, note: 'week' }, ct).data.balance, 500);
+  const sent = g.fetches.filter((f) => f.url.includes('fcm')).map((f) => JSON.parse(f.o.payload).message);
+  const by = Object.fromEntries(sent.map((m) => [m.token, m.data.title]));
+  assert.match(by['buyer-ar'], /استلمت نقدًا/);
+  assert.match(by['buyer-en'], /Cash handed to you/);
+  assert.ok(admin);
+});

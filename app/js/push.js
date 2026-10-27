@@ -3,6 +3,7 @@
 // app closed. The service worker (sw.js) shows the notification. Without FIREBASE in config.js push is off.
 import { call } from './api.js';
 import { FIREBASE } from './config.js';
+import { getLang } from './i18n.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const TOKEN_KEY = 'moro.push_token';
@@ -48,7 +49,8 @@ export const Push = {
     const registration = await navigator.serviceWorker.ready;
     const token = await firebase.messaging().getToken({ vapidKey: FIREBASE.vapidKey, serviceWorkerRegistration: registration });
     if (!token) throw new Error('no token');
-    await call('push.register', { token, device: deviceName() });
+    // the server sends each device its notifications in the language of the app on it
+    await call('push.register', { token, device: deviceName(), lang: getLang() });
     write(token);
   },
 

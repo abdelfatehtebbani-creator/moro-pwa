@@ -41,6 +41,7 @@ var ROUTES = {
   'cash.decide':      function (s, p) { return Cash.decide(s, p); },
   'cash.delete':      function (s, p) { return Cash.remove(s, p); },
   'cash.float':       function (s, p) { return Cash.addFloat(s, p); },
+  'cash.ledger':      function (s) { return Cash.ledger(s); },
   'lpo.list':         function (s, p) { return Lpo.list(s, p); },
   'lpo.get':          function (s, p) { return Lpo.get(s, p); },
   'lpo.save':         function (s, p) { return Lpo.save(s, p); },
@@ -93,7 +94,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '21';
+var SCHEMA_VERSION = '22';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

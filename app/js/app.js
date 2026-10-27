@@ -332,6 +332,7 @@ function updateSync() {
 
 function toggleLang() {
   setLang(getLang() === 'ar' ? 'en' : 'ar');
+  if (allowed('lpo')) Push.refresh();      // notifications follow the language of the app
   buildShell();
   route();
 }

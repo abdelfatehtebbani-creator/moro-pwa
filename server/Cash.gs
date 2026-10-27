@@ -15,10 +15,32 @@ var Cash = {
   balance: function (except) {
     var inn = 0, out = 0;
     Repo.all('CashFloat').forEach(function (f) { inn += Number(f.amount) || 0; });
-    Repo.all('CashSheets').forEach(function (s) {
-      if (s.sheet_id !== except && (s.status === 'submitted' || s.status === 'approved')) out += Number(s.total) || 0;
-    });
+    Repo.all('CashSheets').forEach(function (s) { if (s.sheet_id !== except) out += Cash.spent(s); });
     return Util.round(inn - out);
+  },
+
+  /** What a sheet takes from the cash: its total while waiting, the approved lines once decided (0 for a draft or rejection). */
+  spent: function (s) {
+    if (s.status === 'submitted') return Number(s.total) || 0;
+    if (s.status === 'approved') return Number(s.approved_total === '' || s.approved_total === undefined ? s.total : s.approved_total) || 0;
+    return 0;
+  },
+
+  /** The cash history: every hand-over (+) and every sent sheet (−), oldest first, with the balance after each. */
+  ledger: function (session) {
+    var rows = [];
+    Repo.all('CashFloat').forEach(function (f) {
+      rows.push({ at: f.created_at, date: f.date, kind: 'float', ref: f.entry_id, note: f.note, by: f.created_by, amount: Number(f.amount) || 0 });
+    });
+    Repo.all('CashSheets').forEach(function (s) {
+      var out = Cash.spent(s);
+      if (out) rows.push({ at: s.submitted_at || s.created_at, date: s.date, kind: 'sheet', ref: s.sheet_id, status: s.status, note: s.note,
+        by: s.created_by, amount: -out });
+    });
+    rows.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
+    var bal = 0;
+    rows.forEach(function (r) { bal = Util.round(bal + r.amount); r.balance = bal; });
+    return { rows: rows.reverse().slice(0, 500), balance: bal };
   },
 
   list: function (session, p) {
@@ -69,7 +91,7 @@ var Cash = {
         Util.require(desc, 'name_required', i + 1);
         return { line: i + 1, kind: kind, party_id: party ? party.party_id : '', payee: party ? '' : Util.clean(x.payee),
                  item_id: item ? item.item_id : '', description: desc, amount: Util.round(amount),
-                 paid_by: Util.clean(x.paid_by), requested_by: Util.clean(x.requested_by) };
+                 paid_by: Util.clean(x.paid_by), requested_by: Util.clean(x.requested_by), status: '', reject_note: '' };
       });
       Util.require(lines.length > 0, 'nothing_to_save');
       var total = Util.round(lines.reduce(function (s, x) { return s + x.amount; }, 0));
@@ -77,7 +99,7 @@ var Cash = {
       var row = { date: String(p.date), note: Util.clean(p.note), total: total, status: p.submit ? 'submitted' : 'draft',
         // the cash in hand when it was sent (printed as "cash on hand")
         opening: p.submit ? Cash.balance(cur ? cur.sheet_id : '') : '',
-        submitted_at: p.submit ? now : '', decided_by: '', decided_at: '', decision_note: '', updated_at: now };
+        submitted_at: p.submit ? now : '', decided_by: '', decided_at: '', decision_note: '', approved_total: '', updated_at: now };
       var id;
       if (cur) {
         id = cur.sheet_id;
@@ -107,12 +129,30 @@ var Cash = {
       Util.require(s.status === 'submitted', 'lpo_not_submitted');
       var ok = p.approve === true;
       if (!ok) Util.require(Util.clean(p.note), 'reason_required');
+      // approving, the admin may refuse single lines, each with its reason: they are not paid from the cash
+      var refused = {};
+      (ok ? p.rejected_lines || [] : []).forEach(function (r) {
+        Util.require(Util.clean(r.note), 'reason_required', r.line);
+        refused[String(r.line)] = Util.clean(r.note);
+      });
+      var lines = Repo.all('CashLines').filter(function (x) { return x.sheet_id === s.sheet_id; });
+      var kept = lines.filter(function (x) { return !refused[String(x.line)]; });
+      if (ok) Util.require(kept.length > 0, 'cash_all_rejected');
+      if (Object.keys(refused).length) {
+        var others = Repo.all('CashLines').filter(function (x) { return x.sheet_id !== s.sheet_id; });
+        Repo.replaceAll('CashLines', others.concat(lines.map(function (x) {
+          var note = refused[String(x.line)];
+          x.status = note ? 'rejected' : ''; x.reject_note = note || '';
+          return x;
+        })));
+      }
+      var approved = Util.round(kept.reduce(function (sum, x) { return sum + (Number(x.amount) || 0); }, 0));
       var res = Repo.update('CashSheets', 'sheet_id', s.sheet_id, { status: ok ? 'approved' : 'rejected', decided_by: session.user_id,
-        decided_at: Util.nowIso(), decision_note: Util.clean(p.note), updated_at: Util.nowIso() });
+        decided_at: Util.nowIso(), decision_note: Util.clean(p.note), approved_total: ok ? approved : '', updated_at: Util.nowIso() });
       Audit.log(session.user_id, ok ? 'cash_approve' : 'cash_reject', 'CashSheets', s.sheet_id, res.before, res.after);
       return { sheet: s, ok: ok, status: res.after.status, version: Version.bump() };
     });
-    Notify.cashDecided(out.sheet, out.ok, Util.clean(p.note), session);
+    Notify.cashDecided(out.sheet, out.ok, Util.clean(p.note), session, (p.rejected_lines || []).length);
     return { status: out.status, version: out.version };
   },
 
@@ -130,7 +170,7 @@ var Cash = {
 
   /** The admin hands over cash (or takes some back with a negative amount): p {date, amount, note}. */
   addFloat: function (session, p) {
-    return withLock(function () {
+    var res = withLock(function () {
       Util.require(Util.isDate(String(p.date || '')), 'date_invalid');
       var amount = Util.num(p.amount);
       Util.require(amount !== null && amount !== 0, 'amount_invalid');
@@ -140,7 +180,9 @@ var Cash = {
                   created_by: session.user_id, created_at: Util.nowIso() };
       Repo.append('CashFloat', [row]);
       Audit.log(session.user_id, 'cash_float', 'CashFloat', row.entry_id, null, row);
-      return { balance: Cash.balance(), version: Version.bump() };
+      return { row: row, balance: Cash.balance(), version: Version.bump() };
     });
+    Notify.cashFloat(res.row, res.balance, session);
+    return { balance: res.balance, version: res.version };
   }
 };

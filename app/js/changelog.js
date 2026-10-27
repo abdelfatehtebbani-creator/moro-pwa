@@ -8,14 +8,18 @@ export const CHANGELOG = [
       news: [
         'في شاشة أوامر الشراء تبويب جديد "المشتريات النقدية" بدل شيت Petty Cash: ورقة يومية بالمصاريف النقدية (مواد من المحلات، مصاريف، دفعات للموردين) تُرسل للمدير للاعتماد ثم تُطبع.',
         'رصيد نقدي متحرك: يُضاف إليه ما يسلّمه المدير، ويُخصم منه كل ورقة مرسلة أو معتمدة.',
+        'يستطيع المدير رفض أسطر بعينها مع التعليل عند الاعتماد، ويعرض زر الرصيد النقدي سجل كل تسليم وكل ورقة وتغير الرصيد.',
+        'تسليم النقد صلاحية منفصلة، ويصل مسؤول المشتريات إشعار عند كل تسليم. والإشعارات تصل الآن بلغة التطبيق على كل جهاز.',
       ],
       todo: 'مسؤول المشتريات: اكتب مصاريف اليوم النقدية في التبويب الجديد. المبلغ إجباري لكل سطر. المواد تُستلم في المخزن من شاشة الاستلام كالعادة.',
-      admin: 'سجّل النقد الذي تسلّمه لمسؤول المشتريات من زر "تسليم نقد" (ابدأ بالمبلغ المتوفر معه اليوم). من له صلاحيات مخصصة تعلّم له "كتابة وإرسال أوراق المشتريات النقدية".',
+      admin: 'سجّل النقد الذي تسلّمه لمسؤول المشتريات من زر "تسليم نقد" (ابدأ بالمبلغ المتوفر معه اليوم). من له صلاحيات مخصصة تعلّم له "كتابة وإرسال أوراق المشتريات النقدية"، و"تسليم النقد" لمن يسلّم النقد.',
     },
     en: {
       news: [
         'The purchase orders screen has a new "Cash purchases" tab instead of the Petty Cash sheet: a daily sheet of cash payments (shop materials, expenses, supplier payments) sent to the admin for approval, then printed.',
         'A running cash balance: what the admin hands over is added, every sent or approved sheet is taken off.',
+        'The admin can refuse single lines with a reason while approving; the cash balance button shows every hand-over and sheet and how the balance changed.',
+        'Handing over cash is its own permission and the purchasing officer is notified each time. Notifications now come in the language of the app on each device.',
       ],
       todo: 'Purchasing: write the day’s cash payments in the new tab. Every line needs an amount. Materials are still received in stock from the receive screen.',
       admin: 'Record the cash you give the purchasing officer with "Hand over cash" (start with what they hold today). For users with custom permissions, tick "Write and send cash purchase sheets".',
