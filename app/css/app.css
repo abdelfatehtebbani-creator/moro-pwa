@@ -494,7 +494,7 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 @container (min-width: 600px) {
   @media (min-height: 600px) {
     .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, max(540px, calc(100vh - 150px))); aspect-ratio: 1; }
-    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 36%; margin: 0; translate: -50% -50%; }
+    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 36%; margin: 0; translate: -50% -50%; --hand-start: 112; --hand-h: 145; --hand-m: 165; --hand-s: 172; --head-h: 1; --head-m: .9; }
     .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
     .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); translate: -50% -50%;
       width: clamp(96px, 16%, 118px); aspect-ratio: 1; border-radius: 50%; padding: 8px; gap: 4px; align-content: center;

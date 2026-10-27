@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.40', date: '2026-10-27',
+    ar: { news: ['في الشاشة الرئيسية خلف القرص الدوار ثلاثة عقارب (الساعة والدقيقة والثانية) تعرض وقت جهازك.'] },
+    en: { news: ['On the home screen, three hands (hour, minute and second) behind the turning disc show your device\u2019s time.'] },
+  },
+  {
     v: '0.8.39', date: '2026-10-27',
     ar: {
       news: [

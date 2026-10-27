@@ -45,10 +45,36 @@
 .home-disc.paused .disc, .home-disc.paused .disc-shadow,
 .home-disc.paused .disc-face::before, .home-disc.paused .disc-face::after { animation-play-state: paused; }
 
+/* clock hands around the disc (its centre is theirs): they show the time, so they keep turning even when
+   the disc is paused; nothing else of a clock is drawn. Only their outer part is drawn, from a little outside
+   the disc (radius 100) to their tip: short where the screens are close under the disc (phones), longer
+   inside the ring (app.css). */
+.home-disc { --hand-start: 104; --hand-h: 118; --hand-m: 122; --hand-s: 124; --head-h: .55; --head-m: .5; }
+.home-clock { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.home-clock .hand { transform-origin: 0 0; animation: clock-turn linear infinite; }
+.home-clock .hand-hour { animation-duration: 43200s; }
+.home-clock .hand-minute { animation-duration: 3600s; }
+.home-clock .hand-second { animation-duration: 60s; }
+.home-clock line { stroke-linecap: round; vector-effect: non-scaling-stroke; transform-origin: 0 0;
+  transform: translateY(calc(var(--hand-start) * -1px)) scaleY(calc(var(--len) - var(--hand-start) - var(--stem-cut, 0))); }
+/* with a head, the stem stops inside the leaf's wide part (the leaf is 24 long): nothing shows past its point */
+.home-clock .hand-hour { --len: var(--hand-h); --head: var(--head-h); --stem-cut: calc(24 * var(--head) - 4); }
+.home-clock .hand-minute { --len: var(--hand-m); --head: var(--head-m); --stem-cut: calc(24 * var(--head) - 4); }
+.home-clock .hand-second { --len: var(--hand-s); }
+.home-clock .head { transform-origin: 0 0; transform: translateY(calc(var(--len) * -1px)) scale(calc(var(--head) * var(--head-w, 1)), var(--head)); }
+.home-clock .hand-hour .head { fill: var(--navy); }
+.home-clock .hand-minute .head { fill: #000; }
+.home-clock .hand-minute { --head-w: .7; }
+.home-clock .hand-hour line { stroke: var(--navy); stroke-width: 6; }
+.home-clock .hand-minute line { stroke: #000; stroke-width: 2.5; }
+.home-clock .hand-second line { stroke: var(--brand); stroke-width: 2; }
+@keyframes clock-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 /* "reduce motion" on the device: the disc stands still, slightly turned so its depth shows */
 @media (prefers-reduced-motion: reduce) {
   .home-disc { transition: none; }
   .disc, .disc-shadow, .disc-face::before, .disc-face::after { animation: none; }
   .disc { transform: rotateX(8deg) rotateY(-22deg); }
+  .home-clock .hand-second { animation-timing-function: steps(60); }
   .disc-face::after { opacity: 0; }
 }
