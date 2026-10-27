@@ -3,6 +3,21 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.35', date: '2026-10-27',
+    ar: {
+      news: [
+        'لوحة التحكم (المخزون) تظهر فقط لمن يعمل على المخزون؛ المحاسب يفتح التطبيق مباشرة على أوامر الشراء.',
+        'الإشعار على الهاتف يهتز عند وصوله.',
+      ],
+    },
+    en: {
+      news: [
+        'The dashboard (stock) is shown only to those who work with stock; the accountant opens the app straight on purchase orders.',
+        'Notifications vibrate the phone when they arrive.',
+      ],
+    },
+  },
+  {
     v: '0.8.34', date: '2026-10-27',
     ar: {
       news: [

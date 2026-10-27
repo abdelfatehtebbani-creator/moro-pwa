@@ -1,6 +1,6 @@
 /* Service worker: keeps the app shell available offline. Data never goes through here –
    it is cached in IndexedDB by the app (js/db.js). Bump VERSION on every release. */
-const VERSION = 'moro-v0.9.46';
+const VERSION = 'moro-v0.9.47';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/api.js', 'js/db.js', 'js/i18n.js', 'js/ui.js', 'js/data.js',
@@ -42,7 +42,7 @@ self.addEventListener('push', (e) => {
   const d = p.data || p;
   const badge = Number(d.badge || 0);
   const shown = self.registration.showNotification(d.title || 'MORO', {
-    body: d.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'moro-' + (d.page || 'app'), renotify: true,
+    body: d.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'moro-' + (d.page || 'app'), renotify: true, vibrate: [200, 100, 200],
     data: { page: d.page || '' },
   });
   const counted = badge > 0 && self.navigator.setAppBadge ? self.navigator.setAppBadge(badge).catch(() => {}) : Promise.resolve();
