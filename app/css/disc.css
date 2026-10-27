@@ -56,9 +56,10 @@
 .home-clock .hand-minute { animation-duration: 3600s; }
 .home-clock .hand-second { animation-duration: 60s; }
 .home-clock line { stroke-linecap: round; vector-effect: non-scaling-stroke; transform-origin: 0 0;
-  transform: translateY(calc(var(--hand-start) * -1px)) scaleY(calc(var(--len) - var(--hand-start))); }
-.home-clock .hand-hour { --len: var(--hand-h); --head: var(--head-h); }
-.home-clock .hand-minute { --len: var(--hand-m); --head: var(--head-m); }
+  transform: translateY(calc(var(--hand-start) * -1px)) scaleY(calc(var(--len) - var(--hand-start) - var(--stem-cut, 0))); }
+/* with a head, the stem stops inside the leaf's wide part (the leaf is 24 long): nothing shows past its point */
+.home-clock .hand-hour { --len: var(--hand-h); --head: var(--head-h); --stem-cut: calc(24 * var(--head) - 4); }
+.home-clock .hand-minute { --len: var(--hand-m); --head: var(--head-m); --stem-cut: calc(24 * var(--head) - 4); }
 .home-clock .hand-second { --len: var(--hand-s); }
 .home-clock .head { transform-origin: 0 0; transform: translateY(calc(var(--len) * -1px)) scale(var(--head)); }
 .home-clock .hand-hour .head { fill: var(--navy); }
