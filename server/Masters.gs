@@ -3,7 +3,7 @@
  * Names are display text only; every relation uses the stable ID, so a rename touches one cell.
  */
 var CATEGORIES = ['Food', 'Packaging'];
-var PARTY_KINDS = ['supplier', 'section'];
+var PARTY_KINDS = ['supplier', 'section', 'shop'];
 /** A supplier's contact details, printed on its LPOs. */
 var PARTY_CONTACT = ['tel', 'fax', 'email', 'contact', 'contact_phone'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
@@ -36,6 +36,7 @@ var Masters = {
                      created_at: Util.nowIso(), store: store,
                      pack_units: p.pack_units !== undefined && Perm.has(session, 'packaging') ? Packs.pack(Util.clean(p.unit).toUpperCase(), p.pack_units) : '',
                      report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '',
+                     sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true,
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '' };
         Repo.append('Items', [item]);
@@ -98,6 +99,13 @@ var Masters = {
         ch.report_unit = defined(ru) ? ru : '';
         ch.store_unit = defined(su) ? su : '';
       }
+      if (p.sale_price !== undefined) {
+        Perm.require(session, 'see_prices');
+        var sp = Util.num(p.sale_price);
+        Util.require(p.sale_price === '' || (sp !== null && sp >= 0), 'price_invalid');
+        ch.sale_price = p.sale_price === '' ? '' : sp;
+      }
+      if (p.shop_orderable !== undefined) ch.shop_orderable = p.shop_orderable === true;
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename.items');
         ch.active = p.active === true;
@@ -298,6 +306,7 @@ var Masters = {
         Object.keys(batches).forEach(function (id) { o[id] = batches[id].map(function (x) { return [x.expiry, x.qty]; }); });
         return o;
       })(),
+      reserved: Shop.reservedMap(),
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
       // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {

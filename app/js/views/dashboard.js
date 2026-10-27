@@ -71,7 +71,7 @@ export async function render(root) {
       return h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(i) : null },
         h('td.wrap', h('bdi', i.name), ' ', storePill(Data.storeOf(i))),
         h('td', Data.inStoreUnit(i, 0)[1]),
-        h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(Data.inStoreUnit(i, qty)[0])),
+        h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(Data.inStoreUnit(i, qty)[0]), Data.reserved(i.item_id) ? h('small.muted.reserved', ' (' + t('reserved') + ' ' + fmtNum(Data.inStoreUnit(i, Data.reserved(i.item_id))[0]) + ')') : ''),
         h('td.num', Number(i.min_stock) > 0 ? fmtNum(Data.inStoreUnit(i, Number(i.min_stock))[0]) : ''),
         h('td.num', b && b.last_expiry ? fmtDate(b.last_expiry) : ''));
     }));

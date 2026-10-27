@@ -20,6 +20,7 @@ import * as requests from './views/requests.js';
 import * as masters from './views/masters.js';
 import * as users from './views/users.js';
 import * as reports from './views/reports.js';
+import * as shoporders from './views/shoporders.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -32,6 +33,7 @@ const ROUTES = {
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
   production:{ view: production, perm: 'nav.production', group: 'nav_ops' },
   requests:  { view: requests, perm: 'nav.requests', group: 'nav_ops' },
+  shoporders:{ view: shoporders, perm: 'nav.shoporders', group: 'nav_ops' },
   reports:   { view: reports, perm: 'nav.reports', group: 'nav_ops' },
   counts:    { view: counts, perm: 'nav.counts', group: 'nav_ops' },
   coffee:    { view: coffee, perm: 'nav.coffee', group: 'nav_tools' },

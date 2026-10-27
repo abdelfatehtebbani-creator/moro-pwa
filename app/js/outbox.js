@@ -5,7 +5,7 @@ import { call, ApiError } from './api.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
 
-const SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1 };
+const SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1, DISPOSAL: -1 };
 let queue = [];
 let failed = [];
 let busy = false;
