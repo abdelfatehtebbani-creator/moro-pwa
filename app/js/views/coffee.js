@@ -25,6 +25,15 @@ function calcValues() {
   const n = (f) => { const v = parseFloat(c[f]); return isFinite(v) ? v : DEFAULTS[f]; };
   return { weight: n('weight'), waste: n('waste'), loss: n('loss') };
 }
+// stock units of the pouch item per filled bag (same reading as Coffee.pouchFactor on the server)
+function pouchFactor(item) {
+  const unit = String(item.unit || '').toUpperCase();
+  if (unit === 'PC' || unit === 'PCS') return 1;
+  const p = Data.packsOf(item).find((x) => x.unit === 'PC' || x.unit === 'PCS');
+  if (p) return p.factor;
+  const m = String(item.name || '').match(/(\d+)\s*pcs?\b/i);
+  return m && Number(m[1]) > 0 ? 1 / Number(m[1]) : null;
+}
 function packMemory() {
   try { return JSON.parse(localStorage.getItem(PACK_KEY) || '{}') || {}; } catch { return {}; }
 }
@@ -130,8 +139,8 @@ function renderPack(root, go) {
   const q1 = num('cp-q1'), q2 = num('cp-q2'), roasted = num('cp-roasted');
   const bags = num('cp-bags', { step: 1 }), bagG = num('cp-bag-g', { value: mem.bag_g || calc.weight });
   const note = trackFilled(h('input.input#cp-note'));
-  if (mem.o1) o1.set(mem.o1);
-  if (mem.o2) o2.set(mem.o2);
+  const pouch = combo({ id: 'cp-pouch', options: items, onPick: update });
+  const pouchNote = h('small.muted', '');
   const out = {};
   ['packed', 'loss', 'roast', 'waste'].forEach((k) => { out[k] = h('b.num', '–'); });
   const warn = h('p.err-text', { hidden: true });
@@ -152,6 +161,10 @@ function renderPack(root, go) {
   }
   function update() {
     const f = figures();
+    const it = pouch.value ? Data.items.get(pouch.value) : null;
+    const pf = it ? pouchFactor(it) : null;
+    pouchNote.textContent = !it ? '' : pf === null ? t('err.coffee_pouch_unit')
+      : t('cf_pouch_take', { n: fmtNum(f.bags || 0), q: fmtNum(Math.round((f.bags || 0) * pf * 1e4) / 1e4), u: it.unit || '' });
     out.packed.textContent = f.packed ? fmtNum(Math.round(f.packed * 1000) / 1000) + ' ' + t('cf_kg') : '–';
     out.loss.textContent = pct(f.loss);
     out.roast.textContent = pct(f.roast);
@@ -172,8 +185,9 @@ function renderPack(root, go) {
     if (!(f.bags > 0) || Math.round(f.bags) !== f.bags) { toast(t('err.qty_invalid'), 'err'); return flash(bags); }
     busy = true; btn.disabled = true;
     try {
-      await call('coffee.pack', { client_id: cid, date: date.value, green, roasted: roasted.value.trim(), bags: f.bags, bag_g: f.g, note: note.value });
-      try { localStorage.setItem(PACK_KEY, JSON.stringify({ o1: o1.value, o2: o2.value, bag_g: f.g })); } catch { /* storage blocked */ }
+      await call('coffee.pack', { client_id: cid, date: date.value, green, roasted: roasted.value.trim(), bags: f.bags, bag_g: f.g,
+        pouch_item: pouch.value, note: note.value });
+      try { localStorage.setItem(PACK_KEY, JSON.stringify({ o1: o1.value, o2: o2.value, bag_g: f.g, pouch: pouch.value })); } catch { /* storage blocked */ }
       toast(t('cf_saved', { bags: f.bags }), 'ok');
       cid = newId();
       Data.refresh().catch(() => {});
@@ -191,6 +205,7 @@ function renderPack(root, go) {
         field(t('cf_origin2'), o2), field(t('cf_green_kg'), q2),
         field(t('cf_bags'), bags), field(t('cf_bag_g'), bagG),
         field(t('cf_roasted_kg'), roasted), field(t('date'), date),
+        h('div.field.wide', h('label', { for: 'cp-pouch' }, t('cf_pouch')), pouch.el, pouchNote),
         field(t('note'), note, { wide: true }))),
     h('div.card.cf-result', { 'aria-live': 'polite' },
       h('div.cp-figs',
@@ -200,11 +215,16 @@ function renderPack(root, go) {
         vs(t('cf_waste_bag'), out.waste, grams(calc.waste))),
       warn),
     h('div.actions', btn)));
+  // the items used last time on this device; the empty pouches: else the item called "Coffee Pouch…"
+  if (mem.o1) o1.set(mem.o1);
+  if (mem.o2) o2.set(mem.o2);
+  const pouchGuess = mem.pouch || (Data.activeItems().find((i) => /coffee\s*pouch/i.test(i.name)) || {}).item_id;
+  if (pouchGuess) pouch.set(pouchGuess);
   update();
 }
 
 // ---------- the stock of bags and green coffee, the batches, the bags given out
-async function renderLog(root) {
+async function renderLog(root, go) {
   root.replaceChildren(h('div.card', h('p.muted', t('loading'))));
   let res;
   try { res = await call('coffee.list', {}); } catch (e) { root.replaceChildren(h('div.card', h('p.err-text', errText(e)))); return; }
@@ -223,7 +243,9 @@ async function renderLog(root) {
       greens.map((id) => stat(name(id), fmtNum(Data.qty(id)) + ' ' + unit(id))),
       greens.length ? stat(t('cf_enough_title'), fmtNum(Math.max(0, enough)), t('cf_enough_sub', { w: calc.weight })) : null),
     h('div.card',
-      h('h3', t('cf_batches')),
+      h('div.cp-head', h('h3', t('cf_batches')),
+        Data.can('coffee.pack') ? h('button.btn', { type: 'button', onclick: () => go('pack') }, '+ ' + t('cf_new_batch'))
+          : h('small.muted', t('cf_no_pack_perm'))),
       h('div.table-wrap', h('table',
         h('thead', h('tr', h('th', t('date')), h('th', t('cf_green_short')), h('th', t('cf_roasted_short')), h('th', t('cf_bags')),
           h('th', t('cf_loss_total')), h('th', t('cf_roast_loss')), h('th', t('cf_waste_bag')), h('th', t('entered_by')))),
