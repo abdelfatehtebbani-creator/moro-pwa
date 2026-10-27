@@ -105,7 +105,14 @@ async function start() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
-function allowed(name) { return Data.can(ROUTES[name].perm); }
+// the dashboard is about stock: shown to whoever works with stock (or the minimum levels), not to the accountant
+const STOCK_PERMS = ['nav.receive', 'nav.issue', 'nav.production', 'nav.requests', 'nav.shoporders', 'nav.reports', 'nav.counts', 'nav.masters', 'min_stock'];
+function allowed(name) {
+  if (name === 'dashboard') return STOCK_PERMS.some((p) => Data.can(p));
+  return Data.can(ROUTES[name].perm);
+}
+// the first screen: the dashboard, or the first screen this user may open
+function home() { return Object.keys(ROUTES).find(allowed) || 'dashboard'; }
 
 // ---------- what's new: shown once after each update, with what the user needs to do
 const SEEN_KEY = 'moro.seen_version';
@@ -174,10 +181,10 @@ const AUTO_REFRESH_MS = 30000;
 let current = null;
 function route() {
   if (current && current.dispose) current.dispose();
-  let name = (location.hash.replace(/^#\/?/, '') || 'dashboard').split('?')[0];
+  let name = (location.hash.replace(/^#\/?/, '') || home()).split('?')[0];
   if (name === 'more') return showMore();
   if (name === 'failed' && canSeeFailed()) return showFailed();
-  if (!ROUTES[name] || !allowed(name)) name = 'dashboard';
+  if (!ROUTES[name] || !allowed(name)) name = home();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
   current = ROUTES[name].view;
