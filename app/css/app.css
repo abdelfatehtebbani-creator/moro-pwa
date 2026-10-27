@@ -435,6 +435,8 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .cp-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .cp-stat { display: grid; gap: 2px; }
 .cp-stat b { font-size: 22px; }
+.cp-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cp-head h3 { margin: 0; }
 @media (max-width: 560px) { .cp-figs { grid-template-columns: 1fr 1fr; } }
 .cf-result { background: #6b4423; color: #fff8f1; border-color: #6b4423; }
 .cf-result .muted { color: #e8d6c4; }

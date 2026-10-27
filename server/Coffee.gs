@@ -3,12 +3,27 @@
  * into bags; the storekeeper enters what really happened: the green coffee taken, the roasted weight
  * (optional) and the bags filled. The stock moves like a production (PROD_CONSUME for the green coffee,
  * PROD_OUTPUT for the bags), and the batch keeps the real roasting loss and packing waste so they can be
- * compared with the calculator. The bags leave the stock from the issue screen, like any item.
+ * compared with the calculator. One empty pouch is taken for every bag filled. The bags leave the stock
+ * from the issue screen, like any item.
  */
 var Coffee = {
   bagName: function (grams) { return 'COFFEE BAG ' + grams + 'G'; },
 
-  /** p: {client_id, date, green: [{item_id, qty}], roasted, bags, bag_g, note} */
+  /**
+   * Stock units of the pouch item taken by one filled bag: 1 when it is counted in pieces; else its
+   * packaging unit PC/PCS ("1 BOX = 2500 PC"); else the pieces in its name ("Coffee Pouch 2500pcs/box").
+   */
+  pouchFactor: function (item) {
+    var unit = String(item.unit || '').toUpperCase();
+    if (unit === 'PC' || unit === 'PCS') return 1;
+    var f = Packs.factor(item, 'PC') || Packs.factor(item, 'PCS');
+    if (f) return f;
+    var m = String(item.name || '').match(/(\d+)\s*pcs?\b/i);
+    return m && Number(m[1]) > 0 ? 1 / Number(m[1]) : null;
+  },
+
+
+  /** p: {client_id, date, green: [{item_id, qty}], roasted, bags, bag_g, pouch_item, note} */
   pack: function (session, p) {
     Util.require(Util.isDate(String(p.date || '')), 'date_invalid');
     var bags = Util.num(p.bags), grams = Util.num(p.bag_g) || 200;
@@ -28,6 +43,14 @@ var Coffee = {
       Util.require(roasted > 0 && roasted <= greenKg, 'coffee_roasted_invalid');
       Util.require(packedKg <= roasted, 'coffee_more_than_roasted');
     }
+    var pouch = null;
+    if (p.pouch_item) {
+      var pItem = Repo.find('Items', 'item_id', String(p.pouch_item));
+      Util.require(pItem, 'not_found', p.pouch_item);
+      var factor = Coffee.pouchFactor(pItem);
+      Util.require(factor, 'coffee_pouch_unit', pItem.name);
+      pouch = { item: pItem, qty: Util.round(bags * factor) };
+    }
     var cid = Util.clean(p.client_id) || Utilities.getUuid();
     var done = Repo.find('CoffeeBatches', 'batch_id', cid);
     if (done) return { batch_id: cid, duplicate: true, version: Version.get() };
@@ -42,6 +65,8 @@ var Coffee = {
       return { client_id: cid + '-g' + i, kind: 'PROD_CONSUME', date: p.date, party_id: setup.consume, item_id: x.item.item_id,
                qty: x.qty, unit: x.item.unit, doc_no: doc, purpose: purpose };
     });
+    if (pouch) movs.push({ client_id: cid + '-p', kind: 'PROD_CONSUME', date: p.date, party_id: setup.consume, item_id: pouch.item.item_id,
+      qty: pouch.qty, unit: pouch.item.unit, doc_no: doc, purpose: purpose });
     movs.push({ client_id: cid + '-b', kind: 'PROD_OUTPUT', date: p.date, party_id: setup.output, item_id: setup.item.item_id,
                 qty: bags, unit: setup.item.unit, doc_no: doc, purpose: purpose });
     Movements.save(session, { movements: movs }, ['PROD_CONSUME', 'PROD_OUTPUT']);
@@ -50,7 +75,7 @@ var Coffee = {
       if (Repo.find('CoffeeBatches', 'batch_id', cid)) return { batch_id: cid, duplicate: true, version: Version.get() };
       var row = { batch_id: cid, date: p.date, green: green.map(function (x) { return x.item.item_id + ':' + x.qty; }).join(';'),
         green_kg: greenKg, roasted_kg: roasted === null ? '' : Util.round(roasted), bags: bags, bag_g: grams, bag_item: setup.item.item_id,
-        packed_kg: packedKg, note: Util.clean(p.note), created_by: session.user_id, created_at: Util.nowIso() };
+        packed_kg: packedKg, pouch: pouch ? pouch.item.item_id + ':' + pouch.qty : '', note: Util.clean(p.note), created_by: session.user_id, created_at: Util.nowIso() };
       Repo.append('CoffeeBatches', [row]);
       Audit.log(session.user_id, 'coffee_pack', 'CoffeeBatches', cid, null, row);
       return { batch_id: cid, bag_item: setup.item.item_id, version: Version.bump() };

@@ -9,7 +9,9 @@ function env() {
   const g = createGas();
   g.seed('Items', [
     { item_id: 'I0001', name: 'GREEN COFFEE BRAZIL', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' },
-    { item_id: 'I0002', name: 'GREEN COFFEE ETHIOPIA', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' }]);
+    { item_id: 'I0002', name: 'GREEN COFFEE ETHIOPIA', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' },
+    { item_id: 'I0003', name: 'Coffee Pouch 2500pcs/box', category: 'Packaging', unit: 'BOX', min_stock: 0, active: true, store: 'PACK' },
+    { item_id: 'I0004', name: 'POUCH', category: 'Packaging', unit: 'BOX', min_stock: 0, active: true, store: 'PACK' }]);
   g.seed('Parties', [{ party_id: 'P001', name: 'Farm', kind: 'supplier', active: true }, { party_id: 'P002', name: 'Army', kind: 'section', active: true }]);
   g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
   const tok = { admin: g.api('auth.login', { username: 'admin', pin: '1234' }).data.token };
@@ -17,7 +19,8 @@ function env() {
   g.api('users.save', { username: 'prod', display_name: 'Prod', role: 'production', pin: '5678' }, tok.admin);
   tok.store = g.api('auth.login', { username: 'store', pin: '4321' }).data.token;
   tok.prod = g.api('auth.login', { username: 'prod', pin: '5678' }).data.token;
-  g.seed('Balances', [{ item_id: 'I0001', qty: 30, unit: 'KG', last_expiry: '' }, { item_id: 'I0002', qty: 10, unit: 'KG', last_expiry: '' }]);
+  g.seed('Balances', [{ item_id: 'I0001', qty: 30, unit: 'KG', last_expiry: '' }, { item_id: 'I0002', qty: 10, unit: 'KG', last_expiry: '' },
+    { item_id: 'I0003', qty: 2, unit: 'BOX', last_expiry: '' }]);
   return { g, tok };
 }
 const qty = (g, id) => Number((g.rows('Balances').find((b) => b.item_id === id) || {}).qty || 0);
@@ -65,4 +68,11 @@ test('coffee: the bags given to the customer appear in the coffee list', () => {
   assert.equal(qty(g, bag), 12);
   const out = g.api('coffee.list', {}, tok.store).data.out;
   assert.deepEqual(out.map((o) => [o.party, o.qty]), [['Army', 100]]);
+});
+
+test('coffee: one empty pouch per bag, in the unit of the pouch item', () => {
+  const { g, tok } = env();
+  assert.equal(g.api('coffee.pack', batch({ pouch_item: 'I0004' }), tok.store).error.code, 'coffee_pouch_unit');
+  g.api('coffee.pack', batch({ pouch_item: 'I0003' }), tok.store);
+  assert.equal(qty(g, 'I0003'), 1.9552); // 2 boxes − 112 pouches (2500 a box)
 });

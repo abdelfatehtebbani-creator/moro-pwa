@@ -37,7 +37,7 @@ var SCHEMA = {
   CashLines:    ['sheet_id', 'line', 'kind', 'party_id', 'payee', 'item_id', 'description', 'amount', 'paid_by', 'requested_by',
                  'status', 'reject_note'],
   CashFloat:    ['entry_id', 'date', 'amount', 'note', 'created_by', 'created_at'],
-  CoffeeBatches: ['batch_id', 'date', 'green', 'green_kg', 'roasted_kg', 'bags', 'bag_g', 'bag_item', 'packed_kg', 'note',
+  CoffeeBatches: ['batch_id', 'date', 'green', 'green_kg', 'roasted_kg', 'bags', 'bag_g', 'bag_item', 'packed_kg', 'pouch', 'note',
                   'created_by', 'created_at'],
   PushDevices:  ['device_id', 'user_id', 'token', 'device', 'created_at', 'seen_at', 'revoked_at', 'last_sent_at', 'last_error', 'lang'],
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],

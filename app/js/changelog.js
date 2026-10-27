@@ -7,7 +7,7 @@ export const CHANGELOG = [
     ar: {
       news: [
         'تبويب "أكياس القهوة" فيه الآن ثلاثة أقسام: الحاسبة، وتجهيز الأكياس، والمخزون والسجل.',
-        'تجهيز الأكياس: يُدخل أمين المخزن القهوة الخضراء المأخوذة ووزنها بعد التحميص وعدد الأكياس المعبأة؛ تنقص القهوة الخضراء من المخزون ويزيد صنف COFFEE BAG 200G، ويُحسب الهدر الفعلي مقابل نسب الحاسبة.',
+        'تجهيز الأكياس: يُدخل أمين المخزن القهوة الخضراء المأخوذة ووزنها بعد التحميص وعدد الأكياس المعبأة؛ تنقص القهوة الخضراء وكيس فارغ (Coffee Pouch) لكل كيس معبأ من المخزون، ويزيد صنف COFFEE BAG 200G، ويُحسب الهدر الفعلي مقابل نسب الحاسبة.',
         'تسليم الأكياس للزبون من شاشة "صرف للأقسام" كأي صنف، وتظهر التسليمات في سجل القهوة.',
       ],
       todo: 'أمين المخزن: سجّل كل دفعة أكياس من "تجهيز الأكياس" بالكميات الحقيقية.',
@@ -16,7 +16,7 @@ export const CHANGELOG = [
     en: {
       news: [
         'The "Coffee bags" tab now has three parts: the calculator, preparing bags, and stock & history.',
-        'Preparing bags: the storekeeper enters the green coffee taken, its weight after roasting and the bags filled; the green coffee leaves the stock, COFFEE BAG 200G is added, and the real loss is set against the calculator.',
+        'Preparing bags: the storekeeper enters the green coffee taken, its weight after roasting and the bags filled; the green coffee and one empty pouch (Coffee Pouch) per bag leave the stock, COFFEE BAG 200G is added, and the real loss is set against the calculator.',
         'Bags go to the customer from the "Department issues" screen like any item, and appear in the coffee history.',
       ],
       todo: 'Storekeeper: record every batch of bags from "Prepare bags" with the real quantities.',
