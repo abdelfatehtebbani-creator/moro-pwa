@@ -480,11 +480,24 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .home-ico .ico { width: 22px; height: 22px; }
   .home-label { font-size: 12.5px; }
 }
-@container (min-width: 620px) {
-  .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, 760px, calc(100vh - 130px)); min-width: 560px; aspect-ratio: 1; }
-  .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: 34%; margin: 0; translate: -50% -50%; }
-  .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
-  .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); width: 19%; min-width: 108px; translate: -50% -50%; padding: 12px 8px 10px; }
+/* wide and tall enough: the screens on an ellipse around the disc, using the whole width (the side menu is hidden on home) */
+@container (min-width: 760px) {
+  @media (min-height: 600px) {
+    .home-stage.ring { position: relative; display: block; padding: 0; width: min(100%, 1080px); height: max(560px, calc(100vh - 160px)); }
+    .home-stage.ring .home-disc { position: absolute; left: 50%; top: 50%; width: min(24cqw, 34vh); margin: 0; translate: -50% -50%; }
+    .home-stage.ring .home-nav { display: block; position: absolute; inset: 0; }
+    .home-stage.ring .home-tab { position: absolute; left: var(--x); top: var(--y); width: 136px; translate: -50% -50%; padding: 12px 8px 10px; }
+  }
+}
+@media (min-width: 861px) {
+  .shell.at-home { grid-template-columns: 1fr; }
+  .shell.at-home .side { display: none; }
+}
+.home-account { display: none; }
+@media (min-width: 861px) {
+  .home-account { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 14px; margin-top: 18px; font-size: 13px; color: var(--muted); }
+  .home-account button { background: none; border: 0; color: var(--brand); padding: 2px 4px; cursor: pointer; }
+  .home-account button:hover { text-decoration: underline; }
 }
 @media (prefers-reduced-motion: reduce) { .home-tab, .home-ico { transition: none; } }
 
