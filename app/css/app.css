@@ -499,10 +499,10 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .shell.at-home { grid-template-columns: 1fr; }
   .shell.at-home .side { display: none; }
 }
-/* the user's own buttons: in rows under the circle, or on its two sides when there is room (phones: under "more") */
+/* the user's own buttons: in rows under the screens, or on the two sides of the circle when there is room */
 .home-grid { width: 100%; display: grid; justify-items: center; gap: 18px; }
 .home-grid > .home-stage { order: 1; }
-.home-side { display: none; order: 2; }
+.home-side { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; order: 2; width: 100%; }
 .home-side + .home-stage + .home-side { order: 3; }
 .home-user { display: grid; justify-items: center; text-align: center; padding: 10px 18px; line-height: 1.35; }
 .home-user small { color: var(--muted); }
@@ -512,8 +512,13 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .home-side button:hover { transform: translateY(-2px); border-color: var(--brand); color: var(--brand); }
 .home-side button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 .home-side .push-note { max-width: 200px; text-align: center; }
-@media (min-width: 861px) {
-  .home-side { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+/* phone: home stands alone, without the bottom bar (every screen is on it, and the account buttons under them) */
+@media (max-width: 860px) {
+  .shell.at-home + .bottom-nav { display: none; }
+  .shell.at-home .content { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .home-grid { gap: 12px; }
+  .home-user { flex-basis: 100%; padding: 6px 0 0; }
+  .home-side button { min-width: 0; flex: 1 1 140px; padding: 8px 12px; font-size: 13.5px; }
 }
 @container (min-width: 900px) {
   @media (min-width: 861px) and (min-height: 600px) {
