@@ -450,6 +450,10 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .cf-blend-head label { font-weight: 600; }
 .cf-blend input[type=range] { width: 100%; accent-color: #6b4423; }
 
+.table-wrap tfoot td { position: sticky; bottom: 0; background: var(--surface); border-top: 2px solid var(--line); }
+.table-wrap tfoot td[colspan] { text-align: end; }
+@media (max-width: 860px) { .table-wrap:has(> .lpo-edit) { max-height: none; } }
+
 /* Cash purchases (petty cash) */
 .lpo-sections { margin-bottom: 12px; }
 .lpo-sections .badge { margin-inline-start: 6px; background: var(--brand); color: #fff; border-radius: 9px; font-size: 11px; padding: 0 6px; }
@@ -478,3 +482,6 @@ tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
   .cash-print tr.cp-off td { color: #666; }
   .cash-print .cp-note { font-size: 8pt; font-weight: 700; color: #000; }
 }
+
+.grand-total { font-size: 16px; text-align: end; padding: 4px 2px; }
+.grand-total b { font-size: 18px; }

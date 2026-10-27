@@ -317,14 +317,16 @@ async function renderLpo(root) {
 }
 
 function fact(label, value) {
-  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', value));
+  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', h('bdi', value)));
 }
 
 function linesTable(lines) {
   const total = lines.reduce((s, x) => s + Number(x.total || 0), 0);
-  return h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('qty')), h('th', t('unit')), h('th', t('lpo_desc')), h('th', t('lpo_unit_price')), h('th', t('total')))),
-    h('tbody', lines.map((x) => h('tr', h('td.num', fmtNum(x.qty)), h('td', x.unit), h('td.wrap', h('bdi', x.description)), h('td.num', money(x.price)), h('td.num', money(x.total)))),
-      h('tr', h('td', { colspan: 4 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(total)))))));
+  // the grand total also under the table: on a phone the table scrolls sideways
+  return [h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('qty')), h('th', t('unit')), h('th', t('lpo_desc')), h('th', t('lpo_unit_price')), h('th', t('total')))),
+    h('tbody', lines.map((x) => h('tr', h('td.num', fmtNum(x.qty)), h('td', x.unit), h('td.wrap', h('bdi', x.description)), h('td.num', money(x.price)), h('td.num', money(x.total))))),
+    h('tfoot', h('tr', h('td', { colspan: 4 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(total))))))),
+    h('div.grand-total', t('lpo_grand_total') + ': ', h('b.num', money(total) + ' QR'))];
 }
 
 function confirmBox(text) {
