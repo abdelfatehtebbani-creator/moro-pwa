@@ -15,6 +15,8 @@ var ROUTES = {
   'data.version':     function () { return { version: Version.get() }; },
   'movements.query':  function (s, p) { return Movements.query(s, p); },
   'movements.save':   function (s, p) { return Movements.save(s, p); },
+  'coffee.list':      function (s) { return Coffee.list(s); },
+  'coffee.pack':      function (s, p) { return Coffee.pack(s, p); },
   'movements.update': function (s, p) { return Movements.update(s, p); },
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
@@ -94,7 +96,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '22';
+var SCHEMA_VERSION = '23';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
