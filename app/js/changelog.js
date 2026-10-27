@@ -3,6 +3,21 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.36', date: '2026-10-27',
+    ar: {
+      news: [
+        'شاشة رئيسية جديدة تظهر بعد الدخول: قرص يدور بشعار الشركة على وجه واسم التطبيق على الآخر، وحوله الشاشات المسموح لك بفتحها. اضغط أي شاشة لتنتقل إليها.',
+        'كل الشاشات في مكانها كما كانت، والقائمة الجانبية وشريط الهاتف فيهما "الرئيسية" للعودة إليها.',
+      ],
+    },
+    en: {
+      news: [
+        'A new home screen after signing in: a turning disc with the company logo on one face and the app name on the other, with the screens you may open around it. Tap a screen to go to it.',
+        'Every screen is where it was; the side menu and the phone bar have "Home" to come back to it.',
+      ],
+    },
+  },
+  {
     v: '0.8.35', date: '2026-10-27',
     ar: {
       news: [
