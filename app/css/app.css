@@ -499,11 +499,28 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .shell.at-home { grid-template-columns: 1fr; }
   .shell.at-home .side { display: none; }
 }
-.home-account { display: none; }
+/* the user's own buttons: in rows under the circle, or on its two sides when there is room (phones: under "more") */
+.home-grid { width: 100%; display: grid; justify-items: center; gap: 18px; }
+.home-grid > .home-stage { order: 1; }
+.home-side { display: none; order: 2; }
+.home-side + .home-stage + .home-side { order: 3; }
+.home-user { display: grid; justify-items: center; text-align: center; padding: 10px 18px; line-height: 1.35; }
+.home-user small { color: var(--muted); }
+.home-side button { min-width: 180px; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); font-size: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(22, 38, 63, .06);
+  transition: transform .18s ease, border-color .18s ease, color .18s ease; }
+.home-side button:hover { transform: translateY(-2px); border-color: var(--brand); color: var(--brand); }
+.home-side button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.home-side .push-note { max-width: 200px; text-align: center; }
 @media (min-width: 861px) {
-  .home-account { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 14px; margin-top: 18px; font-size: 13px; color: var(--muted); }
-  .home-account button { background: none; border: 0; color: var(--brand); padding: 2px 4px; cursor: pointer; }
-  .home-account button:hover { text-decoration: underline; }
+  .home-side { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+}
+@container (min-width: 900px) {
+  @media (min-width: 861px) and (min-height: 600px) {
+    .home-grid { grid-template-columns: minmax(0, 1fr) minmax(0, max(540px, calc(100vh - 150px))) minmax(0, 1fr); align-items: stretch; gap: 0 16px; }
+    .home-grid > .home-stage, .home-side, .home-side + .home-stage + .home-side { order: 0; }
+    .home-side { flex-direction: column; flex-wrap: nowrap; justify-content: space-evenly; }
+  }
 }
 @media (prefers-reduced-motion: reduce) { .home-tab, .home-ico { transition: none; } }
 
