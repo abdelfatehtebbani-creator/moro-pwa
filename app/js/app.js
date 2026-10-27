@@ -40,7 +40,7 @@ const ROUTES = {
 };
 
 const root = document.getElementById('app');
-let content, title, syncEl;
+let content, title, syncEl, shellEl;
 
 applyLang();
 // updates: the service worker file is never taken from the browser cache, and when a new version
@@ -158,11 +158,7 @@ function buildShell() {
     h('nav.nav', navLinks),
     h('div.side-foot',
       h('div', u.display_name, h('br'), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
-      h('button', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
-      pushButton('button'),
-      h('button', { type: 'button', onclick: changePin }, t('change_pin')),
-      h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
-      h('button', { type: 'button', onclick: logout }, t('logout'))));
+      accountButtons()));
 
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
@@ -176,9 +172,20 @@ function buildShell() {
     h('button.sync-text', { type: 'button', onclick: refreshNow }, ''),
     h('button.sync-warn', { type: 'button', hidden: true, title: t('rejected_title'), onclick: () => { location.hash = '#/failed'; } }, ''));
   content = h('section.content');
-  root.replaceChildren(h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content)), bottom);
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content));
+  root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();
+}
+
+/** The user's own buttons: in the side menu, and on the home screen (where the side menu is hidden). */
+function accountButtons() {
+  return [
+    h('button', { type: 'button', onclick: () => whatsNew(true) }, t('whats_new')),
+    pushButton('button'),
+    h('button', { type: 'button', onclick: changePin }, t('change_pin')),
+    h('button', { type: 'button', onclick: toggleLang }, t('lang_other')),
+    h('button', { type: 'button', onclick: logout }, t('logout'))];
 }
 
 const AUTO_REFRESH_MS = 30000;
@@ -186,14 +193,18 @@ let current = null;
 function route() {
   if (current && current.dispose) current.dispose();
   let name = (location.hash.replace(/^#\/?/, '') || firstScreen()).split('?')[0];
+  shellEl.classList.remove('at-home');
   if (name === 'more') return showMore();
   if (name === 'failed' && canSeeFailed()) return showFailed();
   if (!ROUTES[name] || !allowed(name)) name = firstScreen();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
   current = ROUTES[name].view;
-  // home shows the other screens this user may open, as the menu does
-  current.render(content, name, { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)) });
+  // home shows the other screens this user may open, as the menu does, and takes the menu's place (wide screens)
+  shellEl.classList.toggle('at-home', name === 'home');
+  const u = Data.user;
+  current.render(content, name, { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)),
+    account: name === 'home' ? h('div.home-account', h('span', h('b', u.display_name), ' · ' + t('role_' + u.role) + ' · v' + APP_VERSION), accountButtons()) : null });
   if (name === 'home') updateBadges();
   window.scrollTo(0, 0);
 }

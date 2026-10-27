@@ -3,6 +3,21 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.37', date: '2026-10-27',
+    ar: {
+      news: [
+        'في الشاشة الرئيسية على الحاسوب اختفى الشريط الجانبي، وتتوزع الشاشات على مسافات متساوية حول القرص بعرض الشاشة كلها. يعود الشريط الجانبي في باقي الشاشات.',
+        'أزرار حسابك (ما الجديد، الإشعارات، تغيير الرمز، اللغة، الخروج) أسفل الشاشة الرئيسية.',
+      ],
+    },
+    en: {
+      news: [
+        'On a computer the home screen no longer shows the side menu, and the screens are spread evenly around the disc across the whole width. The side menu is back on every other screen.',
+        'Your account buttons (what\'s new, notifications, change PIN, language, sign out) are at the bottom of the home screen.',
+      ],
+    },
+  },
+  {
     v: '0.8.36', date: '2026-10-27',
     ar: {
       news: [
