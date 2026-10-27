@@ -138,7 +138,7 @@ function whatsNew(always) {
       return h('div.wn-entry',
         h('div.wn-ver', h('b', 'v' + c.v), ' ', h('span.muted', fmtDate(c.date))),
         h('ul', x.news.map((n) => h('li', n))),
-        h('div.wn-todo', h('b', t('whats_new_todo')), ' ', x.todo),
+        x.todo ? h('div.wn-todo', h('b', t('whats_new_todo')), ' ', x.todo) : null,
         admin && x.admin ? h('div.wn-todo.admin', h('b', t('whats_new_admin')), ' ', x.admin) : null);
     }),
     h('div.actions', h('button.btn', { type: 'button', onclick: () => close() }, t('whats_new_ok')))]);

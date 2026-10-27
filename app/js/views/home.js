@@ -21,7 +21,7 @@ export function render(root, name, ctx) {
       // clockwise from the top (counter-clockwise in Arabic, so the reading order follows the language)
       const angle = ((-90 + (360 * i) / links.length) * Math.PI) / 180;
       a.style.setProperty('--x', (50 + 41 * Math.cos(angle) * (rtl ? -1 : 1)).toFixed(2) + '%');
-      a.style.setProperty('--y', (50 + 40 * Math.sin(angle)).toFixed(2) + '%');
+      a.style.setProperty('--y', (50 + 41 * Math.sin(angle)).toFixed(2) + '%');
     }
     return a;
   }));
