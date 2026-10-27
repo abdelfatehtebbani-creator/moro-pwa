@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.38', date: '2026-10-27',
+    ar: { news: ['على الهاتف تظهر الشاشة الرئيسية دون الشريط السفلي، وأزرار حسابك (ما الجديد، تغيير الرمز، اللغة، الخروج) أسفل الشاشات. يعود الشريط في باقي الشاشات.'] },
+    en: { news: ['On the phone the home screen shows without the bottom bar, with your account buttons (What\u2019s new, change PIN, language, sign out) under the screens. The bar is back on every other screen.'] },
+  },
+  {
     v: '0.8.37', date: '2026-10-27',
     ar: {
       news: [
