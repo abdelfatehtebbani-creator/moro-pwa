@@ -22,8 +22,8 @@ function clockHands() {
     const g = document.createElementNS(SVG, 'g');
     g.setAttribute('class', 'hand hand-' + k);
     const line = document.createElementNS(SVG, 'line');
-    line.setAttribute('x1', '0'); line.setAttribute('y1', '0'); line.setAttribute('x2', '0');
-    line.setAttribute('y2', '-100'); // the disc's radius; each hand's length is a CSS factor of it (disc.css)
+    // a unit segment, placed and stretched in disc.css: from just outside the disc to the hand's tip
+    line.setAttribute('x1', '0'); line.setAttribute('y1', '0'); line.setAttribute('x2', '0'); line.setAttribute('y2', '-1');
     g.append(line);
     svg.append(g);
     return g;
