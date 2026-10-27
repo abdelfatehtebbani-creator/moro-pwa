@@ -29,8 +29,7 @@ export function render(root, name, ctx) {
   const acc = ctx && ctx.account;
   let sides = [null, null];
   if (acc) {
-    const first = Math.ceil((acc.buttons.length + 1) / 2) - 1; // the name counts as one on the first side
-    sides = [h('div.home-side', acc.info, acc.buttons.slice(0, first)), h('div.home-side', acc.buttons.slice(first))];
+    sides = [h('div.home-side', acc.info, acc.buttons.slice(0, 2)), h('div.home-side', acc.buttons.slice(2))];
   }
   root.replaceChildren(h('div.home', h('div.home-grid', sides[0], h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), sides[1])));
 
