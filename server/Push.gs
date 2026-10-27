@@ -15,16 +15,17 @@ var Push = {
     return !!PropertiesService.getScriptProperties().getProperty(FCM_PROPERTY);
   },
 
-  /** p: {token, device} – this device now receives the signed-in user's notifications. */
+  /** p: {token, device, lang} – this device now receives the signed-in user's notifications, in its language. */
   register: function (session, p) {
     var token = Push.token(p.token);
     var device = Util.clean(p.device).slice(0, 120);
+    var lang = p.lang === 'en' ? 'en' : 'ar';
     return withLock(function () {
       var now = Util.nowIso();
       var cur = Repo.find('PushDevices', 'token', token);
       if (cur) {
         // a shared device signed in with another account moves to that account
-        Repo.update('PushDevices', 'token', token, { user_id: session.user_id, device: device, seen_at: now, revoked_at: '', last_error: '' });
+        Repo.update('PushDevices', 'token', token, { user_id: session.user_id, device: device, seen_at: now, revoked_at: '', last_error: '', lang: lang });
         return { subscribed: true };
       }
       // the oldest devices of a user give way when there are too many
@@ -36,7 +37,7 @@ var Push = {
       var n = 0;
       Repo.column('PushDevices', 'device_id').forEach(function (v) { n = Math.max(n, Number(String(v).slice(1)) || 0); });
       Repo.append('PushDevices', [{ device_id: 'D' + Util.pad(n + 1, 4), user_id: session.user_id, token: token, device: device,
-        created_at: now, seen_at: now }]);
+        created_at: now, seen_at: now, lang: lang }]);
       return { subscribed: true };
     });
   },
@@ -52,22 +53,26 @@ var Push = {
   },
 
   /**
-   * Sends {title, body, page, badge} to every active device of the given users. Never throws.
-   * Returns the number of devices reached.
+   * Sends {ar: {title, body}, en: {title, body}, page, badge} to every active device of the given users,
+   * each in the language of the app on that device. Never throws. Returns the number of devices reached.
    */
   toUsers: function (userIds, msg) {
     try {
       if (!userIds.length || !Push.configured()) return 0;
       var devices = Repo.all('PushDevices').filter(function (d) { return !d.revoked_at && userIds.indexOf(d.user_id) >= 0; });
       if (!devices.length) return 0;
-      var data = { title: String(msg.title || '').slice(0, 120), body: String(msg.body || '').slice(0, 240), page: msg.page || '',
-                   badge: String(msg.badge || 0) };
-      var results = FcmSender.sendAll(devices.map(function (d) { return d.token; }), data);
       var now = Util.nowIso(), sent = 0;
-      results.forEach(function (r, i) {
-        var d = devices[i];
-        if (r.ok) { sent++; Repo.update('PushDevices', 'token', d.token, { last_sent_at: now, last_error: '' }); }
-        else Repo.update('PushDevices', 'token', d.token, r.unregistered ? { revoked_at: now, last_error: r.error } : { last_error: r.error });
+      ['ar', 'en'].forEach(function (lang) {
+        var group = devices.filter(function (d) { return (d.lang === 'en' ? 'en' : 'ar') === lang; });
+        if (!group.length) return;
+        var text = msg[lang] || msg.ar || msg;
+        var data = { title: String(text.title || '').slice(0, 120), body: String(text.body || '').slice(0, 240), page: msg.page || '',
+                     badge: String(msg.badge || 0) };
+        FcmSender.sendAll(group.map(function (d) { return d.token; }), data).forEach(function (r, i) {
+          var d = group[i];
+          if (r.ok) { sent++; Repo.update('PushDevices', 'token', d.token, { last_sent_at: now, last_error: '' }); }
+          else Repo.update('PushDevices', 'token', d.token, r.unregistered ? { revoked_at: now, last_error: r.error } : { last_error: r.error });
+        });
       });
       return sent;
     } catch (e) {

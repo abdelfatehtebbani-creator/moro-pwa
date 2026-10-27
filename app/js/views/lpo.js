@@ -7,6 +7,7 @@ import { MovStore } from '../movstore.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field } from '../components.js';
+import * as cash from './cash.js';
 
 const STATUSES = ['submitted', 'draft', 'approved', 'rejected'];
 const PILL = { draft: 'out', submitted: 'soon', approved: 'in', rejected: 'low', cancelled: 'out' };
@@ -22,7 +23,7 @@ export function badgeCount() {
   let seen = '';
   try { seen = localStorage.getItem(SEEN_KEY) || ''; } catch { /* storage blocked */ }
   const news = (b.lpo_decided || []).filter((x) => String(x[2] || '') > seen).length;
-  return (Number(b.lpo_pending) || 0) + news;
+  return (Number(b.lpo_pending) || 0) + news + cash.badgeCount();
 }
 function markSeen() {
   const last = (Data.boot && Data.boot.lpo_decided || []).map((x) => String(x[2] || '')).sort().pop();
@@ -39,7 +40,29 @@ async function receipts() {
   } catch { return []; }
 }
 
+// the screen has two tabs: purchase orders and cash purchases (each shown to whoever may open it)
+let section = '';
 export async function render(root) {
+  const parts = [Data.can('lpo.list') ? 'lpo' : null, Data.can('cash.list') ? 'cash' : null].filter(Boolean);
+  if (!parts.includes(section)) section = parts[0] || 'lpo';
+  const box = h('div');
+  const bar = h('div.tabs.lpo-sections');
+  const draw = () => {
+    bar.replaceChildren(...parts.map((p) => h('button', { type: 'button', class: section === p ? 'on' : '', onclick: () => { section = p; draw(); } },
+      t(p === 'lpo' ? 'lpo_tab' : 'cash_purchases'), h('span.badge', { hidden: !(p === 'cash' ? cash.badgeCount() : lpoCount()) }, String(p === 'cash' ? cash.badgeCount() : lpoCount())))));
+    (section === 'cash' ? cash.render : renderLpo)(box);
+  };
+  root.replaceChildren(parts.length > 1 ? bar : '', box);
+  draw();
+}
+function lpoCount() {
+  const b = Data.boot || {};
+  let seen = '';
+  try { seen = localStorage.getItem(SEEN_KEY) || ''; } catch { /* storage blocked */ }
+  return (Number(b.lpo_pending) || 0) + (b.lpo_decided || []).filter((x) => String(x[2] || '') > seen).length;
+}
+
+async function renderLpo(root) {
   const canWrite = Data.can('lpo.save');
   const canDecide = Data.can('lpo.decide');
   const list = h('tbody', h('tr', h('td.empty', { colspan: 7 }, '…')));
@@ -294,14 +317,16 @@ export async function render(root) {
 }
 
 function fact(label, value) {
-  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', value));
+  return value === '' || value === null || value === undefined ? null : h('div', h('small.muted', label), h('div', h('bdi', value)));
 }
 
 function linesTable(lines) {
   const total = lines.reduce((s, x) => s + Number(x.total || 0), 0);
-  return h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('qty')), h('th', t('unit')), h('th', t('lpo_desc')), h('th', t('lpo_unit_price')), h('th', t('total')))),
-    h('tbody', lines.map((x) => h('tr', h('td.num', fmtNum(x.qty)), h('td', x.unit), h('td.wrap', h('bdi', x.description)), h('td.num', money(x.price)), h('td.num', money(x.total)))),
-      h('tr', h('td', { colspan: 4 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(total)))))));
+  // the grand total also under the table: on a phone the table scrolls sideways
+  return [h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('qty')), h('th', t('unit')), h('th', t('lpo_desc')), h('th', t('lpo_unit_price')), h('th', t('total')))),
+    h('tbody', lines.map((x) => h('tr', h('td.num', fmtNum(x.qty)), h('td', x.unit), h('td.wrap', h('bdi', x.description)), h('td.num', money(x.price)), h('td.num', money(x.total))))),
+    h('tfoot', h('tr', h('td', { colspan: 4 }, h('b', t('total') + ' (QR)')), h('td.num', h('b', money(total))))))),
+    h('div.grand-total', t('lpo_grand_total') + ': ', h('b.num', money(total) + ' QR'))];
 }
 
 function confirmBox(text) {
