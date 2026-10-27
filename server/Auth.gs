@@ -5,7 +5,7 @@
  * secret kept in Script Properties (never in code). Tokens stay valid offline on the device;
  * every request re-checks that the user still exists, is active and has not changed PIN since.
  */
-var ROLES = ['admin', 'storekeeper', 'purchasing', 'production'];
+var ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant'];
 var TOKEN_DAYS = 30;
 var MAX_TRIES = 5;          // wrong PINs before a temporary lock
 var LOCK_MINUTES = 10;

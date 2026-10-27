@@ -3,6 +3,25 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.8.34', date: '2026-10-27',
+    ar: {
+      news: [
+        'دور جديد "محاسب": يرى الأوراق النقدية وأوامر الشراء، ويسلّم النقد لمسؤول المشتريات، ولا يكتب الأوراق ولا يعتمدها.',
+        'عند اعتماد المدير لورقة نقدية يصل المحاسب إشعار بالمبلغ المعتمد ليسلّمه لمسؤول المشتريات.',
+        'تسليم النقد لم يعد ضمن دور المدير.',
+      ],
+      admin: 'أضف المحاسب من شاشة المستخدمين بدور "محاسب". إن احتجت أن تسلّم النقد بنفسك، علّم لنفسك "تسليم النقد" في صلاحياتك.',
+    },
+    en: {
+      news: [
+        'A new "Accountant" role: sees the cash sheets and the purchase orders and hands the cash over to purchasing, but does not write or approve sheets.',
+        'When the admin approves a cash sheet, the accountant is notified of the approved amount to hand over to purchasing.',
+        'Handing over cash is no longer part of the admin role.',
+      ],
+      admin: 'Add the accountant from the users screen with the "Accountant" role. If you need to hand over cash yourself, tick "Hand over cash" in your own permissions.',
+    },
+  },
+  {
     v: '0.8.33', date: '2026-10-27',
     ar: {
       news: [
