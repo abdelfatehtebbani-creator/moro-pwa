@@ -57,19 +57,30 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- shell ---------- */
 .shell { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
-.side { background: var(--navy); color: #fff; display: flex; flex-direction: column; padding: 16px 10px; gap: 4px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; }
+.side { background: var(--bg); color: var(--ink); display: flex; flex-direction: column; padding: 16px 12px; gap: 6px; position: sticky; top: 0; height: 100vh; overflow-y: auto; border-inline-end: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; }
 .brand img { width: 40px; height: 40px; }
-.brand b { display: block; font-size: 18px; letter-spacing: .06em; }
-.brand small { display: block; color: #9fb0c8; font-size: 11px; line-height: 1.3; }
-.nav-group { color: #8a9ab2; font-size: 12px; font-weight: 600; padding: 12px 10px 4px; }
-.nav a { display: flex; align-items: center; gap: 10px; color: #e8edf4; text-decoration: none; padding: 9px 12px; border-radius: var(--radius); position: relative; }
-.nav a:hover { background: var(--navy-2); }
-.nav a.active { background: var(--navy-2); font-weight: 600; }
-.nav a.active::before { content: ""; position: absolute; inset-block: 6px; inset-inline-start: -10px; width: 4px; border-radius: 2px; background: var(--brand); }
+.brand b { display: block; font-size: 18px; letter-spacing: .06em; color: var(--navy); }
+.brand small { display: block; color: var(--muted); font-size: 11px; line-height: 1.3; }
+.nav-group { color: var(--muted); font-size: 12px; font-weight: 600; padding: 10px 12px 2px; }
+/* the screens as pill-shaped buttons, in the spirit of the round buttons of the home screen */
+.nav { display: grid; gap: 6px; }
+.nav a { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; padding: 5px 14px 5px 6px; border-radius: 999px;
+  position: relative; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(22, 38, 63, .06); font-size: 14px;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.nav a .ico { width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); flex: none;
+  transition: background-color .18s ease, color .18s ease; }
+.nav a:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(22, 38, 63, .10); border-color: var(--brand); }
+.nav a:hover .ico { background: var(--brand); color: #fff; }
+.nav a.active { border-color: var(--brand); font-weight: 600; box-shadow: 0 0 0 2px rgba(238, 115, 38, .18); }
+.nav a.active .ico { background: var(--brand); color: #fff; }
+.nav a:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 .nav .badge { margin-inline-start: auto; background: var(--brand); color: #fff; border-radius: 10px; font-size: 12px; padding: 0 7px; }
-.side-foot { margin-top: auto; display: grid; gap: 6px; padding: 10px 6px 0; border-top: 1px solid #2c4166; font-size: 13px; color: #b9c6d8; }
-.side-foot button { background: none; border: 0; color: #ffb38a; text-align: start; padding: 4px 6px; cursor: pointer; }
+.side-foot { margin-top: auto; display: grid; gap: 6px; padding: 12px 4px 0; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.side-foot button { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-align: center; padding: 6px 12px; cursor: pointer;
+  transition: border-color .18s ease, color .18s ease; }
+.side-foot button:hover { border-color: var(--brand); color: var(--brand); }
+@media (prefers-reduced-motion: reduce) { .nav a, .nav a .ico, .side-foot button { transition: none; } }
 
 .main { min-width: 0; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.64', date: '2026-10-28',
+    ar: { news: ['القائمة الجانبية بلا لون داكن: الشاشات أزرار بيضوية مرتبة عموديًا، بأسلوب الشاشة الرئيسية.'] },
+    en: { news: ['The side menu is no longer dark: the screens are pill-shaped buttons in a column, in the style of the home screen.'] },
+  },
+  {
     v: '0.9.63', date: '2026-10-28',
     ar: {
       news: ['تقرير جديد "تتبّع المواد ودفعاتها" للتحقيق الصحي: لكل مادة صُرفت لقسم في فترة: الكمية وتاريخ الصرف، وتاريخ صلاحية الدفعة التي خرجت منها، والمورد ورقم فاتورة استلامها. الدفعة تُستنتج بقاعدة "الأقرب انتهاءً يُصرف أولًا".'],
