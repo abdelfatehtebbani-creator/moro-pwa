@@ -15,8 +15,12 @@ export function render(root, name, ctx) {
   const rtl = document.documentElement.dir === 'rtl';
   const slot = h('div.home-disc', { 'aria-hidden': 'true' });
   const nav = h('nav.home-nav', { 'aria-label': t('home') }, links.map((r, i) => {
-    const a = h('a.home-tab', { href: '#/' + r, 'data-route': r },
-      h('span.home-ico', icon(r)), h('span.home-label', t(r)), r === 'lpo' ? h('span.badge', { hidden: true }) : null);
+    // the screen left open behind the home screen (idle): marked, and brought back as it was
+    const resume = ctx && ctx.resume && ctx.resume.name === r;
+    const a = h('a.home-tab' + (resume ? '.resume' : ''), { href: '#/' + r, 'data-route': r, title: resume ? t('idle_resume') : null,
+      onclick: resume ? (e) => { e.preventDefault(); ctx.resume.onResume(); } : null },
+      h('span.home-ico', icon(r)), h('span.home-label', t(r)), r === 'lpo' ? h('span.badge', { hidden: true }) : null,
+      resume ? h('span.home-resume', t('idle_resume')) : null);
     if (ring) {
       // clockwise from the top (counter-clockwise in Arabic, so the reading order follows the language)
       const angle = ((-90 + (360 * i) / links.length) * Math.PI) / 180;
