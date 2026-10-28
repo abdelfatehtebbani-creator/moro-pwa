@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.65', date: '2026-10-28',
-    ar: { news: ['بعد 5 دقائق دون أي حركة تعود الشاشة إلى الرئيسية، وتبقى الشاشة التي كنت فيها خلفها بكل ما كتبته. زرها يظهر بحلقة برتقالية وكلمة "متابعة" ويعيدها كما تركتها. وإن اخترت شاشة أخرى وفيها بيانات لم تُحفظ، يسألك التطبيق أولًا.'] },
-    en: { news: ['After 5 minutes without any activity the app goes back to the home screen, keeping the screen you were on behind it with everything you typed. Its button shows an orange ring and "Continue" and brings it back as you left it. If you choose another screen while it has unsaved data, the app asks first.'] },
+    ar: { news: ['بعد 5 دقائق دون أي حركة (يغيّرها المدير من شاشة المستخدمين ← إعدادات عامة) تعود الشاشة إلى الرئيسية، وتبقى الشاشة التي كنت فيها خلفها بكل ما كتبته. زرها يظهر بحلقة برتقالية وكلمة "متابعة" ويعيدها كما تركتها. وإن اخترت شاشة أخرى وفيها بيانات لم تُحفظ، يسألك التطبيق أولًا.'] },
+    en: { news: ['After 5 minutes without any activity (the admin can change it in the users screen, General settings) the app goes back to the home screen, keeping the screen you were on behind it with everything you typed. Its button shows an orange ring and "Continue" and brings it back as you left it. If you choose another screen while it has unsaved data, the app asks first.'] },
   },
   {
     v: '0.9.64', date: '2026-10-28',

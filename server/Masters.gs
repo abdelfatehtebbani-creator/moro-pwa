@@ -322,3 +322,15 @@ var Masters = {
     };
   }
 };
+
+/** Minutes without activity before the app goes back to the home screen (0 = never). Read by every device from the bootstrap settings. */
+Masters.saveIdle = function (session, p) {
+  var m = Util.num(p.minutes);
+  Util.require(m !== null && m >= 0 && m <= 240 && Math.round(m) === m, 'idle_minutes_invalid');
+  return withLock(function () {
+    var before = Settings.get('idle_home_minutes', '');
+    Settings.set('idle_home_minutes', String(m));
+    Audit.log(session.user_id, 'settings_idle', 'Settings', 'idle_home_minutes', before, m);
+    return { minutes: m, version: Version.bump() };
+  });
+};

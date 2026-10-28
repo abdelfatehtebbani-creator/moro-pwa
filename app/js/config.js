@@ -6,7 +6,8 @@ export const APP_VERSION = '0.9.65';
 
 // The home screen's turning disc: the logo on its front, the app name and its line (i18n keys) on its back,
 // and the seconds it takes to turn once.
-// Minutes without a touch or a key before an open screen goes back to the home screen (kept behind it, unchanged).
+// Minutes without a touch or a key before an open screen goes back to the home screen (kept behind it, unchanged):
+// the default, until the admin sets it in the users screen (Settings.idle_home_minutes; 0 = never).
 export const IDLE_HOME_MINUTES = 5;
 
 export const HOME_DISC = { logo: 'icons/logo.png', nameKey: 'app_name', taglineKey: 'app_sub', secondsPerTurn: 14 };

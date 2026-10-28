@@ -3,6 +3,7 @@
 import { call } from '../api.js';
 import { Data, STORES } from '../data.js';
 import { t, errText } from '../i18n.js';
+import { IDLE_HOME_MINUTES } from '../config.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { field, storePill } from '../components.js';
 
@@ -14,7 +15,23 @@ export async function render(root) {
     h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_user'))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('display_name')), h('th', t('username')), h('th', t('role')),
       h('th', t('permissions')), h('th', t('last_login')), h('th', ''))), tb)),
-    h('small.muted', t('roles_help'))));
+    h('small.muted', t('roles_help'))), settingsCard());
+
+  // general settings of the app (the admin)
+  function settingsCard() {
+    const cur = (Data.settings || {}).idle_home_minutes;
+    const input = trackFilled(h('input.input.num#set-idle', { type: 'number', min: 0, max: 240, step: 1, inputmode: 'numeric',
+      value: cur !== undefined && cur !== '' ? cur : IDLE_HOME_MINUTES }));
+    const save = async () => {
+      const n = Number(input.value);
+      if (input.value === '' || !Number.isInteger(n) || n < 0 || n > 240) { toast(t('err.idle_minutes_invalid'), 'err'); return flash(input); }
+      try { await call('settings.idle', { minutes: n }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { toast(errText(e), 'err'); }
+    };
+    return h('div.card', h('h2', t('settings_general')),
+      h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
+      h('small.muted', t('idle_minutes_help')));
+  }
 
   async function load() {
     try {
