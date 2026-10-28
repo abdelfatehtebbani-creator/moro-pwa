@@ -294,13 +294,13 @@ function batchesTaken(movs, itemIds) {
 
 function trace(p, movs) {
   const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
-  // what the chosen departments received, and what the production screen used, in the period
+  // what the chosen departments received in the period
   const out = movs.filter((m) => inRange(m, p) && Number(m.qty) < 0
-    && ((m.kind === 'ISSUE' && isSection(m.party_id) && p.sections.has(m.party_id)) || m.kind === 'PROD_CONSUME'));
+    && m.kind === 'ISSUE' && isSection(m.party_id) && p.sections.has(m.party_id));
   const taken = batchesTaken(movs, new Set(out.map((m) => m.item_id)));
   const rows = [];
   out.sort((a, b) => (a.date === b.date ? byName(itemName(a.item_id), itemName(b.item_id)) : a.date < b.date ? -1 : 1)).forEach((m) => {
-    const dept = m.kind === 'PROD_CONSUME' ? 'Production' + (m.purpose ? ': ' + m.purpose : '') : partyName(m.party_id);
+    const dept = partyName(m.party_id);
     const unit = (Data.items.get(m.item_id) || {}).unit || m.unit || '';
     (taken.get(m.movement_id || m.client_id) || [{ qty: -Number(m.qty), lot: null }]).forEach(({ qty, lot }) => {
       rows.push([m.date, dept, itemName(m.item_id), qty, unit, m.doc_no || '',
