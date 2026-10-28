@@ -13,7 +13,7 @@ var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
-var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production'];
+var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace'];
 
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [

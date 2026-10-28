@@ -34,6 +34,7 @@ export const REPORTS = [
   { id: 'multiMonth', group: 'move', opts: ['year', 'items'], build: multiMonth },
   { id: 'prices', group: 'other', opts: ['items'], build: prices, prices: true },
   { id: 'production', group: 'other', opts: ['period'], build: productionSummary },
+  { id: 'trace', group: 'move', opts: ['dates', 'sections'], build: trace },
 ];
 
 function itemList(list, title) {
@@ -235,6 +236,82 @@ function productionSummary(p, movs) {
   const label = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }[p.period] || 'Monthly';
   return { title: 'Production summary (' + label + ')', subtitle: todayText(),
     columns: cols(['Period', 't'], ['Product', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
+}
+
+// ---------- traceability (food safety inquiry): what each department received, from which batch
+// Issues do not record the batch. It is worked out like the stock's batches on the server (Batches.gs):
+// the whole history of the item is replayed in date order, every inflow is a batch (its expiry, supplier,
+// invoice), and every outflow takes from the batch that expires first (FEFO). A stock count that set the
+// expiry starts again from what was counted.
+const INFLOWS = new Set(['RECEIPT', 'OPENING', 'DEPT_RETURN', 'PROD_OUTPUT', 'ADJUST', 'SHOP_RETURN']);
+const SOURCE = { RECEIPT: 'Receipt', OPENING: 'Opening balance', DEPT_RETURN: 'Department return', PROD_OUTPUT: 'Production',
+  ADJUST: 'Stock adjustment', SHOP_RETURN: 'Shop return', COUNT: 'Stock count' };
+const expiryFirst = (a, b) => (a.expiry === b.expiry ? (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) : !a.expiry ? 1 : !b.expiry ? -1 : (a.expiry < b.expiry ? -1 : 1));
+
+/** {movement key: [{qty, lot}]} — the batches each outflow of these items took from. */
+function batchesTaken(movs, itemIds) {
+  const byItem = new Map();
+  for (const m of movs) {
+    if (!itemIds.has(m.item_id) || !Number(m.qty)) continue;
+    if (!byItem.has(m.item_id)) byItem.set(m.item_id, []);
+    byItem.get(m.item_id).push(m);
+  }
+  const taken = new Map();
+  for (const [id, list] of byItem) {
+    list.sort((a, b) => (a.date === b.date ? String(a.movement_id || a.created_at || '').localeCompare(String(b.movement_id || b.created_at || '')) : a.date < b.date ? -1 : 1));
+    const bal = Data.balances.get(id) || {};
+    const reset = /^\d{4}-\d{2}-\d{2}$/.test(String(bal.expiry_reset || '')) ? String(bal.expiry_reset) : '';
+    const resetOn = String(bal.expiry_reset_on || '');
+    let lots = [];
+    let applied = false;
+    for (const m of list) {
+      if (reset && !applied && m.date > resetOn) {
+        lots = [{ expiry: reset, qty: Number(bal.expiry_reset_qty) || 0, date: resetOn, kind: 'COUNT', party: '', doc: '' }];
+        applied = true;
+      }
+      const q = Number(m.qty);
+      if (q > 0) {
+        lots.push({ expiry: INFLOWS.has(m.kind) ? String(m.expiry || '') : '', qty: q, date: m.date, kind: m.kind, party: m.party_id, doc: m.doc_no || '' });
+        continue;
+      }
+      let need = -q;
+      const parts = [];
+      lots.sort(expiryFirst);
+      for (const lot of lots) {
+        if (need <= 0) break;
+        const x = Math.min(need, lot.qty);
+        if (x <= 0) continue;
+        lot.qty = r6(lot.qty - x); need = r6(need - x);
+        parts.push({ qty: x, lot });
+      }
+      lots = lots.filter((l) => l.qty > 0);
+      if (need > 0) parts.push({ qty: need, lot: null });   // more out than recorded in: no batch known
+      taken.set(m.movement_id || m.client_id, parts);
+    }
+  }
+  return taken;
+}
+
+function trace(p, movs) {
+  const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
+  // what the chosen departments received in the period
+  const out = movs.filter((m) => inRange(m, p) && Number(m.qty) < 0
+    && m.kind === 'ISSUE' && isSection(m.party_id) && p.sections.has(m.party_id));
+  const taken = batchesTaken(movs, new Set(out.map((m) => m.item_id)));
+  const rows = [];
+  out.sort((a, b) => (a.date === b.date ? byName(itemName(a.item_id), itemName(b.item_id)) : a.date < b.date ? -1 : 1)).forEach((m) => {
+    const dept = partyName(m.party_id);
+    const unit = (Data.items.get(m.item_id) || {}).unit || m.unit || '';
+    (taken.get(m.movement_id || m.client_id) || [{ qty: -Number(m.qty), lot: null }]).forEach(({ qty, lot }) => {
+      rows.push([m.date, dept, itemName(m.item_id), qty, unit, m.doc_no || '',
+        lot ? lot.expiry : '', lot ? SOURCE[lot.kind] || lot.kind : 'Not known', lot ? lot.date : '',
+        lot && lot.party ? partyName(lot.party) : '', lot ? lot.doc : '']);
+    });
+  });
+  return { title: 'Traceability: materials issued and their batches', subtitle: periodText(p)
+      + '  ·  Batch worked out by "first to expire, first out"',
+    columns: cols(['Date issued', 'd'], ['Department', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Issue slip', 't'],
+      ['Expiry', 'd'], ['Batch source', 't'], ['Received on', 'd'], ['Supplier', 't'], ['Invoice no.', 't']), rows };
 }
 
 function cols(...defs) { return defs.map(([label, type]) => ({ label, type })); }
