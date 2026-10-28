@@ -233,7 +233,9 @@ let lastActive = Date.now();
 setInterval(() => {
   if (!content || idleFrom || !currentName || currentName === 'home' || !ROUTES.home) return;
   if (document.querySelector('.dialog-back')) return;
-  if (Date.now() - lastActive >= IDLE_HOME_MINUTES * 60000) showIdleHome();
+  const set = Number((Data.settings || {}).idle_home_minutes);
+  const minutes = (Data.settings || {}).idle_home_minutes !== undefined && (Data.settings || {}).idle_home_minutes !== '' && isFinite(set) ? set : IDLE_HOME_MINUTES;
+  if (minutes > 0 && Date.now() - lastActive >= minutes * 60000) showIdleHome();
 }, 15000);
 
 function showIdleHome() {
