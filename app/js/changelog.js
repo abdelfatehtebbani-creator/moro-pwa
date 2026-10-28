@@ -3,6 +3,17 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.63', date: '2026-10-28',
+    ar: {
+      news: ['تقرير جديد "تتبّع المواد ودفعاتها" للتحقيق الصحي: لكل مادة صُرفت لقسم (أو استُعملت في الإنتاج) في فترة: الكمية وتاريخ الصرف، وتاريخ صلاحية الدفعة التي خرجت منها، والمورد ورقم فاتورة استلامها. الدفعة تُستنتج بقاعدة "الأقرب انتهاءً يُصرف أولًا".'],
+      admin: 'من له صلاحيات مخصصة تعلّم له "تتبّع المواد ودفعاتها" في التقارير.',
+    },
+    en: {
+      news: ['A new "Traceability: materials and their batches" report for health inquiries: for every material issued to a department (or used in production) in a period, the quantity and date, the expiry of the batch it came from, and that batch\u2019s supplier and invoice number. The batch is worked out by "first to expire, first out".'],
+      admin: 'Users with custom permissions need "Traceability of materials and batches" ticked under reports.',
+    },
+  },
+  {
     v: '0.9.62', date: '2026-10-27',
     ar: {
       news: [
