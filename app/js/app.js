@@ -1,6 +1,6 @@
 // App start: service worker, sign-in, the shell (side menu / phone bottom bar), routing and sync.
 import { call, session, ApiError } from './api.js';
-import { APP_VERSION } from './config.js';
+import { APP_VERSION, IDLE_HOME_MINUTES } from './config.js';
 import { CHANGELOG, cmpVersion } from './changelog.js';
 import { Outbox } from './outbox.js';
 import { Push } from './push.js';
@@ -42,7 +42,7 @@ const ROUTES = {
 };
 
 const root = document.getElementById('app');
-let content, title, syncEl, shellEl;
+let content, title, syncEl, shellEl, homeLayer;
 
 applyLang();
 // updates: the service worker file is never taken from the browser cache, and when a new version
@@ -174,7 +174,9 @@ function buildShell() {
     h('button.sync-text', { type: 'button', onclick: refreshNow }, ''),
     h('button.sync-warn', { type: 'button', hidden: true, title: t('rejected_title'), onclick: () => { location.hash = '#/failed'; } }, ''));
   content = h('section.content');
-  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content));
+  // the home screen shown over an idle screen (that screen stays as it is, behind it)
+  homeLayer = h('section.content', { hidden: true });
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content, homeLayer));
   root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();
@@ -192,9 +194,21 @@ function accountButtons() {
 
 const AUTO_REFRESH_MS = 30000;
 let current = null;
+let currentName = '';
+const hashName = () => (location.hash.replace(/^#\/?/, '') || firstScreen()).split('?')[0];
+/** What the home screen needs: the other screens this user may open, the user's own buttons, the screen to resume. */
+function homeCtx(resume) {
+  const u = Data.user;
+  return { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)), resume,
+    account: { info: h('div.home-user', h('b', u.display_name), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
+      // what's new and notifications with the name; PIN, language and sign out on the other side
+      buttons: accountButtons() } };
+}
 function route() {
+  closeIdleHome();
   if (current && current.dispose) current.dispose();
-  let name = (location.hash.replace(/^#\/?/, '') || firstScreen()).split('?')[0];
+  let name = hashName();
+  currentName = '';
   shellEl.classList.remove('at-home');
   if (name === 'more') return showMore();
   if (name === 'failed' && canSeeFailed()) return showFailed();
@@ -202,15 +216,63 @@ function route() {
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
   current = ROUTES[name].view;
+  currentName = name;
   // home shows the other screens this user may open, as the menu does, and takes the menu's place (wide screens)
   shellEl.classList.toggle('at-home', name === 'home');
-  const u = Data.user;
-  current.render(content, name, { links: Object.keys(ROUTES).filter((r) => r !== 'home' && allowed(r)),
-    account: name === 'home' ? { info: h('div.home-user', h('b', u.display_name), h('small', t('role_' + u.role) + ' · v' + APP_VERSION)),
-      // what's new and notifications with the name; PIN, language and sign out on the other side
-      buttons: accountButtons() } : null });
+  current.render(content, name, name === 'home' ? homeCtx(null) : { links: [] });
   if (name === 'home') updateBadges();
   window.scrollTo(0, 0);
+}
+
+// ---------- back to the home screen after IDLE_HOME_MINUTES without a touch or a key
+// The open screen is not closed: it is hidden behind the home screen with everything typed in it, and its
+// button there says "continue" and brings it back as it was. Not while a window (dialog) is open.
+let idleFrom = '';
+let lastActive = Date.now();
+['pointerdown', 'keydown', 'wheel', 'touchstart', 'input'].forEach((ev) => document.addEventListener(ev, () => { lastActive = Date.now(); }, { capture: true, passive: true }));
+setInterval(() => {
+  if (!content || idleFrom || !currentName || currentName === 'home' || !ROUTES.home) return;
+  if (document.querySelector('.dialog-back')) return;
+  const set = Number((Data.settings || {}).idle_home_minutes);
+  const minutes = (Data.settings || {}).idle_home_minutes !== undefined && (Data.settings || {}).idle_home_minutes !== '' && isFinite(set) ? set : IDLE_HOME_MINUTES;
+  if (minutes > 0 && Date.now() - lastActive >= minutes * 60000) showIdleHome();
+}, 15000);
+
+function showIdleHome() {
+  idleFrom = currentName;
+  content.hidden = true;
+  homeLayer.hidden = false;
+  shellEl.classList.add('at-home');
+  title.textContent = t('home');
+  document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === 'home'));
+  home.render(homeLayer, 'home', homeCtx({ name: idleFrom, onResume: resumeIdle }));
+  updateBadges();
+}
+function closeIdleHome() {
+  if (!idleFrom) return;
+  idleFrom = '';
+  home.dispose();
+  homeLayer.replaceChildren();
+  homeLayer.hidden = true;
+  content.hidden = false;
+}
+/** Back to the screen left behind the home screen, exactly as it was. */
+function resumeIdle() {
+  const name = idleFrom;
+  closeIdleHome();
+  lastActive = Date.now();
+  shellEl.classList.toggle('at-home', name === 'home');
+  title.textContent = t(name);
+  document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
+}
+/** Something typed in the screen and not saved yet: a field that differs from what it showed when it was drawn. */
+function hasUnsaved(root) {
+  return [...root.querySelectorAll('input, select, textarea')].some((el) => {
+    if (el.disabled || el.readOnly || el.type === 'hidden' || el.type === 'file') return false;
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked !== el.defaultChecked;
+    if (el.tagName === 'SELECT') { const d = [...el.options].findIndex((o) => o.defaultSelected); return el.options.length > 0 && el.selectedIndex !== Math.max(0, d); }
+    return String(el.value).trim() !== String(el.defaultValue).trim();
+  });
 }
 
 function showMore() {
@@ -299,7 +361,20 @@ function pushButton(tag) {
 }
 window.addEventListener('moro:badge', updateBadges);
 
-window.addEventListener('hashchange', () => { if (content) route(); });
+window.addEventListener('hashchange', async () => {
+  if (!content) return;
+  if (idleFrom) {
+    // the home screen over an idle screen: its own button brings it back; another screen asks first if it has unsaved data
+    if (hashName() === idleFrom) { resumeIdle(); return; }
+    if (hasUnsaved(content)) {
+      const leave = await dialog((close) => [h('h3', t('idle_unsaved_title')), h('p', t('idle_unsaved', { screen: t(idleFrom) })),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('idle_stay')),
+          h('button.btn', { type: 'button', onclick: () => close(true) }, t('idle_leave')))]);
+      if (!leave) { history.replaceState(null, '', '#/' + idleFrom); resumeIdle(); return; }
+    }
+  }
+  route();
+});
 // fresh data redraws the dashboard only; work screens read the data live and keep what is being typed
 let storesSeen = '';
 window.addEventListener('moro:data', () => {
@@ -308,7 +383,7 @@ window.addEventListener('moro:data', () => {
   const changed = storesSeen && now !== storesSeen;
   storesSeen = now;
   updateBadges();
-  if (content && (current === dashboard || changed)) route();
+  if (content && !idleFrom && (current === dashboard || changed)) route();
 });
 window.addEventListener('online', () => sync(false));
 window.addEventListener('offline', updateSync);

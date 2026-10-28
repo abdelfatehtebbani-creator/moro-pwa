@@ -50,6 +50,7 @@ var ROUTES = {
   'lpo.decide':       function (s, p) { return Lpo.decide(s, p); },
   'lpo.delete':       function (s, p) { return Lpo.remove(s, p); },
   'lpo.settings':     function (s, p) { return Lpo.settings(s, p); },
+  'settings.idle':    function (s, p) { return Masters.saveIdle(s, p); },
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },

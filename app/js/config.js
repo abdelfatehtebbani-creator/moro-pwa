@@ -2,10 +2,14 @@
 // development server (tests/devserver.js), which runs the same server code on test data.
 const PROD_API = 'https://script.google.com/macros/s/AKfycbyVmnMLpT1Lv6vUlpKpuDT3-rwfk0DkQpMA_NSOO8B9KMSqvtO4sZb-TKY_MIPrzh3G/exec';
 export const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname) ? '/api' : PROD_API;
-export const APP_VERSION = '0.9.64';
+export const APP_VERSION = '0.9.65';
 
 // The home screen's turning disc: the logo on its front, the app name and its line (i18n keys) on its back,
 // and the seconds it takes to turn once.
+// Minutes without a touch or a key before an open screen goes back to the home screen (kept behind it, unchanged):
+// the default, until the admin sets it in the users screen (Settings.idle_home_minutes; 0 = never).
+export const IDLE_HOME_MINUTES = 5;
+
 export const HOME_DISC = { logo: 'icons/logo.png', nameKey: 'app_name', taglineKey: 'app_sub', secondsPerTurn: 14 };
 // Firebase web config and the public VAPID key, for phone / computer notifications (public by design;
 // the secret service-account key is kept in the server's Script Properties). null = notifications off.
