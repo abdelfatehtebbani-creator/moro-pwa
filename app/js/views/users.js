@@ -1,7 +1,7 @@
 // Users (admin): add users, change name/role, deactivate, reset a PIN, and choose exactly what each
 // user may do. A user follows the defaults of their role until the admin ticks a different set.
 import { call } from '../api.js';
-import { Data, STORES } from '../data.js';
+import { Data, STORES, STORE_OPS } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { IDLE_HOME_MINUTES } from '../config.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
@@ -94,32 +94,56 @@ export async function render(root) {
       // stores: the admin role always has all of them
       const stores = new Set(u ? u.stores || [] : STORES);
       const storeBox = h('div.caps');
+      // operations allowed in each of those stores (a store not limited: every operation)
+      const given = (u && u.store_ops) || {};
+      const ops = new Map(STORES.map((s) => [s, new Set(Array.isArray(given[s]) ? given[s] : STORE_OPS)]));
+      const opsBox = h('div.table-wrap');
+      const opsHead = h('div', h('div.card-head', h('b', t('store_ops'))), h('small.muted', t('store_ops_help')));
+      const drawOps = () => {
+        const admin = role.value === 'admin';
+        opsHead.hidden = opsBox.hidden = admin;
+        const mine = STORES.filter((s) => stores.has(s));
+        opsBox.replaceChildren(admin || !mine.length ? '' : h('table.store-ops', h('thead', h('tr', h('th', t('store')),
+          ...STORE_OPS.map((o) => h('th', t('op_' + o))))),
+          h('tbody', ...mine.map((s) => h('tr', h('td', h('b', t('store_' + s))), ...STORE_OPS.map((o) => {
+            const cb = h('input', { type: 'checkbox', checked: ops.get(s).has(o), 'aria-label': t('store_' + s) + ' · ' + t('op_' + o) });
+            cb.addEventListener('change', () => { cb.checked ? ops.get(s).add(o) : ops.get(s).delete(o); });
+            return h('td.c', cb);
+          }))))));
+      };
       const drawStores = () => storeBox.replaceChildren(...STORES.map((s) => {
         const cb = h('input', { type: 'checkbox', checked: role.value === 'admin' || stores.has(s), disabled: role.value === 'admin' });
-        cb.addEventListener('change', () => { cb.checked ? stores.add(s) : stores.delete(s); });
+        cb.addEventListener('change', () => { cb.checked ? stores.add(s) : stores.delete(s); drawOps(); });
         return h('label.check.cap', cb, h('span', h('b', t('store_' + s))));
       }));
-      role.addEventListener('change', drawStores);
+      role.addEventListener('change', () => { drawStores(); drawOps(); });
       drawStores();
+      drawOps();
+      // null when every ticked store allows every operation (not limited)
+      const storeOps = () => {
+        const mine = STORES.filter((s) => stores.has(s));
+        if (mine.every((s) => STORE_OPS.every((o) => ops.get(s).has(o)))) return null;
+        return Object.fromEntries(mine.map((s) => [s, STORE_OPS.filter((o) => ops.get(s).has(o))]));
+      };
 
       const ok = async () => {
         if (!name.value.trim()) return flash(name);
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
-        const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)) };
+        const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps() };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
         if (pin.value) p.pin = pin.value;
         try {
           const saved = await call('users.save', p);
           // a new user is created with the role defaults: apply a different set right after
-          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores });
+          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores, store_ops: p.store_ops });
           close(true);
         } catch (e) { err.textContent = errText(e); }
       };
       return [h('h3', u ? t('edit_user') : t('new_user')), field(t('display_name'), name), field(t('username'), user), field(t('role'), role),
         field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null,
         h('div.card-head', h('b', t('permissions')), reset), capBox,
-        h('div.card-head', h('b', t('stores'))), h('small.muted', t('stores_help')), storeBox, err,
+        h('div.card-head', h('b', t('stores'))), h('small.muted', t('stores_help')), storeBox, opsHead, opsBox, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
     });
     if (done) { toast(t('saved'), 'ok'); load(); }

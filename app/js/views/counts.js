@@ -32,7 +32,7 @@ export async function render(root) {
   }
 
   async function newCount() {
-    const mine = Data.myStores();
+    const mine = Data.myStores('counts');
     const asked = await dialog((close) => {
       const store = h('select.input#c-store', mine.map((s) => h('option', { value: s }, t('store_' + s))));
       const date = trackFilled(h('input.input#c-date', { type: 'date', value: Data.todayIso() }));
@@ -52,7 +52,7 @@ export async function render(root) {
     try { res = await call('counts.get', { count_id: id }); } catch (e) { toast(errText(e), 'err'); return; }
     const c = res.count;
     const open = c.status === 'open';
-    const editable = open && Data.canStore(c.store) && Data.can('counts.save');
+    const editable = open && Data.canStore(c.store, 'counts') && Data.can('counts.save');
     const prices = Data.can('see_prices');
     // one row per item: theory and counted shown in the storekeeper's unit; typed in any unit of the item
     const rows = res.lines.map((l) => {

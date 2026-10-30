@@ -4,11 +4,15 @@
  * Every item and every storage location belongs to one store. A user may receive, issue and
  * fulfil requests only in the stores ticked for them (Users.stores, comma separated); the admin
  * role has every store. Viewing balances and reports is not limited by store.
+ * The admin can also allow only some operations in each store (Users.store_ops, JSON {store: [op]});
+ * a store with no list there (or a user with none) allows every operation the user's permissions allow.
  * The old Food / Packaging category follows the store (Packaging → Packaging, the others → Food),
  * so the expiry rule and the history keep working unchanged.
  */
 var STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN'];
 var COLD_LOCATION = /freezer|chiller/i;
+/** Operations that can be allowed store by store (each also needs its permission in the tree). */
+var STORE_OPS = ['receive', 'issue', 'requests', 'shop', 'counts', 'items'];
 
 var Stores = {
   // cleaning materials are not food: no expiry date is required, as for packaging
@@ -29,17 +33,49 @@ var Stores = {
     return String(u.stores || '').split(',').map(function (s) { return s.trim(); }).filter(Stores.valid);
   },
 
+  /** Operations allowed per store for a user row: {store: [op]}, or null when not limited (the admin is never limited). */
+  opsOf: function (u) {
+    if (u.role === 'admin' || !String(u.store_ops || '').trim()) return null;
+    var raw;
+    try { raw = JSON.parse(String(u.store_ops)); } catch (e) { return null; }
+    return Stores.cleanOps(raw);
+  },
+
+  /** Keeps valid stores and operations: {store: [op]}, or null when empty. */
+  cleanOps: function (raw) {
+    var out = {}, any = false;
+    Object.keys(raw || {}).forEach(function (s) {
+      if (!Stores.valid(s) || !Array.isArray(raw[s])) return;
+      out[s] = raw[s].filter(function (o, i, a) { return STORE_OPS.indexOf(o) >= 0 && a.indexOf(o) === i; });
+      any = true;
+    });
+    return any ? out : null;
+  },
+
+  /** The operation a movement kind belongs to (receiving screen or issuing screen). */
+  opOfKind: function (kind) {
+    return kind === 'RECEIPT' || kind === 'SUPPLIER_RETURN' ? 'receive' : 'issue';
+  },
+
+  /** May this user do `op` in `store`? Without op: is it one of the user's stores. */
+  allows: function (session, store, op) {
+    if ((session.stores || []).indexOf(store) < 0) return false;
+    var ops = session.store_ops;
+    return !op || !ops || !ops[store] || ops[store].indexOf(op) >= 0;
+  },
+
   /** Cleans a list from the app into the stored text. */
   pack: function (list) {
     return (list || []).filter(function (s, i, a) { return Stores.valid(s) && a.indexOf(s) === i; }).join(',');
   },
 
-  require: function (session, store) {
+  require: function (session, store, op) {
     Util.require((session.stores || []).indexOf(store) >= 0, 'store_forbidden', store);
+    Util.require(Stores.allows(session, store, op), 'store_op_forbidden', store);
   },
 
-  requireItem: function (session, itemId) {
-    Stores.require(session, Stores.of(Repo.find('Items', 'item_id', itemId)));
+  requireItem: function (session, itemId, op) {
+    Stores.require(session, Stores.of(Repo.find('Items', 'item_id', itemId)), op);
   },
 
   /**

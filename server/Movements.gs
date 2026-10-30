@@ -146,7 +146,7 @@ var Movements = {
    *                      doc_no, location, expiry, purpose, image}]
    * Returns {saved: [{client_id, movement_id, doc_no, duplicate}], version}
    */
-  save: function (session, payload, internalKinds) {
+  save: function (session, payload, internalKinds, storeOp) {
     var list = payload.movements || [];
     var kinds = internalKinds || SAVE_KINDS;
     Util.require(list.length > 0 && list.length <= 200, 'nothing_to_save');
@@ -167,7 +167,8 @@ var Movements = {
         Movements.fixedPrice(m, item);
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
-        if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item));
+        // (storeOp: the screen that saves for the user – department requests, shop orders – instead of the kind's)
+        if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item), storeOp || Stores.opOfKind(m.kind));
         if (m.kind === 'ISSUE' && !m.doc_no) {
           // one slip per save and date: what one person hands over together is one slip, whatever the stores
           var sk = m.date;
@@ -221,8 +222,8 @@ var Movements = {
       Util.require(Perm.has(session, 'edit_all.' + grp) || (cur.created_by === session.user_id && Perm.has(session, 'edit_own.' + grp)),
         'forbidden', cur.created_by === session.user_id ? grp : 'own_only');
       if (SAVE_KINDS.indexOf(cur.kind) >= 0) {
-        Stores.requireItem(session, cur.item_id);
-        if (payload.changes && payload.changes.item_id) Stores.requireItem(session, payload.changes.item_id);
+        Stores.requireItem(session, cur.item_id, Stores.opOfKind(cur.kind));
+        if (payload.changes && payload.changes.item_id) Stores.requireItem(session, payload.changes.item_id, Stores.opOfKind(cur.kind));
       }
       var src = {};
       EDITABLE.forEach(function (f) { src[f] = cur[f]; });
@@ -265,7 +266,7 @@ var Movements = {
       var screen = Movements.screenOf(cur.kind);
       Util.require(Perm.has(session, 'delete.' + screen), 'forbidden', screen);
       if (cur.created_by !== session.user_id) Util.require(Perm.has(session, 'edit_all.' + screen), 'forbidden', 'own_only');
-      if (SAVE_KINDS.indexOf(cur.kind) >= 0) Stores.requireItem(session, cur.item_id);
+      if (SAVE_KINDS.indexOf(cur.kind) >= 0) Stores.requireItem(session, cur.item_id, Stores.opOfKind(cur.kind));
       var res = Repo.update('Movements', 'movement_id', cur.movement_id,
         { status: 'deleted', updated_by: session.user_id, updated_at: Util.nowIso() });
       var d = {};

@@ -53,9 +53,9 @@ var Requests = {
     var give = {};
     (p.lines || lines.map(function (l) { return { line_no: l.line_no }; })).forEach(function (x) { give[x.line_no] = x.qty; });
     var movs = [];
-    var mine = function (l) { return (session.stores || []).indexOf(Stores.of(Repo.find('Items', 'item_id', l.item_id))) >= 0; };
+    var mine = function (l) { return Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests'); };
     // asked for explicitly: the line must be in the user's stores; "everything left" means their lines only
-    if (p.lines) lines.forEach(function (l) { if (l.line_no in give && !mine(l)) Stores.requireItem(session, l.item_id); });
+    if (p.lines) lines.forEach(function (l) { if (l.line_no in give && !mine(l)) Stores.requireItem(session, l.item_id, 'requests'); });
     lines.forEach(function (l) {
       if (!(l.line_no in give) || !mine(l)) return;
       var left = Util.round(Number(l.qty) - Number(l.issued_qty || 0));
@@ -65,7 +65,7 @@ var Requests = {
         purpose: 'Request ' + req.request_id, _line: l.line_no });
     });
     Util.require(movs.length, 'nothing_to_save');
-    var saved = Movements.save(session, { movements: movs });
+    var saved = Movements.save(session, { movements: movs }, null, 'requests');
     return withLock(function () {
       var byClient = {};
       saved.saved.forEach(function (s) { byClient[s.client_id] = s; });

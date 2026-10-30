@@ -83,7 +83,7 @@ var Masters = {
       if (p.pack_units !== undefined || p.report_unit !== undefined || p.store_unit !== undefined) {
         Perm.require(session, 'packaging');
         // a storekeeper sets units only for the items of their own stores
-        if (session.role === 'storekeeper') Stores.require(session, Stores.of(cur));
+        if (session.role === 'storekeeper') Stores.require(session, Stores.of(cur), 'items');
         var stockUnit = ch.unit || cur.unit;
         var packs = p.pack_units !== undefined ? Packs.pack(stockUnit, p.pack_units) : cur.pack_units;
         var defined = function (u) { return !u || u === String(stockUnit).toUpperCase() || Packs.factor({ unit: stockUnit, pack_units: packs }, u); };

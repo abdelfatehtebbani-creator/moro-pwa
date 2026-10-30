@@ -29,7 +29,7 @@ var SCHEMA = {
   SpecialRequests: ['request_id', 'ext_id', 'order_id', 'order_no', 'shop_party_id', 'description', 'qty', 'unit', 'image', 'status',
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms', 'caps', 'stores'],
+                 'pin_changed_ms', 'caps', 'stores', 'store_ops'],
   Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
   CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price',
                  'theory_expiry', 'counted_expiry'],
@@ -52,7 +52,7 @@ var SCHEMA = {
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',

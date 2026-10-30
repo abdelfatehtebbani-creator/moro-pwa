@@ -87,7 +87,7 @@ var Counts = {
     Util.require(Stores.valid(store), 'store_invalid');
     Util.require(Util.isDate(date), 'date_invalid');
     Util.require(COUNT_PERIODS.indexOf(period) >= 0, 'period_invalid');
-    Stores.require(session, store);
+    Stores.require(session, store, 'counts');
     return withLock(function () {
       // one open count per store at a time
       var busy = Repo.all('Counts').filter(function (c) { return c.store === store && c.status === 'open'; })[0];
@@ -115,7 +115,7 @@ var Counts = {
       var c = Repo.find('Counts', 'count_id', p.count_id);
       Util.require(c, 'not_found');
       Util.require(c.status === 'open', 'count_closed');
-      Stores.require(session, c.store);
+      Stores.require(session, c.store, 'counts');
       var lines = {};
       Repo.all('CountLines').forEach(function (l) { if (l.count_id === c.count_id) lines[l.item_id] = l; });
       var n = 0;

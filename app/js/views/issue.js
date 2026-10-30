@@ -15,8 +15,8 @@ export async function render(root) {
   let lines = [];          // {item_id, qty, unit, category}
   let editIndex = -1;
 
-  if (!Data.myStores().length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
-  const zone = storePicker(() => { item.clear(); info.textContent = ''; loadRecords(); item.input.focus(); });
+  if (!Data.myStores('issue').length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
+  const zone = storePicker(() => { item.clear(); info.textContent = ''; loadRecords(); item.input.focus(); }, 'issue');
   // "Disposal" (damaged / expired stock thrown away) is chosen like a department and needs a reason
   const DISPOSAL = '__DISPOSAL__';
   const deptOpts = () => (Data.can('kind.DISPOSAL') ? [{ value: DISPOSAL, label: '⚠ ' + t('disposal') }] : []).concat([...Data.parties.values()]
@@ -197,7 +197,7 @@ export async function render(root) {
     if (m.pending) return;
     if (!Data.canEdit(m)) { toast(t('own_records_only'), 'err'); return; }
     const it = Data.items.get(m.item_id);
-    if (!Data.canStore(Data.storeOf(it))) { toast(t('store_not_yours'), 'err'); return; }
+    if (!Data.canStore(Data.storeOf(it), 'issue')) { toast(t('store_not_yours'), 'err'); return; }
     const res = await dialog((close) => {
       const q = trackFilled(h('input.input.num#e-qty', { type: 'number', step: 'any', min: 0, value: Math.abs(Number(m.qty)) }));
       const d = trackFilled(h('input.input#e-date', { type: 'date', value: m.date }));
