@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.68', date: '2026-10-30',
+    ar: { news: ['حاسبة أكياس القهوة: الكميات تظهر برقم عشري واحد (مثل 25.5 كغ). وزر جديد "حفظ كقيم افتراضية" يجعل القيم المكتوبة في الحاسبة هي القيم الافتراضية في كل الأجهزة، و"استرجاع القيم الافتراضية" يعيدها.'] },
+    en: { news: ['Coffee bag calculator: quantities show one decimal (like 25.5 kg). A new "Save as defaults" button makes the values in the calculator the defaults on every device, and "Back to the defaults" brings them back.'] },
+  },
+  {
     v: '0.9.67', date: '2026-10-30',
     ar: { news: ['يستطيع المدير أن يحدّد لكل مستخدم ما يُسمح له في كل مخزن على حدة: الاستلام، والصرف، وطلبات الأقسام، وطلبات المحلات، والجرد، ووحدات المواد. مثلًا: استلام وصرف في المواد الجافة، وصرف فقط في التغليف.'],
       admin: 'في شاشة المستخدمين، تحت المخازن، جدول "العمليات المسموحة في كل مخزن". المستخدمون الحاليون كل العمليات مسموحة لهم كما كانت.' },

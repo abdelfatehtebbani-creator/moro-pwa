@@ -83,6 +83,26 @@ var Coffee = {
   },
 
   /** The batches (newest first) with their real loss and waste, and the bags given out (issues). */
+  /**
+   * The calculator's default values for every device (Settings.coffee_calc_defaults):
+   * {count, weight (g), waste (g per bag), loss (% roast loss), ratio (% of the first origin)}.
+   */
+  saveDefaults: function (session, p) {
+    var d = {};
+    var lim = { count: [0, 100000], weight: [1, 100000], waste: [0, 10000], loss: [0, 99], ratio: [0, 100] };
+    Object.keys(lim).forEach(function (f) {
+      var v = Util.num(p[f]);
+      Util.require(v !== null && v >= lim[f][0] && v <= lim[f][1], 'coffee_default_invalid', f);
+      d[f] = v;
+    });
+    return withLock(function () {
+      var before = Settings.get('coffee_calc_defaults', '');
+      Settings.set('coffee_calc_defaults', JSON.stringify(d));
+      Audit.log(session.user_id, 'coffee_defaults', 'Settings', 'coffee_calc_defaults', before, d);
+      return { defaults: d, version: Version.bump() };
+    });
+  },
+
   list: function (session) {
     var batches = Repo.all('CoffeeBatches').sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); })
       .slice(0, 60).map(Coffee.figures);
