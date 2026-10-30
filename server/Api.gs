@@ -17,6 +17,7 @@ var ROUTES = {
   'movements.save':   function (s, p) { return Movements.save(s, p); },
   'coffee.list':      function (s) { return Coffee.list(s); },
   'coffee.pack':      function (s, p) { return Coffee.pack(s, p); },
+  'coffee.defaults':  function (s, p) { return Coffee.saveDefaults(s, p); },
   'movements.update': function (s, p) { return Movements.update(s, p); },
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
