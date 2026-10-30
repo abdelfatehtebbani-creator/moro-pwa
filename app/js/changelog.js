@@ -3,6 +3,13 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.67', date: '2026-10-30',
+    ar: { news: ['يستطيع المدير أن يحدّد لكل مستخدم ما يُسمح له في كل مخزن على حدة: الاستلام، والصرف، وطلبات الأقسام، وطلبات المحلات، والجرد، ووحدات المواد. مثلًا: استلام وصرف في المواد الجافة، وصرف فقط في التغليف.'],
+      admin: 'في شاشة المستخدمين، تحت المخازن، جدول "العمليات المسموحة في كل مخزن". المستخدمون الحاليون كل العمليات مسموحة لهم كما كانت.' },
+    en: { news: ['The admin can set, for each user, what they may do in each store separately: receiving, issuing, department requests, shop orders, counts and item units. For example: receive and issue in Dry foods, issue only in Packaging.'],
+      admin: 'In the users screen, under the stores, a table "Operations allowed in each store". Existing users keep every operation as before.' },
+  },
+  {
     v: '0.9.66', date: '2026-10-30',
     ar: { news: ['في شاشة الاستلام، جدول "سجلات الاستلام" فيه عمود جديد لتاريخ الصلاحية بعد الكمية.'] },
     en: { news: ['In the goods receiving screen, the "Receiving records" table has a new expiry date column after the quantity.'] },

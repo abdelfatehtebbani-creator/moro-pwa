@@ -52,12 +52,12 @@ var Auth = {
     // a PIN change or reset invalidates tokens issued before it
     if (u.pin_changed_ms && Number(parts[1]) < Number(u.pin_changed_ms)) throw new AppError('auth_expired');
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role,
-             caps: Perm.capsOf(u), perms: Perm.permsOf(u), stores: Stores.ofUser(u) };
+             caps: Perm.capsOf(u), perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u) };
   },
 
   publicUser: function (u) {
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
-             custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u) };
+             custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u) };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -144,6 +144,8 @@ var Auth = {
     if (p.role !== undefined) { Util.require(ROLES.indexOf(p.role) >= 0, 'role_invalid'); changes.role = p.role; }
     if (p.active !== undefined) changes.active = p.active === true;
     if (p.stores !== undefined) changes.stores = Stores.pack(p.stores);
+    // operations allowed store by store; null or {} = every operation in every store of the user
+    if (p.store_ops !== undefined) { var ops = Stores.cleanOps(p.store_ops); changes.store_ops = ops ? JSON.stringify(ops) : ''; }
     if (p.caps !== undefined) {
       // leaves of the tree; a list of the older bundles (receive, issue…) is read as leaves
       var input = p.caps || [];

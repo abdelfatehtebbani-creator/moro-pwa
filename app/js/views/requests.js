@@ -80,7 +80,7 @@ export async function render(root) {
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
       const left = Math.round((Number(l.qty) - Number(l.issued_qty || 0)) * 1e6) / 1e6;
       const store = l.store || Data.storeOf(Data.items.get(l.item_id));
-      const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial') && Data.canStore(store)
+      const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial') && Data.canStore(store, 'requests')
         ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
       const other = canFulfil && left > 0 && !inp && (r.status === 'open' || r.status === 'partial');

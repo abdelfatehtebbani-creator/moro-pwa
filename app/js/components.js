@@ -122,8 +122,8 @@ export function checkAll(steps) {
  * The four store buttons. Only the user's stores can be chosen; F2 moves to the next of them.
  * Returns {el, value, set(store, silent), lock(bool), dispose}; onChange(store) on every change.
  */
-export function storePicker(onChange) {
-  const allowed = Data.myStores();
+export function storePicker(onChange, op) {
+  const allowed = Data.myStores(op);
   // the last store used on this device, else Dry foods, else the first one allowed
   let last = '';
   try { last = localStorage.getItem('moro.store') || ''; } catch { /* private window */ }

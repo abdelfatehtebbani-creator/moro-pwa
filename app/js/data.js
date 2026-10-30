@@ -8,6 +8,8 @@ const objects = (raw) => (raw && raw.rows ? raw.rows.map((r) => Object.fromEntri
 
 /** The four stores, in the order the buttons show them. */
 export const STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN'];
+/** Operations the admin can allow store by store (the server checks them: Stores.gs). */
+export const STORE_OPS = ['receive', 'issue', 'requests', 'shop', 'counts', 'items'];
 
 export const Data = {
   boot: null,
@@ -116,12 +118,18 @@ export const Data = {
     if (!row) return '';
     return STORES.includes(row.store) ? row.store : row.category === 'Packaging' ? 'PACK' : 'DRY';
   },
-  /** Stores the user may receive / issue in (an older cached profile without stores: all). */
-  myStores() {
+  /** Stores the user may receive / issue in (an older cached profile without stores: all); with op, only those where it is allowed. */
+  myStores(op) {
     const s = this.user && this.user.stores;
-    return Array.isArray(s) ? s.filter((x) => STORES.includes(x)) : STORES.slice();
+    const all = Array.isArray(s) ? s.filter((x) => STORES.includes(x)) : STORES.slice();
+    return op ? all.filter((x) => this.storeAllows(x, op)) : all;
   },
-  canStore(store) { return this.myStores().includes(store); },
+  canStore(store, op) { return this.myStores().includes(store) && (!op || this.storeAllows(store, op)); },
+  /** The admin may allow only some operations in a store (user.store_ops {store: [op]}; none = all). */
+  storeAllows(store, op) {
+    const ops = this.user && this.user.store_ops;
+    return !ops || !Array.isArray(ops[store]) || ops[store].includes(op);
+  },
   /** Packaging units of an item: [{unit, factor}] (factor in stock units), from "TRAY=30, BOX=360". */
   packsOf(item) {
     // "BOX=10" or "1 BOX = 10 PC", either way round (same reading as the server's Packs.parse)

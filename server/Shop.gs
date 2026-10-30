@@ -183,14 +183,14 @@ var Shop = {
       var l = Repo.find('ShopOrderLines', 'line_id', x.line_id);
       Util.require(l && LINE_OPEN.indexOf(l.status) >= 0, 'not_found', x.line_id);
       Util.require(Shop.approved(l), 'not_approved', l.line_id);
-      Stores.requireItem(session, l.item_id);
+      Stores.requireItem(session, l.item_id, 'shop');
       var q = Util.round(Util.num(x.qty));
       Util.require(q <= Shop.left(l), 'qty_too_much', l.line_id);
       plan.push({ line: l, qty: q });
       movs.push({ client_id: (p.client_id || l.line_id) + '-' + l.line_id, kind: 'ISSUE', date: p.date || Util.today(),
         party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit, purpose: 'Shop order ' + (l.order_no || l.order_id) });
     });
-    var saved = Movements.save(session, { movements: movs });
+    var saved = Movements.save(session, { movements: movs }, null, 'shop');
     return withLock(function () {
       var now = Util.nowIso(), touched = {};
       plan.forEach(function (x, i) {
@@ -217,7 +217,7 @@ var Shop = {
       var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
       Util.require(l && LINE_OPEN.indexOf(l.status) >= 0, 'not_found');
       Util.require(Shop.approved(l), 'not_approved', l.line_id);
-      Stores.requireItem(session, l.item_id);
+      Stores.requireItem(session, l.item_id, 'shop');
       var res = Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: 'unavailable', reserved_qty: 0, reason: reason,
         handed_by: session.user_id, updated_at: Util.nowIso() });
       Audit.log(session.user_id, 'shop_line_unavailable', 'ShopOrderLines', l.line_id, null, { reason: reason });
@@ -236,13 +236,13 @@ var Shop = {
     Util.require(reason, 'reason_required');
     var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
     Util.require(l, 'not_found');
-    Stores.requireItem(session, l.item_id);
+    Stores.requireItem(session, l.item_id, 'shop');
     var q = Util.round(Util.num(p.qty) || 0);
     var can = Util.round((Number(l.handed_qty) || 0) - (Number(l.returned_qty) || 0));
     Util.require(q > 0 && q <= can, 'qty_too_much', l.line_id);
     var saved = Movements.save(session, { movements: [{ client_id: (p.client_id || l.line_id + '-r') + '-ret', kind: 'DEPT_RETURN',
       date: p.date || Util.today(), party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit,
-      purpose: 'Not sent: ' + reason + ' (' + (l.order_no || l.order_id) + ')' }] });
+      purpose: 'Not sent: ' + reason + ' (' + (l.order_no || l.order_id) + ')' }] }, null, 'shop');
     return withLock(function () {
       if (saved.saved[0].duplicate) return { line: Shop.view(l), version: Version.get() };
       var cur = Repo.find('ShopOrderLines', 'line_id', l.line_id);
