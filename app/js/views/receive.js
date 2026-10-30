@@ -16,8 +16,8 @@ export async function render(root) {
   const today = Data.todayIso();
 
   // ---------- fields
-  if (!Data.myStores().length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
-  const zone = storePicker(onZone);
+  if (!Data.myStores('receive').length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
+  const zone = storePicker(onZone, 'receive');
   const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
@@ -225,7 +225,7 @@ export async function render(root) {
     if (m.pending) return;
     if (!Data.canEdit(m)) { toast(t('own_records_only'), 'err'); return; }
     const it = Data.items.get(m.item_id);
-    if (!Data.canStore(Data.storeOf(it))) { toast(t('store_not_yours'), 'err'); return; }
+    if (!Data.canStore(Data.storeOf(it), 'receive')) { toast(t('store_not_yours'), 'err'); return; }
     if (Data.storeOf(it) !== zone.value) zone.set(Data.storeOf(it), true);
     editing = m;
     item.set(m.item_id); supplier.set(m.party_id); date.value = m.date; invoice.value = m.doc_no;
