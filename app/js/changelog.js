@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.66', date: '2026-10-30',
+    ar: { news: ['في شاشة الاستلام، جدول "سجلات الاستلام" فيه عمود جديد لتاريخ الصلاحية بعد الكمية.'] },
+    en: { news: ['In the goods receiving screen, the "Receiving records" table has a new expiry date column after the quantity.'] },
+  },
+  {
     v: '0.9.65', date: '2026-10-28',
     ar: { news: ['بعد 5 دقائق دون أي حركة (يغيّرها المدير من شاشة المستخدمين ← إعدادات عامة) تعود الشاشة إلى الرئيسية، وتبقى الشاشة التي كنت فيها خلفها بكل ما كتبته. زرها يظهر بحلقة برتقالية وكلمة "متابعة" ويعيدها كما تركتها. وإن اخترت شاشة أخرى وفيها بيانات لم تُحفظ، يسألك التطبيق أولًا.'] },
     en: { news: ['After 5 minutes without any activity (the admin can change it in the users screen, General settings) the app goes back to the home screen, keeping the screen you were on behind it with everything you typed. Its button shows an orange ring and "Continue" and brings it back as you left it. If you choose another screen while it has unsaved data, the app asks first.'] },
