@@ -264,9 +264,10 @@ export async function render(root) {
         h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? it.name : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
         h('td.num', { class: Number(m.qty) < 0 || m.kind === 'SUPPLIER_RETURN' ? 'qty-neg' : '' },
           (m.kind === 'SUPPLIER_RETURN' ? '-' : '') + fmtMoveQty(m)),
+        h('td.num', m.expiry ? fmtDate(m.expiry) : ''),
         h('td.num', m.final_amount === '' ? '' : fmtNum(m.final_amount)), h('td.num', m.doc_no || ''),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.wrap', h('bdi', p ? p.name : '')), h('td.wrap.muted', enteredBy(m)));
-    }) : [h('tr', h('td.empty', { colspan: 8 }, t('no_rows')))]));
+    }) : [h('tr', h('td.empty', { colspan: 9 }, t('no_rows')))]));
   };
   search.addEventListener('input', fillRecords);
 
@@ -276,7 +277,7 @@ export async function render(root) {
       const res = await MovStore.all();          // local copy: works without internet
       records = res.list.filter(keep);            // the whole history kept on this device; filters narrow it
       fillRecords();
-    } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 7 }, errText(e)))); }
+    } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 9 }, errText(e)))); }
   }
 
   root.replaceChildren(h('div.work',
@@ -298,7 +299,7 @@ export async function render(root) {
     h('div.card',
       h('div.card-head', h('h2', t('records'))), search, filters.el,
       h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('item')),
-        h('th', t('qty')), h('th', t('net')), h('th', t('invoice_no')), h('th', ''), h('th', t('supplier')), h('th', t('entered_by')))), recBody)))));
+        h('th', t('qty')), h('th', t('expiry')), h('th', t('net')), h('th', t('invoice_no')), h('th', ''), h('th', t('supplier')), h('th', t('entered_by')))), recBody)))));
 
   const onSent = () => loadRecords();
   const onRejected = (e) => { toast(t('rejected', { what: e.detail.label || '' }) + ': ' + errText({ code: e.detail.error, detail: e.detail.detail }), 'err'); loadRecords(); };
