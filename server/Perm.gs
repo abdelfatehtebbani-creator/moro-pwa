@@ -104,7 +104,7 @@ var CAPS = (function () {
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     'recipes.edit':      ['recipes.save'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
-    'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
+    'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle'],
     'prices.see':        ['see_prices']
   };

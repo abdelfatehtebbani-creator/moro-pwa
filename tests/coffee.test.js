@@ -76,3 +76,12 @@ test('coffee: one empty pouch per bag, in the unit of the pouch item', () => {
   g.api('coffee.pack', batch({ pouch_item: 'I0003' }), tok.store);
   assert.equal(qty(g, 'I0003'), 1.9552); // 2 boxes − 112 pouches (2500 a box)
 });
+
+test('coffee: the calculator defaults are saved for every device by whoever prepares bags', () => {
+  const { g, tok } = env();
+  const d = { count: 120, weight: 200, waste: 6.5, loss: 18, ratio: 25 };
+  assert.equal(g.api('coffee.defaults', d, tok.prod).error.code, 'forbidden');
+  assert.equal(g.api('coffee.defaults', Object.assign({}, d, { loss: 100 }), tok.store).error.code, 'coffee_default_invalid');
+  assert.deepEqual(g.api('coffee.defaults', d, tok.store).data.defaults, d);
+  assert.deepEqual(JSON.parse(g.api('data.bootstrap', {}, tok.prod).data.settings.coffee_calc_defaults), d);
+});

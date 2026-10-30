@@ -470,6 +470,8 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
 .cf-stepper .btn { min-width: 40px; padding: 6px 0; font-size: 18px; }
 .cf-blend { display: grid; gap: 6px; }
 .cf-blend-head, .cf-blend-ends, .cf-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cf-foot { flex-wrap: wrap; }
+.cf-foot-btns { display: flex; align-items: center; gap: 12px; }
 .cf-blend-head label { font-weight: 600; }
 .cf-blend input[type=range] { width: 100%; accent-color: #6b4423; }
 

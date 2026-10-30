@@ -11,9 +11,15 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtDate, fmtNum, trackFilled } from '../ui.js';
 import { combo, field, newId } from '../components.js';
 
-const DEFAULTS = { count: 100, weight: 200, waste: 7, loss: 20, ratio: 20 };
+const BUILT_IN = { count: 100, weight: 200, waste: 7, loss: 20, ratio: 20 };
+/** The calculator's defaults: the ones saved for every device (Settings.coffee_calc_defaults), else the built-in ones. */
+function defaults() {
+  let s = {};
+  try { s = JSON.parse((Data.settings || {}).coffee_calc_defaults || '{}') || {}; } catch { /* not set */ }
+  return Object.fromEntries(Object.keys(BUILT_IN).map((f) => [f, isFinite(parseFloat(s[f])) ? Number(s[f]) : BUILT_IN[f]]));
+}
 const KEY = 'moro.coffee_calc';
-const kg = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const kg = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const PACK_KEY = 'moro.coffee_pack';
 const pct = (n) => (n === null || n === undefined ? '–' : (Math.round(n * 10) / 10).toLocaleString('en-US') + '%');
@@ -22,7 +28,7 @@ const userName = (id) => (Data.userNames || {})[id] || '';
 function calcValues() {
   let c = {};
   try { c = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { /* storage blocked */ }
-  const n = (f) => { const v = parseFloat(c[f]); return isFinite(v) ? v : DEFAULTS[f]; };
+  const n = (f) => { const v = parseFloat(c[f]); return isFinite(v) ? v : defaults()[f]; };
   return { weight: n('weight'), waste: n('waste'), loss: n('loss') };
 }
 // stock units of the pouch item per filled bag (same reading as Coffee.pouchFactor on the server)
@@ -55,6 +61,7 @@ export function render(root) {
 function renderCalc(root) {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { /* storage blocked */ }
+  const DEFAULTS = defaults();
   const val = (f) => (saved[f] !== undefined && saved[f] !== '' ? saved[f] : DEFAULTS[f]);
 
   const out = {};
@@ -105,7 +112,19 @@ function renderCalc(root) {
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* storage blocked */ }
   }
 
-  const reset = () => { Object.keys(DEFAULTS).forEach((f) => { inputs[f].value = DEFAULTS[f]; inputs[f].dispatchEvent(new Event('input')); }); calc(); };
+  const reset = () => { const d = defaults(); Object.keys(d).forEach((f) => { inputs[f].value = d[f]; inputs[f].dispatchEvent(new Event('input')); }); calc(); };
+  // the values on the screen become the defaults of every device (with the "prepare coffee bags" permission)
+  const saveDefaults = async () => {
+    const p = {};
+    Object.keys(BUILT_IN).forEach((f) => { p[f] = parseFloat(inputs[f].value); });
+    if (Object.values(p).some((v) => !isFinite(v) || v < 0) || p.loss >= 100) { toast(t('cf_err_neg'), 'err'); return; }
+    try {
+      const r = await call('coffee.defaults', p);
+      Data.settings = Object.assign({}, Data.settings, { coffee_calc_defaults: JSON.stringify(r.defaults) });
+      toast(t('cf_defaults_saved'), 'ok');
+      Data.refresh().catch(() => {});
+    } catch (e) { toast(errText(e), 'err'); }
+  };
 
   root.replaceChildren(h('div.cf',
     h('div.card.cf-result', { 'aria-live': 'polite' },
@@ -123,7 +142,9 @@ function renderCalc(root) {
         h('div.cf-blend-head', h('label', { for: 'cf-ratio' }, t('cf_ratio')), out.ratioOut),
         ratio,
         h('div.cf-blend-ends', h('span', t('cf_first')), h('span', t('cf_second'), ' ', out.ratio2Out))),
-      h('div.cf-foot', h('small.muted', t('cf_hint')), h('button.link', { type: 'button', onclick: reset }, t('cf_reset'))))));
+      h('div.cf-foot', h('small.muted', t('cf_hint')),
+        h('span.cf-foot-btns', h('button.link', { type: 'button', onclick: reset }, t('cf_reset')),
+          Data.can('coffee.defaults') ? h('button.btn.secondary', { type: 'button', onclick: saveDefaults }, t('cf_save_defaults')) : null)))));
   calc();
 }
 
