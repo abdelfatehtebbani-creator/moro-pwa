@@ -3,6 +3,24 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.70', date: '2026-10-31',
+    ar: {
+      news: ['تبويبة جديدة "التحليل البياني" في شاشة التقارير: المشتريات شهريًا، وأكبر الموردين، وقيمة المخزون، وتطوّر سعر مادة، والصرف للأقسام، وأكثر المواد صرفًا، والصلاحية، والإتلاف وفروق الجرد، والمواد تحت الحد الأدنى، وأكياس القهوة، وطلبات المحلات. المبالغ تظهر فقط لمن يرى الأسعار.',
+        'ثلاثة تقارير جديدة: "المواد الراكدة"، و"أيام التغطية واقتراح الطلب"، و"الإتلاف وفروق الجرد".'],
+      admin: 'تعلّم "التحليل البياني" في التقارير لمن تريد أن يراه (المدير يراه تلقائيًا). ومن له صلاحيات مخصصة تعلّم له التقارير الثلاثة الجديدة.',
+    },
+    en: {
+      news: ['A new "Charts" tab in the reports screen: purchases per month, top suppliers, stock value, price of an item, issues to departments, most issued items, expiry, disposals and count differences, items below minimum, coffee bags and shop orders. Amounts show only to users who see prices.',
+        'Three new reports: "Slow-moving stock", "Days of cover and suggested order" and "Disposals and count differences".'],
+      admin: 'Tick "Charts" under reports for whoever should see it (the admin has it already). Users with custom permissions need the three new reports ticked.',
+    },
+  },
+  {
+    v: '0.9.69', date: '2026-10-31',
+    ar: { news: ['في أوامر الشراء والمشتريات النقدية: الأمر أو الورقة المفتوحة (جديدة أو للعرض) تظهر أعلى الشاشة، والجدول تحتها.'] },
+    en: { news: ['In purchase orders and cash purchases: the open LPO or sheet (new or viewed) shows at the top, with the list below it.'] },
+  },
+  {
     v: '0.9.68', date: '2026-10-30',
     ar: { news: ['حاسبة أكياس القهوة: الكميات تظهر برقم عشري واحد (مثل 25.5 كغ). وزر جديد "حفظ كقيم افتراضية" يجعل القيم المكتوبة في الحاسبة هي القيم الافتراضية في كل الأجهزة، و"استرجاع القيم الافتراضية" يعيدها.'] },
     en: { news: ['Coffee bag calculator: quantities show one decimal (like 25.5 kg). A new "Save as defaults" button makes the values in the calculator the defaults on every device, and "Back to the defaults" brings them back.'] },

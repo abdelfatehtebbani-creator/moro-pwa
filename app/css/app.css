@@ -324,6 +324,29 @@ input[type="date"].input { min-width: 0; }
 .combo-list li.cur { font-weight: 600; }
 .combo-list { max-height: 320px; }
 
+/* charts (reports → charts) */
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 14px; margin-top: 14px; }
+.an-card h3 { margin: 0 0 4px; font-size: 15px; }
+.an-card > small { display: block; margin-bottom: 8px; }
+.an-card select { margin: 6px 0; max-width: 100%; }
+.chart svg { width: 100%; height: auto; display: block; }
+.ch-grid { stroke: var(--line); stroke-width: 1; }
+.ch-zero { stroke: var(--muted); stroke-width: 1; }
+.ch-axis { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+.ch-total { fill: var(--ink); font-size: 18px; font-weight: 700; font-family: var(--font); }
+.ch-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.ch-legend.col { flex-direction: column; }
+.ch-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+.ch-legend b { color: var(--ink); font-weight: 600; }
+.ch-donut { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 14px; align-items: center; }
+@media (max-width: 480px) { .ch-donut { grid-template-columns: 1fr; } .ch-donut svg { max-width: 220px; margin: auto; } }
+.ch-rank { display: grid; gap: 6px; }
+.ch-row { display: grid; grid-template-columns: minmax(90px, 38%) 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.ch-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-bar { background: var(--bg); border-radius: 4px; height: 14px; overflow: hidden; }
+.ch-bar i { display: block; height: 100%; border-radius: 4px; }
+.ch-val { font-size: 12px; white-space: nowrap; }
+.ch-empty { color: var(--muted); padding: 30px 0; text-align: center; font-size: 13px; }
 .store-ops { font-size: 13px; }
 .store-ops th, .store-ops td.c { text-align: center; white-space: nowrap; }
 .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }

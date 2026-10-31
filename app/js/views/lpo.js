@@ -308,10 +308,11 @@ async function renderLpo(root) {
   root.replaceChildren(h('div.card', h('h2', t('lpo')),
     h('div.form-actions', tabs, h('div.spacer'),
       canWrite ? h('button.btn', { type: 'button', onclick: () => editor(null, []) }, '+ ' + t('lpo_new')) : null,
-      Data.can('lpo.settings') ? h('button.btn.secondary', { type: 'button', onclick: settings }, t('lpo_settings')) : null),
-    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('lpo_no')), h('th', t('date')), h('th', t('supplier')), h('th', t('total') + ' (QR)'),
-      h('th', ''), h('th', t('lpo_written_by')), h('th', ''))), list))),
-    detail);
+      Data.can('lpo.settings') ? h('button.btn.secondary', { type: 'button', onclick: settings }, t('lpo_settings')) : null)),
+    // the open LPO (new, edited or viewed) above the list
+    detail,
+    h('div.card', h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('lpo_no')), h('th', t('date')), h('th', t('supplier')), h('th', t('total') + ' (QR)'),
+      h('th', ''), h('th', t('lpo_written_by')), h('th', ''))), list))));
   await loadList();
   if (!canDecide) markSeen();
 }

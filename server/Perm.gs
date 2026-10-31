@@ -13,7 +13,8 @@ var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
-var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace'];
+var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
+                  'slow', 'cover', 'losses'];
 
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [
@@ -26,7 +27,7 @@ var PERM_TREE = [
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }] },
-  { key: 'reports', children: [{ leaf: 'reports.view' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
+  { key: 'reports', children: [{ leaf: 'reports.view' }, { leaf: 'reports.charts' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
 },
   { key: 'lpo', children: [{ leaf: 'lpo.view' }, { leaf: 'lpo.create' }, { leaf: 'lpo.approve' }, { leaf: 'lpo.terms' },
     { leaf: 'cash.create' }, { leaf: 'cash.approve' }, { leaf: 'cash.handover' }] },
@@ -73,6 +74,7 @@ var CAPS = (function () {
     'requests.create':   ['nav.requests', 'requests.create', 'requests.cancel'],
     'requests.fulfil':   ['nav.requests', 'requests.fulfil', 'requests.cancel', 'requests.all'],
     'reports.view':      ['nav.reports'],
+    'reports.charts':    ['nav.reports', 'charts.view'],
     'lpo.view':          ['nav.lpo', 'lpo.list', 'lpo.get'],
     'lpo.create':        ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.save', 'lpo.delete'],
     'lpo.approve':       ['nav.lpo', 'lpo.list', 'lpo.get', 'lpo.decide'],
