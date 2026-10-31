@@ -1,5 +1,5 @@
 'use strict';
-// Expiry by batch: the stock on hand is the batches that expire last (stock is taken earliest-expiry first).
+// Expiry by batch: the stock on hand is the latest receipts (covered from the newest back), each with its expiry.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGas } = require('./helpers/gas');
@@ -52,4 +52,23 @@ test('a batch used up long ago does not hide new stock: replayed in date order',
   g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
   const tok = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
   assert.deepEqual(g.api('data.bootstrap', {}, tok).data.batches.I0001, [['2026-10-10', 5]]);
+});
+
+test('the stock is the latest receipts: an older receipt with a later expiry and a return without a date do not show', () => {
+  const g = createGas();
+  g.seed('Items', [{ item_id: 'I0001', name: 'SUGAR', category: 'Food', unit: 'BAG', min_stock: 0, active: true, store: 'DRY' }]);
+  g.seed('Parties', [{ party_id: 'P001', name: 'Classic', kind: 'supplier', active: true }, { party_id: 'P002', name: 'Kitchen', kind: 'section', active: true }]);
+  const r = (id, date, qty, expiry) => ({ movement_id: id, date, kind: 'RECEIPT', party_id: 'P001', item_id: 'I0001', qty, unit: 'BAG', expiry, status: 'active' });
+  g.seed('Movements', [
+    r('M000001', '2026-09-01', 4, '2028-11-22'),
+    { movement_id: 'M000002', date: '2026-10-02', kind: 'DEPT_RETURN', party_id: 'P002', item_id: 'I0001', qty: 2, unit: 'BAG', status: 'active' },
+    r('M000003', '2026-10-25', 5, '2028-03-31'),
+    { movement_id: 'M000004', date: '2026-10-26', kind: 'ISSUE', party_id: 'P002', item_id: 'I0001', qty: -3, unit: 'BAG', status: 'active' },
+    r('M000005', '2026-10-29', 4, '2028-03-31'),
+    r('M000006', '2026-10-31', 5, '2028-03-31')]);
+  g.seed('Balances', [{ item_id: 'I0001', qty: 17, unit: 'BAG' }]);
+  g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
+  const tok = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  // 14 bags from the three latest receipts, the 3 left from the receipt before them
+  assert.deepEqual(g.api('data.bootstrap', {}, tok).data.batches.I0001, [['2028-03-31', 14], ['2028-11-22', 3]]);
 });

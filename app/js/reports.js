@@ -329,14 +329,15 @@ function productionSummary(p, movs) {
 }
 
 // ---------- traceability (food safety inquiry): what each department received, from which batch
-// Issues do not record the batch. It is worked out like the stock's batches on the server (Batches.gs):
-// the whole history of the item is replayed in date order, every inflow is a batch (its expiry, supplier,
-// invoice), and every outflow takes from the batch that expires first (FEFO). A stock count that set the
+// Issues do not record the batch. It is worked out the same way as the stock's batches on the server
+// (Batches.gs): the stock on hand is the latest receipts, so what went out came from the oldest ones.
+// The whole history of the item is replayed in date order, every inflow is a batch (its expiry, supplier,
+// invoice), and every outflow takes from the batch received first (FIFO). A stock count that set the
 // expiry starts again from what was counted.
 const INFLOWS = new Set(['RECEIPT', 'OPENING', 'DEPT_RETURN', 'PROD_OUTPUT', 'ADJUST', 'SHOP_RETURN']);
 const SOURCE = { RECEIPT: 'Receipt', OPENING: 'Opening balance', DEPT_RETURN: 'Department return', PROD_OUTPUT: 'Production',
   ADJUST: 'Stock adjustment', SHOP_RETURN: 'Shop return', COUNT: 'Stock count' };
-const expiryFirst = (a, b) => (a.expiry === b.expiry ? (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) : !a.expiry ? 1 : !b.expiry ? -1 : (a.expiry < b.expiry ? -1 : 1));
+const receivedFirst = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 
 /** {movement key: [{qty, lot}]} — the batches each outflow of these items took from. */
 function batchesTaken(movs, itemIds) {
@@ -366,7 +367,7 @@ function batchesTaken(movs, itemIds) {
       }
       let need = -q;
       const parts = [];
-      lots.sort(expiryFirst);
+      lots.sort(receivedFirst);
       for (const lot of lots) {
         if (need <= 0) break;
         const x = Math.min(need, lot.qty);
@@ -399,7 +400,7 @@ function trace(p, movs) {
     });
   });
   return { title: 'Traceability: materials issued and their batches', subtitle: periodText(p)
-      + '  ·  Batch worked out by "first to expire, first out"',
+      + '  ·  Batch worked out by "first received, first out"',
     columns: cols(['Date issued', 'd'], ['Department', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Issue slip', 't'],
       ['Expiry', 'd'], ['Batch source', 't'], ['Received on', 'd'], ['Supplier', 't'], ['Invoice no.', 't']), rows };
 }
