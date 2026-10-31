@@ -35,7 +35,97 @@ export const REPORTS = [
   { id: 'prices', group: 'other', opts: ['items'], build: prices, prices: true },
   { id: 'production', group: 'other', opts: ['period'], build: productionSummary },
   { id: 'trace', group: 'move', opts: ['dates', 'sections'], build: trace },
+  { id: 'slow', group: 'stock', opts: ['days', 'stores'], build: slowMoving },
+  { id: 'cover', group: 'stock', opts: ['days', 'stores'], build: daysOfCover },
+  { id: 'losses', group: 'move', opts: ['dates', 'stores'], build: losses },
 ];
+
+// ---------- cost of the stock: the net price of the last receipt, per stock unit
+/** {item_id: cost per stock unit} from the latest receipt of each item (items never bought: none). */
+export function unitCosts(movs) {
+  const last = new Map();
+  for (const m of movs) {
+    if (m.kind !== 'RECEIPT' || !(Number(m.qty) > 0)) continue;
+    const amount = Number(m.final_amount !== '' && m.final_amount !== undefined ? m.final_amount : m.amount);
+    if (!(amount > 0)) continue;
+    const k = String(m.date) + '|' + String(m.movement_id || m.created_at || '');
+    const cur = last.get(m.item_id);
+    if (!cur || k > cur.k) last.set(m.item_id, { k, cost: amount / Number(m.qty) });
+  }
+  return new Map([...last].map(([id, x]) => [id, x.cost]));
+}
+const money = (v) => Math.round(v * 100) / 100;
+
+function slowMoving(p, movs) {
+  const days = Number(p.days) || 90;
+  const today = Data.todayIso();
+  const prices = Data.can('see_prices');
+  const cost = prices ? unitCosts(movs) : new Map();
+  const lastOut = new Map();
+  for (const m of movs) if (Number(m.qty) < 0 && !(lastOut.get(m.item_id) >= m.date)) lastOut.set(m.item_id, m.date);
+  const rows = [];
+  for (const it of Data.activeItems()) {
+    const q = Data.qty(it.item_id);
+    if (q <= 0 || !inStores(p, it.item_id)) continue;
+    const out = lastOut.get(it.item_id) || '';
+    const idle = out ? daysBetween(out, today) : null;
+    if (idle !== null && idle < days) continue;
+    const [rq, u] = ru(it.item_id, q);
+    rows.push([it.name, STORE_NAMES[Data.storeOf(it)], rq, u, out, idle === null ? 'Never issued' : String(idle),
+      ...(prices ? [cost.has(it.item_id) ? money(q * cost.get(it.item_id)) : ''] : [])]);
+  }
+  rows.sort((a, b) => (prices ? (Number(b[6]) || 0) - (Number(a[6]) || 0) : 0) || byName(a[0], b[0]));
+  return { title: 'Slow-moving stock (no issue for ' + days + ' days or more)', subtitle: todayText() + storesText(p),
+    columns: cols(['Item', 't'], ['Store', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Last issue', 'd'], ['Days without issue', 't'],
+      ...(prices ? [['Value (QR)', 'm']] : [])), rows };
+}
+
+function daysOfCover(p, movs) {
+  const days = Number(p.days) || 90;
+  const today = Data.todayIso();
+  const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - days);
+  const from = d.toISOString().slice(0, 10);
+  const used = new Map();
+  for (const m of movs) {
+    if ((m.kind !== 'ISSUE' && m.kind !== 'PROD_CONSUME') || m.date <= from || m.date > today || !(Number(m.qty) < 0)) continue;
+    used.set(m.item_id, r6((used.get(m.item_id) || 0) - Number(m.qty)));
+  }
+  const rows = [];
+  for (const [id, u] of used) {
+    const it = Data.items.get(id);
+    if (!it || it.active !== true || !inStores(p, id)) continue;
+    const q = Math.max(0, Data.qty(id));
+    const avg = u / days;
+    const cover = Math.floor(q / avg);
+    const order = Math.max(0, avg * days - q);
+    const [rq, unit] = ru(id, q);
+    rows.push([it.name, STORE_NAMES[Data.storeOf(it)], rq, unit, ru(id, u)[0], Math.round(ru(id, avg)[0] * 100) / 100, cover, Math.ceil(ru(id, order)[0] * 100) / 100]);
+  }
+  rows.sort((a, b) => a[6] - b[6] || byName(a[0], b[0]));
+  return { title: 'Days of cover (use of the last ' + days + ' days)', subtitle: todayText() + storesText(p)
+      + '  ·  Suggested order: enough for another ' + days + ' days at the same use',
+    columns: cols(['Item', 't'], ['Store', 't'], ['Balance', 'n'], ['Unit', 't'], ['Used', 'n'], ['Daily average', 'n'], ['Days of cover', 'n'], ['Suggested order', 'n']), rows };
+}
+
+function losses(p, movs) {
+  const prices = Data.can('see_prices');
+  const cost = prices ? unitCosts(movs) : new Map();
+  const rows = [];
+  let total = 0;
+  movs.filter((m) => (m.kind === 'DISPOSAL' || m.kind === 'ADJUST') && inRange(m, p) && inStores(p, m.item_id) && Number(m.qty))
+    .sort((a, b) => (a.date === b.date ? byName(itemName(a.item_id), itemName(b.item_id)) : a.date < b.date ? -1 : 1))
+    .forEach((m) => {
+      const q = Number(m.qty);
+      const type = m.kind === 'DISPOSAL' ? 'Disposal' : String(m.doc_no || '').charAt(0) === 'C' ? 'Count difference' : 'Adjustment';
+      const v = cost.has(m.item_id) ? money(q * cost.get(m.item_id)) : '';
+      if (v !== '') total += v;
+      const [rq, u] = ru(m.item_id, q);
+      rows.push([m.date, type, itemName(m.item_id), rq, u, ...(prices ? [v] : []), m.purpose || m.doc_no || '']);
+    });
+  if (prices && rows.length) rows.push(['', 'Total', '', '', '', money(total), '']);
+  return { title: 'Disposals and count differences', subtitle: periodText(p) + storesText(p) + '  ·  Negative = stock lost',
+    columns: cols(['Date', 'd'], ['Type', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ...(prices ? [['Value (QR)', 'm']] : []), ['Reason / document', 't']), rows };
+}
 
 function itemList(list, title) {
   const ids = Data.list(list);

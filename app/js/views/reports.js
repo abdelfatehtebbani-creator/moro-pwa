@@ -8,6 +8,7 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { REPORTS, reportText } from '../reports.js';
 import { reportToXlsx } from '../xlsx.js';
+import * as analysis from './analysis.js';
 
 let selected = 'fast';
 const state = {};        // options per report, kept while the app is open
@@ -34,7 +35,24 @@ function multiSelect(id, options, chosen, hint = 'lookup_hint') {
   return h('div.ms', search, box, h('div.ms-foot', count, all, none));
 }
 
+// two tabs: the reports (tables) and the charts, each shown to whoever may open it
+let section = '';
 export function render(root) {
+  const tables = REPORTS.some((r) => Data.can('report.' + r.id));
+  const parts = [tables ? 'tables' : null, Data.can('charts.view') ? 'charts' : null].filter(Boolean);
+  if (!parts.includes(section)) section = parts[0] || 'tables';
+  const box = h('div');
+  const bar = h('div.tabs.lpo-sections');
+  const draw = () => {
+    bar.replaceChildren(...parts.map((p) => h('button', { type: 'button', class: section === p ? 'on' : '', onclick: () => { section = p; draw(); } },
+      t(p === 'tables' ? 'rep_tab_tables' : 'rep_tab_charts'))));
+    (section === 'charts' ? analysis.render : renderTables)(box);
+  };
+  root.replaceChildren(parts.length > 1 ? bar : '', box);
+  draw();
+}
+
+function renderTables(root) {
   const reports = REPORTS.filter((r) => Data.can('report.' + r.id) && (!r.prices || Data.can('see_prices')));
   const cards = h('div.rep-cards');
   const opts = h('div.rep-opts');
