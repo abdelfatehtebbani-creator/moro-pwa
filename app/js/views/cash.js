@@ -273,9 +273,10 @@ export async function render(root) {
       h('button.btn.secondary.cash-bal', { type: 'button', title: t('cash_ledger'), onclick: ledger }, t('cash_balance') + ': ', balanceEl, ' ›')),
     h('div.form-actions', tabs, h('div.spacer'),
       canWrite ? h('button.btn', { type: 'button', onclick: () => { try { editor(null, [], balance); } catch (e) { toast(String(e && e.message || e), 'err'); } } }, '+ ' + t('cash_new')) : null,
-      Data.can('cash.float') ? h('button.btn.secondary', { type: 'button', onclick: handOver }, t('cash_hand_over')) : null),
-    h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('date')), h('th', t('total') + ' (QR)'), h('th', ''), h('th', t('lpo_written_by')), h('th', ''))), list))),
-    detail);
+      Data.can('cash.float') ? h('button.btn.secondary', { type: 'button', onclick: handOver }, t('cash_hand_over')) : null)),
+    // the open sheet (new, edited or viewed) above the list
+    detail,
+    h('div.card', h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('date')), h('th', t('total') + ' (QR)'), h('th', ''), h('th', t('lpo_written_by')), h('th', ''))), list))));
   await loadList();
   if (!canDecide) markSeen();
 }
