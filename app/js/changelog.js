@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.71', date: '2026-10-31',
+    ar: { news: ['صلاحية المخزون تُحسب الآن من آخر الاستلامات: الرصيد الموجود يُغطّى من أحدث استلام رجوعًا حتى تكتمل الكمية، ولكل جزء صلاحية استلامه. مثلًا 17 كيس سكر من آخر استلامات صلاحيتها 31-Mar-28 تظهر كلها بهذا التاريخ. المرتجعات من الأقسام لا تُحسب دفعة جديدة. ويتبع تقرير "تتبّع المواد ودفعاتها" القاعدة نفسها: الصرف يأخذ من الأقدم استلامًا.'] },
+    en: { news: ['The expiry of the stock now comes from the latest receipts: the balance is covered from the newest receipt back until the quantity is complete, each part with the expiry of its receipt. For example 17 bags of sugar from receipts expiring 31-Mar-28 all show that date. Returns from departments are not a new batch. The traceability report follows the same rule: issues take from the oldest received.'] },
+  },
+  {
     v: '0.9.70', date: '2026-10-31',
     ar: {
       news: ['تبويبة جديدة "التحليل البياني" في شاشة التقارير: المشتريات شهريًا، وأكبر الموردين، وقيمة المخزون، وتطوّر سعر مادة، والصرف للأقسام، وأكثر المواد صرفًا، والصلاحية، والإتلاف وفروق الجرد، والمواد تحت الحد الأدنى، وأكياس القهوة، وطلبات المحلات. المبالغ تظهر فقط لمن يرى الأسعار.',
