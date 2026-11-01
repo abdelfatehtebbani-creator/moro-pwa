@@ -98,7 +98,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '25';
+var SCHEMA_VERSION = '26';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -109,6 +109,7 @@ function ensureSchema() {
     Repo.reset();
     Masters.seedUnits();
     if (Number(Settings.get('schema_version', '0')) < 5) Stores.seed();
+    if (Number(Settings.get('schema_version', '0')) < 26) Perm.addDashView();
     Settings.set('schema_version', SCHEMA_VERSION);
   });
 }
