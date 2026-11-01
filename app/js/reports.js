@@ -38,7 +38,65 @@ export const REPORTS = [
   { id: 'slow', group: 'stock', opts: ['days', 'stores'], build: slowMoving },
   { id: 'cover', group: 'stock', opts: ['days', 'stores'], build: daysOfCover },
   { id: 'losses', group: 'move', opts: ['dates', 'stores'], build: losses },
+  { id: 'orderTimes', group: 'orders', opts: ['dates'], needs: 'orders', build: orderTimes },
+  { id: 'receiptShort', group: 'orders', opts: ['dates'], needs: 'orders', build: receiptShort },
+  { id: 'unavailable', group: 'orders', opts: ['dates'], needs: 'orders', build: unavailable },
+  { id: 'shopSales', group: 'orders', opts: ['dates'], needs: 'orders', prices: true, build: shopSales },
 ];
+
+// ---------- shop orders (data from orders.report: the orders of the period and their invoices)
+const stamp = (iso) => (iso ? String(iso).replace('T', ' ').slice(0, 16) : '');
+const hoursBetween = (a, b) => (a && b ? Math.round((new Date(b) - new Date(a)) / 36e5 * 10) / 10 : '');
+
+function orderTimes(p, movs, data) {
+  const rows = data.orders.filter((o) => o.sent_at).map((o) => [o.order_no, partyName(o.shop_party_id), o.order_date, stamp(o.sent_at), stamp(o.approved_at),
+    stamp(o.ready_at), stamp(o.loaded_at), stamp(o.delivered_at), stamp(o.received_at), hoursBetween(o.sent_at, o.received_at)]);
+  return { title: 'Shop orders: time of each step', subtitle: periodText(p) + '  ·  Sent → approved → ready → loaded → delivered → received',
+    columns: cols(['Order', 't'], ['Shop', 't'], ['Order date', 'd'], ['Sent', 't'], ['Approved', 't'], ['Ready', 't'], ['Loaded', 't'],
+      ['Delivered', 't'], ['Received', 't'], ['Hours sent → received', 'n']), rows };
+}
+
+const SHORT = { damaged: 'Damaged', short_in_trip: 'Short in the trip', loading_error: 'Loading error', other: 'Other' };
+function receiptShort(p, movs, data) {
+  const rows = [];
+  data.orders.forEach((o) => o.lines.forEach((l) => {
+    if (l.received_qty === '' || l.received_qty === undefined || !(Number(l.received_qty) < l.handed_qty)) return;
+    const it = Data.items.get(l.item_id) || {};
+    rows.push([o.order_date, partyName(o.shop_party_id), o.order_no, itemName(l.item_id), l.handed_qty, Number(l.received_qty),
+      r6(l.handed_qty - Number(l.received_qty)), it.unit || '', SHORT[l.short_reason] || l.short_reason, l.short_note || '']);
+  }));
+  return { title: 'Shop orders: received short', subtitle: periodText(p),
+    columns: cols(['Order date', 'd'], ['Shop', 't'], ['Order', 't'], ['Item', 't'], ['Handed', 'n'], ['Received', 'n'], ['Short', 'n'], ['Unit', 't'],
+      ['Reason', 't'], ['Note', 't']), rows };
+}
+
+function unavailable(p, movs, data) {
+  const rows = [];
+  data.orders.forEach((o) => o.lines.forEach((l) => {
+    if (l.line_status !== 'unavailable') return;
+    const it = Data.items.get(l.item_id) || {};
+    const where = Data.storeOf(it) === 'FINAL' && it.dept ? partyName(it.dept) : STORE_NAMES[Data.storeOf(it)];
+    rows.push([o.order_date, partyName(o.shop_party_id), o.order_no, itemName(l.item_id), where, Number(l.approved_qty) || l.qty, it.unit || '', l.reason]);
+  }));
+  return { title: 'Shop orders: could not be supplied', subtitle: periodText(p),
+    columns: cols(['Order date', 'd'], ['Shop', 't'], ['Order', 't'], ['Item', 't'], ['Department / store', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Reason', 't']), rows };
+}
+
+function shopSales(p, movs, data) {
+  // each shop's invoices in the period: the final products part, the store items part, and the total
+  const by = new Map();
+  data.invoices.forEach((v) => {
+    const s = by.get(v.shop_party_id) || { n: 0, f: 0, st: 0 };
+    s.n++; s.f += Number(v.total_final) || 0; s.st += Number(v.total_store) || 0;
+    by.set(v.shop_party_id, s);
+  });
+  const rows = [...by].sort((a, b) => byName(partyName(a[0]), partyName(b[0])))
+    .map(([id, s]) => [partyName(id), s.n, money(s.f), money(s.st), money(s.f + s.st)]);
+  if (rows.length > 1) rows.push(['Total', rows.reduce((a, r) => a + r[1], 0), money(rows.reduce((a, r) => a + r[2], 0)),
+    money(rows.reduce((a, r) => a + r[3], 0)), money(rows.reduce((a, r) => a + r[4], 0))]);
+  return { title: 'Shop sales (invoices)', subtitle: periodText(p),
+    columns: cols(['Shop', 't'], ['Invoices', 'n'], ['Final products (QR)', 'm'], ['Store items (QR)', 'm'], ['Total (QR)', 'm']), rows };
+}
 
 // ---------- cost of the stock: the net price of the last receipt, per stock unit
 /** {item_id: cost per stock unit} from the latest receipt of each item (items never bought: none). */

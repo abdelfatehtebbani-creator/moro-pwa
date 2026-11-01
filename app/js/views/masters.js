@@ -116,7 +116,10 @@ function items(body, isAdmin) {
     const canFinal = Data.can('final_price');
     const finalPrice = trackFilled(h('input.input.num#e-fprice', { type: 'number', min: 0, step: 'any', value: it && it.final_price !== undefined ? it.final_price : '', disabled: !canFinal }));
     const finalField = h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice);
-    const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };
+    // store items: the price a shop is invoiced (final products use the final price)
+    const salePrice = trackFilled(h('input.input.num#e-sprice', { type: 'number', min: 0, step: 'any', value: it && it.sale_price !== undefined ? it.sale_price : '' }));
+    const saleField = h('div.field', h('label', { for: 'e-sprice' }, t('sale_price_shops')), salePrice);
+    const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; saleField.hidden = cat.value === 'FINAL' || !Data.can('see_prices'); };
     cat.addEventListener('change', showFinal);
     showFinal();
     const err = h('p.err-text', '');
@@ -128,6 +131,10 @@ function items(body, isAdmin) {
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
       if (!it || Data.can('rename.items')) p.dept = cat.value === 'FINAL' ? deptSel.value : '';
+      if (Data.can('see_prices') && cat.value !== 'FINAL') {
+        if (salePrice.value !== '' && !(Number(salePrice.value) >= 0)) return flash(salePrice);
+        p.sale_price = salePrice.value;
+      }
       if (!it || Data.can('rename.items')) p.name_ar = nameAr.value.trim();
       if (canPack) {
         const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
@@ -147,7 +154,7 @@ function items(body, isAdmin) {
       }
       save('items.save', p, close, err);
     };
-    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), deptField, finalField,
+    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), deptField, finalField, saleField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
         field(t('base_unit'), unit), toBaseBtn,
         h('div.field', h('label', { for: 'e-buyunit' }, t('big_unit')),

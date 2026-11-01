@@ -66,7 +66,7 @@ function renderTables(root) {
     .map((p) => ({ value: p.party_id, label: p.name }));
 
   function drawCards() {
-    const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), other: t('rep_group_other') };
+    const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), orders: t('rep_group_orders'), other: t('rep_group_other') };
     cards.replaceChildren(...Object.keys(groups).map((g) => h('div.rep-group', h('div.rep-group-title', groups[g]),
       reports.filter((r) => r.group === g).map((r) => h('button.rep-card', { type: 'button', class: r.id === selected ? 'on' : '',
         onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); } }, t('rep_' + r.id))))));
@@ -184,16 +184,18 @@ function renderTables(root) {
     if (rep.opts.includes('dates') && (!p.from || !p.to || p.from > p.to)) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
     status.textContent = t('loading'); status.className = 'form-status';
     let movs = [];
+    let extra = null;
     let note = '';
     try {
-      if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
+      if (rep.needs === 'orders') extra = await call('orders.report', { from: p.from, to: p.to });
+      else if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
         const res = await MovStore.all();
         movs = res.list;
         if (res.stale) note = '  ·  ' + t('offline_data', { at: new Date(res.at).toLocaleString('en-GB') });
         if (res.list.some((m) => m.pending)) note += '  ·  ' + t('includes_pending');
       }
     } catch (e) { status.textContent = errText(e); status.className = 'form-status err'; return; }
-    current = rep.build(p, movs.filter((m) => m.status !== 'deleted'));
+    current = rep.build(p, movs.filter((m) => m.status !== 'deleted'), extra);
     status.textContent = t('report_rows', { n: current.rows.length }) + note; status.className = 'form-status ' + (note ? 'warn' : 'ok');
     drawPreview();
   }

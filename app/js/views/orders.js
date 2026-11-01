@@ -11,7 +11,7 @@ import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js'
 import { combo, field, newId } from '../components.js';
 
 const PILL = { draft: 'out', sent: 'soon', approved: 'soon', ready: 'in', in_trip: 'soon', loaded: 'soon', delivered: 'soon', received: 'in',
-  rejected: 'low', cancelled: 'out' };
+  invoiced: 'in', rejected: 'low', cancelled: 'out' };
 const SHORT_REASONS = ['damaged', 'short_in_trip', 'loading_error', 'other'];
 let tab = '';
 let cleanup = null;
@@ -75,7 +75,7 @@ export async function render(root) {
   // ---------- the orders
   const listBox = h('div.req-list');
   const tabs = h('div.tabs');
-  const TABS = canApprove ? ['sent', 'approved', 'ready', 'rejected', ''] : ['', 'draft', 'sent', 'delivered', 'received', 'rejected'];
+  const TABS = canApprove ? ['sent', 'approved', 'ready', 'rejected', ''] : ['', 'draft', 'sent', 'delivered', 'received', 'invoiced', 'rejected'];
   if (!TABS.includes(tab)) tab = TABS[0];
   TABS.forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
     onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); loadList(); } },
