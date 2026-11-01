@@ -65,6 +65,8 @@ var ROUTES = {
   'orders.list':      function (s, p) { return Orders.list(s, p); },
   'orders.save':      function (s, p) { return Orders.save(s, p); },
   'orders.cancel':    function (s, p) { return Orders.cancel(s, p); },
+  'orders.shift':     function (s, p) { return Orders.shift(s, p); },
+  'orders.shiftEnd':  function (s) { return Orders.shiftEnd(s); },
   'orders.approve':   function (s, p) { return Orders.approve(s, p); },
   'orders.reject':    function (s, p) { return Orders.reject(s, p); },
   'orders.receive':   function (s, p) { return Trips.receive(s, p); },

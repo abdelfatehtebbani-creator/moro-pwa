@@ -30,7 +30,7 @@ export async function render(root) {
     if (quiet !== true) body.replaceChildren(h('p.empty', '…'));
     try {
       if (tab === 'special') drawSpecial(await call('special.list', { status: 'pending' }));
-      else drawLines(await call('shop.list', { status: tab }));
+      else drawLines(await call('shop.list', { status: tab, native: true }));
     } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
   };
 

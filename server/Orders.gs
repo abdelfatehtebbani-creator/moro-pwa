@@ -153,6 +153,32 @@ var Orders = {
     });
   },
 
+  /**
+   * The cashier's shift: the shop they work in now (cashiers move between shops). A shop has one cashier
+   * at a time: it is taken until that cashier ends the shift (or the admin clears it in the users screen).
+   */
+  shift: function (session, p) {
+    return withLock(function () {
+      var shop = String(p.shop || '');
+      var party = Repo.find('Parties', 'party_id', shop);
+      Util.require(party && party.kind === 'shop' && party.active === true, 'shop_invalid');
+      var taken = Repo.all('Users').filter(function (x) { return x.user_id !== session.user_id && x.active === true && String(x.shop || '') === shop; })[0];
+      Util.require(!taken, 'shop_taken', taken ? taken.display_name : '');
+      Repo.update('Users', 'user_id', session.user_id, { shop: shop });
+      Audit.log(session.user_id, 'shift_open', 'Users', session.user_id, null, { shop: shop });
+      return { shop: shop, version: Version.bump() };
+    });
+  },
+
+  shiftEnd: function (session) {
+    return withLock(function () {
+      var u = Repo.find('Users', 'user_id', session.user_id);
+      Repo.update('Users', 'user_id', session.user_id, { shop: '' });
+      Audit.log(session.user_id, 'shift_end', 'Users', session.user_id, null, { shop: u ? u.shop : '' });
+      return { version: Version.bump() };
+    });
+  },
+
   /** Sent orders waiting for distribution (the badge). */
   pending: function () {
     return Repo.all('Orders').filter(function (o) { return o.status === 'sent'; }).length;

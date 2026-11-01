@@ -191,7 +191,11 @@ var Shop = {
     p = p || {};
     var status = p.status || 'open';
     var allStores = (status === 'shortage' && Perm.has(session, 'shop.shortage')) || Perm.has(session, 'shop.depts');
+    // p.native: only the lines of orders made in MORO (the app; the old Masar test link is being dropped)
+    var native = null;
+    if (p.native) { native = {}; Repo.all('Orders').forEach(function (o) { native[o.order_id] = true; }); }
     var lines = Repo.all('ShopOrderLines').filter(function (l) {
+      if (native && !native[l.order_id]) return false;
       var item = Repo.find('Items', 'item_id', l.item_id);
       // the lines this user prepares (their stores, their departments); the production manager sees all
       if (!allStores && !Shop.mayWork(session, item)) return false;

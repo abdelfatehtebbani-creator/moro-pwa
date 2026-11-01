@@ -44,21 +44,26 @@ export async function render(root) {
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };
     drawPick();
-    newBox.replaceChildren(h('div.card.form-card', h('h2', t('trip_new')), h('small.muted', t('trip_new_help')), list,
+    newBox.replaceChildren(h('div.form-card', h('h3', t('trip_new')), h('small.muted', t('trip_new_help')), list,
       h('div.form-grid', field(t('driver'), driver), field(t('note'), note, { wide: true })),
       drivers.length ? null : h('p.err-text', t('no_drivers')),
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: create }, t('trip_create')))));
   }
-  if (manage) { parts.push(newBox); drawNew(); }
-
   // ---------- the trips
   const listBox = h('div.req-list');
   const tabs = h('div.tabs');
-  ['open', 'all'].forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
-    onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); loadList(); } }, t('trips_' + s))));
-  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), listBox));
+  const keys = (manage ? ['new'] : []).concat(['open', 'all']);
+  if (!keys.includes(tab)) tab = keys[0];
+  keys.forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
+    onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('trips_' + s))));
+  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), newBox, listBox));
+  function show() {
+    newBox.hidden = tab !== 'new'; listBox.hidden = tab === 'new';
+    if (tab === 'new') drawNew(); else loadList();
+  }
 
   async function loadList(quiet) {
+    if (tab === 'new') return;
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
       const trips = await call('trips.list', tab === 'open' ? { open: true } : {});
@@ -93,7 +98,7 @@ export async function render(root) {
   }
 
   root.replaceChildren(...parts);
-  loadList();
+  show();
   const timer = setInterval(() => { if (document.visibilityState === 'visible') loadList(true); }, 20000);
   cleanup = () => { clearInterval(timer); cleanup = null; };
 }

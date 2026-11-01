@@ -133,3 +133,13 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(rep.orders.find((x) => x.order_id === o.order_id).lines[0].short_reason, 'damaged');
   assert.equal(g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id).status, 'invoiced');
 });
+
+test('cashier shift: the cashier chooses the shop they work in; another cashier cannot take it until the shift ends', () => {
+  const { g, tok, user } = env();
+  user('cash2', 'cashier');
+  assert.equal(g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }] }, tok.cash2).error.code, 'cashier_no_shop');
+  assert.equal(g.api('orders.shift', { shop: 'P002' }, tok.cash2).error.code, 'shop_taken');
+  assert.equal(g.api('orders.shiftEnd', {}, tok.cashier).ok, true);
+  assert.equal(g.api('orders.shift', { shop: 'P002' }, tok.cash2).ok, true);
+  assert.equal(g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cash2).data.order.shop_party_id, 'P002');
+});
