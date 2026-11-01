@@ -63,6 +63,15 @@ function items(body, isAdmin) {
     // shown to Arabic users instead of the name (the name stays the item's name in the data and the reports)
     const nameAr = trackFilled(h('input.input#e-name-ar', { value: it ? it.name_ar || '' : '', dir: 'rtl', disabled: it && !Data.can('rename.items') }));
     const cat = storeSelect('e-cat', it ? Data.storeOf(it) : 'DRY', it && !isAdmin);
+    // a final product is made by one department: its shop-order lines go to that department
+    const deptSel = h('select.input#e-dept', { disabled: it && !Data.can('rename.items') }, h('option', { value: '' }, '—'),
+      [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true).sort((a, b) => a.name.localeCompare(b.name))
+        .map((p) => h('option', { value: p.party_id }, p.name)));
+    deptSel.value = it ? it.dept || '' : '';
+    const deptField = field(t('made_by_dept'), deptSel);
+    const showDept = () => { deptField.hidden = cat.value !== 'FINAL'; };
+    cat.addEventListener('change', showDept);
+    showDept();
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
     if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
     const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
@@ -118,6 +127,7 @@ function items(body, isAdmin) {
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
+      if (!it || Data.can('rename.items')) p.dept = cat.value === 'FINAL' ? deptSel.value : '';
       if (!it || Data.can('rename.items')) p.name_ar = nameAr.value.trim();
       if (canPack) {
         const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
@@ -137,7 +147,7 @@ function items(body, isAdmin) {
       }
       save('items.save', p, close, err);
     };
-    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), finalField,
+    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), deptField, finalField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
         field(t('base_unit'), unit), toBaseBtn,
         h('div.field', h('label', { for: 'e-buyunit' }, t('big_unit')),

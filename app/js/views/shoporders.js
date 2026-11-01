@@ -9,6 +9,7 @@ import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js'
 import { combo, field, storePill, newId } from '../components.js';
 
 let tab = 'open';
+let group = '';            // the department or store tab
 let cleanup = null;
 
 export async function render(root) {
@@ -46,10 +47,19 @@ export async function render(root) {
           h('td.num.qty-neg', fmtNum(l.shortage) + ' ' + l.unit), h('td.num', fmtNum(Data.qty(l.item_id)))))))));
       return;
     }
+    // a tab per department (final products) and per store, when the lines belong to more than one
+    const groupOf = (l) => (l.store === 'FINAL' && l.dept ? 'd:' + l.dept : 's:' + l.store);
+    const groupName = (g) => (g.startsWith('d:') ? ((Data.parties.get(g.slice(2)) || {}).name || g.slice(2)) : t('store_' + g.slice(2)));
+    const groups = [...new Set(lines.map(groupOf))].sort((a, b) => (a[0] === b[0] ? groupName(a).localeCompare(groupName(b)) : a < b ? -1 : 1));
+    if (!groups.includes(group)) group = groups.length > 1 ? '' : groups[0];
+    const groupBar = groups.length > 1 ? h('div.tabs.shop-groups', h('button', { type: 'button', class: group === '' ? 'on' : '', onclick: () => { group = ''; drawLines(lines); } }, t('order_st_all')),
+      groups.map((g) => h('button', { type: 'button', class: group === g ? 'on' : '', onclick: () => { group = g; drawLines(lines); } },
+        h('bdi', groupName(g)), ' ', h('small', String(lines.filter((l) => groupOf(l) === g).length))))) : null;
+    const shown = group ? lines.filter((l) => groupOf(l) === group) : lines;
     // one card per order
     const orders = new Map();
-    lines.forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
-    body.replaceChildren(...[...orders.values()].map((ls) => orderCard(ls)));
+    shown.forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
+    body.replaceChildren(groupBar || '', ...[...orders.values()].map((ls) => orderCard(ls)));
   }
 
   function orderCard(ls) {
@@ -58,16 +68,17 @@ export async function render(root) {
     const rows = ls.map((l) => {
       const it = itemOf(l.item_id);
       const left = Math.max(0, Math.round((l.qty - l.handed_qty) * 1e6) / 1e6);
-      const open = tab === 'open' && left > 0 && l.approved !== false && Data.canStore(l.store, 'shop');
+      const open = tab === 'open' && left > 0 && l.approved !== false && l.can;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
       const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
-        canBack && Data.canStore(l.store, 'shop') ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
+        canBack && l.can ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
         t('line_' + l.status)) : l.approved === false ? h('span.pill.soon', t('awaiting_approval'))
         : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
+      const where = l.store === 'FINAL' && l.dept ? h('span.pill.st-final', h('bdi', (Data.parties.get(l.dept) || {}).name || l.dept)) : storePill(l.store);
+      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
         h('td', inp || '', ' ', no || ''));
     });

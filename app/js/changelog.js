@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.83', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات داخل مورو، المرحلة 1: الكاشير يكتب طلبية محله ويرسلها لليوم الموالي، ومسؤول التوزيع يعتمدها، وكل سطر يذهب لقسمه المنتِج أو لمخزنه في "طلبيات المحلات"، بتبويبات لكل قسم ومخزن.'] },
+    en: { news: ['(Development copy) Shop orders inside MORO, stage 1: the cashier writes the shop’s order for the next day, distribution approves it, and each line goes to the department that makes it or to its store in "Shop orders", with a tab per department and store.'] },
+  },
+  {
     v: '0.9.82', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: الطلب المصروف جزئيًا يُؤرشف مثل غيره، وزر "طلب الباقي" يظهر عند الطالب في تبويبة "جزئي" من الأرشيف فقط.'] },
     en: { news: ['Department requests: a request given in part goes to the archive like the others; "Ask for the rest" shows to the requester in the "partial" tab of the archive only.'] },

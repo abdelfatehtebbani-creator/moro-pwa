@@ -59,10 +59,16 @@ test('orders: one cashier per shop; a draft is sent for the next day; distributi
   const lines = g.api('shop.list', {}, tok.prod).data;
   const flour = lines.find((l) => l.item_id === 'I0001'), box = lines.find((l) => l.item_id === 'I0002');
   assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h0', lines: [{ line_id: flour.line_id, qty: 1 }] }, tok.prod).error.code, 'store_forbidden');
-  assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h1', lines: [{ line_id: box.line_id, qty: 2 }] }, tok.baklava).ok, true);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h1', lines: [{ line_id: box.line_id, qty: 2 }] }, tok.baklava);
+  assert.equal(bal('I0002'), 1);
+  // more than the final products stock: to be made first
+  const o2 = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 5 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o2.order_id }, tok.dist);
+  const big = g.api('shop.list', {}, tok.baklava).data.find((l) => l.order_id === o2.order_id);
+  assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: big.line_id, qty: 5 }] }, tok.baklava).error.code, 'final_needs_production');
   assert.equal(bal('I0002'), 1);
   g.api('shop.unavailable', { line_id: flour.line_id, reason: 'Not today' }, tok.store);
-  const o = g.api('orders.list', {}, tok.cashier).data[0];
+  const o = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === d.order_id);
   assert.equal(o.status, 'ready');
   assert.deepEqual(o.lines.map((l) => [l.status, l.handed_qty]), [['unavailable', 0], ['handed', 2]]);
 });

@@ -86,6 +86,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 .topbar h1 { margin: 0; font-size: 19px; }
 .topbar .spacer { flex: 1; }
+.shop-groups { margin: 4px 0 12px; flex-wrap: wrap; }
+.shop-groups small { opacity: .7; }
 .req-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; max-height: 150px; overflow-y: auto; }
 .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .chip:hover { border-color: var(--teal); background: var(--teal-soft); }

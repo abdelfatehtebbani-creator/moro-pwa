@@ -220,6 +220,9 @@ var Shop = {
       Util.require(Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id)), 'store_forbidden', l.item_id);
       var q = Util.round(Util.num(x.qty));
       Util.require(q <= Shop.left(l), 'qty_too_much', l.line_id);
+      // a department's product comes from the final products stock: made first (production screen) when short
+      var it = Repo.find('Items', 'item_id', l.item_id);
+      if (Stores.of(it) === 'FINAL' && it.dept) Util.require(q <= Math.max(0, Shop.balance(l.item_id)), 'final_needs_production', it.name);
       plan.push({ line: l, qty: q });
       movs.push({ client_id: (p.client_id || l.line_id) + '-' + l.line_id, kind: 'ISSUE', date: p.date || Util.today(),
         party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit, purpose: 'Shop order ' + (l.order_no || l.order_id) });
