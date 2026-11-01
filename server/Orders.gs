@@ -35,7 +35,8 @@ var Orders = {
     var lines = items.map(function (x) {
       var s = shop[o.order_id + '-' + x.line_no];
       return { line_no: Number(x.line_no), item_id: x.item_id, qty: Number(x.qty), unit: x.unit, approved_qty: x.approved_qty === '' ? '' : Number(x.approved_qty),
-        status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '' };
+        status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '',
+        received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '' };
     });
     var out = {};
     Object.keys(o).forEach(function (k) { out[k] = o[k]; });
@@ -54,8 +55,8 @@ var Orders = {
       // a draft is only its writer's
       if (o.status === 'draft' && o.created_by !== session.user_id) return false;
       if (!all && (!shop || o.shop_party_id !== shop)) return false;
-      return !p.status || o.status === p.status;
-    }).reverse().slice(0, Number(p.limit) || 200).map(Orders.view);
+      return !p.status || o.status === p.status || (p.status === 'ready' && o.status === 'approved');
+    }).reverse().map(Orders.view).filter(function (o) { return !p.status || o.status === p.status; }).slice(0, Number(p.limit) || 200);
   },
 
   /**

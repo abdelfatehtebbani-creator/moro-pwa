@@ -9,8 +9,16 @@ import { combo, field, doublePress, newId } from '../components.js';
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
 
 export function render(root) {
-  const products = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort();
-  const product = combo({ id: 'p-product', options: () => products.map((p) => ({ value: p, label: p })), onPick: preview });
+  // products with a recipe, and the final products without one (a department's product: no ingredient is taken)
+  const withRecipe = new Set(Data.recipes.map((r) => norm(r.product)));
+  const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && !withRecipe.has(norm(i.name)));
+  const products = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort().map((p) => ({ value: p, label: p }))
+    .concat(finals.map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name, hint: t('no_recipe') })));
+  const product = combo({ id: 'p-product', options: () => products, onPick: (v) => {
+    const it = finals.find((i) => i.name === v);
+    if (it) { unit.value = it.unit; unit.dispatchEvent(new Event('input')); }
+    preview();
+  } });
   const qty = trackFilled(h('input.input.num#p-qty', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' }));
   const unit = trackFilled(h('input.input#p-unit', { value: 'KG' }));
   const date = trackFilled(h('input.input#p-date', { type: 'date', value: Data.todayIso() }));
@@ -19,6 +27,7 @@ export function render(root) {
   const btn = h('button.btn.save-btn#p-post', { type: 'button', onclick: post }, t('confirm_production'));
   let lines = [];
 
+  const noRecipe = () => product.value && !withRecipe.has(norm(product.value)) && finals.some((i) => i.name === product.value);
   function preview() {
     const q = Number(qty.value);
     const recipe = Data.recipes.filter((r) => norm(r.product) === norm(product.value));
@@ -30,7 +39,7 @@ export function render(root) {
     });
     body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', h('bdi', Data.nameOf(l.it))), h('td.num', fmtNum(l.need)),
       h('td.num', fmtNum(l.have)), h('td', l.it.unit), h('td', h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')))))
-      : [h('tr', h('td.empty', { colspan: 5 }, product.value ? t('recipe_missing') : t('choose_product')))]));
+      : [h('tr', h('td.empty', { colspan: 5 }, !product.value ? t('choose_product') : noRecipe() ? t('no_recipe_help') : t('recipe_missing')))]));
     const short = lines.filter((l) => !l.ok).length;
     summary.textContent = lines.length ? t('ingredients_summary', { n: lines.length, s: short }) : '';
     summary.className = 'form-status ' + (short ? 'warn' : '');
@@ -42,7 +51,7 @@ export function render(root) {
   async function post() {
     if (!product.value) { flash(product.input); product.input.focus(); return; }
     if (!(Number(qty.value) > 0)) { flash(qty); qty.focus(); return; }
-    if (!lines.length) { flash(product.input); return; }
+    if (!lines.length && !noRecipe()) { flash(product.input); return; }
     if (lines.some((l) => !l.ok) && !doublePress('prod')) { flash(btn); summary.textContent = t('short_press_again'); summary.className = 'form-status warn'; return; }
     await Outbox.add('production.post', { product: product.value, qty: Number(qty.value), unit: unit.value.trim().toUpperCase() || 'KG',
       date: date.value, client_id: newId() }, product.value);

@@ -50,12 +50,15 @@ var SCHEMA = {
   Reminders:    ['date', 'message'],
   Settings:     ['key', 'value'],
   Orders:       ['order_id', 'order_no', 'client_id', 'shop_party_id', 'status', 'order_date', 'delivery_date', 'note', 'created_by',
-                 'created_at', 'sent_at', 'decided_by', 'decided_at', 'reason', 'updated_at'],
-  OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status']
+                 'created_at', 'sent_at', 'decided_by', 'decided_at', 'reason', 'updated_at', 'trip_id', 'loaded_at', 'delivered_at',
+                 'received_at', 'received_by'],
+  OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status', 'received_qty', 'short_reason', 'short_note'],
+  Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at'],
+  TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by']
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',

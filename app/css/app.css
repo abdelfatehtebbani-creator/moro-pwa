@@ -86,6 +86,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 .topbar h1 { margin: 0; font-size: 19px; }
 .topbar .spacer { flex: 1; }
+.trip-pick { display: grid; gap: 6px; margin: 8px 0 12px; }
+.trip-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.trip-row b.num { min-width: 1.2em; color: var(--brand); }
+.trip-stop { display: flex; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line); }
+.trip-stop > b.num { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; flex: none; }
+.trip-stop-main { flex: 1; display: grid; gap: 2px; }
+.recv-short { display: inline-flex; gap: 4px; margin-inline-start: 6px; }
+.recv-short[hidden] { display: none; }
 .shop-groups { margin: 4px 0 12px; flex-wrap: wrap; }
 .shop-groups small { opacity: .7; }
 .req-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; max-height: 150px; overflow-y: auto; }

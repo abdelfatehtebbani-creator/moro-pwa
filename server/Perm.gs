@@ -8,7 +8,7 @@
  * Lists saved before the tree (receive, issue, masters…) are read through OLD_CAPS.
  * Every server action is checked once in the router; the finer rules (own records, stores…) in the services.
  */
-var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head'];
+var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
@@ -25,7 +25,8 @@ var PERM_TREE = [
     { leaf: 'issue.edit_own' }, { leaf: 'issue.edit_all' }, { leaf: 'issue.delete' }] },
   { key: 'production', children: [{ leaf: 'production.view' }, { leaf: 'production.post' }, { leaf: 'production.edit' }] },
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
-  { key: 'orders', children: [{ leaf: 'orders.create' }, { leaf: 'orders.approve' }] },
+  { key: 'orders', children: [{ leaf: 'orders.create' }, { leaf: 'orders.receive' }, { leaf: 'orders.approve' }] },
+  { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }, { leaf: 'reports.charts' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
@@ -65,6 +66,9 @@ var CAPS = (function () {
     'shop.depts':        ['nav.shoporders', 'shop.list', 'shop.depts', 'shop.hand', 'shop.unavailable', 'kind.ISSUE'],
     'orders.create':     ['nav.orders', 'orders.list', 'orders.save', 'orders.cancel'],
     'orders.approve':    ['nav.orders', 'orders.list', 'orders.approve', 'orders.reject'],
+    'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
+    'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
+    'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
     'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
     'shop.unavailable':  ['shop.unavailable'],
     'shop.return':       ['shop.return', 'kind.DEPT_RETURN'],
@@ -164,8 +168,9 @@ var ROLE_CAPS = {
   production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post']),
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
-  cashier:     ['orders.create'],
-  distribution: ['orders.approve', 'shop.view'],
+  cashier:     ['orders.create', 'orders.receive'],
+  distribution: ['orders.approve', 'shop.view', 'trips.manage'],
+  driver:      ['trips.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   accountant:  ['lpo.view', 'cash.handover']
 };
