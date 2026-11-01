@@ -153,24 +153,20 @@ var Requests = {
     });
   },
 
-  /** How many requests wait for this user: lines to give in their stores, or their own requests to answer. */
+  /** How many requests wait for this user: lines to give in their stores. */
   todo: function (session) {
     var reqs = {};
     Repo.all('Requests').forEach(function (r) { if (r.status === 'open' || r.status === 'partial') reqs[r.request_id] = r; });
-    var give = {}, answer = {};
+    var give = {};
     var fulfil = Perm.has(session, 'requests.fulfil');
     Repo.all('RequestLines').forEach(function (l) {
       var r = reqs[l.request_id];
       if (!r || Number(l.issued_qty || 0) >= Number(l.qty) || String(l.reason || '')) return;
-      // the rest of a line given in part: only when the stock now allows asking for it
-      if (String(l.wait || '') === 'yes') {
-        var b = Repo.find('Balances', 'item_id', l.item_id);
-        if (r.requested_by === session.user_id && Number(b && b.qty) > 0) answer[r.request_id] = true;
-        return;
-      }
+      // the rest of a line given in part waits in the requester's archive ("partial"): not counted
+      if (String(l.wait || '') === 'yes') return;
       if (fulfil && Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests')) give[r.request_id] = true;
     });
-    return Object.keys(give).length + Object.keys(answer).filter(function (id) { return !give[id]; }).length;
+    return Object.keys(give).length;
   },
 
   /**

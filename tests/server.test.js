@@ -210,7 +210,7 @@ test('department request: created by production, issued in two parts by the stor
   assert.equal(bal('I0001'), 3);
   // what is left now waits for the person who asked, not for the storekeeper
   assert.deepEqual(g.rows('RequestLines').map((l) => l.wait), ['yes', 'yes']);
-  assert.deepEqual([todo('storekeeper'), todo('production')], [0, 1]);
+  assert.deepEqual([todo('storekeeper'), todo('production')], [0, 0]);
   assert.equal(g.api('requests.fulfil', { request_id: id }, tok.storekeeper).error.code, 'nothing_to_save');
   assert.equal(g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'request_waiting');
   assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'forbidden');
@@ -497,7 +497,6 @@ test('department requests show only to the storekeepers of their stores; the res
   g.api('requests.fulfil', { request_id: id, client_id: 'f2', lines: [{ line_no: 1, qty: 1 }] }, tok.admin);
   const out = g.api('movements.save', { movements: [{ client_id: 'x', ...issue() }] }, tok.admin);
   assert.equal(out.ok, true, JSON.stringify(out));
-  assert.equal(g.api('data.bootstrap', {}, tok.production).data.requests_todo, 0, 'no stock: nothing to ask for');
   assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.production).error.code, 'request_over_stock');
 });
 
