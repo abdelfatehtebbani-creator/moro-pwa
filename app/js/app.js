@@ -73,13 +73,13 @@ async function start() {
   step('start');
   if (!session.token) {
     step('ping');
-    let setupNeeded = false;
+    let setupNeeded = false, noPin = false;
     root.replaceChildren(h('div.boot', h('img', { src: 'icons/logo.png', alt: '', width: 96, height: 96 }), h('span', 'MORO'),
       h('small', t('connecting'))));
     // a slow or missing answer (8 s at most) only means "show the sign-in screen"
-    try { setupNeeded = (await call('ping')).setup_needed; } catch { /* offline: show login */ }
+    try { const p = await call('ping'); setupNeeded = p.setup_needed; noPin = p.no_pin === true; } catch { /* offline: show login */ }
     window.__moroStarted = true;           // the sign-in screen is up
-    await showAuth(root, setupNeeded);
+    await showAuth(root, setupNeeded, noPin);
     // just signed in: the home screen first
     history.replaceState(null, '', location.pathname + location.search);
   }

@@ -19,7 +19,7 @@ function shell(title, hint, body, onLang) {
 }
 
 /** Renders the right screen into root; resolves when the user is signed in. */
-export function showAuth(root, setupNeeded) {
+export function showAuth(root, setupNeeded, noPin) {
   return new Promise((resolve) => {
     const render = () => {
       root.replaceChildren(setupNeeded ? setupForm() : loginForm());
@@ -35,11 +35,12 @@ export function showAuth(root, setupNeeded) {
       user.dispatchEvent(new Event('input'));
       const err = h('p.err-text', '');
       const btn = h('button.btn.block', { type: 'submit' }, t('login'));
-      const form = shell(t('login_title'), null, [field(t('username'), user), field(t('pin'), pin), err, btn], toggleLang);
+      // the development copy signs in with the username only (the server decides: Auth.noPin)
+      const form = shell(t('login_title'), noPin ? t('login_no_pin') : null, [field(t('username'), user), noPin ? null : field(t('pin'), pin), err, btn], toggleLang);
       form.querySelector('form').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!user.value.trim()) return flash(user);
-        if (!pin.value.trim()) return flash(pin);
+        if (!noPin && !pin.value.trim()) return flash(pin);
         btn.disabled = true; err.textContent = '';
         try {
           const r = await call('auth.login', { username: user.value, pin: pin.value });

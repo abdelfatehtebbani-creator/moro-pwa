@@ -68,7 +68,7 @@ var ROUTES = {
 
 /** Actions that do not need a session. */
 var PUBLIC = {
-  'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today() }; },
+  'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today(), no_pin: Auth.noPin() }; },
   'auth.login':  function (p) { return Auth.login(p); },
   'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); }
 };

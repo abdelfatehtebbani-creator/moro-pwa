@@ -455,3 +455,13 @@ test('the dashboard tick: users with their own ticks who saw the dashboard keep 
   assert.ok(!g.api('data.bootstrap', {}, tok.production).data.permissions.includes('nav.dashboard'));
   assert.ok(g.api('data.bootstrap', {}, tok.storekeeper).data.permissions.includes('nav.dashboard'));
 });
+
+test('sign-in without a PIN only in the development copy (by its script id)', () => {
+  const { g } = env();
+  assert.equal(g.api('ping').data.no_pin, false);
+  assert.equal(g.api('auth.login', { username: 'admin', pin: '' }).error.code, 'login_failed');
+  g.props.__scriptId = '1r-QTlnjI3Jo46ijmMEVJkMYmgvHj4-kEwD5A3Zz-t6lKSPqt9-zqiP6n';
+  assert.equal(g.api('ping').data.no_pin, true);
+  assert.equal(g.api('auth.login', { username: 'admin' }).ok, true);
+  assert.equal(g.api('auth.login', { username: 'nobody' }).error.code, 'login_failed');
+});
