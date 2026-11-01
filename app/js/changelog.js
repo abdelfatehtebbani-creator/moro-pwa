@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.74', date: '2026-11-01',
+    ar: { news: ['نسخة التطوير (DIV) فقط: الدخول باسم المستخدم دون رمز، للتجربة. الإنتاج لم يتغيّر.'] },
+    en: { news: ['The development copy (DIV) only: sign in with the username, no PIN, for testing. Production is unchanged.'] },
+  },
+  {
     v: '0.9.73', date: '2026-11-01',
     ar: {
       news: ['طلبات الأقسام: لا يُضاف سطر إلى الطلب إن كانت الكمية أكبر من المتوفر في المخزن، ويظهر المتاح.',

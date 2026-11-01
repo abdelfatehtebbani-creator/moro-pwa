@@ -10,6 +10,9 @@ var TOKEN_DAYS = 30;
 var MAX_TRIES = 5;          // wrong PINs before a temporary lock
 var LOCK_MINUTES = 10;
 
+/** Script id of the development copy (server/.clasp.dev.json): the only project that signs in without a PIN. */
+var DEV_SCRIPT_ID = '1r-QTlnjI3Jo46ijmMEVJkMYmgvHj4-kEwD5A3Zz-t6lKSPqt9-zqiP6n';
+
 var Auth = {
   secret: function () {
     var p = PropertiesService.getScriptProperties();
@@ -92,6 +95,12 @@ var Auth = {
     return Auth.publicUser(user);
   },
 
+  /**
+   * The development copy (MORO DIV) signs in with the username only, for testing. Tied to that
+   * project's script id, so the production project can never do it.
+   */
+  noPin: function () { return ScriptApp.getScriptId() === DEV_SCRIPT_ID; },
+
   login: function (p) {
     var username = Util.clean(p.username).toLowerCase();
     var cache = CacheService.getScriptCache();
@@ -99,7 +108,7 @@ var Auth = {
     var fails = Number(cache.get(lockKey) || 0);
     Util.require(fails < MAX_TRIES, 'login_locked', String(LOCK_MINUTES));
     var u = Repo.find('Users', 'username', username);
-    var ok = u && u.active === true && Auth.hashPin(String(p.pin || ''), u.pin_salt) === u.pin_hash;
+    var ok = u && u.active === true && (Auth.noPin() || Auth.hashPin(String(p.pin || ''), u.pin_salt) === u.pin_hash);
     if (!ok) {
       cache.put(lockKey, String(fails + 1), LOCK_MINUTES * 60);
       throw new AppError('login_failed');
