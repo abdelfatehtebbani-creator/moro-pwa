@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.88', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) القسم منتج أو غير منتج (التنظيف، الإدارة…): علّم "قسم منتج" في نافذة القسم. الأقسام المنتجة وحدها تظهر في "القسم الذي ينتجه" وفي أقسام مسؤول القسم وفلتر المواد.'] },
+    en: { news: ['(Development copy) A department makes products or not (cleaning, management…): tick "Producing department" in its window. Only producing departments show in "Made by department", the department head’s departments and the items filter.'] },
+  },
+  {
     v: '0.9.87', date: '2026-11-01',
     ar: { news: ['(نسخة التطوير) أسماء جديدة: "طلبيتي" للكاشير، و"اعتماد الطلبيات" للتوزيع، و"تجهيز الطلبيات" للأقسام والمخازن. الكاشير يبدأ نوبة في المحل الذي يعمل فيه (لا يأخذه كاشير آخر حتى ينهيها)، ويختار المادة بتبويبات المخازن والأقسام. تبويبات للرحلات والفواتير، وفلتر القسم في قائمة المواد.'] },
     en: { news: ['(Development copy) New names: "My order" for the cashier, "Approve orders" for distribution, "Prepare orders" for departments and stores. The cashier starts a shift in the shop they work in (no other cashier can take it until it ends) and picks items by store or department tabs. Tabs for trips and invoices, and a department filter in the items list.'] },
