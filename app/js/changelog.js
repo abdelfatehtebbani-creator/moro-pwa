@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.76', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: بعد الضغط على "صرف الطلب" يتعطل الزر وتظهر "قيد الإرسال…" حتى يرد الخادم، فلا يُصرف الطلب مرتين.'] },
+    en: { news: ['Department requests: after "Issue request" the button stays off and shows "Sending…" until the server answers, so a request is not issued twice.'] },
+  },
+  {
     v: '0.9.75', date: '2026-11-01',
     ar: { news: ['اسم المستخدم الداخل يظهر أعلى كل شاشة.'] },
     en: { news: ['The name of the signed-in user shows at the top of every screen.'] },

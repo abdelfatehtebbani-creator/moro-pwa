@@ -80,15 +80,19 @@ export async function render(root) {
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 
+  // a request already sent for issuing (or cancelling) and not yet answered by the server: no second press
+  const waiting = (r) => ['requests.fulfil', 'requests.cancel'].some((a) => Outbox.queued(a).some((j) => j.payload.request_id === r.request_id));
+
   function card(r) {
     const p = Data.parties.get(r.party_id);
+    const busy = waiting(r);
     const inputs = [];
     const rows = r.lines.map((l) => {
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
       const left = Math.round((Number(l.qty) - Number(l.issued_qty || 0)) * 1e6) / 1e6;
       const store = l.store || Data.storeOf(Data.items.get(l.item_id));
       const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial') && Data.canStore(store, 'requests')
-        ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
+        ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, disabled: busy, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
       const other = canFulfil && left > 0 && !inp && (r.status === 'open' || r.status === 'partial');
       return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
@@ -97,21 +101,23 @@ export async function render(root) {
     });
     const actions = h('div.form-actions');
     if (inputs.length) {
-      actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+      actions.append(h('button.btn.save-btn', { type: 'button', disabled: busy, onclick: async (e) => {
         const btn = e.currentTarget;
+        if (btn.disabled) return;
         const lines = inputs.map((x) => ({ line_no: x.line_no, qty: Number(x.inp.value) })).filter((x) => x.qty > 0);
         if (!lines.length) { inputs.forEach((x) => flash(x.inp)); return; }
-        btn.disabled = true;
+        btn.disabled = true; btn.textContent = t('sending');
+        inputs.forEach((x) => { x.inp.disabled = true; });
         await Outbox.add('requests.fulfil', { request_id: r.request_id, date: Data.todayIso(), client_id: newId(), lines }, r.request_id);
         toast(t('request_issued'), 'ok');
-        setTimeout(loadList, 2000);
-      } }, t('issue_request')));
+      } }, busy ? t('sending') : t('issue_request')));
     }
     if (r.status === 'open' && (canFulfil || r.requested_by === Data.user.user_id)) {
-      const cancel = h('button.btn.secondary', { type: 'button', onclick: async () => {
+      const cancel = h('button.btn.secondary', { type: 'button', disabled: busy, onclick: async () => {
+        if (cancel.disabled) return;
         if (!doublePress('cancel-' + r.request_id)) { flash(cancel); return; }
+        cancel.disabled = true;
         await Outbox.add('requests.cancel', { request_id: r.request_id }, r.request_id);
-        setTimeout(loadList, 1500);
       } }, t('cancel_request'));
       actions.append(cancel);
     }
@@ -126,8 +132,13 @@ export async function render(root) {
   root.replaceChildren(...parts);
   loadList();
   const onData = () => { if (!touched && !listBox.contains(document.activeElement)) loadList(true); };
+  // the server answered an issue or a cancel: the list shows the new state (the buttons come back only then)
+  const onSent = (e) => { if (String(e.detail && e.detail.action).startsWith('requests.')) loadList(true); };
   window.addEventListener('moro:data', onData);
-  cleanup = () => { window.removeEventListener('moro:data', onData); cleanup = null; };
+  window.addEventListener('moro:sent', onSent);
+  window.addEventListener('moro:rejected', onSent);
+  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+    window.removeEventListener('moro:rejected', onSent); cleanup = null; };
 }
 
 export function dispose() { if (cleanup) cleanup(); }
