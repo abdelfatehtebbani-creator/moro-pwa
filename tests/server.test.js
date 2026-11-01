@@ -193,6 +193,10 @@ test('production role sees balances and history without prices or contacts', () 
 
 test('department request: created by production, issued in two parts by the storekeeper', () => {
   const { g, tok, bal } = env();
+  g.seed('Balances', [{ item_id: 'I0002', qty: 1, unit: 'BOX' }]);
+  // a request asks for no more than the stock
+  assert.equal(g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 4 }, { item_id: 'I0001', qty: 2 }] },
+    tok.production).error.code, 'request_over_stock');
   const c = g.api('requests.create', { date: TODAY, party_id: 'P001', client_id: 'req-1',
     lines: [{ item_id: 'I0001', qty: 3 }, { item_id: 'I0002', qty: 1 }] }, tok.production);
   assert.equal(c.ok, true, JSON.stringify(c));
@@ -205,7 +209,7 @@ test('department request: created by production, issued in two parts by the stor
   const f2 = g.api('requests.fulfil', { request_id: id, client_id: 'f2' }, tok.storekeeper);
   assert.equal(f2.data.status, 'fulfilled', JSON.stringify(f2));
   assert.equal(bal('I0001'), 2);
-  assert.equal(bal('I0002'), -1);
+  assert.equal(bal('I0002'), 0);
   const lines = g.rows('RequestLines');
   assert.deepEqual(lines.map((l) => Number(l.issued_qty)), [3, 1]);
   assert.equal(g.api('requests.fulfil', { request_id: id }, tok.production).error.code, 'forbidden');
@@ -305,6 +309,7 @@ test('department request with two stores: each storekeeper issues their own line
   const { g, tok, bal } = env();
   const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
   g.api('users.save', { user_id: sk.user_id, stores: ['PACK'] }, tok.admin);
+  g.seed('Balances', [{ item_id: 'I0002', qty: 4, unit: 'BOX' }]);
   const req = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }, { item_id: 'I0002', qty: 4 }] }, tok.production).data;
   const list = g.api('requests.list', { status: 'open' }, tok.storekeeper).data;
   assert.deepEqual(list[0].lines.map((l) => l.store), ['DRY', 'PACK']);
@@ -313,7 +318,7 @@ test('department request with two stores: each storekeeper issues their own line
   const f = g.api('requests.fulfil', { request_id: req.request_id }, tok.storekeeper);
   assert.equal(f.ok, true, JSON.stringify(f));
   assert.equal(f.data.status, 'partial');
-  assert.equal(bal('I0002'), -4);
+  assert.equal(bal('I0002'), 0);
   assert.equal(bal('I0001'), 5);
   const f2 = g.api('requests.fulfil', { request_id: req.request_id }, tok.admin);
   assert.equal(f2.data.status, 'fulfilled');
@@ -379,7 +384,7 @@ test('admin can give a user a custom set of capabilities, and reset it to the ro
   assert.equal(g.api('movements.save', { movements: [issue()] }, tok.production).error.code, 'forbidden');
   assert.ok(g.api('data.bootstrap', {}, tok.production).data.permissions.includes('kind.RECEIPT'));
   // a caps list equal to the role defaults is stored as "defaults"
-  g.api('users.save', { user_id: prod.user_id, caps: ['request_create'] }, tok.admin);
+  g.api('users.save', { user_id: prod.user_id, caps: g.api('data.bootstrap', {}, tok.admin).data.role_caps.production }, tok.admin);
   assert.equal(g.rows('Users').find((u) => u.user_id === prod.user_id).caps, '');
   // nobody can be left without someone able to manage users
   const admin = g.rows('Users').find((u) => u.username === 'admin');
@@ -432,4 +437,21 @@ test('permissions screen by screen and button by button', () => {
   g.api('users.save', { user_id: sk.user_id, caps: ['items.view', 'parties.view', 'parties.rename'] }, tok.admin);
   assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Kitchen 2' }, tok.storekeeper).ok, true);
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'FLOUR 2' }, tok.storekeeper).error.code, 'forbidden');
+});
+
+test('the dashboard tick: users with their own ticks who saw the dashboard keep it (schema 26)', () => {
+  const { g, tok } = env();
+  const users = g.spreadsheet.sheets.Users;
+  const col = users.data[0].indexOf('caps');
+  const row = (name) => users.data.find((r) => r[users.data[0].indexOf('username')] === name);
+  row('storekeeper')[col] = 'receive.view,receive.save';
+  row('production')[col] = 'lpo.view';
+  const set = g.spreadsheet.sheets.Settings;
+  set.data.find((r) => r[0] === 'schema_version')[1] = '25';
+  g.api('auth.me', {}, tok.admin);
+  const caps = (name) => g.rows('Users').find((u) => u.username === name).caps;
+  assert.equal(caps('storekeeper'), 'receive.view,receive.save,dash.view');
+  assert.equal(caps('production'), 'lpo.view');
+  assert.ok(!g.api('data.bootstrap', {}, tok.production).data.permissions.includes('nav.dashboard'));
+  assert.ok(g.api('data.bootstrap', {}, tok.storekeeper).data.permissions.includes('nav.dashboard'));
 });

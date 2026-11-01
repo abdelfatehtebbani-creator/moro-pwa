@@ -10,6 +10,14 @@ var Requests = {
     Util.require(party && party.kind === 'section', 'party_not_section');
     var lines = (p.lines || []).filter(function (l) { return Util.num(l.qty) > 0; });
     Util.require(lines.length, 'nothing_to_save');
+    // a request asks for no more than the stock of each item
+    var asked = {};
+    lines.forEach(function (l) { asked[l.item_id] = Util.round((asked[l.item_id] || 0) + Util.num(l.qty)); });
+    Object.keys(asked).forEach(function (id) {
+      var b = Repo.find('Balances', 'item_id', id);
+      var item = Repo.find('Items', 'item_id', id);
+      Util.require(asked[id] <= Math.max(0, Number(b && b.qty) || 0), 'request_over_stock', item ? item.name : id);
+    });
     return withLock(function () {
       if (p.client_id) {
         var dup = Repo.find('Requests', 'client_id', p.client_id);
