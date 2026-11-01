@@ -14,7 +14,9 @@ var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant
 var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
-                  'slow', 'cover', 'losses'];
+                  'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
+/** Reports built from the shop orders (they read orders.report). */
+var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [
@@ -27,6 +29,7 @@ var PERM_TREE = [
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
   { key: 'orders', children: [{ leaf: 'orders.create' }, { leaf: 'orders.receive' }, { leaf: 'orders.approve' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
+  { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }, { leaf: 'reports.charts' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
@@ -69,6 +72,7 @@ var CAPS = (function () {
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
+    'invoices.manage':   ['nav.invoices', 'invoices.list', 'invoices.get', 'invoices.create', 'orders.list'],
     'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
     'shop.unavailable':  ['shop.unavailable'],
     'shop.return':       ['shop.return', 'kind.DEPT_RETURN'],
@@ -121,7 +125,8 @@ var CAPS = (function () {
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it
-  REPORT_IDS.forEach(function (id) { c['report.' + id] = ['nav.reports', 'report.' + id].concat(id === 'fast' || id === 'sensitive' ? ['lists.save'] : []); });
+  REPORT_IDS.forEach(function (id) { c['report.' + id] = ['nav.reports', 'report.' + id].concat(id === 'fast' || id === 'sensitive' ? ['lists.save'] : [])
+    .concat(ORDER_REPORTS.indexOf(id) >= 0 ? ['orders.report'] : []); });
   return c;
 })();
 
@@ -169,7 +174,8 @@ var ROLE_CAPS = {
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
   cashier:     ['orders.create', 'orders.receive'],
-  distribution: ['orders.approve', 'shop.view', 'trips.manage'],
+  distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
+                 'report.unavailable', 'report.shopSales', 'prices.see'],
   driver:      ['trips.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   accountant:  ['lpo.view', 'cash.handover']
