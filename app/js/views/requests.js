@@ -31,6 +31,13 @@ export async function render(root) {
     const add = () => {
       if (!item.value) { flash(item.input); item.input.focus(); return; }
       if (!(Number(qty.value) > 0)) { flash(qty); qty.focus(); return; }
+      // not more than the stock (with what this request already asks for the same item)
+      const it = Data.items.get(item.value);
+      const asked = lines.filter((l) => l.item_id === item.value).reduce((s, l) => s + l.qty, 0);
+      const avail = Math.max(0, Data.qty(item.value));
+      if (asked + Number(qty.value) > avail + 1e-9) {
+        toast(t('req_over_stock', { n: fmtNum(Math.max(0, avail - asked)), u: it.unit }), 'err'); flash(qty); qty.focus(); return;
+      }
       lines.push({ item_id: item.value, qty: Number(qty.value) });
       item.clear(); qty.value = ''; qty.dispatchEvent(new Event('change')); draw(); item.input.focus();
     };

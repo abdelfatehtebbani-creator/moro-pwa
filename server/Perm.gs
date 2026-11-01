@@ -18,7 +18,7 @@ var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySe
 
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [
-  { key: 'dashboard', children: [{ leaf: 'dash.min' }] },
+  { key: 'dashboard', children: [{ leaf: 'dash.view' }, { leaf: 'dash.min' }] },
   { key: 'receive', children: [{ leaf: 'receive.view' }, { leaf: 'receive.save' }, { leaf: 'receive.return' },
     { leaf: 'receive.edit_own' }, { leaf: 'receive.edit_all' }, { leaf: 'receive.delete' }] },
   { key: 'issue', children: [{ leaf: 'issue.view' }, { leaf: 'issue.post' }, { leaf: 'issue.dept_return' }, { leaf: 'issue.disposal' },
@@ -47,7 +47,8 @@ var PERM_TREE = [
 /** Leaf → the server actions and tokens it opens. */
 var CAPS = (function () {
   var c = {
-    'dash.min':          ['items.save', 'min_stock'],
+    'dash.view':         ['nav.dashboard'],
+    'dash.min':          ['nav.dashboard', 'items.save', 'min_stock'],
     'receive.view':      ['nav.receive'],
     'receive.save':      ['nav.receive', 'movements.save', 'kind.RECEIPT'],
     'receive.return':    ['nav.receive', 'movements.save', 'kind.SUPPLIER_RETURN'],
@@ -128,7 +129,7 @@ var OLD_CAPS = {
   edit_all: ['receive.edit_all', 'issue.edit_all', 'production.edit'],
   delete: ['receive.delete', 'issue.delete'],
   masters: ['items.view', 'items.add', 'parties.view', 'parties.add', 'locations.view', 'locations.add', 'units.view', 'units.add'],
-  min_stock: ['dash.min', 'items.view', 'items.min'],
+  min_stock: ['dash.view', 'dash.min', 'items.view', 'items.min'],
   rename: ['items.rename', 'parties.rename', 'locations.rename', 'units.rename'],
   convert_unit: ['items.view', 'items.convert'],
   packaging: ['items.view', 'items.packaging'],
@@ -153,9 +154,9 @@ function leavesFromOld(list) {
 var ROLE_CAPS = {
   // the accountant hands over the cash, not the admin (the admin can still be given it by hand)
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
-  storekeeper: leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count']).concat(['coffee.view', 'coffee.pack']),
+  storekeeper: ['dash.view'].concat(leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count'])).concat(['coffee.view', 'coffee.pack']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
-  production:  leavesFromOld(['request_create']),
+  production:  ['dash.view'].concat(leavesFromOld(['request_create'])),
   accountant:  ['lpo.view', 'cash.handover']
 };
 
@@ -194,5 +195,21 @@ var Perm = {
 
   require: function (session, perm) {
     Util.require(Perm.has(session, perm), 'forbidden', perm);
+  },
+
+  /**
+   * Schema 26: the dashboard got its own tick (dash.view). Users with their own list of ticks who saw it
+   * before (they worked with stock) get the tick, so nobody loses it; the others never had it.
+   */
+  addDashView: function () {
+    var before = ['nav.receive', 'nav.issue', 'nav.production', 'nav.requests', 'nav.shoporders', 'nav.reports', 'nav.counts', 'nav.masters', 'min_stock'];
+    Repo.setColumn('Users', 'caps', function (u) {
+      var own = String(u.caps || '').trim();
+      if (!own) return own;
+      var caps = Perm.capsOf(u);
+      if (caps.indexOf('dash.view') >= 0) return caps.join(',');
+      var perms = Perm.permsOf(u);
+      return before.some(function (p) { return perms.indexOf(p) >= 0; }) ? caps.concat(['dash.view']).join(',') : own;
+    });
   }
 };

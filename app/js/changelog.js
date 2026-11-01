@@ -3,6 +3,19 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.73', date: '2026-11-01',
+    ar: {
+      news: ['طلبات الأقسام: لا يُضاف سطر إلى الطلب إن كانت الكمية أكبر من المتوفر في المخزن، ويظهر المتاح.',
+        'لوحة التحكم لها الآن خانة "دخول الشاشة" في شجرة الصلاحيات، فلا تظهر إلا لمن عُلّمت له.'],
+      admin: 'كل من كان يرى لوحة التحكم ما زال يراها. لإخفائها عن مستخدم أزل علامة "لوحة التحكم ← دخول الشاشة" من صلاحياته.',
+    },
+    en: {
+      news: ['Department requests: a line is not added when the quantity is more than the stock, and the available quantity shows.',
+        'The dashboard now has an "Open the screen" tick in the permissions tree, and shows only to users who have it.'],
+      admin: 'Everyone who saw the dashboard still sees it. To hide it from a user, untick "Dashboard → Open the screen".',
+    },
+  },
+  {
     v: '0.9.72', date: '2026-11-01',
     ar: { news: ['على الهاتف: خانة البحث في شاشة المواد والموردين تأخذ صفًا كاملًا، والفلتر والزر تحتها.'] },
     en: { news: ['On the phone: the search box in the items and suppliers screen takes a full row, with the filter and the button below it.'] },

@@ -27,7 +27,7 @@ import * as coffee from './views/coffee.js';
 
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
-  dashboard: { view: dashboard, perm: 'data.bootstrap', group: 'nav_main' },
+  dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
@@ -111,12 +111,7 @@ async function start() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
-// the dashboard is about stock: shown to whoever works with stock (or the minimum levels), not to the accountant
-const STOCK_PERMS = ['nav.receive', 'nav.issue', 'nav.production', 'nav.requests', 'nav.shoporders', 'nav.reports', 'nav.counts', 'nav.masters', 'min_stock'];
-function allowed(name) {
-  if (name === 'dashboard') return STOCK_PERMS.some((p) => Data.can(p));
-  return Data.can(ROUTES[name].perm);
-}
+function allowed(name) { return Data.can(ROUTES[name].perm); }
 // the first screen: home (every user may open it)
 function firstScreen() { return Object.keys(ROUTES).find(allowed) || 'home'; }
 
