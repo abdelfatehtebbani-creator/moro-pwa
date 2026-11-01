@@ -21,6 +21,7 @@ import * as masters from './views/masters.js';
 import * as users from './views/users.js';
 import * as reports from './views/reports.js';
 import * as shoporders from './views/shoporders.js';
+import * as orders from './views/orders.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -28,6 +29,7 @@ import * as coffee from './views/coffee.js';
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
+  orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
@@ -148,7 +150,7 @@ function buildShell() {
   for (const name of Object.keys(ROUTES)) {
     if (!allowed(name)) continue;
     if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orders'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -160,7 +162,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orders'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -341,7 +343,10 @@ function updateBadges() {
   const r = allowed('requests') ? Number((Data.boot || {}).requests_todo) || 0 : 0;
   document.querySelectorAll('a[data-route="requests"] .badge').forEach((b) => { b.hidden = !r; b.textContent = String(r); });
   document.querySelectorAll('.home-note-req').forEach((x) => { x.hidden = !r; x.textContent = t('open_requests', { n: r }); });
-  Push.badge(n + r);
+  // sent orders waiting for distribution's approval
+  const o = allowed('orders') ? Number((Data.boot || {}).orders_pending) || 0 : 0;
+  document.querySelectorAll('a[data-route="orders"] .badge').forEach((b) => { b.hidden = !o; b.textContent = String(o); });
+  Push.badge(n + r + o);
 }
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */

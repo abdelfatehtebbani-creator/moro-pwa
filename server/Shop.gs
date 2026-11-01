@@ -41,6 +41,34 @@ var Shop = {
   approved: function (l) { return l.approved !== false && l.approved !== 'FALSE'; },
   shortage: function (l) { return LINE_OPEN.indexOf(l.status) < 0 || !Shop.approved(l) ? 0 : Math.max(0, Util.round(Shop.left(l) - (Number(l.reserved_qty) || 0))); },
 
+  /**
+   * May this user prepare a line of this item? A final product made by a department: the heads of that
+   * department, the production manager (shop.depts), or the final products storekeeper (from stock).
+   * Any other item: the storekeeper of its store.
+   */
+  mayWork: function (session, item) {
+    var store = Stores.of(item);
+    if (store === 'FINAL' && item && item.dept) {
+      if ((session.depts || []).indexOf(String(item.dept)) >= 0 || Perm.has(session, 'shop.depts')) return true;
+    }
+    return Stores.allows(session, store, 'shop');
+  },
+
+  /** An order made in MORO (Orders.gs), approved: its lines join the shop order lines. lines [{order_item_id, item_id, qty, unit}]. */
+  addLines: function (o, lines, now) {
+    var touched = {};
+    lines.forEach(function (x) {
+      if (Repo.find('ShopOrderLines', 'order_item_id', x.order_item_id)) return;
+      var avail = Shop.available(x.item_id);
+      Repo.append('ShopOrderLines', [{ line_id: 'SL' + Util.pad(Settings.next('seq_shopline', 0), 6), order_id: o.order_id, order_no: o.order_no,
+        order_item_id: x.order_item_id, shop_party_id: o.shop_party_id, item_id: x.item_id, qty: x.qty, unit: x.unit,
+        reserved_qty: Math.max(0, Math.min(x.qty, avail)), handed_qty: 0, status: 'open', reason: '', note: o.note, created_at: now,
+        updated_at: now, handed_by: '', handed_at: '', movement_ids: '', approved: true }]);
+      touched[x.item_id] = true;
+    });
+    Shop.rebalance(Object.keys(touched));
+  },
+
   /** Finds or creates the shop party for a Masar shop {id, name}. */
   shopParty: function (shop) {
     Util.require(shop && (shop.id || shop.name), 'shop_required');
@@ -149,7 +177,8 @@ var Shop = {
     return { line_id: l.line_id, order_id: l.order_id, order_no: l.order_no, order_item_id: l.order_item_id, shop_party_id: l.shop_party_id,
       item_id: l.item_id, qty: Number(l.qty), unit: l.unit, reserved_qty: Number(l.reserved_qty) || 0, handed_qty: Number(l.handed_qty) || 0,
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
-      handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)) };
+      handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
+      dept: String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || '') };
   },
 
   /**
@@ -159,16 +188,21 @@ var Shop = {
   list: function (session, p) {
     p = p || {};
     var status = p.status || 'open';
-    var allStores = status === 'shortage' && Perm.has(session, 'shop.shortage');
+    var allStores = (status === 'shortage' && Perm.has(session, 'shop.shortage')) || Perm.has(session, 'shop.depts');
     var lines = Repo.all('ShopOrderLines').filter(function (l) {
-      var store = Stores.of(Repo.find('Items', 'item_id', l.item_id));
-      if (!allStores && (session.stores || []).indexOf(store) < 0) return false;
+      var item = Repo.find('Items', 'item_id', l.item_id);
+      // the lines this user prepares (their stores, their departments); the production manager sees all
+      if (!allStores && !Shop.mayWork(session, item)) return false;
       if (status === 'open') return LINE_OPEN.indexOf(l.status) >= 0;
       if (status === 'shortage') return Shop.shortage(l) > 0;
       return LINE_OPEN.indexOf(l.status) < 0;
     });
     lines.sort(function (a, b) { return status === 'done' ? String(b.updated_at).localeCompare(String(a.updated_at)) : String(a.created_at).localeCompare(String(b.created_at)); });
-    return lines.slice(0, Number(p.limit) || 500).map(Shop.view);
+    return lines.slice(0, Number(p.limit) || 500).map(function (l) {
+      var v = Shop.view(l);
+      v.can = Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id));
+      return v;
+    });
   },
 
   /**
@@ -183,14 +217,17 @@ var Shop = {
       var l = Repo.find('ShopOrderLines', 'line_id', x.line_id);
       Util.require(l && LINE_OPEN.indexOf(l.status) >= 0, 'not_found', x.line_id);
       Util.require(Shop.approved(l), 'not_approved', l.line_id);
-      Stores.requireItem(session, l.item_id, 'shop');
+      Util.require(Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id)), 'store_forbidden', l.item_id);
       var q = Util.round(Util.num(x.qty));
       Util.require(q <= Shop.left(l), 'qty_too_much', l.line_id);
+      // a department's product comes from the final products stock: made first (production screen) when short
+      var it = Repo.find('Items', 'item_id', l.item_id);
+      if (Stores.of(it) === 'FINAL' && it.dept) Util.require(q <= Math.max(0, Shop.balance(l.item_id)), 'final_needs_production', it.name);
       plan.push({ line: l, qty: q });
       movs.push({ client_id: (p.client_id || l.line_id) + '-' + l.line_id, kind: 'ISSUE', date: p.date || Util.today(),
         party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit, purpose: 'Shop order ' + (l.order_no || l.order_id) });
     });
-    var saved = Movements.save(session, { movements: movs }, null, 'shop');
+    var saved = Movements.save(session, { movements: movs }, null, '_checked');
     return withLock(function () {
       var now = Util.nowIso(), touched = {};
       plan.forEach(function (x, i) {
@@ -217,7 +254,7 @@ var Shop = {
       var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
       Util.require(l && LINE_OPEN.indexOf(l.status) >= 0, 'not_found');
       Util.require(Shop.approved(l), 'not_approved', l.line_id);
-      Stores.requireItem(session, l.item_id, 'shop');
+      Util.require(Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id)), 'store_forbidden', l.item_id);
       var res = Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: 'unavailable', reserved_qty: 0, reason: reason,
         handed_by: session.user_id, updated_at: Util.nowIso() });
       Audit.log(session.user_id, 'shop_line_unavailable', 'ShopOrderLines', l.line_id, null, { reason: reason });
@@ -236,13 +273,13 @@ var Shop = {
     Util.require(reason, 'reason_required');
     var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
     Util.require(l, 'not_found');
-    Stores.requireItem(session, l.item_id, 'shop');
+    Util.require(Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id)), 'store_forbidden', l.item_id);
     var q = Util.round(Util.num(p.qty) || 0);
     var can = Util.round((Number(l.handed_qty) || 0) - (Number(l.returned_qty) || 0));
     Util.require(q > 0 && q <= can, 'qty_too_much', l.line_id);
     var saved = Movements.save(session, { movements: [{ client_id: (p.client_id || l.line_id + '-r') + '-ret', kind: 'DEPT_RETURN',
       date: p.date || Util.today(), party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit,
-      purpose: 'Not sent: ' + reason + ' (' + (l.order_no || l.order_id) + ')' }] }, null, 'shop');
+      purpose: 'Not sent: ' + reason + ' (' + (l.order_no || l.order_id) + ')' }] }, null, '_checked');
     return withLock(function () {
       if (saved.saved[0].duplicate) return { line: Shop.view(l), version: Version.get() };
       var cur = Repo.find('ShopOrderLines', 'line_id', l.line_id);

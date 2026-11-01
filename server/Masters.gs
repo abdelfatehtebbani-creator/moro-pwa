@@ -39,7 +39,7 @@ var Masters = {
                      sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true,
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '',
-                     name_ar: Util.clean(p.name_ar) };
+                     name_ar: Util.clean(p.name_ar), dept: store === 'FINAL' ? Masters.deptOf(p.dept) : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -77,6 +77,11 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      // a final product: the department that makes it (its shop-order lines go to that department)
+      if (p.dept !== undefined && String(p.dept || '') !== String(cur.dept || '')) {
+        Perm.require(session, 'rename.items');
+        ch.dept = Masters.deptOf(p.dept);
+      }
       // the Arabic name is shown to Arabic users only; the name stays the item's name everywhere else
       if (p.name_ar !== undefined && Util.clean(p.name_ar) !== String(cur.name_ar || '')) {
         Perm.require(session, 'rename.items');
@@ -314,6 +319,7 @@ var Masters = {
       })(),
       reserved: Shop.reservedMap(),
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
+      orders_pending: Perm.has(session, 'orders.approve') ? Orders.pending() : 0,
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
       // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {
@@ -358,4 +364,13 @@ Masters.namesAr = function (session, p) {
     Audit.log(session.user_id, 'items_names_ar', 'Items', '', null, { changed: n, sent: ids.length });
     return { changed: n, version: Version.bump() };
   });
+};
+
+/** A department (a section party) for a final product, or '' (checked). */
+Masters.deptOf = function (id) {
+  id = String(id || '');
+  if (!id) return '';
+  var p = Repo.find('Parties', 'party_id', id);
+  Util.require(p && p.kind === 'section', 'party_not_section');
+  return id;
 };
