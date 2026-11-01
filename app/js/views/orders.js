@@ -1,11 +1,12 @@
-// Shop orders made in MORO (server/Orders.gs).
-//  - The cashier writes the order of their shop (every item may be ordered; only "available / not
-//    available" shows, never a quantity or a price), keeps it as a draft or sends it (for the next day),
-//    and follows it: sent, approved, ready for distribution, or rejected with the reason.
-//  - Distribution approves the quantities of a sent order (a line may be changed or set to 0) or rejects it.
-//    The approved lines go to the departments and stores (the shop orders screen).
+// Shop orders made in MORO (server/Orders.gs). One module, two screens:
+//  - "My order" (route orders, the cashier): the cashier opens a shift in the shop they work in now (no other
+//    cashier can take it until the shift ends), writes the shop's order (every item may be ordered, picked
+//    by store or department; only "available / not available" shows, never a quantity or a price), keeps it
+//    as a draft or sends it (for the next day), follows it, and receives it when it arrives.
+//  - "Approve orders" (route orderapprove, distribution): the quantities of a sent order are approved (a line
+//    may be changed or set to 0), or the order is rejected with a reason.
 import { call } from '../api.js';
-import { Data } from '../data.js';
+import { Data, STORES } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, newId } from '../components.js';
@@ -13,24 +14,77 @@ import { combo, field, newId } from '../components.js';
 const PILL = { draft: 'out', sent: 'soon', approved: 'soon', ready: 'in', in_trip: 'soon', loaded: 'soon', delivered: 'soon', received: 'in',
   invoiced: 'in', rejected: 'low', cancelled: 'out' };
 const SHORT_REASONS = ['damaged', 'short_in_trip', 'loading_error', 'other'];
-let tab = '';
+// the cashier's tabs: a tab shows the orders of these statuses
+const CASHIER_TABS = { new: null, draft: ['draft'], sent: ['sent', 'approved', 'ready', 'in_trip', 'loaded'], delivered: ['delivered'],
+  archive: ['received', 'invoiced', 'rejected', 'cancelled'] };
+const APPROVE_TABS = ['sent', 'approved', 'ready', 'rejected', ''];
+const tabs = { orders: 'new', orderapprove: 'sent' };
 let cleanup = null;
 
-export async function render(root) {
+export async function render(root, name) {
   if (cleanup) cleanup();
-  const canCreate = Data.can('orders.save');
-  const canApprove = Data.can('orders.approve');
+  const approveMode = name === 'orderapprove';
   const shop = (Data.user || {}).shop;
-  const parts = [];
-  if (canCreate && !shop && !canApprove) { root.replaceChildren(h('div.card.no-store', t('cashier_no_shop'))); return; }
+  const shopName = (id) => (Data.parties.get(id) || {}).name || id;
 
-  // ---------- the cashier's order
-  let editing = null;          // the draft being written
-  let lines = [];
+  // ---------- the cashier's shift: the shop they work in now
+  if (!approveMode && !shop) {
+    const shops = [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name));
+    const sel = h('select.input#o-shop', h('option', { value: '' }, '—'), shops.map((p) => h('option', { value: p.party_id }, p.name)));
+    root.replaceChildren(h('div.card.form-card', h('h2', t('shift_open')), h('small.muted', t('shift_open_help')), field(t('shop'), sel),
+      h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+        if (!sel.value) return flash(sel);
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await call('orders.shift', { shop: sel.value }); await Data.refresh(); render(root, name); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      } }, t('shift_start')))));
+    return;
+  }
+  const parts = [];
+  if (!approveMode) {
+    parts.push(h('div.shift-bar', h('span', t('shift_in'), ' ', h('b', h('bdi', shopName(shop)))),
+      h('button.btn.secondary', { type: 'button', onclick: async () => {
+        if (!(await confirm(t('shift_end_confirm')))) return;
+        try { await call('orders.shiftEnd', {}); await Data.refresh(); render(root, name); } catch (e) { toast(errText(e), 'err'); }
+      } }, t('shift_end'))));
+  }
+
+  // ---------- tabs
+  let tab = tabs[name];
+  const tabBar = h('div.tabs');
+  const keys = approveMode ? APPROVE_TABS : Object.keys(CASHIER_TABS);
+  if (!keys.includes(tab)) tab = keys[0];
+  keys.forEach((k) => tabBar.append(h('button', { type: 'button', class: k === tab ? 'on' : '',
+    onclick: (e) => { tab = tabs[name] = k; [...tabBar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } },
+    t(approveMode ? 'order_st_' + (k || 'all') : 'otab_' + k))));
   const editorBox = h('div');
+  const listBox = h('div.req-list');
+  parts.push(h('div.card', h('div.card-head', h('h2', t(approveMode ? 'orderapprove' : 'orders')), tabBar), editorBox, listBox));
+
+  function show() {
+    const isNew = !approveMode && tab === 'new';
+    editorBox.hidden = !isNew;
+    listBox.hidden = isNew;
+    if (isNew) drawEditor(); else loadList();
+  }
+
+  // ---------- a new order (or a draft being changed)
+  let editing = null;
+  let lines = [];
+  let source = 'all';        // the item picker: all, a store, or a department
   function drawEditor() {
-    const item = combo({ id: 'o-item', options: () => Data.activeItems().sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+    // the stores (final products come by department) and the departments that make something
+    const depts = [...new Set(Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && i.dept).map((i) => i.dept))]
+      .map((id) => Data.parties.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+    const sources = [['all', t('order_st_all')], ...STORES.filter((s) => s !== 'FINAL').map((s) => ['s:' + s, t('store_' + s)]),
+      ...depts.map((p) => ['d:' + p.party_id, p.name])];
+    const inSource = (i) => source === 'all' || (source.startsWith('s:') ? Data.storeOf(i) === source.slice(2) && Data.storeOf(i) !== 'FINAL'
+      : Data.storeOf(i) === 'FINAL' && i.dept === source.slice(2));
+    const item = combo({ id: 'o-item', options: () => Data.activeItems().filter(inSource).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
       .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: Data.qty(i.item_id) > 0 ? t('ord_available') : t('ord_not_available') })) });
+    const srcBar = h('div.tabs.order-src', sources.map(([k, label]) => h('button', { type: 'button', class: k === source ? 'on' : '',
+      onclick: (e) => { source = k; [...srcBar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); item.clear(); item.input.focus(); } },
+      h('bdi', label))));
     const qty = trackFilled(h('input.input.num#o-qty', { type: 'number', step: 'any', min: 0 }));
     const note = trackFilled(h('input.input#o-note', { value: editing ? editing.note || '' : '' }));
     const body = h('tbody');
@@ -56,11 +110,11 @@ export async function render(root) {
       try {
         await call('orders.save', { order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send });
         toast(t(send ? 'order_sent' : 'saved'), 'ok');
-        editing = null; lines = []; drawEditor(); loadList();
+        editing = null; lines = []; drawEditor();
       } catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
     };
-    editorBox.replaceChildren(h('div.card.form-card', h('h2', editing ? t('order_edit_draft', { n: editing.order_no }) : t('order_new')),
-      h('small.muted', t('order_new_help')),
+    editorBox.replaceChildren(h('div.form-card', h('h3', editing ? t('order_edit_draft', { n: editing.order_no }) : t('order_new')),
+      h('small.muted', t('order_new_help')), srcBar,
       h('div.form-grid', field(t('item'), item, { wide: true }), field(t('qty'), qty),
         h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line'))), field(t('note'), note, { wide: true })),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', ''))), body)),
@@ -70,32 +124,22 @@ export async function render(root) {
         editing ? h('button.btn.secondary', { type: 'button', onclick: () => { editing = null; lines = []; drawEditor(); } }, t('close')) : null)));
     draw();
   }
-  if (canCreate && shop) { drawEditor(); parts.push(editorBox); }
 
-  // ---------- the orders
-  const listBox = h('div.req-list');
-  const tabs = h('div.tabs');
-  const TABS = canApprove ? ['sent', 'approved', 'ready', 'rejected', ''] : ['', 'draft', 'sent', 'delivered', 'received', 'invoiced', 'rejected'];
-  if (!TABS.includes(tab)) tab = TABS[0];
-  TABS.forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
-    onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); loadList(); } },
-    t('order_st_' + (s || 'all')))));
-  parts.push(h('div.card', h('div.card-head', h('h2', t(canApprove ? 'orders_to_approve' : 'my_orders')), tabs), listBox));
-
+  // ---------- the orders of the tab
   async function loadList(quiet) {
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
-      const list = await call('orders.list', tab ? { status: tab } : {});
+      let list;
+      if (approveMode) list = await call('orders.list', tab ? { status: tab } : {});
+      else { const want = CASHIER_TABS[tab] || []; list = (await call('orders.list', {})).filter((o) => want.includes(o.status)); }
       listBox.replaceChildren(...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 
-  const shopName = (id) => (Data.parties.get(id) || {}).name || id;
-
   function card(o) {
-    const approving = canApprove && o.status === 'sent';
+    const approving = approveMode && Data.can('orders.approve') && o.status === 'sent';
     // the cashier receives a delivered order: what came, per line; less than handed needs a reason
-    const receiving = Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
+    const receiving = !approveMode && Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
     const got = [];
     const inputs = [];
     const rows = o.lines.map((l) => {
@@ -159,9 +203,12 @@ export async function render(root) {
           catch (ex) { toast(errText(ex), 'err'); }
         } }, t('order_reject')));
     }
-    if (canCreate && o.status === 'draft' && o.created_by === Data.user.user_id) {
+    if (!approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
       actions.append(
-        h('button.btn', { type: 'button', onclick: () => { editing = o; lines = o.lines.map((l) => ({ item_id: l.item_id, qty: l.qty })); drawEditor(); window.scrollTo(0, 0); } }, t('edit')),
+        h('button.btn', { type: 'button', onclick: () => {
+          editing = o; lines = o.lines.map((l) => ({ item_id: l.item_id, qty: l.qty }));
+          tab = tabs[name] = 'new'; [...tabBar.children].forEach((b, i) => b.classList.toggle('on', keys[i] === 'new')); show(); window.scrollTo(0, 0);
+        } }, t('edit')),
         h('button.btn.secondary', { type: 'button', onclick: async () => {
           if (!(await confirm(t('order_cancel_confirm')))) return;
           try { await call('orders.cancel', { order_id: o.order_id }); toast(t('order_cancelled'), 'ok'); loadList(); } catch (e) { toast(errText(e), 'err'); }
@@ -174,7 +221,7 @@ export async function render(root) {
       o.note ? h('p.muted', o.note) : null,
       o.status === 'rejected' && o.reason ? h('p.err-text', t('order_rejected_why', { why: o.reason })) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('requested')), h('th', t('approved_qty')), h('th', t('issued')),
-        h('th', ''), h('th', approving ? t('approved_qty') : receiving || o.status === 'received' ? t('received') : ''))), h('tbody', rows))),
+        h('th', ''), h('th', approving ? t('approved_qty') : receiving || o.status === 'received' || o.status === 'invoiced' ? t('received') : ''))), h('tbody', rows))),
       actions);
   }
 
@@ -184,8 +231,8 @@ export async function render(root) {
   }
 
   root.replaceChildren(...parts);
-  loadList();
-  const onData = () => { if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true); };
+  show();
+  const onData = () => { if (!listBox.hidden && !(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true); };
   const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 20000);
   window.addEventListener('moro:data', onData);
   cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); cleanup = null; };

@@ -8,7 +8,7 @@ import { h, toast, fmtNum, fmtDate, trackFilled } from '../ui.js';
 
 const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const isoMinus = (iso, days) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - days); return d.toISOString().slice(0, 10); };
-const state = { from: '', to: '' };
+const state = { from: '', to: '', tab: 'wait' };
 
 export async function render(root) {
   const today = Data.todayIso();
@@ -52,17 +52,19 @@ export async function render(root) {
     } catch (e) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 8 }, errText(e)))); }
   }
 
-  root.replaceChildren(
-    h('div.card', h('h2', t('orders_to_invoice')), waitBox),
-    h('div.card', h('div.card-head', h('h2', t('invoices'))),
+  const issued = h('div',
       h('div.form-grid', h('div.field', h('label', t('from')), from), h('div.field', h('label', t('to')), to)),
       h('div.quick', h('button.link', { type: 'button', onclick: () => { from.value = state.from = today.slice(0, 8) + '01'; to.value = state.to = today; loadList(); } }, t('an_this_month')),
         h('button.link', { type: 'button', onclick: () => { from.value = state.from = isoMinus(today, 29); to.value = state.to = today; loadList(); } }, t('last_30'))),
       sums,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('invoice_no')), h('th', t('date')), h('th', t('shop')), h('th', t('order_no')),
-        h('th', t('inv_final')), h('th', t('inv_store')), h('th', t('total')), h('th', ''))), tb))));
-  loadWaiting();
-  loadList();
+        h('th', t('inv_final')), h('th', t('inv_store')), h('th', t('total')), h('th', ''))), tb)));
+  const bar = h('div.tabs');
+  const show = () => { waitBox.hidden = state.tab !== 'wait'; issued.hidden = state.tab !== 'issued'; (state.tab === 'wait' ? loadWaiting : loadList)(); };
+  ['wait', 'issued'].forEach((k) => bar.append(h('button', { type: 'button', class: k === state.tab ? 'on' : '',
+    onclick: (e) => { state.tab = k; [...bar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('inv_tab_' + k))));
+  root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('invoices')), bar), waitBox, issued));
+  show();
 }
 
 export function dispose() {}

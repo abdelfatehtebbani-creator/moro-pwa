@@ -67,8 +67,8 @@ var CAPS = (function () {
     'shop.view':         ['nav.shoporders', 'shop.list'],
     // every department's lines (and the stores', to see): records for the departments (the production manager)
     'shop.depts':        ['nav.shoporders', 'shop.list', 'shop.depts', 'shop.hand', 'shop.unavailable', 'kind.ISSUE'],
-    'orders.create':     ['nav.orders', 'orders.list', 'orders.save', 'orders.cancel'],
-    'orders.approve':    ['nav.orders', 'orders.list', 'orders.approve', 'orders.reject'],
+    'orders.create':     ['nav.orders', 'orders.list', 'orders.save', 'orders.cancel', 'orders.shift', 'orders.shiftEnd'],
+    'orders.approve':    ['nav.orderapprove', 'orders.list', 'orders.approve', 'orders.reject'],
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],

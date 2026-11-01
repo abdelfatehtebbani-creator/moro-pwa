@@ -44,10 +44,14 @@ function items(body, isAdmin) {
   const canMin = Data.can('min_stock');
   const search = trackFilled(h('input.input#m-search', { type: 'search', placeholder: t('lookup_hint') }));
   const showInactive = h('input#m-inactive', { type: 'checkbox' });
+  const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
+    [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true).sort((a, b) => a.name.localeCompare(b.name))
+      .map((p) => h('option', { value: p.party_id }, p.name)));
   const tb = h('tbody');
   const fill = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q)))
+    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q))
+      && (!deptFilter.value || String(i.dept || '') === deptFilter.value))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
       h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),
@@ -56,6 +60,7 @@ function items(body, isAdmin) {
   };
   search.addEventListener('input', fill);
   showInactive.addEventListener('change', fill);
+  deptFilter.addEventListener('change', fill);
   watch(fill);
 
   const edit = (it) => dialog((close) => {
@@ -176,7 +181,7 @@ function items(body, isAdmin) {
     });
     file.click();
   };
-  body.replaceChildren(h('div.search', search, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
+  body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
