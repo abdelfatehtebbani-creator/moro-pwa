@@ -203,9 +203,21 @@ test('department request: created by production, issued in two parts by the stor
   assert.equal(g.api('requests.create', { date: TODAY, party_id: 'P001', client_id: 'req-1', lines: [{ item_id: 'I0001', qty: 3 }] },
     tok.production).data.duplicate, true);
   const id = c.data.request_id;
+  const todo = (who) => g.api('data.bootstrap', {}, tok[who]).data.requests_todo;
+  assert.deepEqual([todo('storekeeper'), todo('production')], [1, 0]);
   const f1 = g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 2 }] }, tok.storekeeper);
   assert.equal(f1.data.status, 'partial', JSON.stringify(f1));
   assert.equal(bal('I0001'), 3);
+  // what is left now waits for the person who asked, not for the storekeeper
+  assert.deepEqual(g.rows('RequestLines').map((l) => l.wait), ['yes', 'yes']);
+  assert.deepEqual([todo('storekeeper'), todo('production')], [0, 1]);
+  assert.equal(g.api('requests.fulfil', { request_id: id }, tok.storekeeper).error.code, 'nothing_to_save');
+  assert.equal(g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'request_waiting');
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'forbidden');
+  const fu = g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }, { line_no: 2, qty: 5 }] }, tok.production);
+  assert.equal(fu.ok, true, JSON.stringify(fu));
+  assert.deepEqual(g.rows('RequestLines').map((l) => [Number(l.qty), l.wait]), [[3, ''], [1, '']]);
+  assert.deepEqual([todo('storekeeper'), todo('production')], [1, 0]);
   const f2 = g.api('requests.fulfil', { request_id: id, client_id: 'f2' }, tok.storekeeper);
   assert.equal(f2.data.status, 'fulfilled', JSON.stringify(f2));
   assert.equal(bal('I0001'), 2);
@@ -213,6 +225,10 @@ test('department request: created by production, issued in two parts by the stor
   const lines = g.rows('RequestLines');
   assert.deepEqual(lines.map((l) => Number(l.issued_qty)), [3, 1]);
   assert.equal(g.api('requests.fulfil', { request_id: id }, tok.production).error.code, 'forbidden');
+  // the person who asked may keep what was given: the request closes
+  const c2 = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }] }, tok.production).data.request_id;
+  g.api('requests.fulfil', { request_id: c2, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper);
+  assert.equal(g.api('requests.followup', { request_id: c2, lines: [{ line_no: 1, qty: 0 }] }, tok.production).data.status, 'fulfilled');
 });
 
 test('items: duplicates by name, renames and deactivation are admin-only, min stock by purchasing', () => {
@@ -312,7 +328,9 @@ test('department request with two stores: each storekeeper issues their own line
   g.seed('Balances', [{ item_id: 'I0002', qty: 4, unit: 'BOX' }]);
   const req = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }, { item_id: 'I0002', qty: 4 }] }, tok.production).data;
   const list = g.api('requests.list', { status: 'open' }, tok.storekeeper).data;
-  assert.deepEqual(list[0].lines.map((l) => l.store), ['DRY', 'PACK']);
+  // the storekeeper sees only the lines of their stores; the person who asked sees the whole request
+  assert.deepEqual(list[0].lines.map((l) => l.store), ['PACK']);
+  assert.deepEqual(g.api('requests.list', {}, tok.production).data[0].lines.map((l) => l.store), ['DRY', 'PACK']);
   // asking for the flour line is refused; "issue everything" issues the cups line only
   assert.equal(g.api('requests.fulfil', { request_id: req.request_id, lines: [{ line_no: 1, qty: 2 }] }, tok.storekeeper).error.code, 'store_forbidden');
   const f = g.api('requests.fulfil', { request_id: req.request_id }, tok.storekeeper);
@@ -454,4 +472,52 @@ test('the dashboard tick: users with their own ticks who saw the dashboard keep 
   assert.equal(caps('production'), 'lpo.view');
   assert.ok(!g.api('data.bootstrap', {}, tok.production).data.permissions.includes('nav.dashboard'));
   assert.ok(g.api('data.bootstrap', {}, tok.storekeeper).data.permissions.includes('nav.dashboard'));
+});
+
+test('sign-in without a PIN only in the development copy (by its script id)', () => {
+  const { g } = env();
+  assert.equal(g.api('ping').data.no_pin, false);
+  assert.equal(g.api('auth.login', { username: 'admin', pin: '' }).error.code, 'login_failed');
+  g.props.__scriptId = '1r-QTlnjI3Jo46ijmMEVJkMYmgvHj4-kEwD5A3Zz-t6lKSPqt9-zqiP6n';
+  assert.equal(g.api('ping').data.no_pin, true);
+  assert.equal(g.api('auth.login', { username: 'admin' }).ok, true);
+  assert.equal(g.api('auth.login', { username: 'nobody' }).error.code, 'login_failed');
+});
+
+test('department requests show only to the storekeepers of their stores; the rest is asked for only within the stock', () => {
+  const { g, tok } = env();
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  g.api('users.save', { user_id: sk.user_id, stores: ['PACK'] }, tok.admin);
+  const id = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 5 }] }, tok.production).data.request_id;
+  assert.equal(g.api('requests.list', {}, tok.storekeeper).data.length, 0, 'a flour request is not shown to the packaging storekeeper');
+  assert.equal(g.api('data.bootstrap', {}, tok.storekeeper).data.requests_todo, 0);
+  g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 2 }] }, tok.admin);
+  // 3 bags left in stock: the requester may ask for up to 3 of the 3 left, not more than the stock
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 3 }] }, tok.production).ok, true);
+  g.api('requests.fulfil', { request_id: id, client_id: 'f2', lines: [{ line_no: 1, qty: 1 }] }, tok.admin);
+  const out = g.api('movements.save', { movements: [{ client_id: 'x', ...issue() }] }, tok.admin);
+  assert.equal(out.ok, true, JSON.stringify(out));
+  assert.equal(g.api('data.bootstrap', {}, tok.production).data.requests_todo, 0, 'no stock: nothing to ask for');
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.production).error.code, 'request_over_stock');
+});
+
+test('the storekeeper rejects what is left of a request with a reason; Arabic names are saved as a list', () => {
+  const { g, tok } = env();
+  const id = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 3 }] }, tok.production).data.request_id;
+  assert.equal(g.api('requests.reject', { request_id: id }, tok.storekeeper).error.code, 'reason_required');
+  assert.equal(g.api('requests.reject', { request_id: id, reason: 'x' }, tok.production).error.code, 'forbidden');
+  assert.equal(g.api('requests.reject', { request_id: id, reason: 'Not for this department' }, tok.storekeeper).data.status, 'rejected');
+  const l = g.api('requests.list', {}, tok.production).data[0].lines[0];
+  assert.deepEqual([Number(l.qty), l.reason], [3, 'Not for this department']);
+  assert.equal(g.api('requests.fulfil', { request_id: id }, tok.storekeeper).error.code, 'not_found');
+  // a request given in part, then the rest refused: fulfilled with what was given
+  const id2 = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 3 }] }, tok.production).data.request_id;
+  g.api('requests.fulfil', { request_id: id2, client_id: 'a', lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper);
+  g.api('requests.followup', { request_id: id2, lines: [{ line_no: 1, qty: 2 }] }, tok.production);
+  assert.equal(g.api('requests.reject', { request_id: id2, reason: 'No more' }, tok.storekeeper).data.status, 'fulfilled');
+  // Arabic names: the admin (rename) imports a list; the name itself does not change
+  assert.equal(g.api('items.namesAr', { names: [{ item_id: 'I0001', name_ar: 'طحين' }] }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('items.namesAr', { names: [{ item_id: 'I0001', name_ar: 'طحين' }, { item_id: 'NOPE', name_ar: 'x' }] }, tok.admin).data.changed, 1);
+  const it = g.rows('Items').find((i) => i.item_id === 'I0001');
+  assert.deepEqual([it.name_ar, it.name], ['طحين', 'FLOUR NO 1']);
 });

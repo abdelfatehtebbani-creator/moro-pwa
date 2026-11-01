@@ -3,6 +3,51 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.81', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام عند الطالب: يظهر نموذج الطلب الجديد فقط، وزر "أرشيف الطلبات" يفتح الطلبات السابقة. الطلبات التي يمكن طلب باقيها تظهر تحت النموذج.'] },
+    en: { news: ['Department requests for the requester: only the new request shows; "Requests archive" opens the earlier ones. Requests whose rest can be asked for show under the form.'] },
+  },
+  {
+    v: '0.9.80', date: '2026-11-01',
+    ar: {
+      news: ['أسماء المواد تظهر بالعربية لمن يستعمل التطبيق بالعربية، حين يكون للمادة اسم عربي. الاسم الأصلي لا يتغيّر في البيانات ولا في التقارير، والبحث يقبل الاسمين.',
+        'طلبات الأقسام: أمين المخزن يستطيع "رفض الطلب" مع السبب، ويرى الطالب السبب. وبعد اختيار القسم تظهر المواد التي سبق طلبها له لاختيارها بضغطة. والقائمة تتحدّث تلقائيًا دون أن تضيع الكميات المكتوبة.'],
+      admin: 'في شاشة المواد زر "استيراد الأسماء العربية" (ملف CSV فيه item_id و name_ar)، وخانة "الاسم بالعربية" في نافذة المادة.',
+    },
+    en: {
+      news: ['Item names show in Arabic to Arabic users when the item has an Arabic name. The name itself does not change in the data or the reports, and search takes both.',
+        'Department requests: the storekeeper can "Reject request" with a reason the requester sees. After choosing the department, the items asked for it before show to pick with one press. The list refreshes by itself and keeps the quantities typed.'],
+      admin: 'In the items screen, "Import Arabic names" (a CSV file with item_id and name_ar), and an "Arabic name" field in the item window.',
+    },
+  },
+  {
+    v: '0.9.79', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: الشاشة تتحدّث كل 15 ثانية وهي مفتوحة، فيظهر الطلب الجديد في المخزن أسرع.', 'زر "إلغاء الطلب" لمن طلب فقط، ويسأل للتأكيد ثم يلغي مباشرة.'] },
+    en: { news: ['Department requests: the screen refreshes every 15 seconds while open, so a new request shows in the store sooner.', '"Cancel request" is for the requester only; it asks to confirm, then cancels at once.'] },
+  },
+  {
+    v: '0.9.78', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع وتنتهي العملية عنده. إن سمح المخزون بالباقي، يظهر لمن طلب خانة "للصرف الآن" وزر "طلب الباقي"؛ وإن لم يطلبه فهو مكتفٍ بما سُلّم. ولا يرى أمين المخزن إلا طلبات وسطور مخازنه.',
+      'رقم على أيقونة "طلبات الأقسام" بعدد الطلبات التي تنتظرك، وسطر "طلبات بانتظار التنفيذ" في الشاشة الرئيسية.'] },
+    en: { news: ['Department requests: the storekeeper gives what they can and is done. When the stock allows the rest, the requester sees "To issue now" and "Ask for the rest"; not asking keeps what was given. A storekeeper sees only the requests and lines of their stores.',
+      'A number on the "Department requests" icon with the requests waiting for you, and a "Requests waiting" line on the home screen.'] },
+  },
+  {
+    v: '0.9.76', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: بعد الضغط على "صرف الطلب" يتعطل الزر وتظهر "قيد الإرسال…" حتى يرد الخادم، فلا يُصرف الطلب مرتين.'] },
+    en: { news: ['Department requests: after "Issue request" the button stays off and shows "Sending…" until the server answers, so a request is not issued twice.'] },
+  },
+  {
+    v: '0.9.75', date: '2026-11-01',
+    ar: { news: ['اسم المستخدم الداخل يظهر أعلى كل شاشة.'] },
+    en: { news: ['The name of the signed-in user shows at the top of every screen.'] },
+  },
+  {
+    v: '0.9.74', date: '2026-11-01',
+    ar: { news: ['نسخة التطوير (DIV) فقط: الدخول باسم المستخدم دون رمز، للتجربة. الإنتاج لم يتغيّر.'] },
+    en: { news: ['The development copy (DIV) only: sign in with the username, no PIN, for testing. Production is unchanged.'] },
+  },
+  {
     v: '0.9.73', date: '2026-11-01',
     ar: {
       news: ['طلبات الأقسام: لا يُضاف سطر إلى الطلب إن كانت الكمية أكبر من المتوفر في المخزن، ويظهر المتاح.',

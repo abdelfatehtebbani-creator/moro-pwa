@@ -25,7 +25,7 @@ export async function render(root) {
   const reason = trackFilled(h('input.input#i-reason', { placeholder: t('disposal_reason') }));
   const reasonField = h('div.field.wide', { hidden: true }, h('label', { for: 'i-reason' }, t('disposal_reason')), reason);
   const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
-    .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
+    .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
 
   const dept = combo({ id: 'i-dept', options: deptOpts, onPick: (v) => { reasonField.hidden = v !== DISPOSAL; } });
   const date = trackFilled(h('input.input#i-date', { type: 'date', value: Data.todayIso() }));
@@ -71,7 +71,7 @@ export async function render(root) {
     lineBody.replaceChildren(...(lines.length ? lines.map((l, i) => {
       const it = Data.items.get(l.item_id);
       return h('tr.click', { class: i === editIndex ? 'selected' : '', onclick: () => pickLine(i) },
-        h('td.num', i + 1), h('td.wrap', h('bdi', it.name)), h('td', storePill(Data.storeOf(it))),
+        h('td.num', i + 1), h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(Data.storeOf(it))),
         h('td.num', fmtNum(l.qty) + ' ' + l.unit + (l.unit !== it.unit ? ' (' + fmtNum(Math.round(l.qty * (Data.factorOf(it, l.unit) || 1) * 1e6) / 1e6) + ' ' + it.unit + ')' : '')),
         h('td', h('button.link', { type: 'button', onclick: (e) => { e.stopPropagation(); removeLine(i, e.currentTarget); } }, t('delete'))));
     }).reverse() : [h('tr', h('td.empty', { colspan: 5 }, t('no_lines')))]));   // newest line on top
@@ -173,13 +173,13 @@ export async function render(root) {
       if (!filters.test(m)) return false;
       if (!q) return true;
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
-      return [it && it.name, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
+      return [it && it.name, it && it.name_ar, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
     }).slice(0, 300);
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
         h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : '')),
-        h('td.wrap', h('bdi', it ? it.name : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num.qty-neg', fmtMoveQty(m)),
+        h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num.qty-neg', fmtMoveQty(m)),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''), h('td.wrap.muted', enteredBy(m)));
     }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
   };
@@ -205,7 +205,7 @@ export async function render(root) {
         onclick: () => { if (doublePress('del-' + m.movement_id)) close({ del: true }); else flash(del); } }, t('delete'));
       const ok = () => { if (!(Number(q.value) > 0)) return flash(q); close({ qty: Number(q.value), date: d.value }); };
       q.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-      return [h('h3', h('bdi', it ? it.name : m.item_id)), h('p.muted', (m.doc_no || '') + ' · ' + (Data.parties.get(m.party_id) || {}).name),
+      return [h('h3', h('bdi', it ? Data.nameOf(it) : m.item_id)), h('p.muted', (m.doc_no || '') + ' · ' + (Data.parties.get(m.party_id) || {}).name),
         field(t('date'), d), field(t('qty'), q),
         h('div.actions', del, h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
     });

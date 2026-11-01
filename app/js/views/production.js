@@ -28,7 +28,7 @@ export function render(root) {
       const have = Data.qty(r.item_id);
       return { it, need, have, ok: have >= need };
     });
-    body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', h('bdi', l.it.name)), h('td.num', fmtNum(l.need)),
+    body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', h('bdi', Data.nameOf(l.it))), h('td.num', fmtNum(l.need)),
       h('td.num', fmtNum(l.have)), h('td', l.it.unit), h('td', h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')))))
       : [h('tr', h('td.empty', { colspan: 5 }, product.value ? t('recipe_missing') : t('choose_product')))]));
     const short = lines.filter((l) => !l.ok).length;

@@ -73,13 +73,13 @@ async function start() {
   step('start');
   if (!session.token) {
     step('ping');
-    let setupNeeded = false;
+    let setupNeeded = false, noPin = false;
     root.replaceChildren(h('div.boot', h('img', { src: 'icons/logo.png', alt: '', width: 96, height: 96 }), h('span', 'MORO'),
       h('small', t('connecting'))));
     // a slow or missing answer (8 s at most) only means "show the sign-in screen"
-    try { setupNeeded = (await call('ping')).setup_needed; } catch { /* offline: show login */ }
+    try { const p = await call('ping'); setupNeeded = p.setup_needed; noPin = p.no_pin === true; } catch { /* offline: show login */ }
     window.__moroStarted = true;           // the sign-in screen is up
-    await showAuth(root, setupNeeded);
+    await showAuth(root, setupNeeded, noPin);
     // just signed in: the home screen first
     history.replaceState(null, '', location.pathname + location.search);
   }
@@ -148,7 +148,7 @@ function buildShell() {
   for (const name of Object.keys(ROUTES)) {
     if (!allowed(name)) continue;
     if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' ? h('span.badge', { hidden: true }) : null));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -160,7 +160,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -171,7 +171,9 @@ function buildShell() {
   content = h('section.content');
   // the home screen shown over an idle screen (that screen stays as it is, behind it)
   homeLayer = h('section.content', { hidden: true });
-  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content, homeLayer));
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
+    // who is signed in, on every screen
+    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl), content, homeLayer));
   root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();
@@ -335,7 +337,11 @@ async function changePin() {
 function updateBadges() {
   const n = allowed('lpo') ? lpo.badgeCount() : 0;
   document.querySelectorAll('a[data-route="lpo"] .badge').forEach((b) => { b.hidden = !n; b.textContent = String(n); });
-  Push.badge(n);
+  // department requests waiting for this user: lines to give, or their own requests to answer
+  const r = allowed('requests') ? Number((Data.boot || {}).requests_todo) || 0 : 0;
+  document.querySelectorAll('a[data-route="requests"] .badge').forEach((b) => { b.hidden = !r; b.textContent = String(r); });
+  document.querySelectorAll('.home-note-req').forEach((x) => { x.hidden = !r; x.textContent = t('open_requests', { n: r }); });
+  Push.badge(n + r);
 }
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */

@@ -152,7 +152,7 @@ function renderCalc(root) {
 function renderPack(root, go) {
   const mem = packMemory();
   const calc = calcValues();
-  const items = () => Data.activeItems().map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + (i.unit || '') }));
+  const items = () => Data.activeItems().map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + (i.unit || '') }));
   const num = (id, extra) => trackFilled(h('input.input.num#' + id, Object.assign({ type: 'number', min: 0, step: 'any', inputmode: 'decimal' }, extra || {})));
   const date = trackFilled(h('input.input#cp-date', { type: 'date', value: Data.todayIso() }));
   const o1 = combo({ id: 'cp-o1', options: items, onPick: update });

@@ -21,6 +21,7 @@ var ROUTES = {
   'movements.update': function (s, p) { return Movements.update(s, p); },
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
+  'items.namesAr':    function (s, p) { return Masters.namesAr(s, p); },
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
   'units.save':       function (s, p) { return Masters.saveUnit(s, p); },
@@ -55,6 +56,8 @@ var ROUTES = {
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },
+  'requests.followup': function (s, p) { return Requests.followup(s, p); },
+  'requests.reject':  function (s, p) { return Requests.reject(s, p); },
   'users.list':       function () { return Auth.listUsers(); },
   'users.save':       function (s, p) { return Auth.saveUser(s, p); },
   'audit.list':       function (s, p) { return Audit.list(p || {}); },
@@ -68,7 +71,7 @@ var ROUTES = {
 
 /** Actions that do not need a session. */
 var PUBLIC = {
-  'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today() }; },
+  'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today(), no_pin: Auth.noPin() }; },
   'auth.login':  function (p) { return Auth.login(p); },
   'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); }
 };
@@ -98,7 +101,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '26';
+var SCHEMA_VERSION = '28';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

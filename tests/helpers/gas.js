@@ -111,6 +111,7 @@ function createGas(opts = {}) {
       releaseLock: () => { lock.held = false; } }) },
     ContentService: { MimeType: { JSON: 'application/json' }, createTextOutput: (text) => ({ text, setMimeType() { return this; } }) },
     SpreadsheetApp: { getActive: () => spreadsheet, flush: () => {} },
+    ScriptApp: { getScriptId: () => props.__scriptId || 'TEST-SCRIPT' },
   };
   vm.createContext(context);
   for (const f of fs.readdirSync(SERVER).filter((n) => n.endsWith('.gs')).sort()) {
