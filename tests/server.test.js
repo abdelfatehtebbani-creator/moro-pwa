@@ -328,7 +328,9 @@ test('department request with two stores: each storekeeper issues their own line
   g.seed('Balances', [{ item_id: 'I0002', qty: 4, unit: 'BOX' }]);
   const req = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }, { item_id: 'I0002', qty: 4 }] }, tok.production).data;
   const list = g.api('requests.list', { status: 'open' }, tok.storekeeper).data;
-  assert.deepEqual(list[0].lines.map((l) => l.store), ['DRY', 'PACK']);
+  // the storekeeper sees only the lines of their stores; the person who asked sees the whole request
+  assert.deepEqual(list[0].lines.map((l) => l.store), ['PACK']);
+  assert.deepEqual(g.api('requests.list', {}, tok.production).data[0].lines.map((l) => l.store), ['DRY', 'PACK']);
   // asking for the flour line is refused; "issue everything" issues the cups line only
   assert.equal(g.api('requests.fulfil', { request_id: req.request_id, lines: [{ line_no: 1, qty: 2 }] }, tok.storekeeper).error.code, 'store_forbidden');
   const f = g.api('requests.fulfil', { request_id: req.request_id }, tok.storekeeper);
@@ -480,4 +482,21 @@ test('sign-in without a PIN only in the development copy (by its script id)', ()
   assert.equal(g.api('ping').data.no_pin, true);
   assert.equal(g.api('auth.login', { username: 'admin' }).ok, true);
   assert.equal(g.api('auth.login', { username: 'nobody' }).error.code, 'login_failed');
+});
+
+test('department requests show only to the storekeepers of their stores; the rest is asked for only within the stock', () => {
+  const { g, tok } = env();
+  const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
+  g.api('users.save', { user_id: sk.user_id, stores: ['PACK'] }, tok.admin);
+  const id = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 5 }] }, tok.production).data.request_id;
+  assert.equal(g.api('requests.list', {}, tok.storekeeper).data.length, 0, 'a flour request is not shown to the packaging storekeeper');
+  assert.equal(g.api('data.bootstrap', {}, tok.storekeeper).data.requests_todo, 0);
+  g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 2 }] }, tok.admin);
+  // 3 bags left in stock: the requester may ask for up to 3 of the 3 left, not more than the stock
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 3 }] }, tok.production).ok, true);
+  g.api('requests.fulfil', { request_id: id, client_id: 'f2', lines: [{ line_no: 1, qty: 1 }] }, tok.admin);
+  const out = g.api('movements.save', { movements: [{ client_id: 'x', ...issue() }] }, tok.admin);
+  assert.equal(out.ok, true, JSON.stringify(out));
+  assert.equal(g.api('data.bootstrap', {}, tok.production).data.requests_todo, 0, 'no stock: nothing to ask for');
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.production).error.code, 'request_over_stock');
 });
