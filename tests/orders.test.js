@@ -119,4 +119,17 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   const r = g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 3, reason: 'damaged', note: 'one bag torn' }] }, tok.cashier).data.order;
   assert.equal(r.status, 'received');
   assert.deepEqual([r.lines[0].received_qty, r.lines[0].short_reason], [3, 'damaged']);
+  // the invoice: from what was received, at the item's price, frozen; an item without a price stops it
+  assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
+  assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'price_missing');
+  g.api('items.save', { item_id: 'I0001', name: 'FLOUR', sale_price: 12.5 }, tok.admin);
+  const inv = g.api('invoices.create', { order_id: o.order_id }, tok.dist).data.invoice;
+  assert.deepEqual([inv.total_store, inv.total_final, inv.total, inv.items[0].qty, inv.items[0].price], [37.5, 0, 37.5, 3, 12.5]);
+  assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'order_not_received');
+  g.api('items.save', { item_id: 'I0001', name: 'FLOUR', sale_price: 99 }, tok.admin);
+  assert.equal(g.api('invoices.get', { invoice_id: inv.invoice_id }, tok.dist).data.total, 37.5, 'the price stays as it was');
+  const rep = g.api('orders.report', {}, tok.dist).data;
+  assert.equal(rep.invoices[0].total, 37.5);
+  assert.equal(rep.orders.find((x) => x.order_id === o.order_id).lines[0].short_reason, 'damaged');
+  assert.equal(g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id).status, 'invoiced');
 });

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.85', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات، المرحلة 3: مسؤول التوزيع يُصدر فاتورة الطلبية المستلَمة بالكميات المستلَمة، بقسمين (منتجات نهائية، مواد المخزن) والسعر يُجمَّد لحظة الإصدار، وتُطبع بتصميم ورقة الشركة. وأربعة تقارير: توقيتات الطلبيات، فروق الاستلام، ما لم يمكن توفيره، ومبيعات المحلات بمجموع كل قسم.'] },
+    en: { news: ['(Development copy) Shop orders, stage 3: distribution issues the invoice of a received order from what was received, in two parts (final products, store items), the prices frozen when issued, printed in the company layout. And four reports: order times, received short, could not be supplied, and shop sales with each part’s sum.'] },
+  },
+  {
     v: '0.9.84', date: '2026-11-01',
     ar: { news: ['(نسخة التطوير) طلبيات المحلات، المرحلة 2: مسؤول التوزيع ينشئ رحلة بسائق وطلبيات جاهزة بترتيب التوقف؛ السائق يؤكّد التحميل ثم التسليم لكل محل؛ الكاشير يستلم ويكتب المستلَم، والنقص بسببه. والإنتاج ممكن الآن دون وصفة للمنتجات النهائية.'] },
     en: { news: ['(Development copy) Shop orders, stage 2: distribution makes a trip with a driver and ready orders in stop order; the driver confirms loading then delivery per shop; the cashier receives and enters what came, a shortfall with its reason. Final products can now be produced without a recipe.'] },

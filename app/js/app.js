@@ -23,6 +23,7 @@ import * as reports from './views/reports.js';
 import * as shoporders from './views/shoporders.js';
 import * as orders from './views/orders.js';
 import * as trips from './views/trips.js';
+import * as invoices from './views/invoices.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -32,6 +33,7 @@ const ROUTES = {
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
   orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
   trips:     { view: trips, perm: 'nav.trips', group: 'nav_ops' },
+  invoices:  { view: invoices, perm: 'nav.invoices', group: 'nav_ops' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
