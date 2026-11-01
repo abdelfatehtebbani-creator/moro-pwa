@@ -38,7 +38,8 @@ var Masters = {
                      report_unit: p.report_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.report_unit).toUpperCase() : '',
                      sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true,
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
-                     final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '' };
+                     final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '',
+                     name_ar: Util.clean(p.name_ar) };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -76,6 +77,11 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      // the Arabic name is shown to Arabic users only; the name stays the item's name everywhere else
+      if (p.name_ar !== undefined && Util.clean(p.name_ar) !== String(cur.name_ar || '')) {
+        Perm.require(session, 'rename.items');
+        ch.name_ar = Util.clean(p.name_ar);
+      }
       if (p.final_price !== undefined && String(p.final_price) !== String(cur.final_price === undefined ? '' : cur.final_price)) {
         Perm.require(session, 'final_price');
         ch.final_price = Masters.finalPrice(p.final_price);
@@ -333,5 +339,23 @@ Masters.saveIdle = function (session, p) {
     Settings.set('idle_home_minutes', String(m));
     Audit.log(session.user_id, 'settings_idle', 'Settings', 'idle_home_minutes', before, m);
     return { minutes: m, version: Version.bump() };
+  });
+};
+
+/** Arabic names of many items at once (an imported list): p.names [{item_id, name_ar}]; '' clears one. */
+Masters.namesAr = function (session, p) {
+  var given = {};
+  (p.names || []).forEach(function (x) { if (x && x.item_id) given[String(x.item_id).trim()] = Util.clean(x.name_ar); });
+  var ids = Object.keys(given);
+  Util.require(ids.length, 'nothing_to_save');
+  return withLock(function () {
+    var n = 0;
+    Repo.setColumn('Items', 'name_ar', function (i) {
+      if (!(i.item_id in given) || given[i.item_id] === String(i.name_ar || '')) return String(i.name_ar || '');
+      n++;
+      return given[i.item_id];
+    });
+    Audit.log(session.user_id, 'items_names_ar', 'Items', '', null, { changed: n, sent: ids.length });
+    return { changed: n, version: Version.bump() };
   });
 };

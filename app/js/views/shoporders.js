@@ -41,7 +41,7 @@ export async function render(root) {
     if (tab === 'shortage') {
       body.replaceChildren(h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('shop')),
         h('th', t('order_no')), h('th', t('missing')), h('th', t('balance')))),
-        h('tbody', lines.map((l) => h('tr', h('td.wrap', h('bdi', itemOf(l.item_id).name)), h('td', storePill(l.store)),
+        h('tbody', lines.map((l) => h('tr', h('td.wrap', h('bdi', Data.nameOf(itemOf(l.item_id)))), h('td', storePill(l.store)),
           h('td.wrap', h('bdi', shopName(l.shop_party_id))), h('td.num', l.order_no || l.order_id),
           h('td.num.qty-neg', fmtNum(l.shortage) + ' ' + l.unit), h('td.num', fmtNum(Data.qty(l.item_id)))))))));
       return;
@@ -67,7 +67,7 @@ export async function render(root) {
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
         t('line_' + l.status)) : l.approved === false ? h('span.pill.soon', t('awaiting_approval'))
         : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
-      return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
+      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
         h('td', inp || '', ' ', no || ''));
     });
@@ -104,7 +104,7 @@ export async function render(root) {
       const r = trackFilled(h('input.input#sl-reason', { placeholder: t('reason') }));
       const ok = () => { if (!r.value.trim()) return flash(r); close(r.value.trim()); };
       r.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
-      return [h('h3', t('cannot_supply'), ': ', h('bdi', itemOf(l.item_id).name)), field(t('reason'), r),
+      return [h('h3', t('cannot_supply'), ': ', h('bdi', Data.nameOf(itemOf(l.item_id)))), field(t('reason'), r),
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
     });
     if (!reason) return;
@@ -122,7 +122,7 @@ export async function render(root) {
         if (!r.value.trim()) return flash(r);
         close({ qty: Number(q.value), reason: r.value.trim() });
       };
-      return [h('h3', t('not_sent'), ': ', h('bdi', itemOf(l.item_id).name)), h('small.muted', t('not_sent_help')),
+      return [h('h3', t('not_sent'), ': ', h('bdi', Data.nameOf(itemOf(l.item_id)))), h('small.muted', t('not_sent_help')),
         field(t('qty'), q), field(t('reason'), r),
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
     });
@@ -146,7 +146,7 @@ export async function render(root) {
 
   async function approve(r) {
     const res = await dialog((close) => {
-      const existing = combo({ id: 'sp-item', options: () => Data.activeItems().map((i) => ({ value: i.item_id, label: i.name, hint: i.unit })) });
+      const existing = combo({ id: 'sp-item', options: () => Data.activeItems().map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: i.unit })) });
       const name = trackFilled(h('input.input#sp-name', { value: r.description }));
       const store = h('select.input#sp-store', STORES.filter((s) => s !== 'FINAL').map((s) => h('option', { value: s }, t('store_' + s))));
       const unit = combo({ id: 'sp-unit', options: () => Data.unitOptions(r.unit) });

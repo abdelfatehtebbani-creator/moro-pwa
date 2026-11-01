@@ -26,7 +26,8 @@ export function combo({ id, options, placeholder = '', onPick }) {
   const render = (full) => {
     const q = full || value ? '' : norm(input.value);
     const all = options();
-    shown = (q ? all.filter((o) => norm(o.label).includes(q)) : all).slice(0, 600);
+    // alt: another name of the option, also searched (an item's English name when the Arabic one shows)
+    shown = (q ? all.filter((o) => norm(o.label).includes(q) || (o.alt && norm(o.alt).includes(q))) : all).slice(0, 600);
     hi = shown.length ? Math.max(0, shown.findIndex((o) => o.value === value)) : -1;
     list.replaceChildren(...shown.map((o, i) => h('li', { role: 'option', 'data-i': i, class: (i === hi ? 'hi ' : '') + (o.value === value ? 'cur' : ''),
       onmousedown: (e) => { e.preventDefault(); pick(o); } }, h('bdi', o.label), o.hint ? h('small.num', o.hint) : null)));
@@ -54,7 +55,7 @@ export function combo({ id, options, placeholder = '', onPick }) {
   input.addEventListener('blur', () => {
     close();
     if (!value) {   // typed text that exactly matches one option counts as picked
-      const exact = options().find((o) => norm(o.label) === norm(input.value));
+      const exact = options().find((o) => norm(o.label) === norm(input.value) || (o.alt && norm(o.alt) === norm(input.value)));
       if (exact) pick(exact);
     }
   });

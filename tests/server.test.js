@@ -500,3 +500,24 @@ test('department requests show only to the storekeepers of their stores; the res
   assert.equal(g.api('data.bootstrap', {}, tok.production).data.requests_todo, 0, 'no stock: nothing to ask for');
   assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.production).error.code, 'request_over_stock');
 });
+
+test('the storekeeper rejects what is left of a request with a reason; Arabic names are saved as a list', () => {
+  const { g, tok } = env();
+  const id = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 3 }] }, tok.production).data.request_id;
+  assert.equal(g.api('requests.reject', { request_id: id }, tok.storekeeper).error.code, 'reason_required');
+  assert.equal(g.api('requests.reject', { request_id: id, reason: 'x' }, tok.production).error.code, 'forbidden');
+  assert.equal(g.api('requests.reject', { request_id: id, reason: 'Not for this department' }, tok.storekeeper).data.status, 'rejected');
+  const l = g.api('requests.list', {}, tok.production).data[0].lines[0];
+  assert.deepEqual([Number(l.qty), l.reason], [3, 'Not for this department']);
+  assert.equal(g.api('requests.fulfil', { request_id: id }, tok.storekeeper).error.code, 'not_found');
+  // a request given in part, then the rest refused: fulfilled with what was given
+  const id2 = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 3 }] }, tok.production).data.request_id;
+  g.api('requests.fulfil', { request_id: id2, client_id: 'a', lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper);
+  g.api('requests.followup', { request_id: id2, lines: [{ line_no: 1, qty: 2 }] }, tok.production);
+  assert.equal(g.api('requests.reject', { request_id: id2, reason: 'No more' }, tok.storekeeper).data.status, 'fulfilled');
+  // Arabic names: the admin (rename) imports a list; the name itself does not change
+  assert.equal(g.api('items.namesAr', { names: [{ item_id: 'I0001', name_ar: 'طحين' }] }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('items.namesAr', { names: [{ item_id: 'I0001', name_ar: 'طحين' }, { item_id: 'NOPE', name_ar: 'x' }] }, tok.admin).data.changed, 1);
+  const it = g.rows('Items').find((i) => i.item_id === 'I0001');
+  assert.deepEqual([it.name_ar, it.name], ['طحين', 'FLOUR NO 1']);
+});

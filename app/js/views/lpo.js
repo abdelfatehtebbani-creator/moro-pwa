@@ -140,7 +140,7 @@ async function renderLpo(root) {
     const movs = await receipts();
     const suppliers = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
       .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
-    const itemOpts = () => Data.activeItems().sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: i.unit }));
+    const itemOpts = () => Data.activeItems().sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: i.unit }));
     const no = trackFilled(h('input.input.num#lpo-no', { type: 'number', min: 1, step: 1, value: l ? l.lpo_no : nextNo }));
     const date = trackFilled(h('input.input#lpo-date', { type: 'date', value: l ? l.date : Data.todayIso() }));
     const delivery = trackFilled(h('input.input#lpo-delivery', { type: 'date', value: l ? l.delivery_date : Data.todayIso() }));

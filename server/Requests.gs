@@ -69,7 +69,8 @@ var Requests = {
     var waiting = function (l) { return String(l.wait || '') === 'yes'; };
     // lines waiting for the requester's answer are not issued
     if (p.lines) lines.forEach(function (l) { if (waiting(l) && p.lines.some(function (x) { return Number(x.line_no) === Number(l.line_no); })) throw new AppError('request_waiting'); });
-    lines = lines.filter(function (l) { return !waiting(l); });
+    // nor the lines refused by a storekeeper
+    lines = lines.filter(function (l) { return !waiting(l) && !String(l.reason || ''); });
     var give = {};
     (p.lines || lines.map(function (l) { return { line_no: l.line_no }; })).forEach(function (x) { give[x.line_no] = x.qty; });
     var movs = [];
@@ -110,10 +111,12 @@ var Requests = {
     });
   },
 
-  /** Open while something is left to give, fulfilled when nothing is; partial once something was given. */
+  /** Open while something is left to give, fulfilled when nothing is (rejected when nothing was given); partial once something was. */
   statusOf: function (requestId) {
     var lines = Repo.all('RequestLines').filter(function (l) { return l.request_id === requestId; });
-    if (lines.every(function (l) { return Number(l.issued_qty || 0) >= Number(l.qty); })) return 'fulfilled';
+    if (lines.every(function (l) { return Number(l.issued_qty || 0) >= Number(l.qty) || String(l.reason || ''); })) {
+      return lines.some(function (l) { return Number(l.issued_qty || 0) > 0; }) ? 'fulfilled' : 'rejected';
+    }
     return lines.some(function (l) { return Number(l.issued_qty || 0) > 0; }) ? 'partial' : 'open';
   },
 
@@ -158,7 +161,7 @@ var Requests = {
     var fulfil = Perm.has(session, 'requests.fulfil');
     Repo.all('RequestLines').forEach(function (l) {
       var r = reqs[l.request_id];
-      if (!r || Number(l.issued_qty || 0) >= Number(l.qty)) return;
+      if (!r || Number(l.issued_qty || 0) >= Number(l.qty) || String(l.reason || '')) return;
       // the rest of a line given in part: only when the stock now allows asking for it
       if (String(l.wait || '') === 'yes') {
         var b = Repo.find('Balances', 'item_id', l.item_id);
@@ -168,6 +171,34 @@ var Requests = {
       if (fulfil && Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests')) give[r.request_id] = true;
     });
     return Object.keys(give).length + Object.keys(answer).filter(function (id) { return !give[id]; }).length;
+  },
+
+  /**
+   * The storekeeper refuses what is left of their lines, with a reason (shown to the person who asked):
+   * payload {request_id, reason}. Lines of other stores are not touched.
+   */
+  reject: function (session, p) {
+    var reason = Util.clean(p.reason);
+    Util.require(reason, 'reason_required');
+    return withLock(function () {
+      var req = Repo.find('Requests', 'request_id', p.request_id);
+      Util.require(req && (req.status === 'open' || req.status === 'partial'), 'not_found');
+      var lines = Repo.all('RequestLines').filter(function (l) {
+        return l.request_id === req.request_id && Number(l.issued_qty || 0) < Number(l.qty) && String(l.wait || '') !== 'yes'
+          && !String(l.reason || '') && Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests');
+      });
+      Util.require(lines.length, 'nothing_to_save');
+      var before = [];
+      lines.forEach(function (l) {
+        before.push({ line_no: l.line_no, qty: l.qty });
+        Repo.updateWhere('RequestLines', function (x) { return x.request_id === l.request_id && Number(x.line_no) === Number(l.line_no); },
+          { reason: reason, wait: '' });
+      });
+      var status = Requests.statusOf(req.request_id);
+      Repo.update('Requests', 'request_id', req.request_id, { status: status, fulfilled_by: session.user_id, fulfilled_at: Util.nowIso() });
+      Audit.log(session.user_id, 'request_reject', 'Requests', req.request_id, before, { reason: reason });
+      return { request_id: req.request_id, status: status, version: Version.bump() };
+    });
   },
 
   cancel: function (session, p) {

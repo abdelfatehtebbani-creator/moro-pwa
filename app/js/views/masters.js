@@ -47,10 +47,10 @@ function items(body, isAdmin) {
   const tb = h('tbody');
   const fill = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || i.name.toLowerCase().includes(q)))
+    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q)))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
-      h('td.num', i.item_id), h('td.wrap', h('bdi', i.name)), h('td', storePill(Data.storeOf(i))),
+      h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),
       h('td', i.unit), h('td.num', Number(i.min_stock) > 0 ? fmtNum(i.min_stock) : ''), h('td.num', fmtNum(Data.qty(i.item_id))),
       h('td', i.active === true ? '' : h('span.pill.out', t('inactive'))))));
   };
@@ -60,6 +60,8 @@ function items(body, isAdmin) {
 
   const edit = (it) => dialog((close) => {
     const name = trackFilled(h('input.input#e-name', { value: it ? it.name : '', disabled: it && !isAdmin }));
+    // shown to Arabic users instead of the name (the name stays the item's name in the data and the reports)
+    const nameAr = trackFilled(h('input.input#e-name-ar', { value: it ? it.name_ar || '' : '', dir: 'rtl', disabled: it && !Data.can('rename.items') }));
     const cat = storeSelect('e-cat', it ? Data.storeOf(it) : 'DRY', it && !isAdmin);
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
     if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
@@ -116,6 +118,7 @@ function items(body, isAdmin) {
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
+      if (!it || Data.can('rename.items')) p.name_ar = nameAr.value.trim();
       if (canPack) {
         const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
         // the larger unit holds more than one base unit (the base is the smallest)
@@ -134,7 +137,7 @@ function items(body, isAdmin) {
       }
       save('items.save', p, close, err);
     };
-    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('store'), cat), finalField,
+    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), finalField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
         field(t('base_unit'), unit), toBaseBtn,
         h('div.field', h('label', { for: 'e-buyunit' }, t('big_unit')),
@@ -146,7 +149,25 @@ function items(body, isAdmin) {
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
 
-  body.replaceChildren(h('div.search', search, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null),
+  // a list of Arabic names (CSV: item_id, …, name_ar) read from a file and saved at once
+  const importAr = async () => {
+    const file = h('input', { type: 'file', accept: '.csv,text/csv' });
+    file.addEventListener('change', async () => {
+      const f = file.files[0];
+      if (!f) return;
+      const rows = csvRows(await f.text());
+      const head = (rows.shift() || []).map((x) => x.trim().toLowerCase());
+      const ci = head.indexOf('item_id'), ai = head.indexOf('name_ar');
+      if (ci < 0 || ai < 0) { toast(t('names_ar_bad_file'), 'err'); return; }
+      const names = rows.filter((r) => r[ci] && Data.items.has(r[ci].trim())).map((r) => ({ item_id: r[ci].trim(), name_ar: (r[ai] || '').trim() }));
+      if (!names.length) { toast(t('names_ar_bad_file'), 'err'); return; }
+      try { const r = await call('items.namesAr', { names }); toast(t('names_ar_saved', { n: r.changed }), 'ok'); await Data.refresh(); fill(); }
+      catch (e) { toast(errText(e), 'err'); }
+    });
+    file.click();
+  };
+  body.replaceChildren(h('div.search', search, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
+      Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
       h('th', t('min_stock')), h('th', t('balance')), h('th', ''))), tb)));
@@ -335,4 +356,20 @@ function recipes(body) {
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)), err,
     h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save'))));
   draw();
+}
+
+/** Rows of a CSV text (quotes, commas and new lines inside quotes). */
+function csvRows(text) {
+  const rows = []; let row = []; let cell = ''; let q = false;
+  text = text.replace(/^\ufeff/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; continue; }
+    if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n') { row.push(cell.replace(/\r$/, '')); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell.replace(/\r$/, '')); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim()));
 }

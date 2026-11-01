@@ -94,7 +94,7 @@ export async function render(root) {
         row.lastUnit = sel.value; row.paint();
       });
       row.lastUnit = show;
-      row.tr = h('tr', h('td.wrap', markEl, h('bdi', it.name)), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
+      row.tr = h('tr', h('td.wrap', markEl, h('bdi', Data.nameOf(it))), h('td.num', fmtNum(r6(Number(l.theory_qty) / f(show))) + ' ' + show),
         h('td', h('div.count-in', inp, sel)), diffCell, prices ? valueCell : null, expCell);
       // a line with a correction (quantity or expiry) stands out
       row.mark = () => {
@@ -117,7 +117,7 @@ export async function render(root) {
     const body = h('tbody');
     const draw = () => {
       const q = search.value.trim().toLowerCase();
-      body.replaceChildren(...rows.filter((r) => (!q || r.it.name.toLowerCase().includes(q)) && keep[filter.value](r)).map((r) => r.tr));
+      body.replaceChildren(...rows.filter((r) => (!q || (r.it.name + ' ' + (r.it.name_ar || '')).toLowerCase().includes(q)) && keep[filter.value](r)).map((r) => r.tr));
     };
     search.addEventListener('input', draw);
     filter.addEventListener('change', draw);
