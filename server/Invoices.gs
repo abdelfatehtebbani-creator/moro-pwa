@@ -3,15 +3,33 @@
  *
  *   Distribution issues the invoice once the shop has received the order (never before), from the
  *   quantities received. One invoice per order, in two parts: final products (at the item's final price)
- *   and store items (at its sale price). The prices are copied when the invoice is issued and never change
+ *   and store items (at the price of their last purchase). The prices are copied when the invoice is issued and never change
  *   after; an item without a price stops the invoice until its price is set. No tax, no discount.
  *   The order is then "invoiced". Only distribution (and the admin) see invoices.
  */
 var Invoices = {
-  /** Price of an item on a shop invoice: the final price for final products, the sale price for the rest. */
-  priceOf: function (item) {
-    var v = Stores.of(item) === 'FINAL' ? item.final_price : item.sale_price;
+  /**
+   * Price of an item on a shop invoice, per stock unit: the final price for final products; for the rest
+   * the price of their last purchase (the net amount of the latest receipt ÷ its quantity).
+   */
+  priceOf: function (item, lastCost) {
+    if (Stores.of(item) !== 'FINAL') return lastCost && item.item_id in lastCost ? lastCost[item.item_id] : null;
+    var v = item.final_price;
     return v === '' || v === null || v === undefined || isNaN(Number(v)) ? null : Number(v);
+  },
+
+  /** {item_id: net cost per stock unit of the latest receipt}. */
+  lastCosts: function (ids) {
+    var want = {}, best = {}, out = {};
+    ids.forEach(function (id) { want[id] = true; });
+    Repo.all('Movements').forEach(function (m) {
+      if (m.kind !== 'RECEIPT' || m.status === 'deleted' || !want[m.item_id] || !(Number(m.qty) > 0)) return;
+      var amount = Number(m.final_amount !== '' && m.final_amount !== undefined ? m.final_amount : m.amount);
+      if (!(amount > 0)) return;
+      var k = String(m.date) + '|' + String(m.movement_id);
+      if (!best[m.item_id] || k > best[m.item_id]) { best[m.item_id] = k; out[m.item_id] = Util.round(amount / Number(m.qty)); }
+    });
+    return out;
   },
 
   view: function (inv) {
@@ -31,9 +49,10 @@ var Invoices = {
       var lines = Orders.view(o).lines.filter(function (l) { return Number(l.received_qty) > 0; });
       Util.require(lines.length, 'nothing_to_save');
       var missing = [];
+      var costs = Invoices.lastCosts(lines.map(function (l) { return l.item_id; }));
       var rows = lines.map(function (l, i) {
         var item = Repo.find('Items', 'item_id', l.item_id);
-        var price = Invoices.priceOf(item);
+        var price = Invoices.priceOf(item, costs);
         if (price === null) missing.push(item ? item.name : l.item_id);
         var q = Number(l.received_qty);
         return { line_no: i + 1, item_id: l.item_id, section: Stores.of(item) === 'FINAL' ? 'final' : 'store', qty: q, unit: l.unit,

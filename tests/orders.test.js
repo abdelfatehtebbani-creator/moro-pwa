@@ -122,11 +122,11 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   // the invoice: from what was received, at the item's price, frozen; an item without a price stops it
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'price_missing');
-  g.api('items.save', { item_id: 'I0001', name: 'FLOUR', sale_price: 12.5 }, tok.admin);
+  g.seed('Movements', [{ movement_id: 'M900001', date: '2026-10-01', kind: 'RECEIPT', item_id: 'I0001', qty: 10, unit: 'BAG', amount: 130, final_amount: 125, status: 'active' }]);
   const inv = g.api('invoices.create', { order_id: o.order_id }, tok.dist).data.invoice;
   assert.deepEqual([inv.total_store, inv.total_final, inv.total, inv.items[0].qty, inv.items[0].price], [37.5, 0, 37.5, 3, 12.5]);
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'order_not_received');
-  g.api('items.save', { item_id: 'I0001', name: 'FLOUR', sale_price: 99 }, tok.admin);
+  g.seed('Movements', [{ movement_id: 'M900002', date: '2026-10-30', kind: 'RECEIPT', item_id: 'I0001', qty: 1, unit: 'BAG', amount: 99, final_amount: 99, status: 'active' }]);
   assert.equal(g.api('invoices.get', { invoice_id: inv.invoice_id }, tok.dist).data.total, 37.5, 'the price stays as it was');
   const rep = g.api('orders.report', {}, tok.dist).data;
   assert.equal(rep.invoices[0].total, 37.5);
