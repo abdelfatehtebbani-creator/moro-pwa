@@ -82,7 +82,18 @@ export async function render(root) {
   ['open', 'partial', 'fulfilled', ''].forEach((s) => tabs.append(h('button', { type: 'button', class: s === status ? 'on' : '',
     onclick: (e) => { status = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); loadList(); } },
     t('req_' + (s || 'all')))));
-  parts.push(h('div.card', h('div.card-head', h('h2', t('requests')), tabs), listBox));
+  // the person who only asks sees the new request; their requests (the archive) open with a button,
+  // except those waiting for their answer (the rest can be asked for), shown under the form
+  const archiveMode = canCreate && !canFulfil;
+  let archiveOpen = !archiveMode;
+  const answerBox = h('div.req-list');
+  const listCard = h('div.card', { hidden: !archiveOpen }, h('div.card-head', h('h2', t('req_archive')), tabs), listBox);
+  const archiveBtn = archiveMode ? h('button.btn.secondary', { type: 'button', onclick: () => {
+    archiveOpen = !archiveOpen; listCard.hidden = !archiveOpen; archiveBtn.textContent = t(archiveOpen ? 'req_archive_hide' : 'req_archive');
+    if (archiveOpen) loadList();
+  } }, t('req_archive')) : null;
+  if (archiveMode) parts.push(answerBox, h('div.form-actions', archiveBtn));
+  parts.push(listCard);
 
   async function loadList(quiet) {
     // quantities typed and not yet sent stay as they were through a refresh
@@ -95,7 +106,14 @@ export async function render(root) {
       const reqs = status === 'open' ? (await call('requests.list', { status: '', all: true }))
           .filter((r) => (r.status === 'open' || r.status === 'partial') && (todo(r) || r.requested_by === Data.user.user_id))
         : await call('requests.list', { status, all: true });
-      listBox.replaceChildren(...(reqs.length ? reqs.map(card) : [h('p.empty', t('no_rows'))]));
+      if (archiveMode) {
+        // waiting for this user's answer: a line given in part whose rest the stock now allows
+        const all = status === '' ? reqs : await call('requests.list', { status: '', all: true });
+        const ask = all.filter((r) => (r.status === 'open' || r.status === 'partial') && r.lines.some((l) => l.wait === 'yes' && !l.reason
+          && Number(l.issued_qty || 0) < Number(l.qty) && Data.qty(l.item_id) > 0));
+        answerBox.replaceChildren(...(ask.length ? [h('h3', t('req_waiting_answer')), ...ask.map(card)] : []));
+      }
+      listBox.replaceChildren(...(!archiveOpen ? [] : reqs.length ? reqs.map(card) : [h('p.empty', t('no_rows'))]));
       listBox.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
