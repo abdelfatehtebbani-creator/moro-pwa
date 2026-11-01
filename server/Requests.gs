@@ -53,11 +53,19 @@ var Requests = {
     });
   },
 
-  /** payload: {request_id, date, lines: [{line_no, qty}], client_id} – qty defaults to what is left. */
+  /**
+   * payload: {request_id, date, lines: [{line_no, qty}], client_id} – qty defaults to what is left.
+   * The storekeeper gives what they can: what is left of their lines afterwards waits for the person who
+   * asked (RequestLines.wait), who asks for the rest or keeps what was given (followup).
+   */
   fulfil: function (session, p) {
     var req = Repo.find('Requests', 'request_id', p.request_id);
     Util.require(req && (req.status === 'open' || req.status === 'partial'), 'not_found');
     var lines = Repo.all('RequestLines').filter(function (l) { return l.request_id === req.request_id; });
+    var waiting = function (l) { return String(l.wait || '') === 'yes'; };
+    // lines waiting for the requester's answer are not issued
+    if (p.lines) lines.forEach(function (l) { if (waiting(l) && p.lines.some(function (x) { return Number(x.line_no) === Number(l.line_no); })) throw new AppError('request_waiting'); });
+    lines = lines.filter(function (l) { return !waiting(l); });
     var give = {};
     (p.lines || lines.map(function (l) { return { line_no: l.line_no }; })).forEach(function (x) { give[x.line_no] = x.qty; });
     var movs = [];
@@ -77,24 +85,77 @@ var Requests = {
     return withLock(function () {
       var byClient = {};
       saved.saved.forEach(function (s) { byClient[s.client_id] = s; });
-      var all = true;
       lines.forEach(function (l) {
         var mv = movs.filter(function (m) { return m._line === l.line_no; })[0];
         var issued = Number(l.issued_qty || 0);
+        var ch = {};
         if (mv && !byClient[mv.client_id].duplicate) {
           issued = Util.round(issued + Number(mv.qty));
-          var ids = String(l.movement_id || '').split(' ').filter(String).concat([byClient[mv.client_id].movement_id]);
-          Repo.updateWhere('RequestLines', function (x) {
-            return x.request_id === l.request_id && Number(x.line_no) === Number(l.line_no);
-          }, { issued_qty: issued, movement_id: ids.join(' ') });
+          ch.issued_qty = issued;
+          ch.movement_id = String(l.movement_id || '').split(' ').filter(String).concat([byClient[mv.client_id].movement_id]).join(' ');
         }
-        if (issued < Number(l.qty)) all = false;
+        // the storekeeper's lines not given in full: the requester decides about the rest
+        if (mine(l) && issued < Number(l.qty)) ch.wait = 'yes';
+        if (Object.keys(ch).length) Repo.updateWhere('RequestLines', function (x) {
+          return x.request_id === l.request_id && Number(x.line_no) === Number(l.line_no);
+        }, ch);
       });
-      Repo.update('Requests', 'request_id', req.request_id,
-        { status: all ? 'fulfilled' : 'partial', fulfilled_by: session.user_id, fulfilled_at: Util.nowIso() });
-      return { request_id: req.request_id, status: all ? 'fulfilled' : 'partial', doc_no: saved.saved[0].doc_no,
-               version: Version.bump() };
+      var status = Requests.statusOf(req.request_id);
+      Repo.update('Requests', 'request_id', req.request_id, { status: status, fulfilled_by: session.user_id, fulfilled_at: Util.nowIso() });
+      return { request_id: req.request_id, status: status, doc_no: saved.saved[0].doc_no, version: Version.bump() };
     });
+  },
+
+  /** Open while something is left to give, fulfilled when nothing is; partial once something was given. */
+  statusOf: function (requestId) {
+    var lines = Repo.all('RequestLines').filter(function (l) { return l.request_id === requestId; });
+    if (lines.every(function (l) { return Number(l.issued_qty || 0) >= Number(l.qty); })) return 'fulfilled';
+    return lines.some(function (l) { return Number(l.issued_qty || 0) > 0; }) ? 'partial' : 'open';
+  },
+
+  /**
+   * The person who asked answers for the lines given in part: payload {request_id, lines: [{line_no, qty}]}.
+   * qty > 0: still wanted (up to what is left), back to the storekeeper; 0: keeps what was given.
+   */
+  followup: function (session, p) {
+    return withLock(function () {
+      var req = Repo.find('Requests', 'request_id', p.request_id);
+      Util.require(req && (req.status === 'open' || req.status === 'partial'), 'not_found');
+      Util.require(req.requested_by === session.user_id || Perm.has(session, 'users.save'), 'forbidden', 'own_only');
+      var want = {};
+      (p.lines || []).forEach(function (x) { want[Number(x.line_no)] = Util.num(x.qty); });
+      var lines = Repo.all('RequestLines').filter(function (l) { return l.request_id === req.request_id && String(l.wait || '') === 'yes'; });
+      Util.require(lines.length, 'nothing_to_save');
+      var before = [], after = [];
+      lines.forEach(function (l) {
+        var issued = Number(l.issued_qty || 0), left = Util.round(Number(l.qty) - issued);
+        var q = want[Number(l.line_no)];
+        q = q === undefined || q === null ? 0 : Math.max(0, Math.min(left, q));
+        before.push({ line_no: l.line_no, qty: l.qty });
+        after.push({ line_no: l.line_no, qty: Util.round(issued + q) });
+        Repo.updateWhere('RequestLines', function (x) { return x.request_id === l.request_id && Number(x.line_no) === Number(l.line_no); },
+          { qty: Util.round(issued + q), wait: '' });
+      });
+      var status = Requests.statusOf(req.request_id);
+      Repo.update('Requests', 'request_id', req.request_id, { status: status });
+      Audit.log(session.user_id, 'request_followup', 'Requests', req.request_id, before, after);
+      return { request_id: req.request_id, status: status, version: Version.bump() };
+    });
+  },
+
+  /** How many requests wait for this user: lines to give in their stores, or their own requests to answer. */
+  todo: function (session) {
+    var reqs = {};
+    Repo.all('Requests').forEach(function (r) { if (r.status === 'open' || r.status === 'partial') reqs[r.request_id] = r; });
+    var give = {}, answer = {};
+    var fulfil = Perm.has(session, 'requests.fulfil');
+    Repo.all('RequestLines').forEach(function (l) {
+      var r = reqs[l.request_id];
+      if (!r || Number(l.issued_qty || 0) >= Number(l.qty)) return;
+      if (String(l.wait || '') === 'yes') { if (r.requested_by === session.user_id) answer[r.request_id] = true; return; }
+      if (fulfil && Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests')) give[r.request_id] = true;
+    });
+    return Object.keys(give).length + Object.keys(answer).filter(function (id) { return !give[id]; }).length;
   },
 
   cancel: function (session, p) {

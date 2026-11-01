@@ -75,31 +75,55 @@ export async function render(root) {
     touched = false;
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
-      const reqs = await call('requests.list', { status, all: true });
+      // "open": everything still running, so a request given in part and asked again shows here too
+      const reqs = status === 'open' ? (await call('requests.list', { status: '', all: true })).filter((r) => r.status === 'open' || r.status === 'partial')
+        : await call('requests.list', { status, all: true });
       listBox.replaceChildren(...(reqs.length ? reqs.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 
   // a request already sent for issuing (or cancelling) and not yet answered by the server: no second press
-  const waiting = (r) => ['requests.fulfil', 'requests.cancel'].some((a) => Outbox.queued(a).some((j) => j.payload.request_id === r.request_id));
+  const waiting = (r) => ['requests.fulfil', 'requests.cancel', 'requests.followup'].some((a) => Outbox.queued(a).some((j) => j.payload.request_id === r.request_id));
 
   function card(r) {
     const p = Data.parties.get(r.party_id);
     const busy = waiting(r);
     const inputs = [];
+    const live = r.status === 'open' || r.status === 'partial';
+    // the person who asked answers for the lines given in part: still wanted now, or keep what was given
+    const mineReq = r.requested_by === Data.user.user_id;
+    const answers = [];
     const rows = r.lines.map((l) => {
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
       const left = Math.round((Number(l.qty) - Number(l.issued_qty || 0)) * 1e6) / 1e6;
       const store = l.store || Data.storeOf(Data.items.get(l.item_id));
-      const inp = canFulfil && left > 0 && (r.status === 'open' || r.status === 'partial') && Data.canStore(store, 'requests')
+      const waits = live && left > 0 && l.wait === 'yes';
+      const inp = canFulfil && live && left > 0 && !waits && Data.canStore(store, 'requests')
         ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, disabled: busy, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
-      const other = canFulfil && left > 0 && !inp && (r.status === 'open' || r.status === 'partial');
+      const ans = waits && mineReq ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, max: left, disabled: busy, value: left })) : null;
+      if (ans) answers.push({ line_no: l.line_no, inp: ans });
+      const other = canFulfil && live && left > 0 && !inp && !waits;
       return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
         h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))),
-        h('td', inp || (other ? h('small.muted', t('other_store')) : '')));
+        h('td', inp || ans || (waits ? h('small.muted', t('req_waits_requester')) : other ? h('small.muted', t('other_store')) : '')));
     });
     const actions = h('div.form-actions');
+    if (answers.length) {
+      const answer = (keep) => async (e) => {
+        const btn = e.currentTarget;
+        if (btn.disabled) return;
+        const lines = answers.map((x) => ({ line_no: x.line_no, qty: keep ? 0 : Number(x.inp.value) || 0 }));
+        if (!keep && !lines.some((x) => x.qty > 0)) { answers.forEach((x) => flash(x.inp)); return; }
+        actions.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        answers.forEach((x) => { x.inp.disabled = true; });
+        await Outbox.add('requests.followup', { request_id: r.request_id, lines }, r.request_id);
+        toast(t(keep ? 'req_kept' : 'req_rest_asked'), 'ok');
+      };
+      actions.append(h('small.muted', t('req_answer_help')),
+        h('button.btn', { type: 'button', disabled: busy, onclick: answer(false) }, t('req_ask_rest')),
+        h('button.btn.secondary', { type: 'button', disabled: busy, onclick: answer(true) }, t('req_keep')));
+    }
     if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', disabled: busy, onclick: async (e) => {
         const btn = e.currentTarget;
@@ -125,7 +149,7 @@ export async function render(root) {
       h('div.card-head', h('b', r.request_id), h('span', h('bdi', p ? p.name : r.party_id)), h('span.muted.num', fmtDate(r.date)),
         h('span', { class: 'pill ' + ({ open: 'soon', partial: 'soon', fulfilled: 'in', cancelled: 'out' }[r.status] || '') }, t('req_' + r.status))),
       r.note ? h('p.muted', r.note) : null,
-      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')), h('th', t('balance')), h('th', canFulfil ? t('to_issue') : ''))), h('tbody', rows))),
+      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')), h('th', t('balance')), h('th', canFulfil || answers.length ? t('to_issue') : ''))), h('tbody', rows))),
       actions);
   }
 

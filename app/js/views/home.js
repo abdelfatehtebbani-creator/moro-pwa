@@ -19,7 +19,7 @@ export function render(root, name, ctx) {
     const resume = ctx && ctx.resume && ctx.resume.name === r;
     const a = h('a.home-tab' + (resume ? '.resume' : ''), { href: '#/' + r, 'data-route': r, title: resume ? t('idle_resume') : null,
       onclick: resume ? (e) => { e.preventDefault(); ctx.resume.onResume(); } : null },
-      h('span.home-ico', icon(r)), h('span.home-label', t(r)), r === 'lpo' ? h('span.badge', { hidden: true }) : null,
+      h('span.home-ico', icon(r)), h('span.home-label', t(r)), r === 'lpo' || r === 'requests' ? h('span.badge', { hidden: true }) : null,
       resume ? h('span.home-resume', t('idle_resume')) : null);
     if (ring) {
       // clockwise from the top (counter-clockwise in Arabic, so the reading order follows the language)
@@ -35,7 +35,9 @@ export function render(root, name, ctx) {
   if (acc) {
     sides = [h('div.home-side', acc.info, acc.buttons.slice(0, 2)), h('div.home-side', acc.buttons.slice(2))];
   }
-  root.replaceChildren(h('div.home', h('div.home-grid', sides[0], h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), sides[1])));
+  // department requests waiting for this user (the number is set with the badges)
+  const note = links.includes('requests') ? h('a.home-note.home-note-req', { href: '#/requests', hidden: true }) : null;
+  root.replaceChildren(h('div.home', note, h('div.home-grid', sides[0], h('div.home-stage' + (ring ? '.ring' : ''), slot, nav), sides[1])));
 
   let alive = true;
   let unmount = null;
