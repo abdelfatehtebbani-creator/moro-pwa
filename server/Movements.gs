@@ -168,7 +168,8 @@ var Movements = {
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
         // (storeOp: the screen that saves for the user – department requests, shop orders – instead of the kind's)
-        if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item), storeOp || Stores.opOfKind(m.kind));
+        // ('_checked': the caller already checked who may do it – a department's shop-order line)
+        if (SAVE_KINDS.indexOf(m.kind) >= 0 && storeOp !== '_checked') Stores.require(session, Stores.of(item), storeOp || Stores.opOfKind(m.kind));
         if (m.kind === 'ISSUE' && !m.doc_no) {
           // one slip per save and date: what one person hands over together is one slip, whatever the stores
           var sk = m.date;

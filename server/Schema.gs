@@ -5,7 +5,7 @@
  */
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
-                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar'],
+                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept'],
   Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
@@ -29,7 +29,7 @@ var SCHEMA = {
   SpecialRequests: ['request_id', 'ext_id', 'order_id', 'order_no', 'shop_party_id', 'description', 'qty', 'unit', 'image', 'status',
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms', 'caps', 'stores', 'store_ops'],
+                 'pin_changed_ms', 'caps', 'stores', 'store_ops', 'shop', 'depts'],
   Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
   CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price',
                  'theory_expiry', 'counted_expiry'],
@@ -48,11 +48,14 @@ var SCHEMA = {
   Audit:        ['audit_id', 'at', 'user_id', 'action', 'entity', 'entity_id', 'before', 'after'],
   Contacts:     ['name', 'phone'],
   Reminders:    ['date', 'message'],
-  Settings:     ['key', 'value']
+  Settings:     ['key', 'value'],
+  Orders:       ['order_id', 'order_no', 'client_id', 'shop_party_id', 'status', 'order_date', 'delivery_date', 'note', 'created_by',
+                 'created_at', 'sent_at', 'decided_by', 'decided_at', 'reason', 'updated_at'],
+  OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status']
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
