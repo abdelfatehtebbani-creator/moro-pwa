@@ -23,7 +23,7 @@ function env() {
   };
   user('cashier', 'cashier', { shop: 'P002' });
   user('dist', 'distribution');
-  user('baklava', 'section_head', { depts: ['P001'], stores: [] });
+  user('baklava', 'section_head', { depts: ['P001'] });   // every store ticked (the default): still only their department
   user('store', 'storekeeper', { stores: ['DRY'] });
   user('prod', 'production', { stores: [] });
   const bal = (id) => Number(g.rows('Balances').find((b) => b.item_id === id).qty);

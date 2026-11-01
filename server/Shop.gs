@@ -51,6 +51,8 @@ var Shop = {
     if (store === 'FINAL' && item && item.dept) {
       if ((session.depts || []).indexOf(String(item.dept)) >= 0 || Perm.has(session, 'shop.depts')) return true;
     }
+    // a department head prepares their departments' products only, whatever stores their account has
+    if (session.role === 'section_head') return false;
     return Stores.allows(session, store, 'shop');
   },
 
