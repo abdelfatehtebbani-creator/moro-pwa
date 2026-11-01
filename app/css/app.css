@@ -86,6 +86,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 .topbar h1 { margin: 0; font-size: 19px; }
 .topbar .spacer { flex: 1; }
+.home-note { display: block; width: fit-content; margin: 0 auto 10px; padding: 8px 18px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-weight: 700; text-decoration: none; }
+.home-note[hidden] { display: none; }
 .top-user { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: var(--teal-soft); color: var(--navy); font-size: 14px; font-weight: 600; max-width: 40vw; }
 .top-user bdi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-user-ico { font-size: 13px; }

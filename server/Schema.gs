@@ -22,7 +22,7 @@ var SCHEMA = {
   Lists:        ['list', 'item_id', 'user_id'],
   Requests:     ['request_id', 'date', 'party_id', 'requested_by', 'status', 'note', 'created_at', 'fulfilled_by', 'fulfilled_at',
                  'client_id'],
-  RequestLines: ['request_id', 'line_no', 'item_id', 'qty', 'unit', 'issued_qty', 'movement_id'],
+  RequestLines: ['request_id', 'line_no', 'item_id', 'qty', 'unit', 'issued_qty', 'movement_id', 'wait'],
   ShopOrderLines: ['line_id', 'order_id', 'order_no', 'order_item_id', 'shop_party_id', 'item_id', 'qty', 'unit', 'reserved_qty',
                  'handed_qty', 'status', 'reason', 'note', 'created_at', 'updated_at', 'handed_by', 'handed_at', 'movement_ids',
                  'returned_qty', 'approved'],

@@ -183,10 +183,9 @@ export async function render(root) {
     updateCards();
     fillRecent(recent);
     kv.set('recent', { recent, todays });
-    if (Data.can('requests.fulfil')) {
-      const open = (await call('requests.list', { status: 'open' })).length;
-      requestsNote.replaceChildren(open ? h('div.card', h('a.link', { href: '#/requests' }, t('open_requests', { n: open }))) : '');
-    }
+    // department requests waiting for this user (lines to give, or their own requests to answer)
+    const open = Data.can('nav.requests') ? Number(Data.boot.requests_todo) || 0 : 0;
+    requestsNote.replaceChildren(open ? h('div.card', h('a.link', { href: '#/requests' }, t('open_requests', { n: open }))) : '');
   } catch (e) {
     if (!cached) { kToday.textContent = '–'; recentBody.replaceChildren(h('tr', h('td.empty', { colspan: cols }, errText(e)))); }
   }

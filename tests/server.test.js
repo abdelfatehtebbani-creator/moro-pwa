@@ -203,9 +203,21 @@ test('department request: created by production, issued in two parts by the stor
   assert.equal(g.api('requests.create', { date: TODAY, party_id: 'P001', client_id: 'req-1', lines: [{ item_id: 'I0001', qty: 3 }] },
     tok.production).data.duplicate, true);
   const id = c.data.request_id;
+  const todo = (who) => g.api('data.bootstrap', {}, tok[who]).data.requests_todo;
+  assert.deepEqual([todo('storekeeper'), todo('production')], [1, 0]);
   const f1 = g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 2 }] }, tok.storekeeper);
   assert.equal(f1.data.status, 'partial', JSON.stringify(f1));
   assert.equal(bal('I0001'), 3);
+  // what is left now waits for the person who asked, not for the storekeeper
+  assert.deepEqual(g.rows('RequestLines').map((l) => l.wait), ['yes', 'yes']);
+  assert.deepEqual([todo('storekeeper'), todo('production')], [0, 1]);
+  assert.equal(g.api('requests.fulfil', { request_id: id }, tok.storekeeper).error.code, 'nothing_to_save');
+  assert.equal(g.api('requests.fulfil', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'request_waiting');
+  assert.equal(g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper).error.code, 'forbidden');
+  const fu = g.api('requests.followup', { request_id: id, lines: [{ line_no: 1, qty: 1 }, { line_no: 2, qty: 5 }] }, tok.production);
+  assert.equal(fu.ok, true, JSON.stringify(fu));
+  assert.deepEqual(g.rows('RequestLines').map((l) => [Number(l.qty), l.wait]), [[3, ''], [1, '']]);
+  assert.deepEqual([todo('storekeeper'), todo('production')], [1, 0]);
   const f2 = g.api('requests.fulfil', { request_id: id, client_id: 'f2' }, tok.storekeeper);
   assert.equal(f2.data.status, 'fulfilled', JSON.stringify(f2));
   assert.equal(bal('I0001'), 2);
@@ -213,6 +225,10 @@ test('department request: created by production, issued in two parts by the stor
   const lines = g.rows('RequestLines');
   assert.deepEqual(lines.map((l) => Number(l.issued_qty)), [3, 1]);
   assert.equal(g.api('requests.fulfil', { request_id: id }, tok.production).error.code, 'forbidden');
+  // the person who asked may keep what was given: the request closes
+  const c2 = g.api('requests.create', { date: TODAY, party_id: 'P001', lines: [{ item_id: 'I0001', qty: 2 }] }, tok.production).data.request_id;
+  g.api('requests.fulfil', { request_id: c2, lines: [{ line_no: 1, qty: 1 }] }, tok.storekeeper);
+  assert.equal(g.api('requests.followup', { request_id: c2, lines: [{ line_no: 1, qty: 0 }] }, tok.production).data.status, 'fulfilled');
 });
 
 test('items: duplicates by name, renames and deactivation are admin-only, min stock by purchasing', () => {

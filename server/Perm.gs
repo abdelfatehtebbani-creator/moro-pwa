@@ -72,7 +72,7 @@ var CAPS = (function () {
     'production.post':   ['nav.production', 'production.preview', 'production.post', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT'],
     'production.edit':   ['movements.update', 'movements.delete', 'edit_own.production', 'edit_all.production', 'delete.production'],
     'requests.view':     ['nav.requests'],
-    'requests.create':   ['nav.requests', 'requests.create', 'requests.cancel'],
+    'requests.create':   ['nav.requests', 'requests.create', 'requests.cancel', 'requests.followup'],
     'requests.fulfil':   ['nav.requests', 'requests.fulfil', 'requests.cancel', 'requests.all'],
     'reports.view':      ['nav.reports'],
     'reports.charts':    ['nav.reports', 'charts.view'],

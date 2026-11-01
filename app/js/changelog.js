@@ -3,6 +3,13 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.77', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع، وما بقي من سطوره يذهب لمن طلب. الطالب يكتب ما زال يحتاجه في "للصرف الآن" ويضغط "طلب الباقي"، أو "الاكتفاء بما سُلّم" فيُغلق الطلب.',
+      'رقم على أيقونة "طلبات الأقسام" بعدد الطلبات التي تنتظرك، وسطر "طلبات بانتظار التنفيذ" في الشاشة الرئيسية.'] },
+    en: { news: ['Department requests: the storekeeper gives what they can, and what is left of their lines goes to the requester, who enters what they still need in "To issue now" and presses "Ask for the rest", or "Keep what was given" to close the request.',
+      'A number on the "Department requests" icon with the requests waiting for you, and a "Requests waiting" line on the home screen.'] },
+  },
+  {
     v: '0.9.76', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: بعد الضغط على "صرف الطلب" يتعطل الزر وتظهر "قيد الإرسال…" حتى يرد الخادم، فلا يُصرف الطلب مرتين.'] },
     en: { news: ['Department requests: after "Issue request" the button stays off and shows "Sending…" until the server answers, so a request is not issued twice.'] },
