@@ -3,7 +3,7 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
-    v: '0.9.77', date: '2026-11-01',
+    v: '0.9.78', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع وتنتهي العملية عنده. إن سمح المخزون بالباقي، يظهر لمن طلب خانة "للصرف الآن" وزر "طلب الباقي"؛ وإن لم يطلبه فهو مكتفٍ بما سُلّم. ولا يرى أمين المخزن إلا طلبات وسطور مخازنه.',
       'رقم على أيقونة "طلبات الأقسام" بعدد الطلبات التي تنتظرك، وسطر "طلبات بانتظار التنفيذ" في الشاشة الرئيسية.'] },
     en: { news: ['Department requests: the storekeeper gives what they can and is done. When the stock allows the rest, the requester sees "To issue now" and "Ask for the rest"; not asking keeps what was given. A storekeeper sees only the requests and lines of their stores.',
