@@ -61,7 +61,7 @@ export async function render(root) {
   const lookBody = h('tbody');
   const fillLookup = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = Data.activeItems().filter((i) => (!q || i.name.toLowerCase().includes(q)) && inStore(i))
+    const rows = Data.activeItems().filter((i) => (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q)) && inStore(i))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 300);
     count.textContent = t('items_count', { n: rows.length });
     lookBody.replaceChildren(...rows.map((i) => {
@@ -69,7 +69,7 @@ export async function render(root) {
       const qty = Data.qty(i.item_id);
       const low = Number(i.min_stock) > 0 && qty <= Number(i.min_stock);
       return h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(i) : null },
-        h('td.wrap', h('bdi', i.name), ' ', storePill(Data.storeOf(i))),
+        h('td.wrap', h('bdi', Data.nameOf(i)), ' ', storePill(Data.storeOf(i))),
         h('td', Data.inStoreUnit(i, 0)[1]),
         h('td.num', { class: low ? 'qty-neg' : '' }, fmtNum(Data.inStoreUnit(i, qty)[0]), Data.reserved(i.item_id) ? h('small.muted.reserved', ' (' + t('reserved') + ' ' + fmtNum(Data.inStoreUnit(i, Data.reserved(i.item_id))[0]) + ')') : ''),
         h('td.num', Number(i.min_stock) > 0 ? fmtNum(Data.inStoreUnit(i, Number(i.min_stock))[0]) : ''),
@@ -110,13 +110,13 @@ export async function render(root) {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('available')), h('th', t('min_stock'))));
       const rows = Data.lowStock().filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr', { class: canEditMin ? 'click' : '', onclick: canEditMin ? () => editMin(r.item) : null },
-        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num.qty-neg', Data.fmtStore(r.item, r.qty, fmtNum)), h('td.num', Data.fmtStore(r.item, r.min, fmtNum))))
+        h('td.wrap', h('bdi', Data.nameOf(r.item)), ' ', storePill(Data.storeOf(r.item))), h('td.num.qty-neg', Data.fmtStore(r.item, r.qty, fmtNum)), h('td.num', Data.fmtStore(r.item, r.min, fmtNum))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_low')))]));
     } else {
       alertHead.replaceChildren(h('tr', h('th', t('item')), h('th', t('balance')), h('th', t('expiry'))));
       const rows = Data.expiring(30).filter((r) => inStore(r.item));
       alertBody.replaceChildren(...(rows.length ? rows.map((r) => h('tr',
-        h('td.wrap', h('bdi', r.item.name), ' ', storePill(Data.storeOf(r.item))), h('td.num', Data.fmtStore(r.item, r.qty, fmtNum)),
+        h('td.wrap', h('bdi', Data.nameOf(r.item)), ' ', storePill(Data.storeOf(r.item))), h('td.num', Data.fmtStore(r.item, r.qty, fmtNum)),
         h('td', fmtDate(r.expiry), ' ', h('span', { class: 'pill ' + (r.left < 0 ? 'low' : 'soon') }, r.left < 0 ? t('expired') : t('days_left', { n: r.left })))))
         : [h('tr', h('td.empty', { colspan: 3 }, t('no_exp')))]));
     }
@@ -145,7 +145,7 @@ export async function render(root) {
       const q = Number(m.qty);
       const priced = m.price !== '' && m.price !== undefined && m.price !== null;
       return h('tr', h('td.num', fmtDate(m.date)), h('td', h('span', { class: 'pill ' + (q >= 0 ? 'in' : 'out') }, t('kind_' + m.kind))),
-        h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? it.name : m.item_id), it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
+        h('td.wrap', h('bdi', p ? p.name : m.party_id)), h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
         h('td.num', { class: q < 0 ? 'qty-neg' : '' }, m.entry_unit && m.entry_unit !== m.unit ? (q < 0 ? '-' : '') + fmtNum(m.entry_qty) + ' ' + m.entry_unit
           : it && q ? (q < 0 ? '-' : '') + Data.fmtStore(it, Math.abs(q), fmtNum) : fmtNum(q) + ' ' + (m.unit || '')),
         prices ? h('td.num', priced ? money(m.price) + (m.per ? ' / ' + m.per : '') : '') : null,
@@ -202,7 +202,7 @@ export async function render(root) {
         } catch (e) { err.textContent = errText(e); flash(inp); }
       };
       inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
-      return [h('h3', t('edit_min_for', { name: '' }), h('bdi', item.name)), h('small.muted', t('min_stock_in', { u: item.unit })), inp, err,
+      return [h('h3', t('edit_min_for', { name: '' }), h('bdi', Data.nameOf(item))), h('small.muted', t('min_stock_in', { u: item.unit })), inp, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
           h('button.btn', { type: 'button', onclick: save }, t('save')))];
     });

@@ -114,6 +114,11 @@ export const Data = {
   },
 
   /** Store of an item or location (rows not yet sorted fall back to their category). */
+  /** The name to show: the Arabic name for Arabic users when there is one (the item's name is not changed). */
+  nameOf(it) {
+    if (!it) return '';
+    return document.documentElement.lang === 'ar' && String(it.name_ar || '').trim() ? it.name_ar : it.name;
+  },
   storeOf(row) {
     if (!row) return '';
     return STORES.includes(row.store) ? row.store : row.category === 'Packaging' ? 'PACK' : 'DRY';

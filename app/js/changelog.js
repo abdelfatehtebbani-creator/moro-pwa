@@ -3,6 +3,19 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.80', date: '2026-11-01',
+    ar: {
+      news: ['أسماء المواد تظهر بالعربية لمن يستعمل التطبيق بالعربية، حين يكون للمادة اسم عربي. الاسم الأصلي لا يتغيّر في البيانات ولا في التقارير، والبحث يقبل الاسمين.',
+        'طلبات الأقسام: أمين المخزن يستطيع "رفض الطلب" مع السبب، ويرى الطالب السبب. وبعد اختيار القسم تظهر المواد التي سبق طلبها له لاختيارها بضغطة. والقائمة تتحدّث تلقائيًا دون أن تضيع الكميات المكتوبة.'],
+      admin: 'في شاشة المواد زر "استيراد الأسماء العربية" (ملف CSV فيه item_id و name_ar)، وخانة "الاسم بالعربية" في نافذة المادة.',
+    },
+    en: {
+      news: ['Item names show in Arabic to Arabic users when the item has an Arabic name. The name itself does not change in the data or the reports, and search takes both.',
+        'Department requests: the storekeeper can "Reject request" with a reason the requester sees. After choosing the department, the items asked for it before show to pick with one press. The list refreshes by itself and keeps the quantities typed.'],
+      admin: 'In the items screen, "Import Arabic names" (a CSV file with item_id and name_ar), and an "Arabic name" field in the item window.',
+    },
+  },
+  {
     v: '0.9.79', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: الشاشة تتحدّث كل 15 ثانية وهي مفتوحة، فيظهر الطلب الجديد في المخزن أسرع.', 'زر "إلغاء الطلب" لمن طلب فقط، ويسأل للتأكيد ثم يلغي مباشرة.'] },
     en: { news: ['Department requests: the screen refreshes every 15 seconds while open, so a new request shows in the store sooner.', '"Cancel request" is for the requester only; it asks to confirm, then cancels at once.'] },

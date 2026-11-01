@@ -19,7 +19,7 @@ export async function render(root) {
   if (!Data.myStores('receive').length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
   const zone = storePicker(onZone, 'receive');
   const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
-    .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
+    .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
   const supplierOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'supplier' && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name }));
   // the units in use, plus the chosen item's own unit even if it was switched off
@@ -256,12 +256,12 @@ export async function render(root) {
       if (!filters.test(m)) return false;
       if (!q) return true;
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
-      return [it && it.name, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
+      return [it && it.name, it && it.name_ar, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
     }).slice(0, 300);
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => edit(m) },
-        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? it.name : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
+        h('td.num', fmtDate(m.date)), h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''),
         h('td.num', { class: Number(m.qty) < 0 || m.kind === 'SUPPLIER_RETURN' ? 'qty-neg' : '' },
           (m.kind === 'SUPPLIER_RETURN' ? '-' : '') + fmtMoveQty(m)),
         h('td.num', m.expiry ? fmtDate(m.expiry) : ''),
