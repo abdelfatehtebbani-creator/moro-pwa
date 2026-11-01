@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.82', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: الطلب المصروف جزئيًا يُؤرشف مثل غيره، وزر "طلب الباقي" يظهر عند الطالب في تبويبة "جزئي" من الأرشيف فقط.'] },
+    en: { news: ['Department requests: a request given in part goes to the archive like the others; "Ask for the rest" shows to the requester in the "partial" tab of the archive only.'] },
+  },
+  {
     v: '0.9.81', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام عند الطالب: يظهر نموذج الطلب الجديد فقط، وزر "أرشيف الطلبات" يفتح الطلبات السابقة. الطلبات التي يمكن طلب باقيها تظهر تحت النموذج.'] },
     en: { news: ['Department requests for the requester: only the new request shows; "Requests archive" opens the earlier ones. Requests whose rest can be asked for show under the form.'] },
