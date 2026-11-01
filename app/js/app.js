@@ -171,7 +171,9 @@ function buildShell() {
   content = h('section.content');
   // the home screen shown over an idle screen (that screen stays as it is, behind it)
   homeLayer = h('section.content', { hidden: true });
-  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'), syncEl), content, homeLayer));
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
+    // who is signed in, on every screen
+    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl), content, homeLayer));
   root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();
