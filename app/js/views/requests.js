@@ -4,8 +4,8 @@ import { call } from '../api.js';
 import { Data } from '../data.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
-import { h, toast, flash, fmtNum, fmtDate, trackFilled } from '../ui.js';
-import { combo, field, doublePress, newId, storePill } from '../components.js';
+import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
+import { combo, field, newId, storePill } from '../components.js';
 
 let cleanup = null;
 
@@ -143,12 +143,17 @@ export async function render(root) {
         toast(t('request_issued'), 'ok');
       } }, busy ? t('sending') : t('issue_request')));
     }
-    if (r.status === 'open' && (canFulfil || r.requested_by === Data.user.user_id)) {
+    // cancelling is for the person who asked (nothing given yet); the storekeeper simply does not issue
+    if (r.status === 'open' && r.requested_by === Data.user.user_id) {
       const cancel = h('button.btn.secondary', { type: 'button', disabled: busy, onclick: async () => {
         if (cancel.disabled) return;
-        if (!doublePress('cancel-' + r.request_id)) { flash(cancel); return; }
-        cancel.disabled = true;
+        const ok = await dialog((close) => [h('p', t('cancel_request_confirm', { id: r.request_id })),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
+            h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('cancel_request')))]);
+        if (!ok) return;
+        cancel.disabled = true; cancel.textContent = t('sending');
         await Outbox.add('requests.cancel', { request_id: r.request_id }, r.request_id);
+        toast(t('request_cancelled'), 'ok');
       } }, t('cancel_request'));
       actions.append(cancel);
     }
@@ -163,12 +168,14 @@ export async function render(root) {
   root.replaceChildren(...parts);
   loadList();
   const onData = () => { if (!touched && !listBox.contains(document.activeElement)) loadList(true); };
+  // new requests show quickly: the list is read again every 15 s while this screen is open and on show
+  const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 15000);
   // the server answered an issue or a cancel: the list shows the new state (the buttons come back only then)
   const onSent = (e) => { if (String(e.detail && e.detail.action).startsWith('requests.')) loadList(true); };
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onSent);
-  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
     window.removeEventListener('moro:rejected', onSent); cleanup = null; };
 }
 

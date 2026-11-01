@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.79', date: '2026-11-01',
+    ar: { news: ['طلبات الأقسام: الشاشة تتحدّث كل 15 ثانية وهي مفتوحة، فيظهر الطلب الجديد في المخزن أسرع.', 'زر "إلغاء الطلب" لمن طلب فقط، ويسأل للتأكيد ثم يلغي مباشرة.'] },
+    en: { news: ['Department requests: the screen refreshes every 15 seconds while open, so a new request shows in the store sooner.', '"Cancel request" is for the requester only; it asks to confirm, then cancels at once.'] },
+  },
+  {
     v: '0.9.78', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع وتنتهي العملية عنده. إن سمح المخزون بالباقي، يظهر لمن طلب خانة "للصرف الآن" وزر "طلب الباقي"؛ وإن لم يطلبه فهو مكتفٍ بما سُلّم. ولا يرى أمين المخزن إلا طلبات وسطور مخازنه.',
       'رقم على أيقونة "طلبات الأقسام" بعدد الطلبات التي تنتظرك، وسطر "طلبات بانتظار التنفيذ" في الشاشة الرئيسية.'] },
