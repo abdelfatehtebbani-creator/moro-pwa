@@ -6,7 +6,7 @@
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
                  'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept'],
-  Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone'],
+  Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone', 'producing'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
   Purposes:     ['purpose_id', 'name', 'active'],

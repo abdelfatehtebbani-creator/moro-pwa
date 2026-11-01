@@ -114,6 +114,12 @@ export const Data = {
   },
 
   /** Store of an item or location (rows not yet sorted fall back to their category). */
+  /** Departments that make products: ticked "producing", or already set as the maker of a product. */
+  producingDepts() {
+    const makers = new Set(this.activeItems().map((i) => String(i.dept || '')).filter(Boolean));
+    return [...this.parties.values()].filter((p) => p.kind === 'section' && p.active === true && (p.producing === true || makers.has(p.party_id)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
   /** The name to show: the Arabic name for Arabic users when there is one (the item's name is not changed). */
   nameOf(it) {
     if (!it) return '';

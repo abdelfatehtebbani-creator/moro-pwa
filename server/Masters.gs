@@ -140,7 +140,7 @@ var Masters = {
         Util.require(PARTY_KINDS.indexOf(p.kind) >= 0, 'kind_invalid');
         var n = 0;
         Repo.column('Parties', 'party_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true };
+        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true, producing: p.kind === 'section' && p.producing === true };
         PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined) party[c] = Util.clean(p[c]); });
         Repo.append('Parties', [party]);
         Audit.log(session.user_id, 'party_create', 'Parties', party.party_id, null, party);
@@ -153,6 +153,11 @@ var Masters = {
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename.parties');
         ch.active = p.active === true;
+      }
+      // a department that makes products (its products' shop-order lines go to it), or not (cleaning, management…)
+      if (p.producing !== undefined && cur.kind === 'section' && (p.producing === true) !== (cur.producing === true)) {
+        Perm.require(session, 'rename.parties');
+        ch.producing = p.producing === true;
       }
       // a supplier's contact details (printed on the LPO): whoever may add suppliers keeps them up to date
       PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined && Util.clean(p[c]) !== String(cur[c] || '')) ch[c] = Util.clean(p[c]); });

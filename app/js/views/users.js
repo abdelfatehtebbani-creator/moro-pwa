@@ -59,8 +59,7 @@ export async function render(root) {
       shopSel.value = u ? u.shop || '' : '';
       const shopField = field(t('cashier_shop'), shopSel);
       const depts = new Set(u ? u.depts || [] : []);
-      const deptBox = h('div.caps', [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true)
-        .sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
+      const deptBox = h('div.caps', Data.producingDepts().map((p) => {
           const cb = h('input', { type: 'checkbox', checked: depts.has(p.party_id) });
           cb.addEventListener('change', () => { cb.checked ? depts.add(p.party_id) : depts.delete(p.party_id); });
           return h('label.check.cap', cb, h('span', h('bdi', p.name)));

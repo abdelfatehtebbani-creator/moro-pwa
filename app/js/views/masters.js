@@ -45,8 +45,7 @@ function items(body, isAdmin) {
   const search = trackFilled(h('input.input#m-search', { type: 'search', placeholder: t('lookup_hint') }));
   const showInactive = h('input#m-inactive', { type: 'checkbox' });
   const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
-    [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true).sort((a, b) => a.name.localeCompare(b.name))
-      .map((p) => h('option', { value: p.party_id }, p.name)));
+    Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
   const tb = h('tbody');
   const fill = () => {
     const q = search.value.trim().toLowerCase();
@@ -70,8 +69,7 @@ function items(body, isAdmin) {
     const cat = storeSelect('e-cat', it ? Data.storeOf(it) : 'DRY', it && !isAdmin);
     // a final product is made by one department: its shop-order lines go to that department
     const deptSel = h('select.input#e-dept', { disabled: it && !Data.can('rename.items') }, h('option', { value: '' }, '—'),
-      [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true).sort((a, b) => a.name.localeCompare(b.name))
-        .map((p) => h('option', { value: p.party_id }, p.name)));
+      Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
     deptSel.value = it ? it.dept || '' : '';
     const deptField = field(t('made_by_dept'), deptSel);
     const showDept = () => { deptField.hidden = cat.value !== 'FINAL'; };
@@ -212,7 +210,10 @@ function parties(body, isAdmin) {
       [c, trackFilled(h('input.input#e-p' + c, { value: p ? p[c] || '' : '', disabled: !canSave, dir: c === 'contact' ? 'auto' : 'ltr' }))]));
     const contactBox = h('div.party-contact', h('small.muted', t('party_contact_help')),
       ...Object.entries(contact).map(([c, el]) => field(t('party_' + c), el)));
-    const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; };
+    // a department makes products, or not (cleaning, management…): only those that make products take shop orders
+    const producing = h('input#e-pproducing', { type: 'checkbox', checked: !!(p && p.producing === true), disabled: p && !isAdmin });
+    const producingBox = h('label.check', producing, ' ', t('dept_producing'));
+    const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; producingBox.hidden = kind.value !== 'section'; };
     kind.addEventListener('change', showContact);
     showContact();
     const err = h('p.err-text', '');
@@ -221,10 +222,11 @@ function parties(body, isAdmin) {
       const pl = { name: name.value, kind: kind.value };
       if (p) { pl.party_id = p.party_id; pl.active = active.checked; }
       if (kind.value === 'supplier') Object.entries(contact).forEach(([c, el]) => { pl[c] = el.value; });
+      if (kind.value === 'section') pl.producing = producing.checked;
       save('parties.save', pl, close, err);
     };
     return [h('h3', p ? t('edit_party') : t('new_party')), field(t('name'), name), field(t('kind'), kind),
-      h('label.check', active, ' ', t('active')), contactBox, err,
+      h('label.check', active, ' ', t('active')), producingBox, contactBox, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
   search.addEventListener('input', fill);
