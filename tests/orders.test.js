@@ -85,3 +85,12 @@ test('orders: distribution rejects with a reason; the cashier cancels only a dra
   const d = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }] }, tok.cashier).data.order;
   assert.equal(g.api('orders.cancel', { order_id: d.order_id }, tok.cashier).ok, true);
 });
+
+test('production without a recipe: a final product’s stock goes up, nothing is taken', () => {
+  const { g, tok, bal } = env();
+  const r = g.api('production.post', { product: 'BAKLAVA BOX', qty: 4, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(bal('I0002'), 7);
+  assert.equal(bal('I0001'), 10);
+  assert.equal(g.api('production.post', { product: 'NO SUCH THING', qty: 1, date: '2026-11-01' }, tok.baklava).error.code, 'recipe_missing');
+});

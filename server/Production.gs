@@ -46,7 +46,15 @@ var Production = {
     var qty = Util.num(p.qty);
     Util.require(qty > 0, 'qty_invalid');
     Util.require(Util.isDate(p.date || ''), 'date_invalid');
-    var lines = Production.preview(p.product, qty);
+    // a final product without a recipe (a department's product): its stock goes up, no ingredient is taken
+    var k = Util.key(p.product);
+    var hasRecipe = Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k; });
+    if (!hasRecipe) {
+      var fin = Repo.all('Items').filter(function (x) { return Util.key(x.name) === k && Stores.of(x) === 'FINAL' && x.active === true; })[0];
+      Util.require(fin, 'recipe_missing', p.product);
+      p.unit = fin.unit;
+    }
+    var lines = hasRecipe ? Production.preview(p.product, qty) : [];
     var setup = withLock(function () {
       return { consume: Production.partyId('Production'), output: Production.partyId('Final Production'),
                item: Production.productItem(p.product, p.unit) };
