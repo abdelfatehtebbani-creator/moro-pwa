@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.84', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات، المرحلة 2: مسؤول التوزيع ينشئ رحلة بسائق وطلبيات جاهزة بترتيب التوقف؛ السائق يؤكّد التحميل ثم التسليم لكل محل؛ الكاشير يستلم ويكتب المستلَم، والنقص بسببه. والإنتاج ممكن الآن دون وصفة للمنتجات النهائية.'] },
+    en: { news: ['(Development copy) Shop orders, stage 2: distribution makes a trip with a driver and ready orders in stop order; the driver confirms loading then delivery per shop; the cashier receives and enters what came, a shortfall with its reason. Final products can now be produced without a recipe.'] },
+  },
+  {
     v: '0.9.83', date: '2026-11-01',
     ar: { news: ['(نسخة التطوير) طلبيات المحلات داخل مورو، المرحلة 1: الكاشير يكتب طلبية محله ويرسلها لليوم الموالي، ومسؤول التوزيع يعتمدها، وكل سطر يذهب لقسمه المنتِج أو لمخزنه في "طلبيات المحلات"، بتبويبات لكل قسم ومخزن.'] },
     en: { news: ['(Development copy) Shop orders inside MORO, stage 1: the cashier writes the shop’s order for the next day, distribution approves it, and each line goes to the department that makes it or to its store in "Shop orders", with a tab per department and store.'] },

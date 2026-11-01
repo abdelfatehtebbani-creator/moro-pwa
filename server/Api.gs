@@ -67,6 +67,13 @@ var ROUTES = {
   'orders.cancel':    function (s, p) { return Orders.cancel(s, p); },
   'orders.approve':   function (s, p) { return Orders.approve(s, p); },
   'orders.reject':    function (s, p) { return Orders.reject(s, p); },
+  'orders.receive':   function (s, p) { return Trips.receive(s, p); },
+  'trips.list':       function (s, p) { return Trips.list(s, p); },
+  'trips.drivers':    function () { return Trips.drivers(); },
+  'trips.save':       function (s, p) { return Trips.save(s, p); },
+  'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
+  'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
+  'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
   'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
   'shop.return':      function (s, p) { return Shop.returnLine(s, p); },
@@ -106,7 +113,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '29';
+var SCHEMA_VERSION = '30';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
