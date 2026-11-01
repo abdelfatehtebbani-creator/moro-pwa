@@ -42,15 +42,19 @@ var Requests = {
     var lines = Repo.all('RequestLines');
     var storeOf = {};
     Repo.all('Items').forEach(function (i) { storeOf[i.item_id] = Stores.of(i); });
+    // a storekeeper sees the requests, and the lines, of the stores where they fulfil requests; the person
+    // who asked sees their whole request
+    var all = Perm.has(session, 'requests.all');
     return Repo.all('Requests').filter(function (r) {
       if (p.status && r.status !== p.status) return false;
-      if (!Perm.has(session, 'requests.all') && r.requested_by !== session.user_id) return false;
-      return true;
-    }).reverse().slice(0, Number(p.limit) || 300).map(function (r) {
+      return r.requested_by === session.user_id || all;
+    }).reverse().map(function (r) {
+      var own = r.requested_by === session.user_id;
       r.lines = lines.filter(function (l) { return l.request_id === r.request_id; })
-        .map(function (l) { l.store = storeOf[l.item_id] || ''; return l; });
+        .map(function (l) { l.store = storeOf[l.item_id] || ''; return l; })
+        .filter(function (l) { return own || Stores.allows(session, l.store, 'requests'); });
       return r;
-    });
+    }).filter(function (r) { return r.lines.length; }).slice(0, Number(p.limit) || 300);
   },
 
   /**
@@ -114,8 +118,9 @@ var Requests = {
   },
 
   /**
-   * The person who asked answers for the lines given in part: payload {request_id, lines: [{line_no, qty}]}.
-   * qty > 0: still wanted (up to what is left), back to the storekeeper; 0: keeps what was given.
+   * The person who asked wants the rest of lines given in part: payload {request_id, lines: [{line_no, qty}]}.
+   * qty > 0: still wanted (up to what is left, and within the stock), back to the storekeeper; 0: not wanted.
+   * Not asking is keeping what was given.
    */
   followup: function (session, p) {
     return withLock(function () {
@@ -131,6 +136,8 @@ var Requests = {
         var issued = Number(l.issued_qty || 0), left = Util.round(Number(l.qty) - issued);
         var q = want[Number(l.line_no)];
         q = q === undefined || q === null ? 0 : Math.max(0, Math.min(left, q));
+        var b = Repo.find('Balances', 'item_id', l.item_id);
+        Util.require(q <= Math.max(0, Number(b && b.qty) || 0), 'request_over_stock', (Repo.find('Items', 'item_id', l.item_id) || {}).name || l.item_id);
         before.push({ line_no: l.line_no, qty: l.qty });
         after.push({ line_no: l.line_no, qty: Util.round(issued + q) });
         Repo.updateWhere('RequestLines', function (x) { return x.request_id === l.request_id && Number(x.line_no) === Number(l.line_no); },
@@ -152,7 +159,12 @@ var Requests = {
     Repo.all('RequestLines').forEach(function (l) {
       var r = reqs[l.request_id];
       if (!r || Number(l.issued_qty || 0) >= Number(l.qty)) return;
-      if (String(l.wait || '') === 'yes') { if (r.requested_by === session.user_id) answer[r.request_id] = true; return; }
+      // the rest of a line given in part: only when the stock now allows asking for it
+      if (String(l.wait || '') === 'yes') {
+        var b = Repo.find('Balances', 'item_id', l.item_id);
+        if (r.requested_by === session.user_id && Number(b && b.qty) > 0) answer[r.request_id] = true;
+        return;
+      }
       if (fulfil && Stores.allows(session, Stores.of(Repo.find('Items', 'item_id', l.item_id)), 'requests')) give[r.request_id] = true;
     });
     return Object.keys(give).length + Object.keys(answer).filter(function (id) { return !give[id]; }).length;

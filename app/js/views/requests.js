@@ -76,7 +76,10 @@ export async function render(root) {
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
       // "open": everything still running, so a request given in part and asked again shows here too
-      const reqs = status === 'open' ? (await call('requests.list', { status: '', all: true })).filter((r) => r.status === 'open' || r.status === 'partial')
+      // for the storekeeper a request given in part is done: it comes back only when the rest is asked for
+      const todo = (r) => r.lines.some((l) => Number(l.issued_qty || 0) < Number(l.qty) && l.wait !== 'yes');
+      const reqs = status === 'open' ? (await call('requests.list', { status: '', all: true }))
+          .filter((r) => (r.status === 'open' || r.status === 'partial') && (todo(r) || r.requested_by === Data.user.user_id))
         : await call('requests.list', { status, all: true });
       listBox.replaceChildren(...(reqs.length ? reqs.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
@@ -98,31 +101,35 @@ export async function render(root) {
       const left = Math.round((Number(l.qty) - Number(l.issued_qty || 0)) * 1e6) / 1e6;
       const store = l.store || Data.storeOf(Data.items.get(l.item_id));
       const waits = live && left > 0 && l.wait === 'yes';
+      const stock = Math.max(0, Data.qty(l.item_id));
       const inp = canFulfil && live && left > 0 && !waits && Data.canStore(store, 'requests')
         ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, disabled: busy, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
-      const ans = waits && mineReq ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, max: left, disabled: busy, value: left })) : null;
+      // the rest can be asked for only when the stock now allows it
+      const can = Math.min(left, stock);
+      const ans = waits && mineReq && can > 0 ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, max: can, disabled: busy, value: can })) : null;
+      if (ans) ans.addEventListener('change', () => { if (Number(ans.value) > can) { ans.value = can; flash(ans); } });
       if (ans) answers.push({ line_no: l.line_no, inp: ans });
       const other = canFulfil && live && left > 0 && !inp && !waits;
       return h('tr', h('td.wrap', h('bdi', it.name)), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
         h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))),
-        h('td', inp || ans || (waits ? h('small.muted', t('req_waits_requester')) : other ? h('small.muted', t('other_store')) : '')));
+        h('td', inp || ans || (other ? h('small.muted', t('other_store')) : '')));
     });
     const actions = h('div.form-actions');
     if (answers.length) {
-      const answer = (keep) => async (e) => {
+      // not asking for the rest is keeping what was given
+      const askRest = async (e) => {
         const btn = e.currentTarget;
         if (btn.disabled) return;
-        const lines = answers.map((x) => ({ line_no: x.line_no, qty: keep ? 0 : Number(x.inp.value) || 0 }));
-        if (!keep && !lines.some((x) => x.qty > 0)) { answers.forEach((x) => flash(x.inp)); return; }
-        actions.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        const lines = answers.map((x) => ({ line_no: x.line_no, qty: Number(x.inp.value) || 0 }));
+        if (!lines.some((x) => x.qty > 0)) { answers.forEach((x) => flash(x.inp)); return; }
+        btn.disabled = true; btn.textContent = t('sending');
         answers.forEach((x) => { x.inp.disabled = true; });
         await Outbox.add('requests.followup', { request_id: r.request_id, lines }, r.request_id);
-        toast(t(keep ? 'req_kept' : 'req_rest_asked'), 'ok');
+        toast(t('req_rest_asked'), 'ok');
       };
       actions.append(h('small.muted', t('req_answer_help')),
-        h('button.btn', { type: 'button', disabled: busy, onclick: answer(false) }, t('req_ask_rest')),
-        h('button.btn.secondary', { type: 'button', disabled: busy, onclick: answer(true) }, t('req_keep')));
+        h('button.btn', { type: 'button', disabled: busy, onclick: askRest }, busy ? t('sending') : t('req_ask_rest')));
     }
     if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', disabled: busy, onclick: async (e) => {

@@ -4,9 +4,9 @@
 export const CHANGELOG = [
   {
     v: '0.9.77', date: '2026-11-01',
-    ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع، وما بقي من سطوره يذهب لمن طلب. الطالب يكتب ما زال يحتاجه في "للصرف الآن" ويضغط "طلب الباقي"، أو "الاكتفاء بما سُلّم" فيُغلق الطلب.',
+    ar: { news: ['طلبات الأقسام: أمين المخزن يصرف ما يستطيع وتنتهي العملية عنده. إن سمح المخزون بالباقي، يظهر لمن طلب خانة "للصرف الآن" وزر "طلب الباقي"؛ وإن لم يطلبه فهو مكتفٍ بما سُلّم. ولا يرى أمين المخزن إلا طلبات وسطور مخازنه.',
       'رقم على أيقونة "طلبات الأقسام" بعدد الطلبات التي تنتظرك، وسطر "طلبات بانتظار التنفيذ" في الشاشة الرئيسية.'] },
-    en: { news: ['Department requests: the storekeeper gives what they can, and what is left of their lines goes to the requester, who enters what they still need in "To issue now" and presses "Ask for the rest", or "Keep what was given" to close the request.',
+    en: { news: ['Department requests: the storekeeper gives what they can and is done. When the stock allows the rest, the requester sees "To issue now" and "Ask for the rest"; not asking keeps what was given. A storekeeper sees only the requests and lines of their stores.',
       'A number on the "Department requests" icon with the requests waiting for you, and a "Requests waiting" line on the home screen.'] },
   },
   {
