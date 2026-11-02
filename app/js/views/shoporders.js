@@ -68,7 +68,9 @@ export async function render(root) {
     const rows = ls.map((l) => {
       const it = itemOf(l.item_id);
       const left = Math.max(0, Math.round((l.qty - l.handed_qty) * 1e6) / 1e6);
-      const open = tab === 'open' && left > 0 && l.approved !== false && l.can;
+      // a line already sent for handing and not yet answered by the server: shown as sending, no second press
+      const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
+      const open = tab === 'open' && left > 0 && l.approved !== false && l.can && !sending;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
       const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
@@ -95,10 +97,10 @@ export async function render(root) {
         if (bad.length) { bad.forEach((x) => flash(x.inp)); return; }
         const give = inputs.map((x) => ({ line_id: x.line.line_id, qty: Number(x.inp.value) })).filter((x) => x.qty > 0);
         if (!give.length) { inputs.forEach((x) => flash(x.inp)); return; }
-        btn.disabled = true;
+        btn.disabled = true; btn.textContent = t('sending');
+        inputs.forEach((x) => { x.inp.disabled = true; });
         await Outbox.add('shop.hand', { date: Data.todayIso(), client_id: newId(), lines: give }, shopName(first.shop_party_id));
         toast(t('handed_to_distribution'), 'ok');
-        setTimeout(load, 2000);
       } }, t('hand_to_distribution')));
     }
     return h('div.req-card',
@@ -191,10 +193,18 @@ export async function render(root) {
   }
 
   const onData = () => { if (!touched && !body.contains(document.activeElement)) load(true); };
+  // the server answered: the list shows the new state; a refusal (e.g. not enough final products) is said
   const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) load(true); };
+  const onRejected = (e) => {
+    if (!e.detail || (e.detail.action !== 'shop.hand' && e.detail.action !== 'shop.return')) return;
+    toast(errText({ code: e.detail.error, detail: e.detail.detail }), 'err');
+    load(true);
+  };
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
-  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent); cleanup = null; };
+  window.addEventListener('moro:rejected', onRejected);
+  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+    window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
   load();
 }
 

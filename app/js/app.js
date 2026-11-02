@@ -112,7 +112,7 @@ async function start() {
   route();
   window.__moroStarted = true;
   whatsNew(false);
-  if (allowed('lpo')) Push.refresh();
+  Push.refresh();
   if (cached) sync(true);
   setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
@@ -359,7 +359,6 @@ function updateBadges() {
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
 function pushButton(tag) {
-  if (!allowed('lpo')) return null;
   const st = Push.state();
   if (st === 'on' || st === 'off') return null;
   if (st === 'blocked') return h('small.muted.push-note', t('push_blocked'));
@@ -447,7 +446,7 @@ function updateSync() {
 
 function toggleLang() {
   setLang(getLang() === 'ar' ? 'en' : 'ar');
-  if (allowed('lpo')) Push.refresh();      // notifications follow the language of the app
+  Push.refresh();      // notifications follow the language of the app
   buildShell();
   route();
 }
