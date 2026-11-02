@@ -103,6 +103,8 @@ var Trips = {
         ch = { loaded_at: now, loaded_by: session.user_id };
       } else {
         Util.require(s.loaded_at, 'stop_not_loaded');
+        // the car leaves with the whole trip: no delivery before every order of it is loaded
+        Util.require(Repo.all('TripStops').every(function (x) { return x.trip_id !== t.trip_id || x.loaded_at; }), 'trip_not_all_loaded');
         if (s.delivered_at) return { trip: Trips.view(t), version: Version.get() };
         ch = { delivered_at: now, delivered_by: session.user_id };
       }

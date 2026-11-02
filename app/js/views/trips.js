@@ -109,7 +109,8 @@ export async function render(root) {
       };
       const button = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
         ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: doStep('load') }, t('stop_load'))
-          : !s.delivered_at ? h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver')) : null) : null;
+          : !s.delivered_at ? (trip.stops.every((x) => x.loaded_at) ? h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver'))
+            : h('small.muted', t('deliver_after_all_loaded'))) : null) : null;
       const [showBtn, loadBox] = toggle(t('load_show'), () => loadTable(s.load || []));
       return h('div', h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
         h('small.muted', s.order_no + ' · ' + t('lines_n', { n: s.lines })),

@@ -213,3 +213,21 @@ test('an order decided already says so (a second press, or two people at once)',
   assert.equal(g.api('orders.reject', { order_id: o.order_id, reason: 'x' }, tok.dist).error.code, 'order_decided');
   assert.equal(g.api('orders.approve', { order_id: 'NOPE' }, tok.dist).error.code, 'not_found');
 });
+
+test('trips: no delivery before every order of the trip is loaded', () => {
+  const { g, tok, user } = env();
+  const driver = user('drv', 'driver');
+  const ready = () => {
+    const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+    g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+    const l = g.api('shop.list', {}, tok.store).data.find((x) => x.order_id === o.order_id);
+    g.api('shop.hand', { date: '2026-11-01', client_id: 'h' + o.order_id, lines: [{ line_id: l.line_id, qty: 1 }] }, tok.store);
+    return o.order_id;
+  };
+  const a = ready(), b = ready();
+  const trip = g.api('trips.save', { driver_id: driver, order_ids: [a, b] }, tok.dist).data.trip;
+  g.api('trips.load', { trip_id: trip.trip_id, order_id: a }, tok.drv);
+  assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).error.code, 'trip_not_all_loaded');
+  g.api('trips.load', { trip_id: trip.trip_id, order_id: b }, tok.drv);
+  assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).ok, true);
+});

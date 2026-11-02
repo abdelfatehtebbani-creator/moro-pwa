@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.109', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: لا تسليم قبل تحميل كل طلبيات الرحلة. يظهر زر "تم التسليم" بعد تحميل الجميع.'] },
+    en: { news: ['(Development copy) The driver: no delivery before every order of the trip is loaded. "Delivered" shows once all are loaded.'] },
+  },
+  {
     v: '0.9.108', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) حالات الطلبية بعد الرحلة: "بانتظار التحميل" (أُسندت لرحلة ولم تُحمَّل بعد) ثم "في الطريق" (حمّلها السائق) ثم "وصلت".'] },
     en: { news: ['(Development copy) Order states after the trip: "Waiting to be loaded" (in a trip, not loaded yet), then "On the way" (the driver loaded it), then "Delivered".'] },
