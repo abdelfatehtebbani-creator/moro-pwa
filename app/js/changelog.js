@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.113', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) فروق الاستلام: خانة المصير فارغة لكل سطر، ويجب أن يختار مسؤول التوزيع (رجع إلى المخزن أو تالف أو مفقود) قبل اعتماد الفرق.'] },
+    en: { news: ['(Development copy) Receipt differences: the choice is empty on each line, and distribution must pick (back to the store, or damaged or lost) before accepting.'] },
+  },
+  {
     v: '0.9.112', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) فروق الاستلام: طلبية استلمها الكاشير ناقصة تظهر في تبويب "فروق الاستلام" عند مسؤول التوزيع، ولا تُفوتر حتى يعتمد الفرق ويختار لكل سطر: رجع إلى المخزن (تعود الكمية إلى الرصيد) أو تالف أو مفقود.'] },
     en: { news: ['(Development copy) Receipt differences: an order received short shows in distribution’s "Receipt differences" tab, and is not invoiced until the difference is accepted with, per line, back to the store (the quantity returns to stock) or damaged or lost.'] },

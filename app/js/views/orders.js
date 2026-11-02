@@ -18,7 +18,6 @@ const SHORT_REASONS = ['damaged', 'short_in_trip', 'loading_error', 'other'];
 const CASHIER_TABS = { new: null, draft: ['draft'], sent: ['sent', 'approved', 'ready', 'in_trip', 'loaded'], delivered: ['delivered'],
   archive: ['received', 'invoiced', 'rejected', 'cancelled'] };
 const APPROVE_TABS = ['sent', 'approved', 'ready', 'diff', 'rejected', ''];
-const DIFF_DEFAULT = { loading_error: 'returned' };   // what the cashier's reason suggests; the rest: lost
 const tabs = { orders: 'new', orderapprove: 'sent' };
 let cleanup = null;
 
@@ -204,7 +203,8 @@ export async function render(root, name) {
       }
       let pick = null;
       if (reviewing && l.short_reason) {
-        pick = h('select.input.small', ['returned', 'lost'].map((d) => h('option', { value: d, selected: (DIFF_DEFAULT[l.short_reason] || 'lost') === d }, t('diff_' + d))));
+        // empty until distribution chooses: nothing is assumed from the cashier's reason
+        pick = h('select.input.small', h('option', { value: '' }, '—'), ['returned', 'lost'].map((d) => h('option', { value: d }, t('diff_' + d))));
         decide.push({ line_no: l.line_no, pick });
       }
       const received = l.received_qty !== '' && l.received_qty !== undefined
@@ -220,7 +220,10 @@ export async function render(root, name) {
     const actions = h('div.form-actions');
     if (reviewing) {
       actions.append(h('small.muted', t('diff_help')), h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
-        const btn = e.currentTarget; btn.disabled = true;
+        const btn = e.currentTarget;
+        const empty = decide.filter((x) => !x.pick.value);
+        if (empty.length) { empty.forEach((x) => flash(x.pick)); toast(t('err.decision_required'), 'err'); return; }
+        btn.disabled = true;
         try { await act('orders.acceptDiff', { order_id: o.order_id, lines: decide.map((x) => ({ line_no: x.line_no, decision: x.pick.value })) }); toast(t('diff_accepted'), 'ok'); loadList(); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t('diff_accept')));
