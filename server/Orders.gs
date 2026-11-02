@@ -12,6 +12,7 @@
  * Order status: draft → sent → approved (→ ready, worked out from its lines) | rejected | cancelled.
  */
 var ORDER_STATUSES = ['draft', 'sent', 'approved', 'rejected', 'cancelled'];
+var DIFF_DECISIONS = ['returned', 'lost'];
 
 var Orders = {
   /** The shop of a cashier (the session's user row). */
@@ -36,7 +37,8 @@ var Orders = {
       var s = shop[o.order_id + '-' + x.line_no];
       return { line_no: Number(x.line_no), item_id: x.item_id, qty: Number(x.qty), unit: x.unit, approved_qty: x.approved_qty === '' ? '' : Number(x.approved_qty),
         status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '',
-        received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '' };
+        received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '',
+        short_decision: x.short_decision || '' };
     });
     var out = {};
     Object.keys(o).forEach(function (k) { out[k] = o[k]; });
@@ -175,6 +177,40 @@ var Orders = {
   },
 
   /** Distribution: rejects a sent order with a reason (the cashier sees it). */
+  /**
+   * Distribution accepts the difference of an order received short: for each short line, where the missing
+   * quantity went – 'returned' (a loading error, the goods are still here: they come back to the store) or
+   * 'lost' (damaged or lost on the way: the shop is not charged, the loss stays with distribution).
+   * Then the order can be invoiced. p: {order_id, lines: [{line_no, decision}]}.
+   */
+  acceptDiff: function (session, p) {
+    var o0 = Repo.find('Orders', 'order_id', p.order_id);
+    Util.require(o0, 'not_found');
+    Util.require(o0.status === 'received' && o0.diff_status === 'pending', 'order_decided', o0.status);
+    var want = {};
+    (p.lines || []).forEach(function (x) { want[Number(x.line_no)] = x.decision; });
+    var short = Orders.view(o0).lines.filter(function (l) { return l.short_reason; });
+    short.forEach(function (l) { Util.require(DIFF_DECISIONS.indexOf(want[l.line_no]) >= 0, 'decision_required', l.line_no); });
+    // what comes back to the store: one return from the shop per line (its own lock)
+    var back = short.filter(function (l) { return want[l.line_no] === 'returned'; }).map(function (l) {
+      return { client_id: o0.order_id + '-diff-' + l.line_no, kind: 'DEPT_RETURN', date: Util.today(), party_id: o0.shop_party_id, item_id: l.item_id,
+        qty: Util.round(l.handed_qty - Number(l.received_qty)), unit: l.unit, purpose: 'Receipt difference back to store (' + o0.order_no + ')' };
+    });
+    if (back.length) Movements.save(session, { movements: back }, null, '_checked');
+    return withLock(function () {
+      var o = Repo.find('Orders', 'order_id', o0.order_id);
+      if (o.diff_status !== 'pending') return { order: Orders.view(o), duplicate: true, version: Version.get() };
+      short.forEach(function (l) {
+        Repo.updateWhere('OrderItems', function (r) { return r.order_id === o.order_id && Number(r.line_no) === l.line_no; }, { short_decision: want[l.line_no] });
+      });
+      var now = Util.nowIso();
+      Repo.update('Orders', 'order_id', o.order_id, { diff_status: 'accepted', diff_by: session.user_id, diff_at: now, updated_at: now });
+      Audit.log(session.user_id, 'order_diff_accept', 'Orders', o.order_id, null, { lines: short.map(function (l) { return [l.line_no, want[l.line_no]]; }) });
+      OrderNotify.invoiceReady(o, session);
+      return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
+    });
+  },
+
   reject: function (session, p) {
     var reason = Util.clean(p.reason);
     Util.require(reason, 'reason_required');
@@ -219,7 +255,7 @@ var Orders = {
   /** Orders waiting for distribution (the badge): sent, to approve; being prepared with a line short, to decide. */
   pending: function () {
     return Repo.all('Orders').filter(function (o) {
-      if (o.status === 'sent') return true;
+      if (o.status === 'sent' || (o.status === 'received' && o.diff_status === 'pending')) return true;
       if (o.status !== 'approved') return false;
       var v = Orders.view(o);
       return v.status === 'approved' && v.lines.some(function (l) { return l.status === 'unavailable' || l.status === 'partial'; });

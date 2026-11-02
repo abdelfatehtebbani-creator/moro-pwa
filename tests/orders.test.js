@@ -124,6 +124,8 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.deepEqual([r.lines[0].received_qty, r.lines[0].short_reason], [3, 'damaged']);
   // the invoice: from what was received, at the item's price, frozen; an item without a price stops it
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
+  assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'diff_not_accepted');
+  g.api('orders.acceptDiff', { order_id: o.order_id, lines: [{ line_no: 1, decision: 'lost' }] }, tok.dist);
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'price_missing');
   g.seed('Movements', [{ movement_id: 'M900001', date: '2026-10-01', kind: 'RECEIPT', item_id: 'I0001', qty: 10, unit: 'BAG', amount: 130, final_amount: 125, status: 'active' }]);
   const inv = g.api('invoices.create', { order_id: o.order_id }, tok.dist).data.invoice;
@@ -198,9 +200,13 @@ test('notifications: each step of an order tells whoever acts next, and the menu
   assert.deepEqual(sent().map((x) => [x.page, x.to.join()]), [['orders', 'cashier']]);
   assert.deepEqual([todo('cashier').order_todo.orders, todo('drv').order_todo.trips], [1, 0]);
   g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 0, reason: 'damaged' }] }, tok.cashier);
+  // received short: distribution reviews the difference first, then the invoicing is told
+  assert.deepEqual(sent().map((x) => [x.page, x.to.includes('dist')]), [['orderapprove', true]]);
+  assert.equal(todo('acc').order_todo.invoices, 0);
+  g.api('orders.acceptDiff', { order_id: o.order_id, lines: [{ line_no: 1, decision: 'lost' }] }, tok.dist);
   const s3 = sent();
-  assert.deepEqual(s3.map((x) => x.page), ['invoices', 'orderapprove']);
-  assert.ok(s3[0].to.includes('acc') && s3[0].to.includes('dist'));
+  assert.deepEqual(s3.map((x) => x.page), ['invoices']);
+  assert.ok(s3[0].to.includes('acc'));
   assert.deepEqual([todo('acc').order_todo.invoices, todo('cashier').order_todo.orders], [1, 0]);
 });
 
@@ -230,4 +236,32 @@ test('trips: no delivery before every order of the trip is loaded', () => {
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).error.code, 'trip_not_all_loaded');
   g.api('trips.load', { trip_id: trip.trip_id, order_id: b }, tok.drv);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).ok, true);
+});
+
+test('a receipt short waits for distribution: back to the store or lost, then the invoice', () => {
+  const { g, tok, user, bal } = env();
+  const driver = user('drv', 'driver');
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 5 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const ls = g.api('shop.list', {}, tok.prod).data;
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h1', lines: [{ line_id: ls.find((l) => l.item_id === 'I0001').line_id, qty: 5 }] }, tok.store);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: ls.find((l) => l.item_id === 'I0002').line_id, qty: 2 }] }, tok.baklava);
+  const trip = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id] }, tok.dist).data.trip;
+  g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 3, reason: 'loading_error' }, { line_no: 2, qty: 1, reason: 'damaged' }] }, tok.cashier);
+  assert.equal(bal('I0001'), 5);
+  assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 1, 'a difference to review');
+  assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'diff_not_accepted');
+  assert.equal(g.api('orders.acceptDiff', { order_id: o.order_id, lines: [{ line_no: 1, decision: 'returned' }] }, tok.dist).error.code, 'decision_required');
+  assert.equal(g.api('orders.acceptDiff', { order_id: o.order_id, lines: [] }, tok.cashier).error.code, 'forbidden');
+  const res = g.api('orders.acceptDiff', { order_id: o.order_id, lines: [{ line_no: 1, decision: 'returned' }, { line_no: 2, decision: 'lost' }] }, tok.dist);
+  assert.equal(res.ok, true, JSON.stringify(res));
+  const r = res.data.order;
+  assert.equal(r.diff_status, 'accepted');
+  assert.deepEqual(r.lines.map((l) => l.short_decision), ['returned', 'lost']);
+  assert.equal(bal('I0001'), 7, 'the 2 bags left in the store come back');
+  assert.equal(bal('I0002'), 1, 'the damaged box does not');
+  assert.equal(g.api('orders.acceptDiff', { order_id: o.order_id, lines: [] }, tok.dist).error.code, 'order_decided');
+  assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 0);
 });

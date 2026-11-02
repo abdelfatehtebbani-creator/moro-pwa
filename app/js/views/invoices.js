@@ -23,7 +23,8 @@ export async function render(root) {
       waitBox.replaceChildren(...(list.length ? list.map((o) => h('div.req-card', h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
         h('span.muted', t('order_st_received'), ' ', h('span.num', fmtDate(String(o.received_at || '').slice(0, 10))))),
         h('small.muted', t('lines_n', { n: o.lines.filter((l) => Number(l.received_qty) > 0).length })),
-        h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+        o.diff_status === 'pending' ? h('p', h('span.pill.low', t('diff_pending')), ' ', h('small.muted', t('diff_wait_invoice'))) : null,
+        o.diff_status === 'pending' ? null : h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
           const btn = e.currentTarget; btn.disabled = true;
           try { const r = await call('invoices.create', { order_id: o.order_id }); toast(t('invoice_issued', { n: r.invoice.invoice_no }), 'ok'); loadWaiting(); loadList(); printInvoice(r.invoice); }
           catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }

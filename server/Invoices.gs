@@ -45,6 +45,7 @@ var Invoices = {
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
       Util.require(o && o.status === 'received', 'order_not_received');
+      Util.require(o.diff_status !== 'pending', 'diff_not_accepted');
       Util.require(!Repo.find('Invoices', 'order_id', o.order_id), 'already_invoiced');
       var lines = Orders.view(o).lines.filter(function (l) { return Number(l.received_qty) > 0; });
       Util.require(lines.length, 'nothing_to_save');

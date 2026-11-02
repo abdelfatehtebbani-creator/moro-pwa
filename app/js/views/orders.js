@@ -17,7 +17,8 @@ const SHORT_REASONS = ['damaged', 'short_in_trip', 'loading_error', 'other'];
 // the cashier's tabs: a tab shows the orders of these statuses
 const CASHIER_TABS = { new: null, draft: ['draft'], sent: ['sent', 'approved', 'ready', 'in_trip', 'loaded'], delivered: ['delivered'],
   archive: ['received', 'invoiced', 'rejected', 'cancelled'] };
-const APPROVE_TABS = ['sent', 'approved', 'ready', 'rejected', ''];
+const APPROVE_TABS = ['sent', 'approved', 'ready', 'diff', 'rejected', ''];
+const DIFF_DEFAULT = { loading_error: 'returned' };   // what the cashier's reason suggests; the rest: lost
 const tabs = { orders: 'new', orderapprove: 'sent' };
 let cleanup = null;
 
@@ -73,9 +74,10 @@ export async function render(root, name) {
     }
     if (tab === 'rejected') { try { localStorage.setItem(SEEN_REJECTED, new Date().toISOString().slice(0, 19)); } catch { /* storage blocked */ } }
     const seen = seenRejected();
-    const n = { sent: 0, approved: 0, ready: 0, rejected: 0 };
+    const n = { sent: 0, approved: 0, ready: 0, diff: 0, rejected: 0 };
     all.forEach((o) => {
-      if (o.status === 'rejected') { if (tab !== 'rejected' && String(o.decided_at || '') > seen) n.rejected++; }
+      if (o.status === 'received' && o.diff_status === 'pending') n.diff++;
+      else if (o.status === 'rejected') { if (tab !== 'rejected' && String(o.decided_at || '') > seen) n.rejected++; }
       else if (o.status in n) n[o.status]++;
     });
     Object.keys(n).forEach((k) => { if (counts[k]) { counts[k].hidden = !n[k]; counts[k].textContent = String(n[k]); } });
@@ -160,7 +162,8 @@ export async function render(root, name) {
       if (approveMode) {
         const all = await call('orders.list', { limit: 1000 });
         drawCounts(all);
-        list = (tab ? all.filter((o) => o.status === tab) : all).slice(0, 200);
+        const inTab = (o) => (tab === 'diff' ? o.status === 'received' && o.diff_status === 'pending' : o.status === tab);
+        list = (tab ? all.filter(inTab) : all).slice(0, 200);
       }
       else { const all = await call('orders.list', {}); drawCounts(all); const want = CASHIER_TABS[tab] || []; list = all.filter((o) => want.includes(o.status)); }
       listBox.replaceChildren(...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
@@ -182,6 +185,9 @@ export async function render(root, name) {
     const receiving = !approveMode && Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
     const got = [];
     const inputs = [];
+    // distribution: an order received short – where the missing quantity went, per line
+    const reviewing = approveMode && Data.can('orders.acceptDiff') && o.status === 'received' && o.diff_status === 'pending';
+    const decide = [];
     const rows = o.lines.map((l) => {
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
       const inp = approving ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: l.qty })) : null;
@@ -196,8 +202,14 @@ export async function render(root, name) {
         got.push({ line: l, q, why, note });
         recv = h('span', q, extra);
       }
+      let pick = null;
+      if (reviewing && l.short_reason) {
+        pick = h('select.input.small', ['returned', 'lost'].map((d) => h('option', { value: d, selected: (DIFF_DEFAULT[l.short_reason] || 'lost') === d }, t('diff_' + d))));
+        decide.push({ line_no: l.line_no, pick });
+      }
       const received = l.received_qty !== '' && l.received_qty !== undefined
-        ? h('span', fmtNum(l.received_qty), l.short_reason ? h('small.err-text', ' ' + t('short_' + l.short_reason) + (l.short_note ? ': ' + l.short_note : '')) : '') : '';
+        ? h('span', fmtNum(l.received_qty), l.short_reason ? h('small.err-text', ' −' + fmtNum(l.handed_qty - l.received_qty) + ' ' + t('short_' + l.short_reason) + (l.short_note ? ': ' + l.short_note : '')) : '',
+          l.short_decision ? h('small.muted', ' · ' + t('diff_' + l.short_decision)) : '', pick ? h('div', pick) : '') : '';
       const state = o.status === 'approved' || o.status === 'ready'
         ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', removed: 'out' }[l.status] || 'soon') }, t('line_' + l.status))
         : approving ? (Data.qty(l.item_id) > 0 ? h('span.pill.in', t('ord_available')) : h('span.pill.low', t('ord_not_available'))) : '';
@@ -206,6 +218,13 @@ export async function render(root, name) {
         h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''), h('td', inp || recv || received));
     });
     const actions = h('div.form-actions');
+    if (reviewing) {
+      actions.append(h('small.muted', t('diff_help')), h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await act('orders.acceptDiff', { order_id: o.order_id, lines: decide.map((x) => ({ line_no: x.line_no, decision: x.pick.value })) }); toast(t('diff_accepted'), 'ok'); loadList(); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      } }, t('diff_accept')));
+    }
     if (receiving && got.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
@@ -273,7 +292,8 @@ export async function render(root, name) {
     return h('div.req-card',
       h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
         h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date))),
-        h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status))),
+        h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status)),
+        o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null),
       o.note ? h('p.muted', o.note) : null,
       o.status === 'rejected' && o.reason ? h('p.err-text', t('order_rejected_why', { why: o.reason })) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('requested')), h('th', t('approved_qty')), h('th', t('issued')),

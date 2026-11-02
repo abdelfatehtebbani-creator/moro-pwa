@@ -161,7 +161,8 @@ var Movements = {
           return;
         }
         Util.require(kinds.indexOf(src.kind) >= 0, 'kind_invalid', src.kind);
-        Perm.canKind(session, src.kind);
+        // '_checked': the caller (shop orders) checked who may do this, by its own permission
+        if (storeOp !== '_checked') Perm.canKind(session, src.kind);
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
         Movements.fixedPrice(m, item);

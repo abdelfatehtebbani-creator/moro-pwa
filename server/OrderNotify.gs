@@ -87,11 +87,16 @@ var OrderNotify = {
 
   received: function (o, v, session) {
     var shop = OrderNotify.shopName(o);
+    if (o.diff_status !== 'pending') OrderNotify.invoiceReady(o, session);
+    var short = v.lines.filter(function (l) { return l.short_reason; }).length;
+    if (short) OrderNotify.send(Push.usersWith('orders.acceptDiff'), session, 'orderapprove',
+      ['فرق استلام للمراجعة ' + o.order_no, shop + ' – ' + short + ' سطر'], ['Receipt difference to review ' + o.order_no, shop + ' – ' + short + ' line(s)']);
+  },
+
+  invoiceReady: function (o, session) {
+    var shop = OrderNotify.shopName(o);
     OrderNotify.send(Push.usersWith('invoices.create'), session, 'invoices',
       ['طلبية للفوترة ' + o.order_no, shop], ['Order to invoice ' + o.order_no, shop]);
-    var short = v.lines.filter(function (l) { return l.short_reason; }).length;
-    if (short) OrderNotify.send(Push.usersWith('orders.approve'), session, 'orderapprove',
-      ['نقص عند الاستلام ' + o.order_no, shop + ' – ' + short + ' سطر'], ['Short at receipt ' + o.order_no, shop + ' – ' + short + ' line(s)']);
   },
 
   /** The numbers on the menu: what waits for this user in the order cycle. */
@@ -108,7 +113,7 @@ var OrderNotify = {
       Repo.all('Trips').forEach(function (t) { if (t.driver_id === session.user_id && t.status !== 'cancelled') mine[t.trip_id] = true; });
       out.trips = Repo.all('TripStops').filter(function (s) { return mine[s.trip_id] && !s.delivered_at; }).length;
     }
-    if (Perm.has(session, 'invoices.create')) out.invoices = orders.filter(function (o) { return o.status === 'received'; }).length;
+    if (Perm.has(session, 'invoices.create')) out.invoices = orders.filter(function (o) { return o.status === 'received' && o.diff_status !== 'pending'; }).length;
     return out;
   }
 };

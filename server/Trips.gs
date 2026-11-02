@@ -128,7 +128,7 @@ var Trips = {
       Util.require(o && o.status === 'delivered' && o.shop_party_id === Orders.shopOf(session), 'not_found');
       var given = {};
       (p.lines || []).forEach(function (x) { given[Number(x.line_no)] = x; });
-      var view = Orders.view(o);
+      var view = Orders.view(o), short = false;
       view.lines.forEach(function (l) {
         if (l.status === 'removed') return;
         var x = given[l.line_no] || {};
@@ -138,11 +138,14 @@ var Trips = {
         if (q < l.handed_qty) {
           Util.require(SHORT_REASONS.indexOf(x.reason) >= 0, 'reason_required', l.line_no);
           ch.short_reason = x.reason; ch.short_note = Util.clean(x.note);
+          short = true;
         }
         Repo.updateWhere('OrderItems', function (r) { return r.order_id === o.order_id && Number(r.line_no) === l.line_no; }, ch);
       });
       var now = Util.nowIso();
-      Repo.update('Orders', 'order_id', o.order_id, { status: 'received', received_at: now, received_by: session.user_id, updated_at: now });
+      // received less than handed: distribution reviews the difference before the invoice
+      Repo.update('Orders', 'order_id', o.order_id, { status: 'received', received_at: now, received_by: session.user_id, updated_at: now,
+        diff_status: short ? 'pending' : '' });
       Audit.log(session.user_id, 'order_receive', 'Orders', o.order_id, null, { lines: view.lines.length });
       var after = Repo.find('Orders', 'order_id', o.order_id);
       OrderNotify.received(after, Orders.view(after), session);

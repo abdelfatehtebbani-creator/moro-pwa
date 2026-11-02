@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.112', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) فروق الاستلام: طلبية استلمها الكاشير ناقصة تظهر في تبويب "فروق الاستلام" عند مسؤول التوزيع، ولا تُفوتر حتى يعتمد الفرق ويختار لكل سطر: رجع إلى المخزن (تعود الكمية إلى الرصيد) أو تالف أو مفقود.'] },
+    en: { news: ['(Development copy) Receipt differences: an order received short shows in distribution’s "Receipt differences" tab, and is not invoiced until the difference is accepted with, per line, back to the store (the quantity returns to stock) or damaged or lost.'] },
+  },
+  {
     v: '0.9.111', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) الكاشير: رقم على تبويب "وصلت" بعدد الطلبيات التي وصلت ولم يؤكَّد استلامها.'] },
     en: { news: ['(Development copy) The cashier: a number on "Delivered" with the orders that arrived and are not yet received.'] },
