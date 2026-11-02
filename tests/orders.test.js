@@ -189,6 +189,9 @@ test('notifications: each step of an order tells whoever acts next, and the menu
   const trip = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id] }, tok.dist).data.trip;
   assert.deepEqual(sent().map((x) => [x.page, x.to.join()]), [['trips', 'drv']]);
   assert.equal(todo('drv').order_todo.trips, 1);
+  // the driver sees the load of each stop: what was handed
+  const mine = g.api('trips.list', { open: true }, tok.drv).data[0];
+  assert.deepEqual(mine.stops[0].load.map((x) => [x.item_id, x.qty]), [['I0001', 1], ['I0002', 2]]);
   g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
   assert.deepEqual(sent().map((x) => [x.page, x.to.join()]), [['orders', 'cashier']]);
   g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
