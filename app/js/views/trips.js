@@ -102,14 +102,14 @@ export async function render(root) {
   function card(trip) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
     const stops = trip.stops.map((s) => {
-      const act = (step) => async (e) => {
+      const doStep = (step) => async (e) => {
         const btn = e.currentTarget; btn.disabled = true;
         try { await act('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };
       const button = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
-        ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: act('load') }, t('stop_load'))
-          : !s.delivered_at ? h('button.btn.save-btn', { type: 'button', onclick: act('deliver') }, t('stop_deliver')) : null) : null;
+        ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: doStep('load') }, t('stop_load'))
+          : !s.delivered_at ? h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver')) : null) : null;
       const [showBtn, loadBox] = toggle(t('load_show'), () => loadTable(s.load || []));
       return h('div', h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
         h('small.muted', s.order_no + ' · ' + t('lines_n', { n: s.lines })),
