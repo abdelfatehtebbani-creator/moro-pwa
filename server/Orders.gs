@@ -96,6 +96,7 @@ var Orders = {
         Repo.append('OrderItems', rows);
       }
       Audit.log(session.user_id, send ? 'order_send' : 'order_save', 'Orders', id, null, { lines: rows.length });
+      if (send) OrderNotify.sent(Repo.find('Orders', 'order_id', id), session);
       return { order: Orders.view(Repo.find('Orders', 'order_id', id)), version: Version.bump() };
     });
   },
@@ -136,11 +137,11 @@ var Orders = {
       Shop.notifyNew(o, shopLines);
       Repo.update('Orders', 'order_id', o.order_id, { status: 'approved', decided_by: session.user_id, decided_at: now, updated_at: now });
       Audit.log(session.user_id, 'order_approve', 'Orders', o.order_id, null, { lines: shopLines.length });
+      OrderNotify.decided(o, true, '', session);
       return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
     });
   },
 
-  /** Distribution: rejects a sent order with a reason (the cashier sees it). */
   /**
    * Distribution accepts what was handed of an order being prepared and closes what is left (given in part,
    * or not given at all): the order goes on to the trips with what was handed. Nothing handed at all: the
@@ -165,10 +166,13 @@ var Orders = {
       if (!(handed > 0)) { ch.status = 'cancelled'; ch.reason = reason; }
       Repo.update('Orders', 'order_id', o.order_id, ch);
       Audit.log(session.user_id, 'order_close_short', 'Orders', o.order_id, null, { reason: reason, handed: handed });
+      OrderNotify.closed(Repo.find('Orders', 'order_id', o.order_id), reason, session);
+      OrderNotify.lines([{ order_id: o.order_id }], session);
       return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
     });
   },
 
+  /** Distribution: rejects a sent order with a reason (the cashier sees it). */
   reject: function (session, p) {
     var reason = Util.clean(p.reason);
     Util.require(reason, 'reason_required');
@@ -178,6 +182,7 @@ var Orders = {
       var now = Util.nowIso();
       Repo.update('Orders', 'order_id', o.order_id, { status: 'rejected', reason: reason, decided_by: session.user_id, decided_at: now, updated_at: now });
       Audit.log(session.user_id, 'order_reject', 'Orders', o.order_id, null, { reason: reason });
+      OrderNotify.decided(o, false, reason, session);
       return { order_id: o.order_id, version: Version.bump() };
     });
   },
@@ -208,8 +213,13 @@ var Orders = {
     });
   },
 
-  /** Sent orders waiting for distribution (the badge). */
+  /** Orders waiting for distribution (the badge): sent, to approve; being prepared with a line short, to decide. */
   pending: function () {
-    return Repo.all('Orders').filter(function (o) { return o.status === 'sent'; }).length;
+    return Repo.all('Orders').filter(function (o) {
+      if (o.status === 'sent') return true;
+      if (o.status !== 'approved') return false;
+      var v = Orders.view(o);
+      return v.status === 'approved' && v.lines.some(function (l) { return l.status === 'unavailable' || l.status === 'partial'; });
+    }).length;
   }
 };

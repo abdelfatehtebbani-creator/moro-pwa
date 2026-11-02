@@ -326,6 +326,7 @@ var Masters = {
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
       orders_pending: Perm.has(session, 'orders.approve') ? Orders.pending() : 0,
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
+      order_todo: OrderNotify.todo(session),
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
       // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {

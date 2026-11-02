@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.98', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إشعار على الهاتف لكل خطوة في الطلبية، لمن عليه التصرّف: طلبية جديدة للاعتماد، اعتماد أو رفض للكاشير، نقص في التجهيز، جاهزة للتوزيع، رحلة جديدة أو ملغاة للسائق، في الطريق، وصلت، وطلبية للفوترة. وأرقام على "طلبيتي" و"الرحلات" و"الفواتير" بما ينتظرك.'] },
+    en: { news: ['(Development copy) A phone message for every step of an order, to whoever has to act: a new order to approve, approved or rejected for the cashier, short in preparation, ready for distribution, a new or cancelled trip for the driver, on the way, delivered, and an order to invoice. Numbers on "My order", "Trips" and "Invoices" for what waits for you.'] },
+  },
+  {
     v: '0.9.97', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) طلبية لم تُجهَّز كاملة: في "اعتماد الطلبيات" ← قيد التجهيز، زر "اعتماد ما سُلّم وإغلاق الباقي" ينقلها بما سُلّم إلى الرحلات. إن لم يُسلَّم شيء تُغلق.'] },
     en: { news: ['(Development copy) An order not fully prepared: in "Approve orders" → being prepared, "Accept what was handed, close the rest" sends it on to the trips with what was handed. Nothing handed: it is closed.'] },
