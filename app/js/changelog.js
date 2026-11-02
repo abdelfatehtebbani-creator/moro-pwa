@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.101', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة MORO أصغر، وجملة Materials Operations & Records Organizer أكبر.'] },
+    en: { news: ['(Development copy) The home screen disc: MORO smaller, Materials Operations & Records Organizer larger.'] },
+  },
+  {
     v: '0.9.100', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) السائق: زر "عرض الحمولة" لكل محل في الرحلة (ما سُلّم من كل مادة وكميته)، و"حمولة الرحلة كاملة" بمجموع كل المحلات، ليطابقها مع ما في السيارة قبل التحميل.'] },
     en: { news: ['(Development copy) The driver: "Show the load" for each shop of the trip (each item handed and its quantity), and "The whole trip’s load" summed over the shops, to check against the car before loading.'] },
