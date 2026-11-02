@@ -56,6 +56,37 @@ var Shop = {
     return Stores.allows(session, store, 'shop');
   },
 
+  /** What a user row may do, as a session (to tell who prepares which lines). */
+  sessionOf: function (u) {
+    return { user_id: u.user_id, role: u.role, perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u), depts: Auth.deptsOf(u) };
+  },
+
+  /** Lines of orders made in MORO waiting to be prepared by this user (the badge of "Prepare orders"). */
+  todo: function (session) {
+    var native = {};
+    Repo.all('Orders').forEach(function (o) { native[o.order_id] = true; });
+    var orders = {};
+    Repo.all('ShopOrderLines').forEach(function (l) {
+      if (!native[l.order_id] || LINE_OPEN.indexOf(l.status) < 0 || !Shop.approved(l)) return;
+      if (Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id))) orders[l.order_id] = true;
+    });
+    return Object.keys(orders).length;
+  },
+
+  /** Phone message to whoever prepares some of these new lines: the departments and storekeepers concerned. */
+  notifyNew: function (o, lines) {
+    var shop = (Repo.find('Parties', 'party_id', o.shop_party_id) || {}).name || '';
+    var to = Repo.all('Users').filter(function (u) {
+      if (u.active !== true) return false;
+      var s = Shop.sessionOf(u);
+      if (s.perms.indexOf('shop.hand') < 0) return false;
+      return lines.some(function (x) { return Shop.mayWork(s, Repo.find('Items', 'item_id', x.item_id)); });
+    }).map(function (u) { return u.user_id; });
+    Push.toUsers(to, {
+      ar: { title: 'طلبية للتجهيز ' + o.order_no, body: shop }, en: { title: 'Order to prepare ' + o.order_no, body: shop },
+      page: 'shoporders', badge: 1 });
+  },
+
   /** An order made in MORO (Orders.gs), approved: its lines join the shop order lines. lines [{order_item_id, item_id, qty, unit}]. */
   addLines: function (o, lines, now) {
     var touched = {};

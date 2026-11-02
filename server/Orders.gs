@@ -133,6 +133,7 @@ var Orders = {
       });
       Util.require(shopLines.length, 'nothing_to_save');
       Shop.addLines(o, shopLines, now);
+      Shop.notifyNew(o, shopLines);
       Repo.update('Orders', 'order_id', o.order_id, { status: 'approved', decided_by: session.user_id, decided_at: now, updated_at: now });
       Audit.log(session.user_id, 'order_approve', 'Orders', o.order_id, null, { lines: shopLines.length });
       return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };

@@ -51,6 +51,9 @@ test('orders: one cashier per shop; a draft is sent for the next day; distributi
   const a = g.api('orders.approve', { order_id: d.order_id, lines: [{ line_no: 2, qty: 2 }] }, tok.dist);
   assert.equal(a.ok, true, JSON.stringify(a));
   assert.deepEqual(a.data.order.lines.map((l) => l.approved_qty), [4, 2]);
+  // a number on "Prepare orders" for those who prepare its lines
+  const todo = (who) => g.api('data.bootstrap', {}, tok[who]).data.shop_todo;
+  assert.deepEqual([todo('baklava'), todo('store'), todo('dist')], [1, 1, 0]);
   // the department head sees the baklava line, the storekeeper the flour line, the production manager both
   const view = (who) => g.api('shop.list', {}, tok[who]).data.map((l) => [l.item_id, l.can]);
   assert.deepEqual(view('baklava'), [['I0002', true]]);
