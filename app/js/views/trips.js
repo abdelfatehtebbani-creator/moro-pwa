@@ -95,12 +95,16 @@ export async function render(root) {
     return loadTable([...sum.values()].sort((a, b) => itemName(a).localeCompare(itemName(b))));
   };
 
+  // a step on its way: the list is not refreshed under it
+  let busy = 0;
+  const act = async (action, payload) => { busy++; try { return await call(action, payload); } finally { busy--; } };
+
   function card(trip) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
     const stops = trip.stops.map((s) => {
       const act = (step) => async (e) => {
         const btn = e.currentTarget; btn.disabled = true;
-        try { await call('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
+        try { await act('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };
       const button = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
@@ -117,7 +121,7 @@ export async function render(root) {
     if (trip.stops.length > 1) actions.append(allBtn);
     if (manage && trip.status === 'preparing' && !trip.stops.some((s) => s.loaded_at)) {
       actions.append(h('button.btn.secondary', { type: 'button', onclick: async () => {
-        try { await call('trips.cancel', { trip_id: trip.trip_id }); toast(t('trip_cancelled'), 'ok'); drawNew(); loadList(); } catch (e) { toast(errText(e), 'err'); }
+        try { await act('trips.cancel', { trip_id: trip.trip_id }); toast(t('trip_cancelled'), 'ok'); drawNew(); loadList(); } catch (e) { toast(errText(e), 'err'); }
       } }, t('trip_cancel')));
     }
     return h('div.req-card', h('div.card-head', h('b', trip.trip_id), h('span', '🚚 ', h('bdi', driverName)), h('span.muted.num', fmtDate(String(trip.created_at).slice(0, 10))),
@@ -126,7 +130,7 @@ export async function render(root) {
 
   root.replaceChildren(...parts);
   show();
-  const timer = setInterval(() => { if (document.visibilityState === 'visible') loadList(true); }, 20000);
+  const timer = setInterval(() => { if (!busy && document.visibilityState === 'visible') loadList(true); }, 20000);
   cleanup = () => { clearInterval(timer); cleanup = null; };
 }
 

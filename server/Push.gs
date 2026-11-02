@@ -57,6 +57,8 @@ var Push = {
    * each in the language of the app on that device. Never throws. Returns the number of devices reached.
    */
   toUsers: function (userIds, msg) {
+    // inside an operation: sent once it is done and the lock released, so nobody waits on the phones
+    if (LOCK_DEPTH) { whenUnlocked(function () { Push.toUsers(userIds, msg); }); return 0; }
     try {
       if (!userIds.length || !Push.configured()) return 0;
       var devices = Repo.all('PushDevices').filter(function (d) { return !d.revoked_at && userIds.indexOf(d.user_id) >= 0; });

@@ -119,7 +119,8 @@ var Orders = {
   approve: function (session, p) {
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
-      Util.require(o && o.status === 'sent', 'not_found');
+      Util.require(o, 'not_found');
+      Util.require(o.status === 'sent', 'order_decided', o.status);
       var want = {};
       (p.lines || []).forEach(function (x) { want[Number(x.line_no)] = Util.num(x.qty); });
       var items = Repo.all('OrderItems').filter(function (x) { return x.order_id === o.order_id; });
@@ -151,7 +152,8 @@ var Orders = {
     var reason = Util.clean(p.reason) || 'Closed by distribution';
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
-      Util.require(o && o.status === 'approved', 'not_found');
+      Util.require(o, 'not_found');
+      Util.require(o.status === 'approved', 'order_decided', o.status);
       var now = Util.nowIso(), touched = {}, handed = 0;
       Repo.all('ShopOrderLines').forEach(function (l) {
         if (l.order_id !== o.order_id) return;
@@ -178,7 +180,8 @@ var Orders = {
     Util.require(reason, 'reason_required');
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
-      Util.require(o && o.status === 'sent', 'not_found');
+      Util.require(o, 'not_found');
+      Util.require(o.status === 'sent', 'order_decided', o.status);
       var now = Util.nowIso();
       Repo.update('Orders', 'order_id', o.order_id, { status: 'rejected', reason: reason, decided_by: session.user_id, decided_at: now, updated_at: now });
       Audit.log(session.user_id, 'order_reject', 'Orders', o.order_id, null, { reason: reason });

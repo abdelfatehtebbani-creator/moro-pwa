@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.104', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات أسرع (الإشعارات تُرسل بعد حفظ القرار)، ولا تتحدّث القائمة أثناء إرسال القرار فلا يظهر الزر مرة ثانية. وإن سبقك أحد إلى الطلبية تظهر رسالة واضحة بدل "السجل غير موجود".'] },
+    en: { news: ['(Development copy) Approving orders is quicker (messages go out after the decision is saved), and the list does not refresh while a decision is on its way, so the button does not come back. If someone acted on the order first, a clear message replaces "Record not found".'] },
+  },
+  {
     v: '0.9.103', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة «MORO» بخط رقيق وبين علامتي تنصيص.'] },
     en: { news: ['(Development copy) The home screen disc: "MORO" in a thin type, between quotes.'] },

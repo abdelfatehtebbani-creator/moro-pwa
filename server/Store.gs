@@ -64,12 +64,35 @@ var Balances = {
 };
 
 /** Runs fn while holding the script lock (all writes go through here). */
+// work to do once the outermost lock is released (phone messages: slow, and nothing for others to wait on)
+var LOCK_DEPTH = 0;
+var AFTER_LOCK = [];
+
 function withLock(fn) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new AppError('busy');
+  var out;
+  LOCK_DEPTH++;
   try {
-    return fn();
+    out = fn();
+  } catch (e) {
+    if (LOCK_DEPTH === 1) AFTER_LOCK = [];          // the operation failed: nothing to tell
+    throw e;
   } finally {
-    lock.releaseLock();
+    LOCK_DEPTH--;
+    if (!LOCK_DEPTH) lock.releaseLock();
   }
+  if (!LOCK_DEPTH) afterLock();
+  return out;
+}
+
+/** Runs now outside a lock, or when the lock is released. */
+function whenUnlocked(job) {
+  if (LOCK_DEPTH) AFTER_LOCK.push(job); else job();
+}
+
+function afterLock() {
+  var jobs = AFTER_LOCK;
+  AFTER_LOCK = [];
+  jobs.forEach(function (j) { try { j(); } catch (e) { console.error('after lock ' + (e && e.stack || e)); } });
 }

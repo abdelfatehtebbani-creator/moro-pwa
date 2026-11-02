@@ -203,3 +203,13 @@ test('notifications: each step of an order tells whoever acts next, and the menu
   assert.ok(s3[0].to.includes('acc') && s3[0].to.includes('dist'));
   assert.deepEqual([todo('acc').order_todo.invoices, todo('cashier').order_todo.orders], [1, 0]);
 });
+
+test('an order decided already says so (a second press, or two people at once)', () => {
+  const { g, tok } = env();
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+  assert.equal(g.api('orders.approve', { order_id: o.order_id }, tok.dist).ok, true);
+  const again = g.api('orders.approve', { order_id: o.order_id }, tok.dist).error;
+  assert.deepEqual([again.code, again.detail], ['order_decided', 'approved']);
+  assert.equal(g.api('orders.reject', { order_id: o.order_id, reason: 'x' }, tok.dist).error.code, 'order_decided');
+  assert.equal(g.api('orders.approve', { order_id: 'NOPE' }, tok.dist).error.code, 'not_found');
+});

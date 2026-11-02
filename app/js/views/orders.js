@@ -137,6 +137,15 @@ export async function render(root, name) {
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 
+  // a decision on its way: the list is not refreshed under it (a fresh card would offer the button again)
+  let busy = 0;
+  const act = async (action, payload) => {
+    busy++;
+    try { return await call(action, payload); }
+    catch (e) { if (e.code === 'order_decided') setTimeout(() => loadList(true), 0); throw e; }
+    finally { busy--; }
+  };
+
   function card(o) {
     const approving = approveMode && Data.can('orders.approve') && o.status === 'sent';
     // the cashier receives a delivered order: what came, per line; less than handed needs a reason
@@ -177,7 +186,7 @@ export async function render(root, name) {
         }
         btn.disabled = true;
         try {
-          await call('orders.receive', { order_id: o.order_id, lines: got.map((x) => ({ line_no: x.line.line_no, qty: Number(x.q.value), reason: x.why.value, note: x.note.value })) });
+          await act('orders.receive', { order_id: o.order_id, lines: got.map((x) => ({ line_no: x.line.line_no, qty: Number(x.q.value), reason: x.why.value, note: x.note.value })) });
           toast(t('order_received'), 'ok'); loadList();
         } catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t('order_receive')));
@@ -189,7 +198,7 @@ export async function render(root, name) {
           const ls = inputs.map((x) => ({ line_no: x.line_no, qty: Number(x.inp.value) || 0 }));
           if (!ls.some((x) => x.qty > 0)) { inputs.forEach((x) => flash(x.inp)); return; }
           btn.disabled = true;
-          try { await call('orders.approve', { order_id: o.order_id, lines: ls }); toast(t('order_approved'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+          try { await act('orders.approve', { order_id: o.order_id, lines: ls }); toast(t('order_approved'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
           catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
         } }, t('order_approve')),
         h('button.btn.danger', { type: 'button', onclick: async () => {
@@ -200,7 +209,7 @@ export async function render(root, name) {
                 h('button.btn.danger', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t('order_reject')))];
           });
           if (!why) return;
-          try { await call('orders.reject', { order_id: o.order_id, reason: why }); toast(t('order_rejected'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+          try { await act('orders.reject', { order_id: o.order_id, reason: why }); toast(t('order_rejected'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
           catch (ex) { toast(errText(ex), 'err'); }
         } }, t('order_reject')));
     }
@@ -216,7 +225,7 @@ export async function render(root, name) {
         });
         if (!why) return;
         const btn = e.target; btn.disabled = true;
-        try { await call('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); loadList(); }
+        try { await act('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); loadList(); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t(handed ? 'close_short' : 'close_none')));
     }
@@ -228,7 +237,7 @@ export async function render(root, name) {
         } }, t('edit')),
         h('button.btn.secondary', { type: 'button', onclick: async () => {
           if (!(await confirm(t('order_cancel_confirm')))) return;
-          try { await call('orders.cancel', { order_id: o.order_id }); toast(t('order_cancelled'), 'ok'); loadList(); } catch (e) { toast(errText(e), 'err'); }
+          try { await act('orders.cancel', { order_id: o.order_id }); toast(t('order_cancelled'), 'ok'); loadList(); } catch (e) { toast(errText(e), 'err'); }
         } }, t('order_cancel')));
     }
     return h('div.req-card',
@@ -249,7 +258,7 @@ export async function render(root, name) {
 
   root.replaceChildren(...parts);
   show();
-  const onData = () => { if (!listBox.hidden && !(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true); };
+  const onData = () => { if (!busy && !listBox.hidden && !(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true); };
   const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 20000);
   window.addEventListener('moro:data', onData);
   cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); cleanup = null; };
