@@ -155,7 +155,7 @@ function buildShell() {
   for (const name of Object.keys(ROUTES)) {
     if (!allowed(name)) continue;
     if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove'].includes(name) ? h('span.badge', { hidden: true }) : null));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -167,7 +167,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove'].includes(name) ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -351,7 +351,10 @@ function updateBadges() {
   // sent orders waiting for distribution's approval
   const o = allowed('orderapprove') ? Number((Data.boot || {}).orders_pending) || 0 : 0;
   document.querySelectorAll('a[data-route="orderapprove"] .badge').forEach((b) => { b.hidden = !o; b.textContent = String(o); });
-  Push.badge(n + r + o);
+  // orders whose lines this user prepares (their stores, their departments)
+  const sp = allowed('shoporders') ? Number((Data.boot || {}).shop_todo) || 0 : 0;
+  document.querySelectorAll('a[data-route="shoporders"] .badge').forEach((b) => { b.hidden = !sp; b.textContent = String(sp); });
+  Push.badge(n + r + o + sp);
 }
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
