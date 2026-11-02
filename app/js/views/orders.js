@@ -73,9 +73,8 @@ export async function render(root, name) {
   let lines = [];
   let source = 'all';        // the item picker: all, a store, or a department
   function drawEditor() {
-    // the stores (final products come by department) and the departments that make something
-    const depts = [...new Set(Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && i.dept).map((i) => i.dept))]
-      .map((id) => Data.parties.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+    // the stores (final products come by department) and the producing departments
+    const depts = Data.producingDepts();
     const sources = [['all', t('order_st_all')], ...STORES.filter((s) => s !== 'FINAL').map((s) => ['s:' + s, t('store_' + s)]),
       ...depts.map((p) => ['d:' + p.party_id, p.name])];
     const inSource = (i) => source === 'all' || (source.startsWith('s:') ? Data.storeOf(i) === source.slice(2) && Data.storeOf(i) !== 'FINAL'
