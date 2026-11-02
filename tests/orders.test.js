@@ -146,3 +146,18 @@ test('cashier shift: the cashier chooses the shop they work in; another cashier 
   assert.equal(g.api('orders.shift', { shop: 'P002' }, tok.cash2).ok, true);
   assert.equal(g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cash2).data.order.shop_party_id, 'P002');
 });
+
+test('distribution accepts what was handed and closes the rest: the order goes on to the trips; nothing handed: closed', () => {
+  const { g, tok } = env();
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 4 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const flour = g.api('shop.list', {}, tok.store).data[0];
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: flour.line_id, qty: 1 }] }, tok.store);
+  assert.equal(g.api('orders.closeShort', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
+  const r = g.api('orders.closeShort', { order_id: o.order_id, reason: 'No more' }, tok.dist).data.order;
+  assert.equal(r.status, 'ready');
+  assert.deepEqual(r.lines.map((l) => [l.status, l.handed_qty]), [['handed', 1], ['unavailable', 0]]);
+  const o2 = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o2.order_id }, tok.dist);
+  assert.equal(g.api('orders.closeShort', { order_id: o2.order_id }, tok.dist).data.order.status, 'cancelled');
+});

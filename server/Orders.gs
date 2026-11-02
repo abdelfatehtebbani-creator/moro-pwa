@@ -141,6 +141,34 @@ var Orders = {
   },
 
   /** Distribution: rejects a sent order with a reason (the cashier sees it). */
+  /**
+   * Distribution accepts what was handed of an order being prepared and closes what is left (given in part,
+   * or not given at all): the order goes on to the trips with what was handed. Nothing handed at all: the
+   * order is closed as not supplied. p: {order_id, reason}.
+   */
+  closeShort: function (session, p) {
+    var reason = Util.clean(p.reason) || 'Closed by distribution';
+    return withLock(function () {
+      var o = Repo.find('Orders', 'order_id', p.order_id);
+      Util.require(o && o.status === 'approved', 'not_found');
+      var now = Util.nowIso(), touched = {}, handed = 0;
+      Repo.all('ShopOrderLines').forEach(function (l) {
+        if (l.order_id !== o.order_id) return;
+        handed += Number(l.handed_qty) || 0;
+        if (l.status !== 'open' && l.status !== 'partial') return;
+        Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: Number(l.handed_qty) > 0 ? 'handed' : 'unavailable', reserved_qty: 0,
+          reason: reason, updated_at: now });
+        touched[l.item_id] = true;
+      });
+      Shop.rebalance(Object.keys(touched));
+      var ch = { updated_at: now };
+      if (!(handed > 0)) { ch.status = 'cancelled'; ch.reason = reason; }
+      Repo.update('Orders', 'order_id', o.order_id, ch);
+      Audit.log(session.user_id, 'order_close_short', 'Orders', o.order_id, null, { reason: reason, handed: handed });
+      return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
+    });
+  },
+
   reject: function (session, p) {
     var reason = Util.clean(p.reason);
     Util.require(reason, 'reason_required');

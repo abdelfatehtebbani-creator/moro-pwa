@@ -204,6 +204,22 @@ export async function render(root, name) {
           catch (ex) { toast(errText(ex), 'err'); }
         } }, t('order_reject')));
     }
+    // being prepared: distribution may take what was handed and close the rest (the order goes on to the trips)
+    if (approveMode && Data.can('orders.closeShort') && o.status === 'approved') {
+      const handed = o.lines.some((l) => l.handed_qty > 0);
+      actions.append(h('small.muted', t('close_short_help')), h('button.btn.secondary', { type: 'button', onclick: async (e) => {
+        const why = await dialog((close) => {
+          const r = trackFilled(h('input.input#o-short', { value: t('close_short_default') }));
+          return [h('h3', t(handed ? 'close_short' : 'close_none'), ' ', o.order_no), h('p', t(handed ? 'close_short_confirm' : 'close_none_confirm')), field(t('reason'), r),
+            h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+              h('button.btn', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t(handed ? 'close_short' : 'close_none')))];
+        });
+        if (!why) return;
+        const btn = e.target; btn.disabled = true;
+        try { await call('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); loadList(); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      } }, t(handed ? 'close_short' : 'close_none'))));
+    }
     if (!approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
       actions.append(
         h('button.btn', { type: 'button', onclick: () => {
