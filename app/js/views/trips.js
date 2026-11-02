@@ -4,7 +4,7 @@
 import { call } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
-import { h, toast, flash, fmtDate, fmtNum, trackFilled } from '../ui.js';
+import { h, toast, flash, fmtDate, fmtNum, trackFilled, dialog } from '../ui.js';
 import { field } from '../components.js';
 
 const PILL = { preparing: 'soon', loaded: 'soon', in_transit: 'soon', completed: 'in', cancelled: 'out' };
@@ -103,7 +103,16 @@ export async function render(root) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
     const stops = trip.stops.map((s) => {
       const doStep = (step) => async (e) => {
-        const btn = e.currentTarget; btn.disabled = true;
+        const btn = e.currentTarget;
+        // a shop delivered before one earlier in the order of the stops: asked once more
+        const before = step === 'deliver' ? trip.stops.find((x) => x.seq < s.seq && !x.delivered_at) : null;
+        if (before) {
+          const ok = await dialog((close) => [h('p', t('deliver_out_of_order', { n: before.seq, shop: shopName(before.shop_party_id) })),
+            h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
+              h('button.btn', { type: 'button', onclick: () => close(true) }, t('stop_deliver')))]);
+          if (!ok) return;
+        }
+        btn.disabled = true;
         try { await act('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };

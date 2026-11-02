@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.110', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: تسليم محل قبل محل يسبقه في ترتيب الرحلة يطلب تأكيدًا.'] },
+    en: { news: ['(Development copy) The driver: delivering a shop before one earlier in the trip asks for a confirmation.'] },
+  },
+  {
     v: '0.9.109', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) السائق: لا تسليم قبل تحميل كل طلبيات الرحلة. يظهر زر "تم التسليم" بعد تحميل الجميع.'] },
     en: { news: ['(Development copy) The driver: no delivery before every order of the trip is loaded. "Delivered" shows once all are loaded.'] },
