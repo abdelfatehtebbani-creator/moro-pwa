@@ -72,6 +72,9 @@ function withLock(fn) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new AppError('busy');
   var out;
+  // what this request read before the lock may be old by now (another request wrote meanwhile: a counter,
+  // a balance): inside the lock everything is read again from the sheets
+  if (!LOCK_DEPTH) Repo.reset();
   LOCK_DEPTH++;
   try {
     out = fn();
