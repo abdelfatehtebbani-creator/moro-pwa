@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.102', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة 'MORO' بخط رقيق وبين علامتي تنصيص.'] },
+    en: { news: ['(Development copy) The home screen disc: 'MORO' in a thin type, between quotes.'] },
+  },
+  {
     v: '0.9.101', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة MORO أصغر، وجملة Materials Operations & Records Organizer أكبر.'] },
     en: { news: ['(Development copy) The home screen disc: MORO smaller, Materials Operations & Records Organizer larger.'] },
