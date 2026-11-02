@@ -54,9 +54,26 @@ export async function render(root, name) {
   const tabBar = h('div.tabs');
   const keys = approveMode ? APPROVE_TABS : Object.keys(CASHIER_TABS);
   if (!keys.includes(tab)) tab = keys[0];
-  keys.forEach((k) => tabBar.append(h('button', { type: 'button', class: k === tab ? 'on' : '',
-    onclick: (e) => { tab = tabs[name] = k; [...tabBar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } },
-    t(approveMode ? 'order_st_' + (k || 'all') : 'otab_' + k))));
+  // distribution: how many orders wait in each tab (rejected: those rejected since the tab was last opened)
+  const counts = {};
+  keys.forEach((k) => {
+    counts[k] = h('span.tab-count', { hidden: true });
+    tabBar.append(h('button', { type: 'button', class: k === tab ? 'on' : '',
+      onclick: (e) => { tab = tabs[name] = k; [...tabBar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } },
+      t(approveMode ? 'order_st_' + (k || 'all') : 'otab_' + k), counts[k]));
+  });
+  const SEEN_REJECTED = 'moro.orders.rejectedSeen';
+  const seenRejected = () => { try { return localStorage.getItem(SEEN_REJECTED) || ''; } catch { return ''; } };
+  function drawCounts(all) {
+    if (tab === 'rejected') { try { localStorage.setItem(SEEN_REJECTED, new Date().toISOString().slice(0, 19)); } catch { /* storage blocked */ } }
+    const seen = seenRejected();
+    const n = { sent: 0, approved: 0, ready: 0, rejected: 0 };
+    all.forEach((o) => {
+      if (o.status === 'rejected') { if (tab !== 'rejected' && String(o.decided_at || '') > seen) n.rejected++; }
+      else if (o.status in n) n[o.status]++;
+    });
+    Object.keys(n).forEach((k) => { if (counts[k]) { counts[k].hidden = !n[k]; counts[k].textContent = String(n[k]); } });
+  }
   const editorBox = h('div');
   const listBox = h('div.req-list');
   parts.push(h('div.card', h('div.card-head', h('h2', t(approveMode ? 'orderapprove' : 'orders')), tabBar), editorBox, listBox));
@@ -131,7 +148,11 @@ export async function render(root, name) {
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
       let list;
-      if (approveMode) list = await call('orders.list', tab ? { status: tab } : {});
+      if (approveMode) {
+        const all = await call('orders.list', { limit: 1000 });
+        drawCounts(all);
+        list = (tab ? all.filter((o) => o.status === tab) : all).slice(0, 200);
+      }
       else { const want = CASHIER_TABS[tab] || []; list = (await call('orders.list', {})).filter((o) => want.includes(o.status)); }
       listBox.replaceChildren(...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }

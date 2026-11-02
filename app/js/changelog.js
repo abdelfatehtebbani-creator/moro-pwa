@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.106', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات: رقم على كل تبويب بعدد طلبياته (بانتظار الاعتماد، قيد التجهيز، جاهزة للتوزيع)، وعلى "مرفوضة" عدد ما رُفض منذ آخر فتح لها. يتحدّث مع كل تغيير.'] },
+    en: { news: ['(Development copy) Approve orders: a number on each tab with its orders (waiting, being prepared, ready), and on "Rejected" those rejected since it was last opened. It follows every change.'] },
+  },
+  {
     v: '0.9.105', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) إصلاح: طلبيتان في اللحظة نفسها كانتا تأخذان الرقم نفسه. كل رقم (طلبية، حركة، رحلة، فاتورة…) يُقرأ الآن من جديد داخل القفل.'] },
     en: { news: ['(Development copy) Fix: two orders at the same moment took the same number. Every counter (order, movement, trip, invoice…) is now read afresh inside the lock.'] },
