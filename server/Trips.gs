@@ -79,6 +79,7 @@ var Trips = {
       stops.forEach(function (s) { Repo.update('Orders', 'order_id', s.order_id, { status: 'approved', trip_id: '', updated_at: now }); });
       Repo.update('Trips', 'trip_id', t.trip_id, { status: 'cancelled', updated_at: now });
       Audit.log(session.user_id, 'trip_cancel', 'Trips', t.trip_id, null, null);
+      OrderNotify.tripCancelled(t, session);
       return { trip_id: t.trip_id, version: Version.bump() };
     });
   },
@@ -104,6 +105,7 @@ var Trips = {
         : { status: 'delivered', delivered_at: now, updated_at: now });
       Audit.log(session.user_id, step === 'load' ? 'trip_loaded' : 'trip_delivered', 'Orders', p.order_id, null, { trip: t.trip_id });
       if (step === 'deliver') Notify.orderDelivered(Repo.find('Orders', 'order_id', p.order_id));
+      else OrderNotify.loaded(Repo.find('Orders', 'order_id', p.order_id), session);
       return { trip: Trips.view(t), version: Version.bump() };
     });
   },
@@ -134,7 +136,9 @@ var Trips = {
       var now = Util.nowIso();
       Repo.update('Orders', 'order_id', o.order_id, { status: 'received', received_at: now, received_by: session.user_id, updated_at: now });
       Audit.log(session.user_id, 'order_receive', 'Orders', o.order_id, null, { lines: view.lines.length });
-      return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
+      var after = Repo.find('Orders', 'order_id', o.order_id);
+      OrderNotify.received(after, Orders.view(after), session);
+      return { order: Orders.view(after), version: Version.bump() };
     });
   },
 

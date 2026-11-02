@@ -267,7 +267,7 @@ var Shop = {
     });
     var saved = Movements.save(session, { movements: movs }, null, '_checked');
     return withLock(function () {
-      var now = Util.nowIso(), touched = {};
+      var now = Util.nowIso(), touched = {}, changes = [];
       plan.forEach(function (x, i) {
         var s = saved.saved[i];
         if (s.duplicate) return;
@@ -278,8 +278,10 @@ var Shop = {
         Repo.update('ShopOrderLines', 'line_id', l.line_id, { handed_qty: handed, reserved_qty: res,
           status: handed >= Number(l.qty) ? 'handed' : 'partial', handed_by: session.user_id, handed_at: now, updated_at: now, movement_ids: ids });
         touched[l.item_id] = true;
+        changes.push({ order_id: l.order_id, item_id: l.item_id, short: handed < Number(l.qty) });
       });
       Shop.rebalance(Object.keys(touched));
+      OrderNotify.lines(changes, session);
       return { saved: saved.saved, version: Version.bump() };
     });
   },
@@ -297,6 +299,7 @@ var Shop = {
         handed_by: session.user_id, updated_at: Util.nowIso() });
       Audit.log(session.user_id, 'shop_line_unavailable', 'ShopOrderLines', l.line_id, null, { reason: reason });
       Shop.rebalance([l.item_id]);
+      OrderNotify.lines([{ order_id: l.order_id, item_id: l.item_id, short: true }], session);
       return { line: Shop.view(res.after), version: Version.bump() };
     });
   },
