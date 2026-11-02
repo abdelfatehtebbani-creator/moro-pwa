@@ -3,7 +3,7 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
-    v: '0.9.95', date: '2026-11-02',
+    v: '0.9.96', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) القسم منتج أو غير منتج (التنظيف، الإدارة…): علّم "قسم منتج" في نافذة القسم. الأقسام المنتجة وحدها تظهر في "القسم الذي ينتجه" وفي أقسام مسؤول القسم وفلتر المواد.'] },
     en: { news: ['(Development copy) A department makes products or not (cleaning, management…): tick "Producing department" in its window. Only producing departments show in "Made by department", the department head’s departments and the items filter.'] },
   },
