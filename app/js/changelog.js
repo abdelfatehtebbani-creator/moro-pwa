@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.97', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) طلبية لم تُجهَّز كاملة: في "اعتماد الطلبيات" ← قيد التجهيز، زر "اعتماد ما سُلّم وإغلاق الباقي" ينقلها بما سُلّم إلى الرحلات. إن لم يُسلَّم شيء تُغلق.'] },
+    en: { news: ['(Development copy) An order not fully prepared: in "Approve orders" → being prepared, "Accept what was handed, close the rest" sends it on to the trips with what was handed. Nothing handed: it is closed.'] },
+  },
+  {
     v: '0.9.96', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) القسم منتج أو غير منتج (التنظيف، الإدارة…): علّم "قسم منتج" في نافذة القسم. الأقسام المنتجة وحدها تظهر في "القسم الذي ينتجه" وفي أقسام مسؤول القسم وفلتر المواد.'] },
     en: { news: ['(Development copy) A department makes products or not (cleaning, management…): tick "Producing department" in its window. Only producing departments show in "Made by department", the department head’s departments and the items filter.'] },

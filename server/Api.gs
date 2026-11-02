@@ -69,6 +69,7 @@ var ROUTES = {
   'orders.shiftEnd':  function (s) { return Orders.shiftEnd(s); },
   'orders.approve':   function (s, p) { return Orders.approve(s, p); },
   'orders.reject':    function (s, p) { return Orders.reject(s, p); },
+  'orders.closeShort': function (s, p) { return Orders.closeShort(s, p); },
   'orders.receive':   function (s, p) { return Trips.receive(s, p); },
   'invoices.create':  function (s, p) { return Invoices.create(s, p); },
   'invoices.list':    function (s, p) { return Invoices.list(s, p); },
