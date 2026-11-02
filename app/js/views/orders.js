@@ -65,6 +65,12 @@ export async function render(root, name) {
   const SEEN_REJECTED = 'moro.orders.rejectedSeen';
   const seenRejected = () => { try { return localStorage.getItem(SEEN_REJECTED) || ''; } catch { return ''; } };
   function drawCounts(all) {
+    // the cashier: orders delivered to the shop, waiting to be received
+    if (!approveMode) {
+      const d = all.filter((o) => o.status === 'delivered').length;
+      if (counts.delivered) { counts.delivered.hidden = !d; counts.delivered.textContent = String(d); }
+      return;
+    }
     if (tab === 'rejected') { try { localStorage.setItem(SEEN_REJECTED, new Date().toISOString().slice(0, 19)); } catch { /* storage blocked */ } }
     const seen = seenRejected();
     const n = { sent: 0, approved: 0, ready: 0, rejected: 0 };
@@ -82,7 +88,7 @@ export async function render(root, name) {
     const isNew = !approveMode && tab === 'new';
     editorBox.hidden = !isNew;
     listBox.hidden = isNew;
-    if (isNew) drawEditor(); else loadList();
+    if (isNew) { drawEditor(); refreshCounts(); } else loadList();
   }
 
   // ---------- a new order (or a draft being changed)
@@ -144,6 +150,9 @@ export async function render(root, name) {
   }
 
   // ---------- the orders of the tab
+  // the numbers on the tabs while the list is not shown (the cashier writing a new order)
+  function refreshCounts() { call('orders.list', approveMode ? { limit: 1000 } : {}).then(drawCounts).catch(() => {}); }
+
   async function loadList(quiet) {
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
@@ -153,7 +162,7 @@ export async function render(root, name) {
         drawCounts(all);
         list = (tab ? all.filter((o) => o.status === tab) : all).slice(0, 200);
       }
-      else { const want = CASHIER_TABS[tab] || []; list = (await call('orders.list', {})).filter((o) => want.includes(o.status)); }
+      else { const all = await call('orders.list', {}); drawCounts(all); const want = CASHIER_TABS[tab] || []; list = all.filter((o) => want.includes(o.status)); }
       listBox.replaceChildren(...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
@@ -279,7 +288,11 @@ export async function render(root, name) {
 
   root.replaceChildren(...parts);
   show();
-  const onData = () => { if (!busy && !listBox.hidden && !(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true); };
+  const onData = () => {
+    if (busy) return;
+    if (listBox.hidden) { refreshCounts(); return; }
+    if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && listBox.contains(document.activeElement))) loadList(true);
+  };
   const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 20000);
   window.addEventListener('moro:data', onData);
   cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); cleanup = null; };

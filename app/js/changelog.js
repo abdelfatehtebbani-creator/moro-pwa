@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.111', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) الكاشير: رقم على تبويب "وصلت" بعدد الطلبيات التي وصلت ولم يؤكَّد استلامها.'] },
+    en: { news: ['(Development copy) The cashier: a number on "Delivered" with the orders that arrived and are not yet received.'] },
+  },
+  {
     v: '0.9.110', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) السائق: تسليم محل قبل محل يسبقه في ترتيب الرحلة يطلب تأكيدًا.'] },
     en: { news: ['(Development copy) The driver: delivering a shop before one earlier in the trip asks for a confirmation.'] },
