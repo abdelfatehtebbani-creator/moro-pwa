@@ -68,6 +68,11 @@ export const CHANGELOG = [
     en: { news: ['(Development copy) Shop orders inside MORO, stage 1: the cashier writes the shop’s order for the next day, distribution approves it, and each line goes to the department that makes it or to its store in "Shop orders", with a tab per department and store.'] },
   },
   {
+    v: '0.9.83', date: '2026-11-02',
+    ar: { news: ['إصلاح: عمليتان محفوظتان في اللحظة نفسها لم تعودا تأخذان الرقم نفسه.'] },
+    en: { news: ['Fix: two operations saved at the same moment no longer take the same number.'] },
+  },
+  {
     v: '0.9.82', date: '2026-11-01',
     ar: { news: ['طلبات الأقسام: الطلب المصروف جزئيًا يُؤرشف مثل غيره، وزر "طلب الباقي" يظهر عند الطالب في تبويبة "جزئي" من الأرشيف فقط.'] },
     en: { news: ['Department requests: a request given in part goes to the archive like the others; "Ask for the rest" shows to the requester in the "partial" tab of the archive only.'] },
