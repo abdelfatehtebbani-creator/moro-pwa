@@ -12,8 +12,12 @@ export function render(root) {
   // products with a recipe, and the final products without one (a department's product: no ingredient is taken)
   const withRecipe = new Set(Data.recipes.map((r) => norm(r.product)));
   const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && !withRecipe.has(norm(i.name)));
-  const products = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort().map((p) => ({ value: p, label: p }))
-    .concat(finals.map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name, hint: t('no_recipe') })));
+  // a department head: only what their departments make
+  const head = (Data.user || {}).role === 'section_head';
+  const myDepts = new Set((Data.user || {}).depts || []);
+  const mine = (name) => !head || Data.activeItems().some((i) => norm(i.name) === norm(name) && myDepts.has(String(i.dept || '')));
+  const products = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
+    .concat(finals.filter((i) => mine(i.name)).map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name, hint: t('no_recipe') })));
   const product = combo({ id: 'p-product', options: () => products, onPick: (v) => {
     const it = finals.find((i) => i.name === v);
     if (it) { unit.value = it.unit; unit.dispatchEvent(new Event('input')); }

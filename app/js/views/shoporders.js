@@ -23,14 +23,14 @@ export async function render(root) {
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('shoporders')), tabs), body));
 
-  let touched = false;             // quantities being typed: the auto refresh waits
-  body.addEventListener('input', () => { touched = true; });
+  // quantities typed and not yet sent stay as they were through a refresh
   const load = async (quiet) => {
-    touched = false;
+    const typed = new Map([...body.querySelectorAll('input[data-key]')].filter((x) => x.value !== x.defaultValue).map((x) => [x.dataset.key, x.value]));
     if (quiet !== true) body.replaceChildren(h('p.empty', '…'));
     try {
       if (tab === 'special') drawSpecial(await call('special.list', { status: 'pending' }));
       else drawLines(await call('shop.list', { status: tab, native: true }));
+      body.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
     } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
   };
 
@@ -71,7 +71,7 @@ export async function render(root) {
       // a line already sent for handing and not yet answered by the server: shown as sending, no second press
       const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
       const open = tab === 'open' && left > 0 && l.approved !== false && l.can && !sending;
-      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
+      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
       const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
@@ -192,7 +192,8 @@ export async function render(root) {
     catch (e) { toast(errText(e), 'err'); }
   }
 
-  const onData = () => { if (!touched && !body.contains(document.activeElement)) load(true); };
+  const onData = () => { if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && body.contains(document.activeElement))) load(true); };
+  const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 15000);
   // the server answered: the list shows the new state; a refusal (e.g. not enough final products) is said
   const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) load(true); };
   const onRejected = (e) => {
@@ -203,7 +204,7 @@ export async function render(root) {
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onRejected);
-  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
     window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
   load();
 }

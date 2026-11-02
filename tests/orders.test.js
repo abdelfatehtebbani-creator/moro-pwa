@@ -58,7 +58,7 @@ test('orders: one cashier per shop; a draft is sent for the next day; distributi
   const view = (who) => g.api('shop.list', {}, tok[who]).data.map((l) => [l.item_id, l.can]);
   assert.deepEqual(view('baklava'), [['I0002', true]]);
   assert.deepEqual(view('store'), [['I0001', true]]);
-  assert.deepEqual(view('prod'), [['I0001', false], ['I0002', true]]);
+  assert.deepEqual(view('prod'), [['I0001', false], ['I0002', true]]);   // the production manager: departments only
   const lines = g.api('shop.list', {}, tok.prod).data;
   const flour = lines.find((l) => l.item_id === 'I0001'), box = lines.find((l) => l.item_id === 'I0002');
   assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h0', lines: [{ line_id: flour.line_id, qty: 1 }] }, tok.prod).error.code, 'store_forbidden');

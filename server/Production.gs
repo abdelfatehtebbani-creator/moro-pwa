@@ -54,6 +54,10 @@ var Production = {
       Util.require(fin, 'recipe_missing', p.product);
       p.unit = fin.unit;
     }
+    if (session.role === 'section_head') {
+      var mine = Repo.all('Items').filter(function (x) { return Util.key(x.name) === k; })[0];
+      Util.require(mine && (session.depts || []).indexOf(String(mine.dept || '')) >= 0, 'not_your_product', p.product);
+    }
     var lines = hasRecipe ? Production.preview(p.product, qty) : [];
     var setup = withLock(function () {
       return { consume: Production.partyId('Production'), output: Production.partyId('Final Production'),
