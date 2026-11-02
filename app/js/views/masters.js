@@ -31,12 +31,13 @@ function watch(fill) {
 
 export function dispose() { if (cleanup) cleanup(); }
 
-async function save(action, payload, close, err) {
+async function save(action, payload, close, err, after) {
   try {
     await call(action, payload);
     await Data.refresh();
     toast(t('saved'), 'ok');
     close(true);
+    if (after) after();
   } catch (e) { err.textContent = errText(e); }
 }
 
@@ -77,12 +78,12 @@ function items(body, isAdmin) {
     showDept();
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
     if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
-    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
+    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => ok(() => convertUnit(Data.items.get(it.item_id) || it)) }, t('change_stock_unit')) : null;
     // an item kept in its larger unit (TIN while KG exists): the admin moves it to the smallest unit once
     const smaller = it ? Data.packsOf(it).filter((x) => x.factor < 1).sort((a, b) => a.factor - b.factor)[0] : null;
     const toBaseBtn = smaller && Data.can('items.convertUnit')
       ? h('div.notice', t('base_not_smallest', { u: smaller.unit }), ' ',
-        h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it, { new_unit: smaller.unit, factor: Math.round((1 / smaller.factor) * 1e6) / 1e6 }); } }, t('make_base', { u: smaller.unit })))
+        h('button.link', { type: 'button', onclick: () => ok(() => convertUnit(Data.items.get(it.item_id) || it, { new_unit: smaller.unit, factor: Math.round((1 / smaller.factor) * 1e6) / 1e6 })) }, t('make_base', { u: smaller.unit })))
       : null;
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
@@ -123,7 +124,8 @@ function items(body, isAdmin) {
     cat.addEventListener('change', showFinal);
     showFinal();
     const err = h('p.err-text', '');
-    const ok = () => {
+    // after: what to open once the item is saved (the unit windows)
+    const ok = (after) => {
       if (!name.value.trim()) return flash(name);
       if (!unit.input.value.trim()) return flash(unit.input);
       const p = { name: name.value, store: cat.value, unit: it ? it.unit : unit.input.value.trim().toUpperCase() };
@@ -148,7 +150,7 @@ function items(body, isAdmin) {
         if (finalPrice.value !== '' && !(Number(finalPrice.value) >= 0)) return flash(finalPrice);
         p.final_price = finalPrice.value;
       }
-      save('items.save', p, close, err);
+      save('items.save', p, close, err, typeof after === 'function' ? after : null);
     };
     return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), deptField, finalField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
