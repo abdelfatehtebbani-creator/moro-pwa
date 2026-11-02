@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.108', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) حالات الطلبية بعد الرحلة: "بانتظار التحميل" (أُسندت لرحلة ولم تُحمَّل بعد) ثم "في الطريق" (حمّلها السائق) ثم "وصلت".'] },
+    en: { news: ['(Development copy) Order states after the trip: "Waiting to be loaded" (in a trip, not loaded yet), then "On the way" (the driver loaded it), then "Delivered".'] },
+  },
+  {
     v: '0.9.107', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) إصلاح: زرّا "تم التحميل" و"تم التسليم" عند السائق لم يكونا يحفظان شيئًا منذ النسخة 0.9.104.'] },
     en: { news: ['(Development copy) Fix: the driver’s "Loaded" and "Delivered" buttons saved nothing since version 0.9.104.'] },
