@@ -75,15 +75,17 @@ export async function render(root, name) {
   function drawEditor() {
     // the stores (final products come by department) and the producing departments
     const depts = Data.producingDepts();
-    const sources = [['all', t('order_st_all')], ...STORES.filter((s) => s !== 'FINAL').map((s) => ['s:' + s, t('store_' + s)]),
-      ...depts.map((p) => ['d:' + p.party_id, p.name])];
     const inSource = (i) => source === 'all' || (source.startsWith('s:') ? Data.storeOf(i) === source.slice(2) && Data.storeOf(i) !== 'FINAL'
       : Data.storeOf(i) === 'FINAL' && i.dept === source.slice(2));
     const item = combo({ id: 'o-item', options: () => Data.activeItems().filter(inSource).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
       .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: Data.qty(i.item_id) > 0 ? t('ord_available') : t('ord_not_available') })) });
-    const srcBar = h('div.tabs.order-src', sources.map(([k, label]) => h('button', { type: 'button', class: k === source ? 'on' : '',
-      onclick: (e) => { source = k; [...srcBar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); item.clear(); item.input.focus(); } },
-      h('bdi', label))));
+    // two searchable lists narrow the items: a store, or a department (choosing one clears the other; none = all)
+    const storeBox = combo({ id: 'o-store', placeholder: t('order_st_all'), options: () => STORES.filter((s) => s !== 'FINAL').map((s) => ({ value: s, label: t('store_' + s) })),
+      onPick: (v) => { if (v) { deptBox.clear(); source = 's:' + v; } else if (!deptBox.value) source = 'all'; item.clear(); } });
+    const deptBox = combo({ id: 'o-dept', placeholder: t('all_depts'), options: () => depts.map((p) => ({ value: p.party_id, label: p.name })),
+      onPick: (v) => { if (v) { storeBox.clear(); source = 'd:' + v; } else if (!storeBox.value) source = 'all'; item.clear(); } });
+    if (source.startsWith('s:')) storeBox.set(source.slice(2)); else if (source.startsWith('d:')) deptBox.set(source.slice(2));
+    const srcBar = h('div.form-grid.order-src', field(t('store'), storeBox), field(t('department'), deptBox));
     const qty = trackFilled(h('input.input.num#o-qty', { type: 'number', step: 'any', min: 0 }));
     const note = trackFilled(h('input.input#o-note', { value: editing ? editing.note || '' : '' }));
     const body = h('tbody');
