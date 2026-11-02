@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.100', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: زر "عرض الحمولة" لكل محل في الرحلة (ما سُلّم من كل مادة وكميته)، و"حمولة الرحلة كاملة" بمجموع كل المحلات، ليطابقها مع ما في السيارة قبل التحميل.'] },
+    en: { news: ['(Development copy) The driver: "Show the load" for each shop of the trip (each item handed and its quantity), and "The whole trip’s load" summed over the shops, to check against the car before loading.'] },
+  },
+  {
     v: '0.9.99', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) إصلاح: التطبيق لم يكن يفتح بعد النسخة 0.9.97.'] },
     en: { news: ['(Development copy) Fix: the app did not open after version 0.9.97.'] },

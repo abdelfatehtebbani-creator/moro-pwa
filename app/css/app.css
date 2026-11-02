@@ -642,3 +642,4 @@ tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
 
 .grand-total { font-size: 16px; text-align: end; padding: 4px 2px; }
 .grand-total b { font-size: 18px; }
+.trip-load { margin: 0 10px 10px; margin-inline-start: 50px; width: auto; }

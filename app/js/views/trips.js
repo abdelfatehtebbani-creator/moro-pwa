@@ -4,7 +4,7 @@
 import { call } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
-import { h, toast, flash, fmtDate, trackFilled } from '../ui.js';
+import { h, toast, flash, fmtDate, fmtNum, trackFilled } from '../ui.js';
 import { field } from '../components.js';
 
 const PILL = { preparing: 'soon', loaded: 'soon', in_transit: 'soon', completed: 'in', cancelled: 'out' };
@@ -71,6 +71,30 @@ export async function render(root) {
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 
+  // the load: what was handed for these orders, item by item, for the driver to check against the car
+  const itemName = (x) => Data.nameOf(Data.items.get(x.item_id) || { name: x.name, name_ar: x.name_ar });
+  const loadTable = (rows) => h('table.table.trip-load', h('thead', h('tr', h('th', t('item')), h('th.num', t('qty')))),
+    h('tbody', rows.length ? rows.map((x) => h('tr', h('td.wrap', h('bdi', itemName(x))), h('td.num', fmtNum(x.qty) + ' ' + (x.unit || ''))))
+      : [h('tr', h('td', { colspan: 2 }, h('p.empty', t('load_empty'))))]));
+  const toggle = (label, make) => {
+    const box = h('div', { hidden: true });
+    const btn = h('button.btn.secondary.small', { type: 'button', onclick: () => {
+      box.hidden = !box.hidden;
+      if (!box.hidden && !box.firstChild) box.append(make());
+      btn.textContent = box.hidden ? label : t('load_hide');
+    } }, label);
+    return [btn, box];
+  };
+  const tripLoad = (trip) => {
+    const sum = new Map();
+    trip.stops.forEach((s) => (s.load || []).forEach((x) => {
+      const k = x.item_id + '|' + x.unit;
+      const cur = sum.get(k) || Object.assign({}, x, { qty: 0 });
+      cur.qty += x.qty; sum.set(k, cur);
+    }));
+    return loadTable([...sum.values()].sort((a, b) => itemName(a).localeCompare(itemName(b))));
+  };
+
   function card(trip) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
     const stops = trip.stops.map((s) => {
@@ -82,19 +106,22 @@ export async function render(root) {
       const button = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
         ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: act('load') }, t('stop_load'))
           : !s.delivered_at ? h('button.btn.save-btn', { type: 'button', onclick: act('deliver') }, t('stop_deliver')) : null) : null;
-      return h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
+      const [showBtn, loadBox] = toggle(t('load_show'), () => loadTable(s.load || []));
+      return h('div', h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
         h('small.muted', s.order_no + ' · ' + t('lines_n', { n: s.lines })),
         s.loaded_at ? h('small', '✓ ' + t('stop_loaded') + ' ' + time(s.loaded_at)) : null,
-        s.delivered_at ? h('small', '✓ ' + t('stop_delivered') + ' ' + time(s.delivered_at)) : null), button);
+        s.delivered_at ? h('small', '✓ ' + t('stop_delivered') + ' ' + time(s.delivered_at)) : null), showBtn, button), loadBox);
     });
     const actions = h('div.form-actions');
+    const [allBtn, allBox] = toggle(t('load_all'), () => tripLoad(trip));
+    if (trip.stops.length > 1) actions.append(allBtn);
     if (manage && trip.status === 'preparing' && !trip.stops.some((s) => s.loaded_at)) {
       actions.append(h('button.btn.secondary', { type: 'button', onclick: async () => {
         try { await call('trips.cancel', { trip_id: trip.trip_id }); toast(t('trip_cancelled'), 'ok'); drawNew(); loadList(); } catch (e) { toast(errText(e), 'err'); }
       } }, t('trip_cancel')));
     }
     return h('div.req-card', h('div.card-head', h('b', trip.trip_id), h('span', '🚚 ', h('bdi', driverName)), h('span.muted.num', fmtDate(String(trip.created_at).slice(0, 10))),
-      h('span', { class: 'pill ' + (PILL[trip.status] || '') }, t('trip_st_' + trip.status))), trip.note ? h('p.muted', trip.note) : null, ...stops, actions);
+      h('span', { class: 'pill ' + (PILL[trip.status] || '') }, t('trip_st_' + trip.status))), trip.note ? h('p.muted', trip.note) : null, ...stops, actions, allBox);
   }
 
   root.replaceChildren(...parts);

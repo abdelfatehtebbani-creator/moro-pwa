@@ -19,7 +19,13 @@ var Trips = {
       .map(function (s) {
         var o = Repo.find('Orders', 'order_id', s.order_id) || {};
         var n = Repo.all('OrderItems').filter(function (x) { return x.order_id === s.order_id && x.status !== 'removed'; }).length;
-        return { order_id: s.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, seq: Number(s.seq), lines: n,
+        // the load of this stop: what was handed to distribution for the order, for the driver to check
+        var load = Repo.all('ShopOrderLines').filter(function (l) { return l.order_id === s.order_id && Number(l.handed_qty) > 0; })
+          .map(function (l) {
+            var it = Repo.find('Items', 'item_id', l.item_id) || {};
+            return { item_id: l.item_id, name: it.name || l.item_id, name_ar: it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit };
+          });
+        return { order_id: s.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, seq: Number(s.seq), lines: n, load: load,
                  loaded_at: s.loaded_at, delivered_at: s.delivered_at, order_status: o.status };
       });
     var out = {};
