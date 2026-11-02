@@ -218,7 +218,7 @@ export async function render(root, name) {
         const btn = e.target; btn.disabled = true;
         try { await call('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); loadList(); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
-      } }, t(handed ? 'close_short' : 'close_none'))));
+      } }, t(handed ? 'close_short' : 'close_none')));
     }
     if (!approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
       actions.append(

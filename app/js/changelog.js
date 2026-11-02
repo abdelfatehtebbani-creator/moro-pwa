@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.99', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إصلاح: التطبيق لم يكن يفتح بعد النسخة 0.9.97.'] },
+    en: { news: ['(Development copy) Fix: the app did not open after version 0.9.97.'] },
+  },
+  {
     v: '0.9.98', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) إشعار على الهاتف لكل خطوة في الطلبية، لمن عليه التصرّف: طلبية جديدة للاعتماد، اعتماد أو رفض للكاشير، نقص في التجهيز، جاهزة للتوزيع، رحلة جديدة أو ملغاة للسائق، في الطريق، وصلت، وطلبية للفوترة. وأرقام على "طلبيتي" و"الرحلات" و"الفواتير" بما ينتظرك.'] },
     en: { news: ['(Development copy) A phone message for every step of an order, to whoever has to act: a new order to approve, approved or rejected for the cashier, short in preparation, ready for distribution, a new or cancelled trip for the driver, on the way, delivered, and an order to invoice. Numbers on "My order", "Trips" and "Invoices" for what waits for you.'] },
