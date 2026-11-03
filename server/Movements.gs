@@ -11,9 +11,15 @@
 var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1, DISPOSAL: -1 };
 var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN', 'DISPOSAL'];
 var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'discount_kind', 'final_amount',
-                'doc_no', 'location', 'expiry', 'purpose', 'image'];
+                'doc_no', 'location', 'expiry', 'purpose', 'image', 'lpo_no'];
 
 var Movements = {
+  checkLpo: function (m) {
+    if (!m.lpo_no) return;
+    var l = Repo.all('LPOs').filter(function (x) { return String(x.lpo_no) === String(m.lpo_no); })[0];
+    Util.require(l && l.status === 'approved' && l.party_id === m.party_id, 'lpo_unknown', m.lpo_no);
+  },
+
   /** Validates one movement (fields already normalised) and returns an error code or ''. */
   validate: function (m) {
     Util.require(Util.isDate(m.date), 'date_invalid');
@@ -67,6 +73,8 @@ var Movements = {
       // the net amount is always derived from amount and discount
       final_amount: amount === null ? '' : Movements.net(amount, discount, dkind),
       doc_no: Util.clean(src.doc_no),
+      // a receipt may name the purchase order it answers (an approved LPO of the same supplier)
+      lpo_no: src.kind === 'RECEIPT' ? Util.clean(src.lpo_no) : '',
       location: Util.clean(src.location),
       expiry: String(src.expiry || ''),
       purpose: Util.clean(src.purpose),
@@ -166,6 +174,7 @@ var Movements = {
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
         Period.require(m.date);
+        Movements.checkLpo(m);
         Movements.fixedPrice(m, item);
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
@@ -241,6 +250,7 @@ var Movements = {
       Movements.fixedPrice(m, item, src.item_id === cur.item_id && cur.price !== '' ? cur.price : undefined);
       var newItem = Movements.validate(m);
       Period.require(m.date);
+      Movements.checkLpo(m);
       var changes = {};
       EDITABLE.forEach(function (f) { changes[f] = m[f]; });
       // a change of date or price alone keeps what was typed; a new quantity or unit replaces it

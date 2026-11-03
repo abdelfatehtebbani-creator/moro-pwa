@@ -447,3 +447,16 @@ test('accounts: a supplier statement from receipts and payments, a shop statemen
   assert.equal(g.rows('Payments').length, 1, 'kept, as void');
   assert.deepEqual(g.api('accounts.balances', {}, tok.acc).data.map((x) => [x.party_id, x.balance]), [['P009', -150]]);
 });
+
+test('a receipt names its purchase order: an approved LPO of the same supplier only', () => {
+  const { g, tok } = env();
+  g.seed('Parties', [{ party_id: 'P009', name: 'Supplier X', kind: 'supplier', active: true }, { party_id: 'P010', name: 'Supplier Y', kind: 'supplier', active: true }]);
+  g.seed('LPOs', [{ lpo_id: 'L1', lpo_no: 7, date: '2026-10-01', party_id: 'P009', total: 100, status: 'approved' }]);
+  g.seed('LPOLines', [{ lpo_id: 'L1', line: 1, item_id: 'I0001', qty: 1, unit: 'BAG', price: 100, total: 100 }]);
+  const rec = (party, lpo, cid) => g.api('movements.save', { movements: [{ client_id: cid, kind: 'RECEIPT', date: '2026-10-05', party_id: party, item_id: 'I0001', qty: 1, unit: 'BAG',
+    doc_no: 'INV-' + cid, price: 100, per: 'BAG', amount: 100, location: 'Shelves F 01', expiry: '2027-01-31', lpo_no: lpo }] }, tok.admin);
+  assert.equal(rec('P010', '7', 'a').error.code, 'lpo_unknown');
+  assert.equal(rec('P009', '7', 'b').ok, true);
+  const m = g.api('accounts.lpo', {}, tok.admin).data[0];
+  assert.deepEqual([m.ordered, m.received, m.exact], [100, 100, true]);
+});

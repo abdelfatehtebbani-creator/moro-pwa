@@ -106,7 +106,7 @@ export async function render(root) {
           h('th', t('acc_received')), h('th', t('acc_diff')), h('th', t('acc_invoices')))),
           h('tbody', list.length ? list.map((x) => { const d = Math.round((x.received - x.ordered) * 100) / 100;
             return h('tr', h('td.num', x.lpo_no), h('td.num', fmtDate(x.date)), h('td.wrap', h('bdi', (Data.parties.get(x.party_id) || {}).name || x.party_id)),
-              h('td.num', money(x.ordered)), h('td.num', money(x.received)), h('td.num', { class: d ? 'err-text' : '' }, money(d)), h('td.wrap', x.invoices)); })
+              h('td.num', money(x.ordered)), h('td.num', money(x.received)), h('td.num', { class: d ? 'err-text' : '' }, money(d)), h('td.wrap', x.invoices, ' ', h('small.muted', x.exact ? '✓ ' + t('acc_exact') : t('acc_approx')))); })
             : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]))), h('small.muted', t('acc_lpo_help')));
       } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
     }

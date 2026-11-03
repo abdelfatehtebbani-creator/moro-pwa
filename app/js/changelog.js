@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.122', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الاستلام: خانة "أمر الشراء (اختياري)" تعرض أوامر الشراء المعتمدة للمورد المختار، فتصير مطابقة أوامر الشراء في الحسابات دقيقة لكل استلام يحمل رقمه.'] },
+    en: { news: ['(Development copy) Receiving: a Purchase order (optional) field lists the approved LPOs of the chosen supplier, so the purchase order matching in Accounts is exact for each receipt that names it.'] },
+  },
+  {
     v: '0.9.121', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) للمحاسب: إقفال الفترة حتى تاريخ (في شاشة المستخدمين)، وتقرير قيمة المخزون في تاريخ، وتقرير التكلفة والهامش، وتقرير الخسائر يضم المرتجعات التالفة والمنتهية والضائع في الطريق. وشاشة الحسابات: أرصدة الموردين والمحلات، وكشف حساب، وتسجيل الدفعات، ومطابقة أوامر الشراء.'] },
     en: { news: ['(Development copy) For the accountant: the period closed until a date (users screen), stock value on a date, cost and margin, and the losses report with returns damaged or expired and goods lost on the way. The Accounts screen: supplier and shop balances, statements, payments, and purchase orders matched.'] },

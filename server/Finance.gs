@@ -184,11 +184,13 @@ var Accounts = {
       var until = next ? String(next.date) : '9999-12-31';
       var items = {};
       (lines[l.lpo_id] || []).forEach(function (x) { if (x.item_id) items[x.item_id] = true; });
-      var got = recs.filter(function (m) { return m.party_id === l.party_id && items[m.item_id] && String(m.date) >= String(l.date) && String(m.date) < until; });
+      // a receipt naming this LPO is its own; a receipt naming none is matched by supplier, items and dates
+      var named = recs.filter(function (m) { return String(m.lpo_no || '') === String(l.lpo_no); });
+      var got = named.concat(recs.filter(function (m) { return !m.lpo_no && m.party_id === l.party_id && items[m.item_id] && String(m.date) >= String(l.date) && String(m.date) < until; }));
       var received = 0, docs = {};
       got.forEach(function (m) { received += Accounts.money(m); if (m.doc_no) docs[m.doc_no] = true; });
       return { lpo_no: l.lpo_no, date: l.date, party_id: l.party_id, ordered: Number(l.total) || 0, received: Util.round(received),
-        invoices: Object.keys(docs).join(', '), lines: (lines[l.lpo_id] || []).length };
+        invoices: Object.keys(docs).join(', '), lines: (lines[l.lpo_id] || []).length, exact: named.length === got.length && got.length > 0 };
     });
   }
 };
