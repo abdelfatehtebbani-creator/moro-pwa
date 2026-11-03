@@ -235,7 +235,8 @@ var Shop = {
   list: function (session, p) {
     p = p || {};
     var status = p.status || 'open';
-    var allStores = (status === 'shortage' && Perm.has(session, 'shop.shortage')) || Perm.has(session, 'shop.depts');
+    // a storekeeper or a department sees its own shortages; purchasing sees every store's (it buys them)
+    var allStores = (status === 'shortage' && Perm.has(session, 'shop.shortage') && Perm.has(session, 'special.decide')) || Perm.has(session, 'shop.depts');
     // p.native: only the lines of orders made in MORO (the app; the old Masar test link is being dropped)
     var native = null;
     if (p.native) { native = {}; Repo.all('Orders').forEach(function (o) { native[o.order_id] = true; }); }

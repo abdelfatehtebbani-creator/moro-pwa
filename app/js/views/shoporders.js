@@ -29,8 +29,11 @@ export async function render(root) {
     const typed = new Map([...body.querySelectorAll('input[data-key]')].filter((x) => x.value !== x.defaultValue).map((x) => [x.dataset.key, x.value]));
     if (quiet !== true) body.replaceChildren(h('p.empty', '…'));
     try {
-      if (tab === 'special') drawSpecial(await call('special.list', { status: 'pending' }));
-      else drawLines(await call('shop.list', { status: tab, native: true }));
+      const toBuy = (l) => l.special && l.dept === 'PURCHASE';
+      if (tab === 'special') {
+        const [reqs, open] = await Promise.all([call('special.list', { status: 'pending' }), call('shop.list', { status: 'open', native: true })]);
+        drawSpecial(reqs, open.filter(toBuy));
+      } else drawLines((await call('shop.list', { status: tab, native: true })).filter((l) => tab !== 'open' || !toBuy(l)));
       body.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
     } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
   };
@@ -71,7 +74,7 @@ export async function render(root) {
       const left = Math.max(0, Math.round((l.qty - l.handed_qty) * 1e6) / 1e6);
       // a line already sent for handing and not yet answered by the server: shown as sending, no second press
       const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
-      const open = tab === 'open' && left > 0 && l.approved !== false && l.can && !sending;
+      const open = (tab === 'open' || tab === 'special') && left > 0 && l.approved !== false && l.can && !sending;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
       const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
@@ -112,7 +115,7 @@ export async function render(root) {
         h('span.muted.num', fmtDate(String(first.created_at).slice(0, 10)))),
       first.note ? h('p.muted', first.note) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')),
-        h('th', t('reserved')), h('th', ''), h('th', tab === 'open' ? t('to_issue') : ''))), h('tbody', rows))),
+        h('th', t('reserved')), h('th', ''), h('th', tab === 'open' || tab === 'special' ? t('to_issue') : ''))), h('tbody', rows))),
       actions);
   }
 
@@ -149,9 +152,12 @@ export async function render(root) {
     setTimeout(load, 2000);
   }
 
-  function drawSpecial(list) {
-    if (!list.length) { body.replaceChildren(h('p.empty', t('no_rows'))); return; }
-    body.replaceChildren(...list.map((r) => h('div.req-card',
+  function drawSpecial(list, toBuy) {
+    if (!list.length && !(toBuy || []).length) { body.replaceChildren(h('p.empty', t('no_rows'))); return; }
+    // special orders' products to buy ready-made (routed to purchasing): bought, then handed to distribution
+    const orders = new Map();
+    (toBuy || []).forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
+    body.replaceChildren(...[...orders.values()].map((ls) => orderCard(ls)), ...list.map((r) => h('div.req-card',
       h('div.card-head', h('b', h('bdi', r.description)), h('span', h('bdi', shopName(r.shop_party_id))),
         h('span.muted.num', fmtDate(String(r.created_at).slice(0, 10)))),
       h('p', (r.qty ? fmtNum(r.qty) + ' ' + (r.unit || '') : ''), r.order_no ? h('span.muted', ' · ' + r.order_no) : '',

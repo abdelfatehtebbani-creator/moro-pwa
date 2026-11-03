@@ -31,8 +31,15 @@ export async function render(root) {
       const i = chosen.indexOf(o.order_id);
       const cb = h('input', { type: 'checkbox', checked: i >= 0 });
       cb.addEventListener('change', () => { const k = chosen.indexOf(o.order_id); if (cb.checked && k < 0) chosen.push(o.order_id); if (!cb.checked && k >= 0) chosen.splice(k, 1); drawPick(); });
-      return h('label.check.trip-row', cb, h('b.num', i >= 0 ? String(i + 1) : ''), ' ', h('bdi', shopName(o.shop_party_id)),
-        h('small.muted', ' ' + o.order_no + ' · ' + t('order_for') + ' ' + fmtDate(o.delivery_date) + ' · ' + t('lines_n', { n: o.lines.filter((l) => l.status !== 'removed').length })));
+      const atCustomer = o.kind === 'special' && o.place === 'customer';
+      return h('label.check.trip-row', { class: o.kind === 'special' ? 'trip-special' : '' }, cb, h('b.num', i >= 0 ? String(i + 1) : ''),
+        h('div.trip-row-main',
+          h('div', o.kind === 'special' ? h('span.pill.low', t(atCustomer ? 'special_at_customer' : 'special_at_shop')) : null, ' ', h('bdi', shopName(o.shop_party_id)),
+            h('small.muted', ' ' + o.order_no + ' · ' + t('lines_n', { n: o.lines.filter((l) => l.status !== 'removed').length }))),
+          o.kind === 'special'
+            ? h('small', '⏰ ', h('b.num', fmtDate(o.delivery_date) + ' ' + (o.delivery_time || '')),
+              atCustomer ? h('span', ' · 👤 ', h('bdi', o.customer_name), ' · 📍 ', h('bdi', String(o.address || '').replace(/https?:\/\/\S+/, '').trim() || t('map_open'))) : '')
+            : h('small.muted', t('order_for') + ' ' + fmtDate(o.delivery_date))));
     }) : [h('p.empty', t('no_ready_orders'))]));
     const driver = h('select.input#t-driver', h('option', { value: '' }, '—'), drivers.map((d) => h('option', { value: d.user_id }, d.name)));
     const note = trackFilled(h('input.input#t-note'));
@@ -44,7 +51,8 @@ export async function render(root) {
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };
     drawPick();
-    newBox.replaceChildren(h('div.form-card', h('h3', t('trip_new')), h('small.muted', t('trip_new_help')), list,
+    newBox.replaceChildren(h('div.form-card', h('h3', t('trip_new')), h('small.muted', t('trip_new_help')),
+      ready.some((o) => o.kind === 'special' && o.place === 'customer') ? h('small.muted', t('trip_special_help')) : null, list,
       h('div.form-grid', field(t('driver'), driver), field(t('note'), note, { wide: true })),
       drivers.length ? null : h('p.err-text', t('no_drivers')),
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: create }, t('trip_create')))));

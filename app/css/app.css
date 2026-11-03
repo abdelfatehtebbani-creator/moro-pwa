@@ -648,3 +648,5 @@ tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
 .photo-view { display: grid; gap: 8px; max-height: 70vh; overflow: auto; }
 .photo-view img { width: 100%; height: auto; border-radius: 8px; }
 .order-kind { margin-bottom: 8px; }
+.trip-row-main { display: flex; flex-direction: column; gap: 2px; }
+.trip-row.trip-special { border: 2px solid var(--warn, #b45309); background: color-mix(in srgb, var(--warn, #b45309) 8%, transparent); }

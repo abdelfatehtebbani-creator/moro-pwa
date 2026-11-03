@@ -346,3 +346,14 @@ test('a special order: described by the cashier, routed by the production manage
   assert.deepEqual(inv.items.map((x) => [x.description || x.item_id, x.amount]), [['Birthday cake, blue, name Sara', 250], ['I0002', 10]]);
   assert.equal(inv.shop_party_id, 'P002', 'invoiced to the shop that took it');
 });
+
+test('shortages: a storekeeper sees their own store only, purchasing sees all', () => {
+  const { g, tok, user } = env();
+  user('buyer', 'purchasing');
+  g.api('users.save', { user_id: g.rows('Users').find((u) => u.username === 'store').user_id, caps: ['shop.view', 'shop.hand', 'shop.shortage'] }, tok.admin);
+  tok.store = g.api('auth.login', { username: 'store', pin: '5678' }).data.token;
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 50 }, { item_id: 'I0002', qty: 50 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  assert.deepEqual(g.api('shop.list', { status: 'shortage' }, tok.store).data.map((l) => l.item_id), ['I0001']);
+  assert.deepEqual(g.api('shop.list', { status: 'shortage' }, tok.buyer).data.map((l) => l.item_id).sort(), ['I0001', 'I0002']);
+});

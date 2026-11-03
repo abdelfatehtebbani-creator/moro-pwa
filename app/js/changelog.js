@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.117', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) رحلة جديدة: الطلبية الخاصة بإطار ملوّن وموعدها واسم الزبون وعنوانه، وترسل مع أي سائق. النقص: كل مخزن أو قسم يرى نقصه وحده. صلاحيات تجهيز الطلبيات بالعربية. المنتج الخاص الموجَّه إلى المشتريات يظهر في طلبات الشراء الخاصة.'] },
+    en: { news: ['(Development copy) New trip: a special order has a coloured frame with its time, customer and address, and goes with any driver. Shortages: each store or department sees its own. Prepare orders permissions in Arabic. A special product routed to purchasing shows in Special purchase requests.'] },
+  },
+  {
     v: '0.9.116', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) الطلبية الخاصة: في "طلبيتي" يختار الكاشير طلبية خاصة، يكتب الزبون وتاريخ ووقت ومكان التسليم، ويصف المنتج بسعره المتفق عليه مع حتى 3 صور. مدير الإنتاج يوجّه كل منتج إلى قسمه أو إلى المشتريات، والقسم يراه في تجهيز الطلبيات بموعده. السائق يرى العنوان والهاتف، والتسليم عند الزبون يُعدّ استلامًا، والفاتورة على المحل.'] },
     en: { news: ['(Development copy) Special orders: in My order the cashier picks a special order, writes the customer, date, time and place, and describes the product with the agreed price and up to 3 photos. The production manager sends each product to its department or to purchasing; the department sees it in Prepare orders with its deadline. The driver sees the address and phone; delivery at the customer counts as received, invoiced to the shop.'] },
