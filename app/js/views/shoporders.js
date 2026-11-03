@@ -155,9 +155,10 @@ export async function render(root) {
   function drawSpecial(list, toBuy) {
     if (!list.length && !(toBuy || []).length) { body.replaceChildren(h('p.empty', t('no_rows'))); return; }
     // special orders' products to buy ready-made (routed to purchasing): bought, then handed to distribution
+    // decided "buy": handed like any line; not decided yet: from the store, buy, or not available
     const orders = new Map();
-    (toBuy || []).forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
-    body.replaceChildren(...[...orders.values()].map((ls) => orderCard(ls)), ...list.map((r) => h('div.req-card',
+    (toBuy || []).filter((l) => l.purchase === 'buy').forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
+    body.replaceChildren(...(toBuy || []).filter((l) => !l.purchase).map(decideCard), ...[...orders.values()].map((ls) => orderCard(ls)), ...list.map((r) => h('div.req-card',
       h('div.card-head', h('b', h('bdi', r.description)), h('span', h('bdi', shopName(r.shop_party_id))),
         h('span.muted.num', fmtDate(String(r.created_at).slice(0, 10)))),
       h('p', (r.qty ? fmtNum(r.qty) + ' ' + (r.unit || '') : ''), r.order_no ? h('span.muted', ' · ' + r.order_no) : '',
@@ -165,6 +166,50 @@ export async function render(root) {
       h('div.form-actions',
         h('button.btn', { type: 'button', onclick: () => approve(r) }, t('approve_buy')),
         h('button.btn.secondary', { type: 'button', onclick: () => reject(r) }, t('reject'))))));
+  }
+
+  function decideCard(l) {
+    const done = async (payload, okText) => {
+      try { await call('shop.purchase', Object.assign({ line_id: l.line_id }, payload)); toast(t(okText), 'ok'); load(); }
+      catch (e) { toast(errText(e), 'err'); if (e.code === 'purchase_decided') load(); }
+    };
+    const fromStore = async () => {
+      const res = await dialog((close) => {
+        const opts = () => Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL').sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+          .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
+        const it = combo({ id: 'sp-item', options: opts, placeholder: t('lookup_hint') });
+        const q = trackFilled(h('input.input.num#sp-qty', { type: 'number', step: 'any', min: 0, value: l.qty }));
+        const ok = () => { if (!it.value) return flash(it.input); if (!(Number(q.value) > 0)) return flash(q); close({ item_id: it.value, qty: Number(q.value) }); };
+        return [h('h3', t('buy_from_store'), ': ', h('bdi', l.description)), h('small.muted', t('buy_from_store_help')), field(t('item'), it), field(t('qty'), q),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+      });
+      if (res) done(Object.assign({ choice: 'store' }, res), 'buy_sent_store');
+    };
+    const buy = async () => {
+      const price = await dialog((close) => {
+        const pr = trackFilled(h('input.input.num#sp-price', { type: 'number', step: 'any', min: 0, value: l.price }));
+        const ok = () => (pr.value === '' || Number(pr.value) < 0 ? flash(pr) : close(Number(pr.value)));
+        return [h('h3', t('buy_it'), ': ', h('bdi', l.description)), h('small.muted', t('buy_it_help', { p: fmtNum(l.price) })), field(t('price_final'), pr),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+      });
+      if (price !== undefined && price !== null) done({ choice: 'buy', price }, 'buy_priced');
+    };
+    const none = async () => {
+      const reason = await dialog((close) => {
+        const r = trackFilled(h('input.input#sp-why', { placeholder: t('reason') }));
+        return [h('h3', t('cannot_supply'), ': ', h('bdi', l.description)), field(t('reason'), r),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+            h('button.btn', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t('save')))];
+      });
+      if (reason) done({ choice: 'unavailable', reason }, 'saved');
+    };
+    return h('div.req-card',
+      h('div.card-head', h('b', h('span.pill.soon', t('special')), ' ', h('bdi', l.description)), h('span', h('bdi', shopName(l.shop_party_id))),
+        h('span.muted', l.order_no)),
+      h('p', fmtNum(l.qty) + ' ' + (l.unit || ''), ' · ', t('price_estimate'), ': ', h('b', fmtNum(l.price) + ' QR'), ' · ', h('span.err-text', '⏰ ' + l.deadline), ' ', photoButton(l.photos) || ''),
+      h('div.form-actions', h('button.btn', { type: 'button', onclick: fromStore }, t('buy_from_store')),
+        h('button.btn', { type: 'button', onclick: buy }, t('buy_it')),
+        h('button.btn.secondary', { type: 'button', onclick: none }, t('cannot_supply'))));
   }
 
   async function approve(r) {

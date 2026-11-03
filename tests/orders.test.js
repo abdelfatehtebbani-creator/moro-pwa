@@ -357,3 +357,29 @@ test('shortages: a storekeeper sees their own store only, purchasing sees all', 
   assert.deepEqual(g.api('shop.list', { status: 'shortage' }, tok.store).data.map((l) => l.item_id), ['I0001']);
   assert.deepEqual(g.api('shop.list', { status: 'shortage' }, tok.buyer).data.map((l) => l.item_id).sort(), ['I0001', 'I0002']);
 });
+
+test('a special product sent to purchasing: from the store, bought at a final price, or not available', () => {
+  const { g, tok, user, bal } = env();
+  user('buyer', 'purchasing');
+  const base = { kind: 'special', customer_name: 'Ali', delivery_date: '2099-01-02', delivery_time: '10:00', place: 'shop' };
+  const o = g.api('orders.save', Object.assign({}, base, { send: true, lines: [{ description: 'Gold candles', qty: 2, unit: 'pc', price: 5 },
+    { description: 'Flour for the cake', qty: 1, unit: 'bag', price: 1 }, { description: 'Rare toy', qty: 1, price: 9 }] }), tok.cashier).data.order;
+  g.api('orders.route', { order_id: o.order_id, lines: [1, 2, 3].map((n) => ({ line_no: n, dept: 'PURCHASE' })) }, tok.prod);
+  const mine = g.api('shop.list', { status: 'open', native: true }, tok.buyer).data;
+  assert.equal(mine.length, 3);
+  const [candles, flour, toy] = ['Gold candles', 'Flour for the cake', 'Rare toy'].map((d) => mine.find((l) => l.description === d));
+  assert.equal(g.api('shop.hand', { client_id: 'x', lines: [{ line_id: candles.line_id, qty: 2 }] }, tok.buyer).error.code, 'purchase_not_decided');
+  assert.equal(g.api('shop.purchase', { line_id: candles.line_id, choice: 'buy', price: 7.5 }, tok.buyer).ok, true);
+  assert.equal(g.api('shop.purchase', { line_id: candles.line_id, choice: 'buy', price: 8 }, tok.buyer).error.code, 'purchase_decided');
+  g.api('shop.purchase', { line_id: flour.line_id, choice: 'store', item_id: 'I0001', qty: 1 }, tok.buyer);
+  g.api('shop.purchase', { line_id: toy.line_id, choice: 'unavailable', reason: 'none in town' }, tok.buyer);
+  // bought: purchasing hands it; from the store: the storekeeper hands it from the stock
+  g.api('shop.hand', { client_id: 'c', lines: [{ line_id: candles.line_id, qty: 2 }] }, tok.buyer);
+  const fl = g.api('shop.list', { status: 'open', native: true }, tok.store).data.find((l) => l.line_id === flour.line_id);
+  assert.deepEqual([fl.item_id, fl.reserved_qty], ['I0001', 1]);
+  g.api('shop.hand', { client_id: 'f', lines: [{ line_id: flour.line_id, qty: 1 }] }, tok.store);
+  assert.equal(bal('I0001'), 9);
+  const v = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id);
+  assert.equal(v.status, 'ready');
+  assert.deepEqual(v.lines.map((l) => [l.item_id, l.price, l.purchase]), [['', 7.5, 'buy'], ['I0001', 1, 'store'], ['', 9, 'unavailable']]);
+});

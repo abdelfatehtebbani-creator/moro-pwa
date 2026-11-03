@@ -220,12 +220,65 @@ var Shop = {
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
       handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
       dept: l.description ? String(l.dept || '') : String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || ''),
-      description: l.description || '', deadline: l.deadline || '', special: !!l.description, photos: l.description ? Shop.photosOf(l) : [] };
+      description: l.description || '', deadline: l.deadline || '', special: !!l.description, photos: l.description ? Shop.photosOf(l) : [],
+      // a special product sent to purchasing: what purchasing decided (store, buy, unavailable) and the price
+      purchase: String(l.dept) === PURCHASE ? (Shop.orderItemOf(l) || {}).purchase || '' : '',
+      price: String(l.dept) === PURCHASE ? Number((Shop.orderItemOf(l) || {}).price) || 0 : '' };
+  },
+
+  orderItemOf: function (l) {
+    return Repo.all('OrderItems').filter(function (r) { return r.order_id + '-' + r.line_no === String(l.order_item_id); })[0] || null;
   },
 
   photosOf: function (l) {
-    var x = Repo.all('OrderItems').filter(function (r) { return r.order_id + '-' + r.line_no === String(l.order_item_id); })[0];
+    var x = Shop.orderItemOf(l);
     return x ? String(x.photos || '').split(' ').filter(String) : [];
+  },
+
+  /**
+   * Purchasing decides a special product sent to it. p: {line_id, choice, item_id?, qty?, price?, reason?}.
+   *   store: an item of the stock does it – the line becomes that item's line, for its storekeeper (reserved, issued as usual,
+   *          invoiced like any store item);
+   *   buy: bought for this order (not in the stock) – the final price is written now, then purchasing hands it to distribution;
+   *   unavailable: cannot be found – with a reason; the cashier is told.
+   */
+  purchase: function (session, p) {
+    return withLock(function () {
+      var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
+      Util.require(l && l.description && String(l.dept) === PURCHASE && LINE_OPEN.indexOf(l.status) >= 0, 'not_found');
+      var oi = Shop.orderItemOf(l);
+      Util.require(oi, 'not_found');
+      Util.require(!oi.purchase, 'purchase_decided', oi.purchase);
+      var o = Repo.find('Orders', 'order_id', l.order_id);
+      var now = Util.nowIso();
+      var where = function (r) { return r.order_id === oi.order_id && Number(r.line_no) === Number(oi.line_no); };
+      if (p.choice === 'store') {
+        var it = Repo.find('Items', 'item_id', p.item_id);
+        Util.require(it && it.active === true, 'item_unknown', p.item_id);
+        var q = Util.round(Util.num(p.qty) || Number(l.qty));
+        Util.require(q > 0, 'qty_invalid');
+        Repo.updateWhere('OrderItems', where, { item_id: it.item_id, unit: it.unit, qty: q, approved_qty: q, purchase: 'store' });
+        Repo.update('ShopOrderLines', 'line_id', l.line_id, { item_id: it.item_id, unit: it.unit, qty: q, description: '', dept: '',
+          reserved_qty: 0, note: 'Special order: ' + l.description + (l.deadline ? ' – ' + l.deadline : ''), updated_at: now });
+        Shop.rebalance([it.item_id]);
+        Shop.notifyNew(o, [{ item_id: it.item_id }]);
+      } else if (p.choice === 'buy') {
+        var pr = Util.num(p.price);
+        Util.require(pr !== null && pr >= 0, 'price_required', l.description);
+        Repo.updateWhere('OrderItems', where, { price: Util.round(pr), purchase: 'buy' });
+        Repo.update('ShopOrderLines', 'line_id', l.line_id, { updated_at: now });
+      } else if (p.choice === 'unavailable') {
+        var reason = Util.clean(p.reason);
+        Util.require(reason, 'reason_required');
+        Repo.updateWhere('OrderItems', where, { purchase: 'unavailable' });
+        Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: 'unavailable', reserved_qty: 0, reason: reason, handed_by: session.user_id, updated_at: now });
+        OrderNotify.send(OrderNotify.cashiers(o), session, 'orders', ['منتج خاص غير متوفر ' + o.order_no, l.description + ': ' + reason],
+          ['Special product not available ' + o.order_no, l.description + ': ' + reason]);
+        OrderNotify.lines([{ order_id: l.order_id, item_id: '', short: true }], session);
+      } else Util.require(false, 'choice_required');
+      Audit.log(session.user_id, 'special_purchase', 'ShopOrderLines', l.line_id, null, { choice: p.choice, item: p.item_id || '', price: p.price, reason: p.reason || '' });
+      return { line: Shop.view(Repo.find('ShopOrderLines', 'line_id', l.line_id)), version: Version.bump() };
+    });
   },
 
   /**
@@ -273,7 +326,11 @@ var Shop = {
       var q = Util.round(Util.num(x.qty));
       Util.require(q <= Shop.left(l), 'qty_too_much', l.line_id);
       // a special line is made for this customer: handed as it is, no stock is touched
-      if (l.description) { plan.push({ line: l, qty: q, mov: -1 }); return; }
+      if (l.description) {
+        Util.require(String(l.dept) !== PURCHASE || (Shop.orderItemOf(l) || {}).purchase === 'buy', 'purchase_not_decided', l.description);
+        plan.push({ line: l, qty: q, mov: -1 });
+        return;
+      }
       // a department's product comes from the final products stock: made first (production screen) when short
       var it = Repo.find('Items', 'item_id', l.item_id);
       if (Stores.of(it) === 'FINAL' && it.dept) Util.require(q <= Math.max(0, Shop.balance(l.item_id)), 'final_needs_production', it.name);

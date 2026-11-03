@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.118', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) المنتج الخاص الموجَّه إلى المشتريات: م.المشتريات يختار من المخزن (يذهب إلى أمين المخزن ويُخصم من الرصيد)، أو شراء بسعر نهائي يكتبه ثم يسلّمه هو للتوزيع، أو غير متوفر بسبب (يصل الكاشير إشعار). سعر الكاشير تقديري.'] },
+    en: { news: ['(Development copy) A special product sent to purchasing: from the store (to the storekeeper, taken from the balance), buy at a final price written by purchasing who hands it to distribution, or not available with a reason (the cashier is told). The cashier price is an estimate.'] },
+  },
+  {
     v: '0.9.117', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) رحلة جديدة: الطلبية الخاصة بإطار ملوّن وموعدها واسم الزبون وعنوانه، وترسل مع أي سائق. النقص: كل مخزن أو قسم يرى نقصه وحده. صلاحيات تجهيز الطلبيات بالعربية. المنتج الخاص الموجَّه إلى المشتريات يظهر في طلبات الشراء الخاصة.'] },
     en: { news: ['(Development copy) New trip: a special order has a coloured frame with its time, customer and address, and goes with any driver. Shortages: each store or department sees its own. Prepare orders permissions in Arabic. A special product routed to purchasing shows in Special purchase requests.'] },

@@ -84,7 +84,7 @@ var CAPS = (function () {
     'shop.return':       ['shop.return', 'kind.DEPT_RETURN'],
     'shop.shortage':     ['nav.shoporders', 'shop.list', 'shop.shortage'],
     // purchasing also prepares the special lines sent to purchasing (bought ready-made)
-    'shop.special':      ['nav.shoporders', 'shop.list', 'special.list', 'special.decide', 'shop.hand', 'shop.unavailable'],
+    'shop.special':      ['nav.shoporders', 'shop.list', 'special.list', 'special.decide', 'shop.hand', 'shop.unavailable', 'shop.purchase'],
     'issue.edit_own':    ['movements.update', 'edit_own.issue'],
     'issue.edit_all':    ['movements.update', 'edit_own.issue', 'edit_all.issue'],
     'issue.delete':      ['movements.delete', 'delete.issue'],

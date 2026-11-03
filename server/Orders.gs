@@ -43,7 +43,7 @@ var Orders = {
         status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '',
         received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '',
         short_decision: x.short_decision || '', description: x.description || '', price: x.price === '' || x.price === undefined ? '' : Number(x.price),
-        dept: x.dept || '', photos: String(x.photos || '').split(' ').filter(String) };
+        dept: x.dept || '', photos: String(x.photos || '').split(' ').filter(String), purchase: x.purchase || '' };
     });
     var out = {};
     Object.keys(o).forEach(function (k) { out[k] = o[k]; });

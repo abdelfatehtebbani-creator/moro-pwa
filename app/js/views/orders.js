@@ -281,7 +281,7 @@ export async function render(root, name) {
         : approving ? (Data.qty(l.item_id) > 0 ? h('span.pill.in', t('ord_available')) : h('span.pill.low', t('ord_not_available'))) : '';
       const route = routes.find((x) => x.line_no === l.line_no);
       const label = l.item_id ? h('bdi', Data.nameOf(it)) : h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ',
-        h('small.muted', money(l.price) + ' QR'), l.dept ? h('small.muted', ' · ' + (l.dept === PURCHASE ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept)) : '',
+        h('small.muted', money(l.price) + ' QR' + (l.purchase === 'buy' ? ' (' + t('price_final') + ')' : l.dept === PURCHASE && !l.purchase ? ' (' + t('price_estimate') + ')' : '')), l.dept ? h('small.muted', ' · ' + (l.dept === PURCHASE ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept)) : '',
         ' ', photoButton(l.photos) || '');
       return h('tr', h('td.wrap', label), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
         h('td.num', l.approved_qty === '' ? '' : fmtNum(l.approved_qty)), h('td.num', l.handed_qty ? fmtNum(l.handed_qty) : ''),
