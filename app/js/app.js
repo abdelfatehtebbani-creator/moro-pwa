@@ -24,6 +24,7 @@ import * as shoporders from './views/shoporders.js';
 import * as orders from './views/orders.js';
 import * as trips from './views/trips.js';
 import * as invoices from './views/invoices.js';
+import * as returns from './views/returns.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -35,6 +36,7 @@ const ROUTES = {
   orderapprove: { view: orders, perm: 'nav.orderapprove', group: 'nav_ops' },
   trips:     { view: trips, perm: 'nav.trips', group: 'nav_ops' },
   invoices:  { view: invoices, perm: 'nav.invoices', group: 'nav_ops' },
+  returns:   { view: returns, perm: 'nav.returns', group: 'nav_ops' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
@@ -155,7 +157,7 @@ function buildShell() {
   for (const name of Object.keys(ROUTES)) {
     if (!allowed(name)) continue;
     if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices'].includes(name) ? h('span.badge', { hidden: true }) : null));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -167,7 +169,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices'].includes(name) ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -356,7 +358,7 @@ function updateBadges() {
   document.querySelectorAll('a[data-route="shoporders"] .badge').forEach((b) => { b.hidden = !sp; b.textContent = String(sp); });
   // the rest of the order cycle: the cashier's orders to receive, trips to make or drive, orders to invoice
   const ot = (Data.boot || {}).order_todo || {};
-  const more = [['orders', 'orders'], ['trips', 'trips'], ['invoices', 'invoices']].map(([route, key]) => {
+  const more = [['orders', 'orders'], ['trips', 'trips'], ['invoices', 'invoices'], ['returns', 'returns']].map(([route, key]) => {
     const c = allowed(route) ? Number(ot[key]) || 0 : 0;
     document.querySelectorAll('a[data-route="' + route + '"] .badge').forEach((b) => { b.hidden = !c; b.textContent = String(c); });
     return c;

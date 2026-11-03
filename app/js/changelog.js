@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.115', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) شاشة المرتجعات: الكاشير يُرجع بضاعة بسببها، فتدخل الحجر ولا تُحسب في الرصيد. مدير الإنتاج يقرر لكل صنف: يعود للمخزن أو تالف أو منتهي الصلاحية. و"إرجاع إلى المخزن" في فرق الاستلام يمر عبر الحجر أيضًا.'] },
+    en: { news: ['(Development copy) Returns screen: the cashier returns goods with a reason; they go to quarantine and are not in the balance. The production manager decides each item: back to the store, damaged or expired. A receipt difference back to the store goes through quarantine too.'] },
+  },
+  {
     v: '0.9.114', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) الفواتير: كل طلبية بانتظار فاتورتها تعرض لكل مادة ما طُلب وما سُلّم وما استُلم، والسطر المختلف ملوّن. وفي جدول البيانات أمر للقراءة فقط: MORO ثم Check for duplicate numbers.'] },
     en: { news: ['(Development copy) Invoices: each order waiting for its invoice shows, for every item, what was ordered, handed and received, with a line that differs in colour. In the spreadsheet, a read-only command: MORO, then Check for duplicate numbers.'] },

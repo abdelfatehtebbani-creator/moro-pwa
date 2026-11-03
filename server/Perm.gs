@@ -31,6 +31,7 @@ var PERM_TREE = [
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
+  { key: 'returns', children: [{ leaf: 'returns.create' }, { leaf: 'returns.decide' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
   { key: 'reports', children: [{ leaf: 'reports.view' }, { leaf: 'reports.charts' }].concat(REPORT_IDS.map(function (id) { return { leaf: 'report.' + id }; }))
@@ -73,6 +74,8 @@ var CAPS = (function () {
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
+    'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
+    'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
     'invoices.manage':   ['nav.invoices', 'invoices.list', 'invoices.get', 'invoices.create', 'orders.list'],
     'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
     'shop.unavailable':  ['shop.unavailable'],
@@ -171,10 +174,10 @@ var ROLE_CAPS = {
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
   storekeeper: ['dash.view'].concat(leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count'])).concat(['coffee.view', 'coffee.pack']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
-  production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post']),
+  production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide']),
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
-  cashier:     ['orders.create', 'orders.receive'],
+  cashier:     ['orders.create', 'orders.receive', 'returns.create'],
   distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
                  'report.unavailable', 'report.shopSales', 'prices.see'],
   driver:      ['trips.drive'],

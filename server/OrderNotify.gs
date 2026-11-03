@@ -101,7 +101,7 @@ var OrderNotify = {
 
   /** The numbers on the menu: what waits for this user in the order cycle. */
   todo: function (session) {
-    var orders = Repo.all('Orders'), out = { orders: 0, trips: 0, invoices: 0 };
+    var orders = Repo.all('Orders'), out = { orders: 0, trips: 0, invoices: 0, returns: Returns.waiting(session) };
     if (Perm.has(session, 'orders.receive')) {
       var shop = Orders.shopOf(session);
       out.orders = orders.filter(function (o) { return shop && o.shop_party_id === shop && o.status === 'delivered'; }).length;

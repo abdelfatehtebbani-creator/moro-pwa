@@ -191,15 +191,15 @@ var Orders = {
     (p.lines || []).forEach(function (x) { want[Number(x.line_no)] = x.decision; });
     var short = Orders.view(o0).lines.filter(function (l) { return l.short_reason; });
     short.forEach(function (l) { Util.require(DIFF_DECISIONS.indexOf(want[l.line_no]) >= 0, 'decision_required', l.line_no); });
-    // what comes back to the store: one return from the shop per line (its own lock)
+    // what came back to the store goes to the quarantine first: the production manager decides if it is fit
     var back = short.filter(function (l) { return want[l.line_no] === 'returned'; }).map(function (l) {
-      return { client_id: o0.order_id + '-diff-' + l.line_no, kind: 'DEPT_RETURN', date: Util.today(), party_id: o0.shop_party_id, item_id: l.item_id,
-        qty: Util.round(l.handed_qty - Number(l.received_qty)), unit: l.unit, purpose: 'Receipt difference back to store (' + o0.order_no + ')' };
-    });
-    if (back.length) Movements.save(session, { movements: back }, null, '_checked');
+      return { order_id: o0.order_id, order_no: o0.order_no, line_no: l.line_no, item_id: l.item_id,
+        qty: Util.round(l.handed_qty - Number(l.received_qty)), unit: l.unit, reason: l.short_reason, note: l.short_note };
+    }).filter(function (x) { return x.qty > 0; });
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', o0.order_id);
       if (o.diff_status !== 'pending') return { order: Orders.view(o), duplicate: true, version: Version.get() };
+      if (back.length) { Returns.add(session, o.shop_party_id, 'diff', o.order_id + '-diff', back); Returns.notifyNew(o.shop_party_id, back.length, session); }
       short.forEach(function (l) {
         Repo.updateWhere('OrderItems', function (r) { return r.order_id === o.order_id && Number(r.line_no) === l.line_no; }, { short_decision: want[l.line_no] });
       });
