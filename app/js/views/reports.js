@@ -97,6 +97,13 @@ function renderTables(root) {
         h('div.quick', h('button.link', { type: 'button', onclick: quick(0) }, t('today')), h('button.link', { type: 'button', onclick: quick(6) }, t('last_7')),
           h('button.link', { type: 'button', onclick: quick(29) }, t('last_30')), h('button.link', { type: 'button', onclick: quick(364) }, t('last_year'))));
     }
+    if (o.includes('asof')) {
+      const at = trackFilled(h('input.input#rp-asof', { type: 'date', value: p.asof || Data.todayIso(), max: Data.todayIso() }));
+      at.addEventListener('change', () => { p.asof = at.value; });
+      const monthEnd = () => { const d = new Date(Data.todayIso().slice(0, 8) + '01T00:00:00Z'); d.setUTCDate(0); at.value = p.asof = d.toISOString().slice(0, 10); };
+      parts.push(h('div.field', h('label', t('as_of')), at), h('div.quick', h('button.link', { type: 'button', onclick: () => { at.value = p.asof = Data.todayIso(); } }, t('today')),
+        h('button.link', { type: 'button', onclick: monthEnd }, t('last_month_end'))));
+    }
     if (o.includes('days')) {
       const d = trackFilled(h('input.input.num#rp-days', { type: 'number', min: 1, value: p.days }));
       d.addEventListener('input', () => { p.days = Number(d.value) || 90; });
@@ -188,7 +195,9 @@ function renderTables(root) {
     let note = '';
     try {
       if (rep.needs === 'orders') extra = await call('orders.report', { from: p.from, to: p.to });
-      else if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
+      else if (rep.needs) extra = await call('report.' + rep.needs, { from: p.from, to: p.to, asof: p.asof });
+      // the orders reports read the server's data only; the others also read the movements
+      if (rep.needs !== 'orders' && !['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
         const res = await MovStore.all();
         movs = res.list;
         if (res.stale) note = '  ·  ' + t('offline_data', { at: new Date(res.at).toLocaleString('en-GB') });

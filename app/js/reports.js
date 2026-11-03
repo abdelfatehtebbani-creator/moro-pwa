@@ -37,7 +37,9 @@ export const REPORTS = [
   { id: 'trace', group: 'move', opts: ['dates', 'sections'], build: trace },
   { id: 'slow', group: 'stock', opts: ['days', 'stores'], build: slowMoving },
   { id: 'cover', group: 'stock', opts: ['days', 'stores'], build: daysOfCover },
-  { id: 'losses', group: 'move', opts: ['dates', 'stores'], build: losses },
+  { id: 'losses', group: 'move', opts: ['dates', 'stores'], needs: 'losses', build: losses },
+  { id: 'valuation', group: 'stock', opts: ['asof', 'stores'], prices: true, build: valuation },
+  { id: 'margin', group: 'orders', opts: ['dates'], needs: 'margin', prices: true, build: margin },
   { id: 'orderTimes', group: 'orders', opts: ['dates'], needs: 'orders', build: orderTimes },
   { id: 'receiptShort', group: 'orders', opts: ['dates'], needs: 'orders', build: receiptShort },
   { id: 'unavailable', group: 'orders', opts: ['dates'], needs: 'orders', build: unavailable },
@@ -165,11 +167,91 @@ function daysOfCover(p, movs) {
     columns: cols(['Item', 't'], ['Store', 't'], ['Balance', 'n'], ['Unit', 't'], ['Used', 'n'], ['Daily average', 'n'], ['Days of cover', 'n'], ['Suggested order', 'n']), rows };
 }
 
-function losses(p, movs) {
+// ---------- the value of the stock on a date: the balance then (today's balance less what moved since) at the last purchase price then
+function valuation(p, movs) {
+  const at = p.asof || Data.todayIso();
+  const after = new Map();
+  for (const m of movs) if (String(m.date) > at) after.set(m.item_id, r6((after.get(m.item_id) || 0) + Number(m.qty)));
+  const cost = unitCosts(movs.filter((m) => String(m.date) <= at));
+  const by = new Map();
+  const rows = [];
+  for (const it of Data.items.values()) {
+    if (!inStores(p, it.item_id)) continue;
+    const q = r6(Data.qty(it.item_id) - (after.get(it.item_id) || 0));
+    if (!q) continue;
+    const c = cost.get(it.item_id);
+    const v = c === undefined ? '' : money(q * c);
+    const st = STORE_NAMES[Data.storeOf(it)];
+    if (v !== '') by.set(st, money((by.get(st) || 0) + v));
+    const [rq, u] = ru(it.item_id, q);
+    rows.push([st, it.name, rq, u, c === undefined || !rq ? '' : money(v / rq), v]);
+  }
+  rows.sort((a, b) => byName(a[0], b[0]) || byName(a[1], b[1]));
+  [...by].sort((a, b) => byName(a[0], b[0])).forEach(([st, v]) => rows.push([st, 'Total ' + st, '', '', '', v]));
+  if (by.size) rows.push(['', 'Total', '', '', '', money([...by.values()].reduce((a, b) => a + b, 0))]);
+  return { title: 'Stock value on ' + at, subtitle: 'Balance on that day at the last purchase price before it' + storesText(p) + '  ·  No price: never bought',
+    columns: cols(['Store', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Unit cost (QR)', 'm'], ['Value (QR)', 'm']), rows };
+}
+
+// ---------- cost and margin of what was invoiced to the shops
+// cost per unit: a final product with a recipe = its ingredients at their last purchase price; a store item = its
+// last purchase price; a product without a recipe, or a special product: no cost known (shown empty)
+function margin(p, movs, data) {
+  const cost = unitCosts(movs);
+  const recipe = new Map();
+  (data.recipes || []).forEach((r) => { const k = String(r.product).trim().toUpperCase(); if (!recipe.has(k)) recipe.set(k, []); recipe.get(k).push(r); });
+  const costOf = (id) => {
+    const it = Data.items.get(id);
+    if (!it) return undefined;
+    if (Data.storeOf(it) !== 'FINAL') return cost.get(id);
+    const lines = recipe.get(String(it.name).trim().toUpperCase());
+    if (!lines) return undefined;
+    let c = 0;
+    for (const l of lines) { if (!cost.has(l.item_id)) return undefined; c += l.qty_per_unit * cost.get(l.item_id); }
+    return c;
+  };
+  const by = new Map(), shops = new Map();
+  data.lines.forEach((x) => {
+    const k = x.item_id || 'special|' + x.description;
+    const r = by.get(k) || { name: x.item_id ? itemName(x.item_id) : x.description + ' (special)', unit: x.unit, qty: 0, sales: 0, cost: 0, known: true };
+    const c = x.item_id ? costOf(x.item_id) : undefined;
+    r.qty += x.qty; r.sales += x.amount;
+    if (c === undefined) r.known = false; else r.cost += c * x.qty;
+    by.set(k, r);
+    const s = shops.get(x.shop_party_id) || { sales: 0, cost: 0, unknown: 0 };
+    s.sales += x.amount; if (c === undefined) s.unknown += x.amount; else s.cost += c * x.qty;
+    shops.set(x.shop_party_id, s);
+  });
+  const pct = (m, s) => (s ? Math.round((m / s) * 1000) / 10 : '');
+  const rows = [...by.values()].sort((a, b) => b.sales - a.sales).map((r) => {
+    const m = r.known ? money(r.sales - r.cost) : '';
+    return ['Item', r.name, r6(r.qty), r.unit, money(r.sales), r.known ? money(r.cost) : '', m, r.known ? pct(r.sales - r.cost, r.sales) : ''];
+  });
+  [...shops].sort((a, b) => byName(partyName(a[0]), partyName(b[0]))).forEach(([id, s]) => {
+    const known = s.sales - s.unknown;
+    rows.push(['Shop', partyName(id), '', '', money(s.sales), money(s.cost), money(known - s.cost), pct(known - s.cost, known)]);
+  });
+  return { title: 'Cost and margin of the shop invoices', subtitle: periodText(p) + '  ·  Cost: recipe ingredients or the item at its last purchase price'
+      + '  ·  Empty: no cost known (no recipe, special product)  ·  A shop margin leaves out the lines without cost',
+    columns: cols(['Line', 't'], ['Item / shop', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Sales (QR)', 'm'], ['Cost (QR)', 'm'], ['Margin (QR)', 'm'], ['Margin %', 'n']), rows };
+}
+
+function losses(p, movs, extra) {
   const prices = Data.can('see_prices');
   const cost = prices ? unitCosts(movs) : new Map();
   const rows = [];
   let total = 0;
+  // returns decided damaged or expired, and receipt differences lost on the way: losses that are no stock movement
+  const add = (date, type, id, label, q, unit, why) => {
+    const v = id && cost.has(id) ? money(q * cost.get(id)) : '';
+    if (v !== '') total += v;
+    const [rq, u] = id ? ru(id, q) : [q, unit];
+    rows.push([date, type, label, rq, u, ...(prices ? [v] : []), why]);
+  };
+  ((extra || {}).returns || []).filter((r) => inStores(p, r.item_id)).forEach((r) => add(r.date, r.decision === 'expired' ? 'Return: expired' : 'Return: damaged',
+    r.item_id, itemName(r.item_id), r.qty, r.unit, partyName(r.shop_party_id) + ' · ' + (r.source === 'diff' ? 'receipt difference' : r.reason) + ' · ' + r.ref));
+  ((extra || {}).lost || []).filter((r) => !r.item_id || inStores(p, r.item_id)).forEach((r) => add(r.date, 'Lost on the way',
+    r.item_id, r.item_id ? itemName(r.item_id) : r.description, r.qty, r.unit, partyName(r.shop_party_id) + ' · ' + r.reason + (r.note ? ': ' + r.note : '') + ' · ' + r.ref));
   movs.filter((m) => (m.kind === 'DISPOSAL' || m.kind === 'ADJUST') && inRange(m, p) && inStores(p, m.item_id) && Number(m.qty))
     .sort((a, b) => (a.date === b.date ? byName(itemName(a.item_id), itemName(b.item_id)) : a.date < b.date ? -1 : 1))
     .forEach((m) => {
@@ -180,8 +262,9 @@ function losses(p, movs) {
       const [rq, u] = ru(m.item_id, q);
       rows.push([m.date, type, itemName(m.item_id), rq, u, ...(prices ? [v] : []), m.purpose || m.doc_no || '']);
     });
+  rows.sort((a, b) => (a[0] === b[0] ? byName(a[2], b[2]) : a[0] < b[0] ? -1 : 1));
   if (prices && rows.length) rows.push(['', 'Total', '', '', '', money(total), '']);
-  return { title: 'Disposals and count differences', subtitle: periodText(p) + storesText(p) + '  ·  Negative = stock lost',
+  return { title: 'Losses: disposals, count differences, returns and goods lost on the way', subtitle: periodText(p) + storesText(p) + '  ·  Negative = stock lost',
     columns: cols(['Date', 'd'], ['Type', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't'], ...(prices ? [['Value (QR)', 'm']] : []), ['Reason / document', 't']), rows };
 }
 

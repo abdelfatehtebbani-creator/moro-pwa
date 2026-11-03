@@ -14,7 +14,7 @@ var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant
 var BASE_PERMS = ['photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
-                  'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
+                  'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin'];
 /** Reports built from the shop orders (they read orders.report). */
 var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 
@@ -31,6 +31,7 @@ var PERM_TREE = [
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
+  { key: 'accounts', children: [{ leaf: 'accounts.view' }, { leaf: 'accounts.pay' }] },
   { key: 'returns', children: [{ leaf: 'returns.create' }, { leaf: 'returns.decide' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
@@ -78,6 +79,9 @@ var CAPS = (function () {
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
+    // the accounts of the suppliers and shops: money, so prices are seen
+    'accounts.view':     ['nav.accounts', 'accounts.statement', 'accounts.balances', 'accounts.lpo', 'see_prices'],
+    'accounts.pay':      ['nav.accounts', 'accounts.statement', 'accounts.balances', 'accounts.pay', 'accounts.void', 'see_prices'],
     'invoices.manage':   ['nav.invoices', 'invoices.list', 'invoices.get', 'invoices.create', 'orders.list'],
     'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
     'shop.unavailable':  ['shop.unavailable'],
@@ -128,7 +132,7 @@ var CAPS = (function () {
     'recipes.edit':      ['recipes.save'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle', 'settings.close'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it
@@ -185,7 +189,7 @@ var ROLE_CAPS = {
                  'report.unavailable', 'report.shopSales', 'prices.see'],
   driver:      ['trips.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
-  accountant:  ['lpo.view', 'cash.handover']
+  accountant:  ['lpo.view', 'cash.handover', 'accounts.view', 'accounts.pay', 'reports.view', 'report.valuation', 'report.margin', 'report.losses']
 };
 
 var Perm = {

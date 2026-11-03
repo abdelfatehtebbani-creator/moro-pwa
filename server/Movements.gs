@@ -165,6 +165,7 @@ var Movements = {
         if (storeOp !== '_checked') Perm.canKind(session, src.kind);
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
+        Period.require(m.date);
         Movements.fixedPrice(m, item);
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
@@ -217,6 +218,7 @@ var Movements = {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
       Movements.requireActive(cur);
+      Period.require(cur.date);
       // a count's adjustment is part of an approved count: it is not edited by hand
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       // per screen: own entries with edit_own.<screen>, anyone's with edit_all.<screen>
@@ -238,6 +240,7 @@ var Movements = {
       // an edited final-product receipt keeps its own price (the product's price may have changed since)
       Movements.fixedPrice(m, item, src.item_id === cur.item_id && cur.price !== '' ? cur.price : undefined);
       var newItem = Movements.validate(m);
+      Period.require(m.date);
       var changes = {};
       EDITABLE.forEach(function (f) { changes[f] = m[f]; });
       // a change of date or price alone keeps what was typed; a new quantity or unit replaces it
@@ -263,6 +266,7 @@ var Movements = {
       // already deleted (on another device, or this delete sent twice): the wanted result is there
       if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
       Movements.requireActive(cur);
+      Period.require(cur.date);
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       // per screen: delete.<screen>; someone else's entry also needs edit_all.<screen>
       var screen = Movements.screenOf(cur.kind);

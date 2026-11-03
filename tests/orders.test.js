@@ -407,3 +407,43 @@ test('a bought special product can go straight to the shop: an order of only tha
   assert.deepEqual(load.map((x) => x.item_id), ['I0001'], 'the driver does not load the balloons');
   assert.equal(g.api('orders.receive', { order_id: only.order_id, lines: [] }, tok.cashier).ok, true);
 });
+
+test('the period closed: no movement saved, changed or deleted on or before it; returns and lost goods in the losses data', () => {
+  const { g, tok } = env();
+  g.seed('Parties', [{ party_id: 'P009', name: 'Supplier X', kind: 'supplier', active: true }]);
+  const mv = (date, cid) => g.api('movements.save', { movements: [{ client_id: cid, kind: 'RECEIPT', date, party_id: 'P009', item_id: 'I0001', qty: 1, unit: 'BAG', doc_no: 'INV-' + cid, price: 10, per: 'BAG', amount: 10, location: 'Shelves F 01', expiry: '2027-01-31' }] }, tok.admin);
+  const first = mv('2026-01-10', 'a');
+  assert.equal(first.ok, true, JSON.stringify(first));
+  const old = first.data.saved[0].movement_id;
+  assert.equal(g.api('settings.close', { date: '2026-01-31' }, tok.cashier).error.code, 'forbidden');
+  assert.equal(g.api('settings.close', { date: '2999-01-01' }, tok.admin).error.code, 'close_date_invalid');
+  assert.equal(g.api('settings.close', { date: '2026-01-31' }, tok.admin).ok, true);
+  assert.equal(mv('2026-01-20', 'b').error.code, 'period_closed');
+  assert.equal(g.api('movements.update', { movement_id: old, changes: { qty: 2 } }, tok.admin).error.code, 'period_closed');
+  assert.equal(g.api('movements.delete', { movement_id: old }, tok.admin).error.code, 'period_closed');
+  assert.equal(mv('2026-02-01', 'c').ok, true, 'after it: as usual');
+  // losses kept outside the movements
+  const r = g.api('returns.create', { client_id: 'r', lines: [{ item_id: 'I0002', qty: 1, reason: 'expired' }] }, tok.cashier).data.returns[0];
+  g.api('returns.decide', { lines: [{ return_id: r.return_id, decision: 'expired' }] }, tok.prod);
+  const l = g.api('report.losses', {}, tok.admin).data;
+  assert.deepEqual(l.returns.map((x) => [x.item_id, x.qty, x.decision]), [['I0002', -1, 'expired']]);
+});
+
+test('accounts: a supplier statement from receipts and payments, a shop statement from invoices and payments; a payment is voided, never deleted', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  g.seed('Parties', [{ party_id: 'P009', name: 'Supplier X', kind: 'supplier', active: true }]);
+  const rec = (date, cid, amount) => g.api('movements.save', { movements: [{ client_id: cid, kind: 'RECEIPT', date, party_id: 'P009', item_id: 'I0001', qty: 1, unit: 'BAG',
+    doc_no: 'INV-' + cid, price: amount, per: 'BAG', amount, location: 'Shelves F 01', expiry: '2027-01-31' }] }, tok.admin);
+  rec('2026-01-05', 'a', 100); rec('2026-02-05', 'b', 50);
+  assert.equal(g.api('accounts.pay', { client_id: 'p1', party_id: 'P009', date: '2026-02-10', amount: 120, method: 'bank' }, tok.cashier).error.code, 'forbidden');
+  const p1 = g.api('accounts.pay', { client_id: 'p1', party_id: 'P009', date: '2026-02-10', amount: 120, method: 'bank', ref: 'TR-1' }, tok.acc).data.payment;
+  assert.equal(g.api('accounts.pay', { client_id: 'p1', party_id: 'P009', date: '2026-02-10', amount: 120, method: 'bank' }, tok.acc).data.duplicate, true);
+  const s = g.api('accounts.statement', { party_id: 'P009', from: '2026-02-01', to: '2026-02-28' }, tok.acc).data;
+  assert.deepEqual([s.opening, s.lines.map((e) => [e.kind, e.debit, e.credit, e.balance]), s.closing],
+    [-100, [['receipt', 0, 50, -150], ['payment', 120, 0, -30]], -30], 'we owe the supplier 30');
+  g.api('accounts.void', { payment_id: p1.payment_id }, tok.acc);
+  assert.equal(g.api('accounts.statement', { party_id: 'P009' }, tok.acc).data.closing, -150);
+  assert.equal(g.rows('Payments').length, 1, 'kept, as void');
+  assert.deepEqual(g.api('accounts.balances', {}, tok.acc).data.map((x) => [x.party_id, x.balance]), [['P009', -150]]);
+});

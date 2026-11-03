@@ -25,6 +25,7 @@ import * as orders from './views/orders.js';
 import * as trips from './views/trips.js';
 import * as invoices from './views/invoices.js';
 import * as returns from './views/returns.js';
+import * as accounts from './views/accounts.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -37,6 +38,7 @@ const ROUTES = {
   trips:     { view: trips, perm: 'nav.trips', group: 'nav_ops' },
   invoices:  { view: invoices, perm: 'nav.invoices', group: 'nav_ops' },
   returns:   { view: returns, perm: 'nav.returns', group: 'nav_ops' },
+  accounts:  { view: accounts, perm: 'nav.accounts', group: 'nav_ops' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },

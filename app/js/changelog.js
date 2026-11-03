@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.121', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) للمحاسب: إقفال الفترة حتى تاريخ (في شاشة المستخدمين)، وتقرير قيمة المخزون في تاريخ، وتقرير التكلفة والهامش، وتقرير الخسائر يضم المرتجعات التالفة والمنتهية والضائع في الطريق. وشاشة الحسابات: أرصدة الموردين والمحلات، وكشف حساب، وتسجيل الدفعات، ومطابقة أوامر الشراء.'] },
+    en: { news: ['(Development copy) For the accountant: the period closed until a date (users screen), stock value on a date, cost and margin, and the losses report with returns damaged or expired and goods lost on the way. The Accounts screen: supplier and shop balances, statements, payments, and purchase orders matched.'] },
+  },
+  {
     v: '0.9.120', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) الطلبية الخاصة: "مواد من القائمة (اختياري)" مطوية وتُفتح بالضغط. م.المشتريات: خانة "للتوزيع / للمحل مباشرة" فارغة ويجب اختيارها قبل التسليم.'] },
     en: { news: ['(Development copy) Special order: Items from the list (optional) is folded and opens on a press. Purchasing: To distribution / Straight to the shop starts empty and must be chosen before handing.'] },

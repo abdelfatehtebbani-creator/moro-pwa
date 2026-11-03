@@ -28,9 +28,24 @@ export async function render(root) {
       try { await call('settings.idle', { minutes: n }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
       catch (e) { toast(errText(e), 'err'); }
     };
+    // the period closed for changes: no movement dated on or before it is saved, changed or deleted
+    const closed = trackFilled(h('input.input#set-closed', { type: 'date', value: (Data.settings || {}).closed_until || '', max: Data.todayIso() }));
+    const saveClosed = async () => {
+      const d = closed.value;
+      if (!(await confirmClose(d))) return;
+      try { await call('settings.close', { date: d }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { toast(errText(e), 'err'); }
+    };
     return h('div.card', h('h2', t('settings_general')),
       h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
-      h('small.muted', t('idle_minutes_help')));
+      h('small.muted', t('idle_minutes_help')),
+      Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
+        h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  function confirmClose(d) {
+    return dialog((close) => [h('p', d ? t('close_confirm', { d }) : t('open_confirm')),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('ok')))]);
   }
 
   async function load() {
