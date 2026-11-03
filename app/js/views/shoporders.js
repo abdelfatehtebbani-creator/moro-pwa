@@ -77,7 +77,7 @@ export async function render(root) {
       const open = (tab === 'open' || tab === 'special') && left > 0 && l.approved !== false && l.can && !sending;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: (l.special ? left : Math.min(left, l.reserved_qty)) || '' })) : null;
       // bought by purchasing: to distribution, or straight to the shop
-      const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
+      const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: '' }, '—'), h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
       if (inp) inputs.push({ line: l, inp, left, dest });
       const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
@@ -102,8 +102,8 @@ export async function render(root) {
     if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
-        const bad = inputs.filter((x) => Number(x.inp.value) > x.left);
-        if (bad.length) { bad.forEach((x) => flash(x.inp)); return; }
+        const bad = inputs.filter((x) => Number(x.inp.value) > x.left || (x.dest && Number(x.inp.value) > 0 && !x.dest.value));
+        if (bad.length) { bad.forEach((x) => flash(x.dest && !x.dest.value && Number(x.inp.value) <= x.left ? x.dest : x.inp)); return; }
         const give = inputs.map((x) => Object.assign({ line_id: x.line.line_id, qty: Number(x.inp.value) }, x.dest && x.dest.value === 'shop' ? { direct: true } : {})).filter((x) => x.qty > 0);
         if (!give.length) { inputs.forEach((x) => flash(x.inp)); return; }
         btn.disabled = true; btn.textContent = t('sending');

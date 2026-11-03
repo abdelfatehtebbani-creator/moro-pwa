@@ -196,10 +196,18 @@ export async function render(root, name) {
         editing = null; lines = []; sp = {}; drawEditor();
       } catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
     };
+    // the items of the list: always shown in a normal order; in a special order they open on demand
+    const catalogBox = h('div', srcBar, h('div.form-grid', field(t('item'), item, { wide: true }), field(t('qty'), qty),
+      h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))));
+    const hasCatalog = lines.some((l) => l.item_id);
+    catalogBox.hidden = special && !hasCatalog;
+    const catalogToggle = special ? h('button.btn.secondary', { type: 'button', onclick: (e) => {
+      catalogBox.hidden = !catalogBox.hidden;
+      e.currentTarget.textContent = (catalogBox.hidden ? '▸ ' : '▾ ') + t('special_catalog');
+    } }, (catalogBox.hidden ? '▸ ' : '▾ ') + t('special_catalog')) : null;
     editorBox.replaceChildren(h('div.form-card', editing ? null : kindBar, h('h3', editing ? t('order_edit_draft', { n: editing.order_no }) : t(special ? 'order_new_special' : 'order_new')),
-      h('small.muted', t(special ? 'order_special_help' : 'order_new_help')), specialBox, special ? h('h4', t('special_catalog')) : null, srcBar,
-      h('div.form-grid', field(t('item'), item, { wide: true }), field(t('qty'), qty),
-        h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line'))), field(t('note'), note, { wide: true })),
+      h('small.muted', t(special ? 'order_special_help' : 'order_new_help')), specialBox, catalogToggle, catalogBox,
+      h('div.form-grid', field(t('note'), note, { wide: true })),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', ''))), body)),
       h('div.form-actions',
         h('button.btn.secondary', { type: 'button', onclick: (e) => save(false, e.currentTarget) }, t('save_draft')),

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.120', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الطلبية الخاصة: "مواد من القائمة (اختياري)" مطوية وتُفتح بالضغط. م.المشتريات: خانة "للتوزيع / للمحل مباشرة" فارغة ويجب اختيارها قبل التسليم.'] },
+    en: { news: ['(Development copy) Special order: Items from the list (optional) is folded and opens on a press. Purchasing: To distribution / Straight to the shop starts empty and must be chosen before handing.'] },
+  },
+  {
     v: '0.9.119', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) المنتج الخاص المشترى: م.المشتريات يسلّمه للتوزيع أو للمحل مباشرة. الطلبية التي كل ما فيها سُلّم للمحل مباشرة لا تحتاج رحلة، وتظهر للكاشير "وصلت" ليستلمها. والسائق لا يرى في حمولته ما سُلّم للمحل مباشرة.'] },
     en: { news: ['(Development copy) A bought special product: purchasing hands it to distribution or straight to the shop. An order whose every line went straight to the shop needs no trip and shows as arrived for the cashier to receive. The driver load leaves out what went straight to the shop.'] },
