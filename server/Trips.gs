@@ -20,7 +20,7 @@ var Trips = {
         var o = Repo.find('Orders', 'order_id', s.order_id) || {};
         var n = Repo.all('OrderItems').filter(function (x) { return x.order_id === s.order_id && x.status !== 'removed'; }).length;
         // the load of this stop: what was handed to distribution for the order, for the driver to check
-        var load = Repo.all('ShopOrderLines').filter(function (l) { return l.order_id === s.order_id && Number(l.handed_qty) > 0; })
+        var load = Repo.all('ShopOrderLines').filter(function (l) { return l.order_id === s.order_id && Number(l.handed_qty) > 0 && l.direct !== true; })
           .map(function (l) {
             var it = Repo.find('Items', 'item_id', l.item_id) || {};
             return { item_id: l.item_id, name: l.description || it.name || l.item_id, name_ar: l.description ? '' : it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit };

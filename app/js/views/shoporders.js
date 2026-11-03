@@ -75,8 +75,10 @@ export async function render(root) {
       // a line already sent for handing and not yet answered by the server: shown as sending, no second press
       const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
       const open = (tab === 'open' || tab === 'special') && left > 0 && l.approved !== false && l.can && !sending;
-      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: Math.min(left, l.reserved_qty) || '' })) : null;
-      if (inp) inputs.push({ line: l, inp, left });
+      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: (l.special ? left : Math.min(left, l.reserved_qty)) || '' })) : null;
+      // bought by purchasing: to distribution, or straight to the shop
+      const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
+      if (inp) inputs.push({ line: l, inp, left, dest });
       const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
         canBack && l.can ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
@@ -89,7 +91,7 @@ export async function render(root) {
         : h('bdi', Data.nameOf(it));
       return h('tr', h('td.wrap', label), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
-        h('td', inp || '', ' ', no || ''));
+        h('td', inp || '', ' ', dest || '', ' ', no || ''));
     });
     const actions = h('div.form-actions');
     // lines still awaiting Masar's distribution approval: the button shows, greyed out, until approval
@@ -102,7 +104,7 @@ export async function render(root) {
         const btn = e.currentTarget;
         const bad = inputs.filter((x) => Number(x.inp.value) > x.left);
         if (bad.length) { bad.forEach((x) => flash(x.inp)); return; }
-        const give = inputs.map((x) => ({ line_id: x.line.line_id, qty: Number(x.inp.value) })).filter((x) => x.qty > 0);
+        const give = inputs.map((x) => Object.assign({ line_id: x.line.line_id, qty: Number(x.inp.value) }, x.dest && x.dest.value === 'shop' ? { direct: true } : {})).filter((x) => x.qty > 0);
         if (!give.length) { inputs.forEach((x) => flash(x.inp)); return; }
         btn.disabled = true; btn.textContent = t('sending');
         inputs.forEach((x) => { x.inp.disabled = true; });

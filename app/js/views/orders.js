@@ -282,7 +282,7 @@ export async function render(root, name) {
       const route = routes.find((x) => x.line_no === l.line_no);
       const label = l.item_id ? h('bdi', Data.nameOf(it)) : h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ',
         h('small.muted', money(l.price) + ' QR' + (l.purchase === 'buy' ? ' (' + t('price_final') + ')' : l.dept === PURCHASE && !l.purchase ? ' (' + t('price_estimate') + ')' : '')), l.dept ? h('small.muted', ' · ' + (l.dept === PURCHASE ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept)) : '',
-        ' ', photoButton(l.photos) || '');
+        ' ', photoButton(l.photos) || '', l.direct ? h('small.muted', ' · ' + t('direct_to_shop')) : '');
       return h('tr', h('td.wrap', label), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
         h('td.num', l.approved_qty === '' ? '' : fmtNum(l.approved_qty)), h('td.num', l.handed_qty ? fmtNum(l.handed_qty) : ''),
         h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''), h('td', inp || recv || (route && route.sel) || received));

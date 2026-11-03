@@ -383,3 +383,27 @@ test('a special product sent to purchasing: from the store, bought at a final pr
   assert.equal(v.status, 'ready');
   assert.deepEqual(v.lines.map((l) => [l.item_id, l.price, l.purchase]), [['', 7.5, 'buy'], ['I0001', 1, 'store'], ['', 9, 'unavailable']]);
 });
+
+test('a bought special product can go straight to the shop: an order of only that skips the trip', () => {
+  const { g, tok, user } = env();
+  user('buyer', 'purchasing');
+  const base = { kind: 'special', customer_name: 'Ali', delivery_date: '2099-01-02', delivery_time: '10:00', place: 'shop', send: true };
+  const only = g.api('orders.save', Object.assign({}, base, { lines: [{ description: 'Candles', qty: 2, price: 5 }] }), tok.cashier).data.order;
+  const mixed = g.api('orders.save', Object.assign({}, base, { lines: [{ description: 'Balloons', qty: 1, price: 5 }, { item_id: 'I0001', qty: 1 }] }), tok.cashier).data.order;
+  g.api('orders.route', { order_id: only.order_id, lines: [{ line_no: 1, dept: 'PURCHASE' }] }, tok.prod);
+  g.api('orders.route', { order_id: mixed.order_id, lines: [{ line_no: 1, dept: 'PURCHASE' }] }, tok.prod);
+  const mine = g.api('shop.list', { status: 'open', native: true }, tok.buyer).data;
+  mine.forEach((l) => g.api('shop.purchase', { line_id: l.line_id, choice: 'buy', price: 6 }, tok.buyer));
+  mine.forEach((l) => g.api('shop.hand', { client_id: 'd' + l.line_id, lines: [{ line_id: l.line_id, qty: l.qty, direct: true }] }, tok.buyer));
+  const st = (id) => g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === id);
+  assert.equal(st(only.order_id).status, 'delivered', 'at the shop already: the cashier receives it');
+  assert.equal(st(only.order_id).lines[0].direct, true);
+  const fl = g.api('shop.list', { status: 'open', native: true }, tok.store).data.find((l) => l.order_id === mixed.order_id);
+  g.api('shop.hand', { client_id: 'm', lines: [{ line_id: fl.line_id, qty: 1 }] }, tok.store);
+  assert.equal(st(mixed.order_id).status, 'ready', 'the flour still goes by trip');
+  const driver = user('drv', 'driver');
+  g.api('trips.save', { driver_id: driver, order_ids: [mixed.order_id] }, tok.dist);
+  const load = g.api('trips.list', { open: true }, tok.drv).data[0].stops[0].load;
+  assert.deepEqual(load.map((x) => x.item_id), ['I0001'], 'the driver does not load the balloons');
+  assert.equal(g.api('orders.receive', { order_id: only.order_id, lines: [] }, tok.cashier).ok, true);
+});

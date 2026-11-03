@@ -220,7 +220,7 @@ var Shop = {
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
       handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
       dept: l.description ? String(l.dept || '') : String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || ''),
-      description: l.description || '', deadline: l.deadline || '', special: !!l.description, photos: l.description ? Shop.photosOf(l) : [],
+      description: l.description || '', deadline: l.deadline || '', special: !!l.description, direct: l.direct === true, photos: l.description ? Shop.photosOf(l) : [],
       // a special product sent to purchasing: what purchasing decided (store, buy, unavailable) and the price
       purchase: String(l.dept) === PURCHASE ? (Shop.orderItemOf(l) || {}).purchase || '' : '',
       price: String(l.dept) === PURCHASE ? Number((Shop.orderItemOf(l) || {}).price) || 0 : '' };
@@ -328,7 +328,8 @@ var Shop = {
       // a special line is made for this customer: handed as it is, no stock is touched
       if (l.description) {
         Util.require(String(l.dept) !== PURCHASE || (Shop.orderItemOf(l) || {}).purchase === 'buy', 'purchase_not_decided', l.description);
-        plan.push({ line: l, qty: q, mov: -1 });
+        // bought by purchasing: brought to distribution, or straight to the shop (no trip for it)
+        plan.push({ line: l, qty: q, mov: -1, direct: x.direct === true && String(l.dept) === PURCHASE });
         return;
       }
       // a department's product comes from the final products stock: made first (production screen) when short
@@ -351,11 +352,23 @@ var Shop = {
         var res = Math.max(0, Util.round((Number(l.reserved_qty) || 0) - x.qty));
         var ids = String(l.movement_ids || '').split(' ').filter(String).concat(s.movement_id ? [s.movement_id] : []).join(' ');
         Repo.update('ShopOrderLines', 'line_id', l.line_id, { handed_qty: handed, reserved_qty: res,
-          status: handed >= Number(l.qty) ? 'handed' : 'partial', handed_by: session.user_id, handed_at: now, updated_at: now, movement_ids: ids });
+          status: handed >= Number(l.qty) ? 'handed' : 'partial', handed_by: session.user_id, handed_at: now, updated_at: now, movement_ids: ids,
+          direct: x.direct ? true : l.direct === true });
         if (!l.description) touched[l.item_id] = true;
         changes.push({ order_id: l.order_id, item_id: l.item_id, short: handed < Number(l.qty) });
       });
       Shop.rebalance(Object.keys(touched));
+      // an order ready whose every handed line went straight to the shop: nothing for a trip, it is at the shop
+      changes.forEach(function (c) {
+        var o = Repo.find('Orders', 'order_id', c.order_id);
+        if (!o || o.status !== 'approved' || Orders.view(o).status !== 'ready') return;
+        var given = Repo.all('ShopOrderLines').filter(function (l) { return l.order_id === o.order_id && Number(l.handed_qty) > 0; });
+        if (!given.length || !given.every(function (l) { return l.direct === true; })) return;
+        Repo.update('Orders', 'order_id', o.order_id, { status: 'delivered', delivered_at: now, updated_at: now });
+        Audit.log(session.user_id, 'order_delivered_direct', 'Orders', o.order_id, null, null);
+        OrderNotify.send(OrderNotify.cashiers(o), session, 'orders', ['وصلت طلبيتك ' + o.order_no, 'سلّمها م.المشتريات مباشرة – استلمها'],
+          ['Your order ' + o.order_no + ' arrived', 'Brought straight by purchasing – receive it']);
+      });
       OrderNotify.lines(changes, session);
       return { saved: saved.saved, version: Version.bump() };
     });

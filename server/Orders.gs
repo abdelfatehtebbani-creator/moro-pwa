@@ -39,11 +39,12 @@ var Orders = {
     Repo.all('ShopOrderLines').forEach(function (l) { if (l.order_id === o.order_id) shop[l.order_item_id] = l; });
     var lines = items.map(function (x) {
       var s = shop[o.order_id + '-' + x.line_no];
+      var direct = !!(s && s.direct === true);
       return { line_no: Number(x.line_no), item_id: x.item_id, qty: Number(x.qty), unit: x.unit, approved_qty: x.approved_qty === '' ? '' : Number(x.approved_qty),
         status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '',
         received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '',
         short_decision: x.short_decision || '', description: x.description || '', price: x.price === '' || x.price === undefined ? '' : Number(x.price),
-        dept: x.dept || '', photos: String(x.photos || '').split(' ').filter(String), purchase: x.purchase || '' };
+        dept: x.dept || '', photos: String(x.photos || '').split(' ').filter(String), purchase: x.purchase || '', direct: direct };
     });
     var out = {};
     Object.keys(o).forEach(function (k) { out[k] = o[k]; });

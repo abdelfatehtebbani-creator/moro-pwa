@@ -25,7 +25,7 @@ var SCHEMA = {
   RequestLines: ['request_id', 'line_no', 'item_id', 'qty', 'unit', 'issued_qty', 'movement_id', 'wait', 'reason'],
   ShopOrderLines: ['line_id', 'order_id', 'order_no', 'order_item_id', 'shop_party_id', 'item_id', 'qty', 'unit', 'reserved_qty',
                  'handed_qty', 'status', 'reason', 'note', 'created_at', 'updated_at', 'handed_by', 'handed_at', 'movement_ids',
-                 'returned_qty', 'approved', 'description', 'dept', 'deadline'],
+                 'returned_qty', 'approved', 'description', 'dept', 'deadline', 'direct'],
   SpecialRequests: ['request_id', 'ext_id', 'order_id', 'order_no', 'shop_party_id', 'description', 'qty', 'unit', 'image', 'status',
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
