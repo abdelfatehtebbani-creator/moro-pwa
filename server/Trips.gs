@@ -23,10 +23,12 @@ var Trips = {
         var load = Repo.all('ShopOrderLines').filter(function (l) { return l.order_id === s.order_id && Number(l.handed_qty) > 0; })
           .map(function (l) {
             var it = Repo.find('Items', 'item_id', l.item_id) || {};
-            return { item_id: l.item_id, name: it.name || l.item_id, name_ar: it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit };
+            return { item_id: l.item_id, name: l.description || it.name || l.item_id, name_ar: l.description ? '' : it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit };
           });
         return { order_id: s.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, seq: Number(s.seq), lines: n, load: load,
-                 loaded_at: s.loaded_at, delivered_at: s.delivered_at, order_status: o.status };
+                 loaded_at: s.loaded_at, delivered_at: s.delivered_at, order_status: o.status, kind: o.kind || '', place: o.place || '',
+                 customer_name: o.customer_name || '', customer_phone: o.customer_phone || '', address: o.address || '',
+                 delivery_date: o.delivery_date || '', delivery_time: o.delivery_time || '' };
       });
     var out = {};
     Object.keys(t).forEach(function (k) { out[k] = t[k]; });
@@ -112,8 +114,20 @@ var Trips = {
       Repo.update('Orders', 'order_id', p.order_id, step === 'load' ? { status: 'loaded', loaded_at: now, updated_at: now }
         : { status: 'delivered', delivered_at: now, updated_at: now });
       Audit.log(session.user_id, step === 'load' ? 'trip_loaded' : 'trip_delivered', 'Orders', p.order_id, null, { trip: t.trip_id });
-      if (step === 'deliver') Notify.orderDelivered(Repo.find('Orders', 'order_id', p.order_id));
-      else OrderNotify.loaded(Repo.find('Orders', 'order_id', p.order_id), session);
+      var after = Repo.find('Orders', 'order_id', p.order_id);
+      // handed to the customer by the driver: the order is received as it was handed, and goes to its invoice
+      if (step === 'deliver' && after.place === 'customer') {
+        Orders.view(after).lines.forEach(function (l) {
+          Repo.updateWhere('OrderItems', function (r) { return r.order_id === after.order_id && Number(r.line_no) === l.line_no; },
+            { received_qty: l.status === 'removed' ? 0 : l.handed_qty, short_reason: '', short_note: '' });
+        });
+        Repo.update('Orders', 'order_id', after.order_id, { status: 'received', received_at: now, received_by: session.user_id, diff_status: '' });
+        after = Repo.find('Orders', 'order_id', after.order_id);
+        OrderNotify.send(OrderNotify.cashiers(after), session, 'orders', ['سُلّمت للزبون ' + after.order_no, after.customer_name],
+          ['Delivered to the customer ' + after.order_no, after.customer_name]);
+        OrderNotify.invoiceReady(after, session);
+      } else if (step === 'deliver') Notify.orderDelivered(after);
+      else OrderNotify.loaded(after, session);
       return { trip: Trips.view(t), version: Version.bump() };
     });
   },

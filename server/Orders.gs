@@ -12,6 +12,10 @@
  * Order status: draft → sent → approved (→ ready, worked out from its lines) | rejected | cancelled.
  */
 var ORDER_STATUSES = ['draft', 'sent', 'approved', 'rejected', 'cancelled'];
+// a special order (Orders.kind): the customer's date, time and place, and lines described by the cashier
+// (OrderItems.description, with a price and photos) that the production manager sends to a department
+var PLACES = ['shop', 'customer'];
+var PURCHASE = 'PURCHASE';
 var DIFF_DECISIONS = ['returned', 'lost'];
 
 var Orders = {
@@ -38,7 +42,8 @@ var Orders = {
       return { line_no: Number(x.line_no), item_id: x.item_id, qty: Number(x.qty), unit: x.unit, approved_qty: x.approved_qty === '' ? '' : Number(x.approved_qty),
         status: s ? s.status : x.status, handed_qty: s ? Number(s.handed_qty) || 0 : 0, reason: s ? s.reason : '',
         received_qty: x.received_qty === '' || x.received_qty === undefined ? '' : Number(x.received_qty), short_reason: x.short_reason || '', short_note: x.short_note || '',
-        short_decision: x.short_decision || '' };
+        short_decision: x.short_decision || '', description: x.description || '', price: x.price === '' || x.price === undefined ? '' : Number(x.price),
+        dept: x.dept || '', photos: String(x.photos || '').split(' ').filter(String) };
     });
     var out = {};
     Object.keys(o).forEach(function (k) { out[k] = o[k]; });
@@ -51,9 +56,11 @@ var Orders = {
   /** Cashier: their shop's orders; distribution (and admin): every shop's. p.status filters. */
   list: function (session, p) {
     p = p || {};
-    var all = Perm.has(session, 'orders.approve');
+    var all = Perm.has(session, 'orders.approve') || Perm.has(session, 'orders.route');
+    var specialOnly = !Perm.has(session, 'orders.approve') && Perm.has(session, 'orders.route');
     var shop = Orders.shopOf(session);
     return Repo.all('Orders').filter(function (o) {
+      if (specialOnly && o.kind !== 'special') return false;
       // a draft is only its writer's
       if (o.status === 'draft' && o.created_by !== session.user_id) return false;
       if (!all && (!shop || o.shop_party_id !== shop)) return false;
@@ -70,6 +77,25 @@ var Orders = {
     Util.require(shop, 'cashier_no_shop');
     var lines = (p.lines || []).filter(function (l) { return Util.num(l.qty) > 0; });
     Util.require(lines.length, 'nothing_to_save');
+    var special = p.kind === 'special';
+    var sp = {};
+    if (special) {
+      sp = { customer_name: Util.clean(p.customer_name), customer_phone: Util.clean(p.customer_phone), delivery_date: Util.clean(p.delivery_date),
+        delivery_time: Util.clean(p.delivery_time), place: PLACES.indexOf(p.place) >= 0 ? p.place : '', address: Util.clean(p.address) };
+      Util.require(sp.customer_name, 'customer_required');
+      Util.require(/^\d{4}-\d{2}-\d{2}$/.test(sp.delivery_date) && sp.delivery_date >= Util.today(), 'delivery_date_invalid');
+      Util.require(/^\d{2}:\d{2}$/.test(sp.delivery_time), 'delivery_time_required');
+      Util.require(sp.place, 'place_required');
+      Util.require(sp.place === 'shop' || (sp.address && sp.customer_phone), 'address_required');
+    }
+    lines.forEach(function (l) {
+      if (l.item_id) return;
+      Util.require(special, 'item_unknown', '');
+      Util.require(Util.clean(l.description), 'description_required');
+      var pr = Util.num(l.price);
+      Util.require(pr !== null && pr >= 0, 'price_required', Util.clean(l.description));
+      Util.require((l.photos || []).length + (l.photo_ids || []).length <= 3, 'photo_invalid');
+    });
     return withLock(function () {
       var cur = p.order_id ? Repo.find('Orders', 'order_id', p.order_id) : null;
       if (!cur && p.client_id) cur = Repo.find('Orders', 'client_id', p.client_id);
@@ -80,14 +106,24 @@ var Orders = {
       }
       var now = Util.nowIso(), today = Util.today();
       var id = cur ? cur.order_id : 'O' + Util.pad(Settings.next('seq_order', 0), 5);
+      // photos kept from the draft are this order's own; new ones are saved now
+      var own = {};
+      Repo.all('OrderItems').forEach(function (x) { if (x.order_id === id) String(x.photos || '').split(' ').filter(String).forEach(function (ph) { own[ph] = true; }); });
       var rows = lines.map(function (l, i) {
+        if (!l.item_id) {
+          var keep = (l.photo_ids || []).filter(function (ph) { return own[ph]; });
+          return { order_id: id, line_no: i + 1, item_id: '', qty: Util.round(Util.num(l.qty)), unit: Util.clean(l.unit).toUpperCase() || 'PC', approved_qty: '',
+            status: 'open', description: Util.clean(l.description), price: Util.round(Util.num(l.price)), dept: '',
+            photos: keep.concat(Photos.add(session, id, l.photos)).join(' ') };
+        }
         var item = Repo.find('Items', 'item_id', l.item_id);
         Util.require(item && item.active === true, 'item_unknown', l.item_id);
         return { order_id: id, line_no: i + 1, item_id: item.item_id, qty: Util.round(Util.num(l.qty)), unit: item.unit, approved_qty: '', status: 'open' };
       });
       var send = p.send === true;
-      var row = { shop_party_id: shop, status: send ? 'sent' : 'draft', order_date: today, delivery_date: Orders.nextDay(today),
-        note: Util.clean(p.note), sent_at: send ? now : '', updated_at: now };
+      var row = { shop_party_id: shop, status: send ? 'sent' : 'draft', order_date: today, delivery_date: special ? sp.delivery_date : Orders.nextDay(today),
+        note: Util.clean(p.note), sent_at: send ? now : '', updated_at: now, kind: special ? 'special' : '',
+        customer_name: sp.customer_name || '', customer_phone: sp.customer_phone || '', delivery_time: sp.delivery_time || '', place: sp.place || '', address: sp.address || '' };
       if (cur) {
         Repo.update('Orders', 'order_id', id, row);
         Repo.replaceAll('OrderItems', Repo.all('OrderItems').filter(function (x) { return x.order_id !== id; }).concat(rows));
@@ -123,26 +159,57 @@ var Orders = {
       var o = Repo.find('Orders', 'order_id', p.order_id);
       Util.require(o, 'not_found');
       Util.require(o.status === 'sent', 'order_decided', o.status);
+      Util.require(o.kind !== 'special', 'special_needs_route');
+      return Orders.decide(session, o, p.lines, {});
+    });
+  },
+
+  /**
+   * Production manager: a special order is approved by sending each described line to the department
+   * that makes it, or to purchasing (bought ready-made). p: {order_id, lines: [{line_no, dept, qty?}]}.
+   */
+  route: function (session, p) {
+    return withLock(function () {
+      var o = Repo.find('Orders', 'order_id', p.order_id);
+      Util.require(o, 'not_found');
+      Util.require(o.kind === 'special', 'not_found');
+      Util.require(o.status === 'sent', 'order_decided', o.status);
+      var depts = {};
+      (p.lines || []).forEach(function (x) { if (x.dept) depts[Number(x.line_no)] = String(x.dept); });
+      Repo.all('OrderItems').forEach(function (x) {
+        if (x.order_id !== o.order_id || x.item_id) return;
+        var d = depts[Number(x.line_no)];
+        var party = d && d !== PURCHASE ? Repo.find('Parties', 'party_id', d) : null;
+        Util.require(d === PURCHASE || (party && party.active === true && party.kind === 'section'), 'dept_required', x.line_no);
+      });
+      return Orders.decide(session, o, p.lines, depts);
+    });
+  },
+
+  /** Approves (inside the lock): the quantities, and for a special line its department. */
+  decide: function (session, o, lineList, depts) {
       var want = {};
-      (p.lines || []).forEach(function (x) { want[Number(x.line_no)] = Util.num(x.qty); });
+      (lineList || []).forEach(function (x) { if (x.qty !== undefined && x.qty !== '') want[Number(x.line_no)] = Util.num(x.qty); });
       var items = Repo.all('OrderItems').filter(function (x) { return x.order_id === o.order_id; });
       var now = Util.nowIso(), shopLines = [];
+      var deadline = o.kind === 'special' ? String(o.delivery_date || '') + (o.delivery_time ? ' ' + o.delivery_time : '') : '';
       items.forEach(function (x) {
         var q = Number(x.line_no) in want ? want[Number(x.line_no)] : Number(x.qty);
         Util.require(q !== null && q >= 0, 'qty_invalid', x.line_no);
         q = Util.round(q);
-        Repo.updateWhere('OrderItems', function (r) { return r.order_id === o.order_id && Number(r.line_no) === Number(x.line_no); },
-          { approved_qty: q, status: q > 0 ? 'open' : 'removed' });
-        if (q > 0) shopLines.push({ order_item_id: o.order_id + '-' + x.line_no, item_id: x.item_id, qty: q, unit: x.unit });
+        var ch = { approved_qty: q, status: q > 0 ? 'open' : 'removed' };
+        if (!x.item_id) ch.dept = depts[Number(x.line_no)] || '';
+        Repo.updateWhere('OrderItems', function (r) { return r.order_id === o.order_id && Number(r.line_no) === Number(x.line_no); }, ch);
+        if (q > 0) shopLines.push({ order_item_id: o.order_id + '-' + x.line_no, item_id: x.item_id, qty: q, unit: x.unit,
+          description: x.item_id ? '' : x.description, dept: x.item_id ? '' : ch.dept, deadline: deadline });
       });
       Util.require(shopLines.length, 'nothing_to_save');
       Shop.addLines(o, shopLines, now);
       Shop.notifyNew(o, shopLines);
       Repo.update('Orders', 'order_id', o.order_id, { status: 'approved', decided_by: session.user_id, decided_at: now, updated_at: now });
-      Audit.log(session.user_id, 'order_approve', 'Orders', o.order_id, null, { lines: shopLines.length });
+      Audit.log(session.user_id, o.kind === 'special' ? 'order_route' : 'order_approve', 'Orders', o.order_id, null, { lines: shopLines.length, depts: depts });
       OrderNotify.decided(o, true, '', session);
       return { order: Orders.view(Repo.find('Orders', 'order_id', o.order_id)), version: Version.bump() };
-    });
   },
 
   /**
@@ -195,7 +262,7 @@ var Orders = {
     var back = short.filter(function (l) { return want[l.line_no] === 'returned'; }).map(function (l) {
       return { order_id: o0.order_id, order_no: o0.order_no, line_no: l.line_no, item_id: l.item_id,
         qty: Util.round(l.handed_qty - Number(l.received_qty)), unit: l.unit, reason: l.short_reason, note: l.short_note };
-    }).filter(function (x) { return x.qty > 0; });
+    }).filter(function (x) { return x.qty > 0 && x.item_id; });
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', o0.order_id);
       if (o.diff_status !== 'pending') return { order: Orders.view(o), duplicate: true, version: Version.get() };
@@ -218,6 +285,7 @@ var Orders = {
       var o = Repo.find('Orders', 'order_id', p.order_id);
       Util.require(o, 'not_found');
       Util.require(o.status === 'sent', 'order_decided', o.status);
+      Util.require(Perm.has(session, o.kind === 'special' ? 'orders.route' : 'orders.approve') || Perm.has(session, 'orders.approve'), 'forbidden');
       var now = Util.nowIso();
       Repo.update('Orders', 'order_id', o.order_id, { status: 'rejected', reason: reason, decided_by: session.user_id, decided_at: now, updated_at: now });
       Audit.log(session.user_id, 'order_reject', 'Orders', o.order_id, null, { reason: reason });
@@ -253,8 +321,14 @@ var Orders = {
   },
 
   /** Orders waiting for distribution (the badge): sent, to approve; being prepared with a line short, to decide. */
+  /** Special orders waiting for the production manager. */
+  pendingSpecial: function () {
+    return Repo.all('Orders').filter(function (o) { return o.kind === 'special' && o.status === 'sent'; }).length;
+  },
+
   pending: function () {
     return Repo.all('Orders').filter(function (o) {
+      if (o.status === 'sent' && o.kind === 'special') return false;
       if (o.status === 'sent' || (o.status === 'received' && o.diff_status === 'pending')) return true;
       if (o.status !== 'approved') return false;
       var v = Orders.view(o);

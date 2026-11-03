@@ -99,6 +99,13 @@ export async function render(root) {
   let busy = 0;
   const act = async (action, payload) => { busy++; try { return await call(action, payload); } finally { busy--; } };
 
+  // the customer's address: a map link in it opens the map
+  function mapText(text) {
+    const m = String(text || '').match(/https?:\/\/\S+/);
+    if (!m) return h('bdi', text || '');
+    return h('span', h('bdi', text.replace(m[0], '').trim()), ' ', h('a', { href: m[0], target: '_blank', rel: 'noopener' }, t('map_open')));
+  }
+
   function card(trip) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
     const stops = trip.stops.map((s) => {
@@ -123,6 +130,9 @@ export async function render(root) {
       const [showBtn, loadBox] = toggle(t('load_show'), () => loadTable(s.load || []));
       return h('div', h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
         h('small.muted', s.order_no + ' · ' + t('lines_n', { n: s.lines })),
+        s.kind === 'special' ? h('small', h('span.pill.soon', t('order_kind_special')), ' ⏰ ', h('span.num', fmtDate(s.delivery_date) + ' ' + (s.delivery_time || ''))) : null,
+        s.place === 'customer' ? h('small', '👤 ', h('bdi', s.customer_name), ' · ', h('a', { href: 'tel:' + s.customer_phone }, s.customer_phone)) : null,
+        s.place === 'customer' ? h('small', '📍 ', mapText(s.address)) : null,
         s.loaded_at ? h('small', '✓ ' + t('stop_loaded') + ' ' + time(s.loaded_at)) : null,
         s.delivered_at ? h('small', '✓ ' + t('stop_delivered') + ' ' + time(s.delivered_at)) : null), showBtn, button), loadBox);
     });

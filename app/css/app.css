@@ -645,3 +645,6 @@ tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
 .trip-load { margin: 0 10px 10px; margin-inline-start: 50px; width: auto; }
 .tab-count { margin-inline-start: 6px; background: var(--brand); color: #fff; border-radius: 9px; font-size: 11px; padding: 0 6px; }
 .inv-qty tr.inv-off td { color: var(--warn, #b45309); font-weight: 600; }
+.photo-view { display: grid; gap: 8px; max-height: 70vh; overflow: auto; }
+.photo-view img { width: 100%; height: auto; border-radius: 8px; }
+.order-kind { margin-bottom: 8px; }

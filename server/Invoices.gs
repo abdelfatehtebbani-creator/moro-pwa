@@ -50,8 +50,13 @@ var Invoices = {
       var lines = Orders.view(o).lines.filter(function (l) { return Number(l.received_qty) > 0; });
       Util.require(lines.length, 'nothing_to_save');
       var missing = [];
-      var costs = Invoices.lastCosts(lines.map(function (l) { return l.item_id; }));
+      var costs = Invoices.lastCosts(lines.map(function (l) { return l.item_id; }).filter(String));
       var rows = lines.map(function (l, i) {
+        if (!l.item_id) {
+          var qq = Number(l.received_qty);
+          return { line_no: i + 1, item_id: '', section: 'final', qty: qq, unit: l.unit, price: Number(l.price) || 0,
+                   amount: Util.round((Number(l.price) || 0) * qq), description: l.description };
+        }
         var item = Repo.find('Items', 'item_id', l.item_id);
         var price = Invoices.priceOf(item, costs);
         if (price === null) missing.push(item ? item.name : l.item_id);

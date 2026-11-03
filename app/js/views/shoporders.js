@@ -7,6 +7,7 @@ import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, storePill, newId } from '../components.js';
+import { photoButton } from '../photos.js';
 
 let tab = 'open';
 let group = '';            // the department or store tab
@@ -48,8 +49,8 @@ export async function render(root) {
       return;
     }
     // a tab per department (final products) and per store, when the lines belong to more than one
-    const groupOf = (l) => (l.store === 'FINAL' && l.dept ? 'd:' + l.dept : 's:' + l.store);
-    const groupName = (g) => (g.startsWith('d:') ? ((Data.parties.get(g.slice(2)) || {}).name || g.slice(2)) : t('store_' + g.slice(2)));
+    const groupOf = (l) => (l.special ? (l.dept === 'PURCHASE' ? 'p:' : 'd:' + l.dept) : l.store === 'FINAL' && l.dept ? 'd:' + l.dept : 's:' + l.store);
+    const groupName = (g) => (g === 'p:' ? t('route_purchase') : g.startsWith('d:') ? ((Data.parties.get(g.slice(2)) || {}).name || g.slice(2)) : t('store_' + g.slice(2)));
     const groups = [...new Set(lines.map(groupOf))].sort((a, b) => (a[0] === b[0] ? groupName(a).localeCompare(groupName(b)) : a < b ? -1 : 1));
     if (!groups.includes(group)) group = groups.length > 1 ? '' : groups[0];
     const groupBar = groups.length > 1 ? h('div.tabs.shop-groups', h('button', { type: 'button', class: group === '' ? 'on' : '', onclick: () => { group = ''; drawLines(lines); } }, t('order_st_all')),
@@ -73,14 +74,17 @@ export async function render(root) {
       const open = tab === 'open' && left > 0 && l.approved !== false && l.can && !sending;
       const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: Math.min(left, l.reserved_qty) || '' })) : null;
       if (inp) inputs.push({ line: l, inp, left });
-      const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
+      const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
         canBack && l.can ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
         t('line_' + l.status)) : l.approved === false ? h('span.pill.soon', t('awaiting_approval'))
         : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
-      const where = l.store === 'FINAL' && l.dept ? h('span.pill.st-final', h('bdi', (Data.parties.get(l.dept) || {}).name || l.dept)) : storePill(l.store);
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
+      const where = l.special ? h('span.pill.st-final', h('bdi', l.dept === 'PURCHASE' ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept))
+        : l.store === 'FINAL' && l.dept ? h('span.pill.st-final', h('bdi', (Data.parties.get(l.dept) || {}).name || l.dept)) : storePill(l.store);
+      const label = l.special ? h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ', h('small.err-text', '⏰ ' + l.deadline), ' ', photoButton(l.photos) || '')
+        : h('bdi', Data.nameOf(it));
+      return h('tr', h('td.wrap', label), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
         h('td', inp || '', ' ', no || ''));
     });

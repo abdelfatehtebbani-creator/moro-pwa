@@ -20,7 +20,7 @@ export async function render(root) {
     h('tbody', o.lines.filter((l) => l.status !== 'removed').map((l) => {
       const got = l.received_qty === '' ? 0 : Number(l.received_qty);
       const off = got !== Number(l.qty) || Number(l.handed_qty) !== Number(l.qty);
-      return h('tr', { class: off ? 'inv-off' : '' }, h('td.wrap', h('bdi', Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }))),
+      return h('tr', { class: off ? 'inv-off' : '' }, h('td.wrap', h('bdi', l.item_id ? Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }) : l.description)),
         h('td.num', fmtNum(l.qty)), h('td.num', fmtNum(l.handed_qty)), h('td.num', fmtNum(got) + ' ' + (l.unit || '')));
     }))));
 
@@ -91,7 +91,7 @@ function printInvoice(v) {
     const sum = rows.reduce((s, x) => s + Number(x.amount || 0), 0);
     return [h('tr.lp-th', h('td', { colspan: 6 }, title)),
       ...rows.map((x) => { const it = Data.items.get(x.item_id) || { name: x.item_id };
-        return h('tr.lp-line', h('td.lp-ctr', fmtNum(x.qty)), h('td.lp-ctr', x.unit), h('td.lp-desc', { colspan: 2 }, it.name), h('td.lp-ctr', money(x.price)), h('td.lp-ctr', money(x.amount))); }),
+        return h('tr.lp-line', h('td.lp-ctr', fmtNum(x.qty)), h('td.lp-ctr', x.unit), h('td.lp-desc', { colspan: 2 }, x.description || it.name), h('td.lp-ctr', money(x.price)), h('td.lp-ctr', money(x.amount))); }),
       h('tr', h('td', { colspan: 5, style: 'text-align:right;font-weight:700' }, 'Subtotal – ' + title), h('td.lp-ctr', { style: 'font-weight:700' }, money(sum)))];
   };
   const area = h('div#print-area.lpo-print', { dir: 'ltr' },

@@ -31,6 +31,12 @@ var OrderNotify = {
 
   sent: function (o, session) {
     var shop = OrderNotify.shopName(o);
+    if (o.kind === 'special') {
+      OrderNotify.send(Push.usersWith('orders.route'), session, 'orderapprove',
+        ['طلبية خاصة ' + o.order_no, shop + ' – للتوجيه، التسليم ' + o.delivery_date + ' ' + o.delivery_time],
+        ['Special order ' + o.order_no, shop + ' – to route, due ' + o.delivery_date + ' ' + o.delivery_time]);
+      return;
+    }
     OrderNotify.send(Push.usersWith('orders.approve'), session, 'orderapprove',
       ['طلبية جديدة ' + o.order_no, shop + ' – للاعتماد'], ['New order ' + o.order_no, shop + ' – to approve']);
   },

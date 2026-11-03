@@ -71,6 +71,8 @@ var ROUTES = {
   'orders.reject':    function (s, p) { return Orders.reject(s, p); },
   'orders.closeShort': function (s, p) { return Orders.closeShort(s, p); },
   'orders.acceptDiff': function (s, p) { return Orders.acceptDiff(s, p); },
+  'orders.route':     function (s, p) { return Orders.route(s, p); },
+  'photos.get':       function (s, p) { return Photos.get(s, p); },
   'returns.list':     function (s, p) { return Returns.list(s, p); },
   'returns.create':   function (s, p) { return Returns.create(s, p); },
   'returns.decide':   function (s, p) { return Returns.decide(s, p); },
@@ -124,7 +126,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '34';
+var SCHEMA_VERSION = '35';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

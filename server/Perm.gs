@@ -11,7 +11,7 @@
 var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 /** Actions every signed-in user may call. */
-var BASE_PERMS = ['auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
+var BASE_PERMS = ['photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
                   'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
@@ -28,7 +28,7 @@ var PERM_TREE = [
   { key: 'production', children: [{ leaf: 'production.view' }, { leaf: 'production.post' }, { leaf: 'production.edit' }] },
   { key: 'requests', children: [{ leaf: 'requests.view' }, { leaf: 'requests.create' }, { leaf: 'requests.fulfil' }] },
   { key: 'orders', children: [{ leaf: 'orders.create' }, { leaf: 'orders.receive' }] },
-  { key: 'orderapprove', children: [{ leaf: 'orders.approve' }] },
+  { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
   { key: 'returns', children: [{ leaf: 'returns.create' }, { leaf: 'returns.decide' }] },
@@ -72,6 +72,8 @@ var CAPS = (function () {
     'orders.create':     ['nav.orders', 'orders.list', 'orders.save', 'orders.cancel', 'orders.shift', 'orders.shiftEnd'],
     'orders.approve':    ['nav.orderapprove', 'orders.list', 'orders.approve', 'orders.reject', 'orders.closeShort', 'orders.acceptDiff'],
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
+    // special orders: the production manager reads them and sends each special line to a department (or purchasing)
+    'orders.route':      ['nav.orderapprove', 'orders.list', 'orders.route', 'orders.reject'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
@@ -81,7 +83,8 @@ var CAPS = (function () {
     'shop.unavailable':  ['shop.unavailable'],
     'shop.return':       ['shop.return', 'kind.DEPT_RETURN'],
     'shop.shortage':     ['nav.shoporders', 'shop.list', 'shop.shortage'],
-    'shop.special':      ['nav.shoporders', 'shop.list', 'special.list', 'special.decide'],
+    // purchasing also prepares the special lines sent to purchasing (bought ready-made)
+    'shop.special':      ['nav.shoporders', 'shop.list', 'special.list', 'special.decide', 'shop.hand', 'shop.unavailable'],
     'issue.edit_own':    ['movements.update', 'edit_own.issue'],
     'issue.edit_all':    ['movements.update', 'edit_own.issue', 'edit_all.issue'],
     'issue.delete':      ['movements.delete', 'delete.issue'],
@@ -174,7 +177,7 @@ var ROLE_CAPS = {
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
   storekeeper: ['dash.view'].concat(leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count'])).concat(['coffee.view', 'coffee.pack']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
-  production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide']),
+  production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide', 'orders.route']),
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
   cashier:     ['orders.create', 'orders.receive', 'returns.create'],

@@ -304,3 +304,45 @@ test('returns: the cashier sends goods back, they wait in quarantine, the produc
   assert.deepEqual(mine.map((r) => r.decision).sort(), ['available', 'expired']);
   assert.equal(g.api('data.bootstrap', {}, tok.prod).data.order_todo.returns, 0);
 });
+
+test('a special order: described by the cashier, routed by the production manager, made by its department, delivered to the customer, invoiced at the agreed price', () => {
+  const { g, tok, user, bal } = env();
+  const driver = user('drv', 'driver');
+  const photo = 'data:image/jpeg;base64,' + 'A'.repeat(100000);
+  const base = { kind: 'special', customer_name: 'Sara', customer_phone: '5555', delivery_date: '2099-01-02', delivery_time: '16:30', place: 'customer', address: 'Villa 3, map link' };
+  const cake = { description: 'Birthday cake, blue, name Sara', qty: 1, unit: 'pc', price: 250, photos: [photo] };
+  assert.equal(g.api('orders.save', Object.assign({}, base, { address: '', lines: [cake], send: true }), tok.cashier).error.code, 'address_required');
+  assert.equal(g.api('orders.save', Object.assign({}, base, { lines: [Object.assign({}, cake, { price: '' })], send: true }), tok.cashier).error.code, 'price_required');
+  assert.equal(g.api('orders.save', { lines: [{ description: 'x', qty: 1, price: 1 }], send: true }, tok.cashier).error.code, 'item_unknown', 'a normal order: catalogue only');
+  const o = g.api('orders.save', Object.assign({}, base, { lines: [cake, { item_id: 'I0002', qty: 1 }], send: true }), tok.cashier).data.order;
+  assert.deepEqual([o.kind, o.delivery_date, o.lines[0].item_id, o.lines[0].photos.length], ['special', '2099-01-02', '', 1]);
+  assert.equal(g.api('photos.get', { photo_id: o.lines[0].photos[0] }, tok.prod).data.data, photo, 'the photo comes back whole');
+  // distribution does not approve it; the production manager sees it and routes the cake
+  assert.equal(g.api('orders.approve', { order_id: o.order_id }, tok.dist).error.code, 'special_needs_route');
+  assert.equal(g.api('data.bootstrap', {}, tok.prod).data.orders_pending, 1);
+  assert.deepEqual(g.api('orders.list', {}, tok.prod).data.map((x) => x.order_id), [o.order_id]);
+  assert.equal(g.api('orders.route', { order_id: o.order_id, lines: [] }, tok.prod).error.code, 'dept_required');
+  assert.equal(g.api('orders.route', { order_id: o.order_id, lines: [{ line_no: 1, dept: 'P001' }] }, tok.prod).ok, true);
+  // the baklava department makes it: handed without any stock movement
+  const lines = g.api('shop.list', {}, tok.baklava).data;
+  const sp = lines.find((l) => l.special);
+  assert.deepEqual([sp.description, sp.deadline], ['Birthday cake, blue, name Sara', '2099-01-02 16:30']);
+  const moves = g.rows('Movements').length;
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'hs', lines: [{ line_id: sp.line_id, qty: 1 }] }, tok.baklava);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'hs', lines: [{ line_id: sp.line_id, qty: 1 }] }, tok.baklava);
+  assert.equal(g.rows('Movements').length, moves);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'hb', lines: [{ line_id: lines.find((l) => !l.special).line_id, qty: 1 }] }, tok.baklava);
+  assert.equal(bal('I0002'), 2);
+  // the driver sees where and when, and delivering to the customer receives it
+  const trip = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id] }, tok.dist).data.trip;
+  const stop = g.api('trips.list', { open: true }, tok.drv).data[0].stops[0];
+  assert.deepEqual([stop.place, stop.address, stop.customer_phone, stop.delivery_time], ['customer', 'Villa 3, map link', '5555', '16:30']);
+  g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  const got = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id);
+  assert.equal(got.status, 'received');
+  g.run("Repo.update('Items', 'item_id', 'I0002', { final_price: 10 })");
+  const inv = g.api('invoices.create', { order_id: o.order_id }, tok.dist).data.invoice;
+  assert.deepEqual(inv.items.map((x) => [x.description || x.item_id, x.amount]), [['Birthday cake, blue, name Sara', 250], ['I0002', 10]]);
+  assert.equal(inv.shop_party_id, 'P002', 'invoiced to the shop that took it');
+});

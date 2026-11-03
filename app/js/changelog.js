@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.116', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الطلبية الخاصة: في "طلبيتي" يختار الكاشير طلبية خاصة، يكتب الزبون وتاريخ ووقت ومكان التسليم، ويصف المنتج بسعره المتفق عليه مع حتى 3 صور. مدير الإنتاج يوجّه كل منتج إلى قسمه أو إلى المشتريات، والقسم يراه في تجهيز الطلبيات بموعده. السائق يرى العنوان والهاتف، والتسليم عند الزبون يُعدّ استلامًا، والفاتورة على المحل.'] },
+    en: { news: ['(Development copy) Special orders: in My order the cashier picks a special order, writes the customer, date, time and place, and describes the product with the agreed price and up to 3 photos. The production manager sends each product to its department or to purchasing; the department sees it in Prepare orders with its deadline. The driver sees the address and phone; delivery at the customer counts as received, invoiced to the shop.'] },
+  },
+  {
     v: '0.9.115', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) شاشة المرتجعات: الكاشير يُرجع بضاعة بسببها، فتدخل الحجر ولا تُحسب في الرصيد. مدير الإنتاج يقرر لكل صنف: يعود للمخزن أو تالف أو منتهي الصلاحية. و"إرجاع إلى المخزن" في فرق الاستلام يمر عبر الحجر أيضًا.'] },
     en: { news: ['(Development copy) Returns screen: the cashier returns goods with a reason; they go to quarantine and are not in the balance. The production manager decides each item: back to the store, damaged or expired. A receipt difference back to the store goes through quarantine too.'] },

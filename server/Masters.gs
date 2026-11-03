@@ -324,7 +324,7 @@ var Masters = {
       })(),
       reserved: Shop.reservedMap(),
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
-      orders_pending: Perm.has(session, 'orders.approve') ? Orders.pending() : 0,
+      orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,

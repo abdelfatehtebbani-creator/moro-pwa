@@ -10,6 +10,10 @@ import { Data, STORES } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, newId } from '../components.js';
+import { shrink, photoButton } from '../photos.js';
+
+const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const PURCHASE = 'PURCHASE';
 
 const PILL = { draft: 'out', sent: 'soon', approved: 'soon', ready: 'in', in_trip: 'soon', loaded: 'soon', delivered: 'soon', received: 'in',
   invoiced: 'in', rejected: 'low', cancelled: 'out' };
@@ -95,6 +99,9 @@ export async function render(root, name) {
   // ---------- a new order (or a draft being changed)
   let editing = null;
   let lines = [];
+  // a special order: the customer's date, time and place, and products described by the cashier
+  let kind = 'normal';
+  let sp = {};
   let source = 'all';        // the item picker: all, a store, or a department
   function drawEditor() {
     // the stores (final products come by department) and the producing departments
@@ -114,6 +121,11 @@ export async function render(root, name) {
     const note = trackFilled(h('input.input#o-note', { value: editing ? editing.note || '' : '' }));
     const body = h('tbody');
     const draw = () => body.replaceChildren(...(lines.length ? lines.map((l, i) => {
+      if (!l.item_id) {
+        return h('tr', h('td.wrap', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ', photoButton(l.photo_ids, l.photos) || ''),
+          h('td.num', fmtNum(l.qty) + ' ' + (l.unit || '')), h('td.num', money(l.price) + ' QR'),
+          h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete'))));
+      }
       const it = Data.items.get(l.item_id) || { name: l.item_id, unit: '' };
       return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
         h('td', Data.qty(l.item_id) > 0 ? h('span.pill.in', t('ord_available')) : h('span.pill.low', t('ord_not_available'))),
@@ -128,25 +140,71 @@ export async function render(root, name) {
     };
     item.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && item.value) { e.preventDefault(); qty.focus(); } });
     qty.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    // ---- the special order: who, when, where, and the products described
+    const special = kind === 'special';
+    const kindBar = h('div.tabs.order-kind', ['normal', 'special'].map((k) => h('button', { type: 'button', class: k === kind ? 'on' : '',
+      onclick: () => { if (k === kind) return; kind = k; if (k === 'normal') lines = lines.filter((l) => l.item_id); drawEditor(); } }, t('order_kind_' + k))));
+    const inp = (id, type, v) => trackFilled(h('input.input#' + id, { type, value: v || '' }));
+    const cName = inp('o-cname', 'text', sp.customer_name), cPhone = inp('o-cphone', 'tel', sp.customer_phone);
+    const dDate = inp('o-ddate', 'date', sp.delivery_date), dTime = inp('o-dtime', 'time', sp.delivery_time);
+    const place = h('select.input#o-place', ['shop', 'customer'].map((p) => h('option', { value: p, selected: (sp.place || 'shop') === p }, t('place_' + p))));
+    const addr = inp('o-addr', 'text', sp.address);
+    const addrField = field(t('address_map'), addr, { wide: true });
+    const syncPlace = () => { addrField.hidden = place.value !== 'customer'; };
+    place.addEventListener('change', syncPlace); syncPlace();
+    const keep = () => { sp = { customer_name: cName.value.trim(), customer_phone: cPhone.value.trim(), delivery_date: dDate.value, delivery_time: dTime.value,
+      place: place.value, address: addr.value.trim() }; };
+    [cName, cPhone, dDate, dTime, place, addr].forEach((x) => x.addEventListener('change', keep));
+    const desc = inp('o-desc', 'text'), sQty = trackFilled(h('input.input.num#o-sqty', { type: 'number', step: 'any', min: 0 }));
+    const sUnit = inp('o-sunit', 'text', 'PC'), price = trackFilled(h('input.input.num#o-price', { type: 'number', step: 'any', min: 0 }));
+    const files = h('input#o-photos', { type: 'file', accept: 'image/*', multiple: true });
+    const addSpecial = async (e) => {
+      if (!desc.value.trim()) return flash(desc);
+      if (!(Number(sQty.value) > 0)) return flash(sQty);
+      if (price.value === '' || Number(price.value) < 0) return flash(price);
+      const picked = [...files.files].slice(0, 3);
+      const btn = e.currentTarget; btn.disabled = true;
+      try {
+        const photos = await Promise.all(picked.map(shrink));
+        lines.push({ description: desc.value.trim(), qty: Number(sQty.value), unit: sUnit.value.trim() || 'PC', price: Number(price.value), photos, photo_ids: [] });
+        desc.value = ''; sQty.value = ''; price.value = ''; files.value = ''; draw();
+      } catch { toast(t('err.photo_invalid'), 'err'); }
+      btn.disabled = false;
+    };
+    const specialBox = special ? h('div',
+      h('div.form-grid', field(t('customer_name'), cName), field(t('customer_phone'), cPhone), field(t('delivery_date'), dDate), field(t('delivery_time'), dTime),
+        field(t('place'), place), addrField),
+      h('h4', t('special_product')), h('small.muted', t('special_product_help')),
+      h('div.form-grid', field(t('description'), desc, { wide: true }), field(t('qty'), sQty), field(t('unit'), sUnit), field(t('price_unit'), price),
+        field(t('photos'), files), h('div.field.end', h('button.btn', { type: 'button', onclick: addSpecial }, t('add_line'))))) : null;
     const save = async (send, btn) => {
-      if (!lines.length) { flash(item.input); item.input.focus(); return; }
-      if (send && !(await confirm(t('order_send_confirm')))) return;
+      if (!lines.length) { flash(special ? desc : item.input); return; }
+      if (special) {
+        keep();
+        if (!sp.customer_name) return flash(cName);
+        if (!sp.delivery_date) return flash(dDate);
+        if (!sp.delivery_time) return flash(dTime);
+        if (sp.place === 'customer' && !sp.address) return flash(addr);
+        if (sp.place === 'customer' && !sp.customer_phone) return flash(cPhone);
+      }
+      if (send && !(await confirm(t(special ? 'order_send_special_confirm' : 'order_send_confirm')))) return;
       btn.disabled = true;
       try {
-        await call('orders.save', { order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send });
+        await call('orders.save', Object.assign({ order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send },
+          special ? Object.assign({ kind: 'special' }, sp) : {}));
         toast(t(send ? 'order_sent' : 'saved'), 'ok');
-        editing = null; lines = []; drawEditor();
+        editing = null; lines = []; sp = {}; drawEditor();
       } catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
     };
-    editorBox.replaceChildren(h('div.form-card', h('h3', editing ? t('order_edit_draft', { n: editing.order_no }) : t('order_new')),
-      h('small.muted', t('order_new_help')), srcBar,
+    editorBox.replaceChildren(h('div.form-card', editing ? null : kindBar, h('h3', editing ? t('order_edit_draft', { n: editing.order_no }) : t(special ? 'order_new_special' : 'order_new')),
+      h('small.muted', t(special ? 'order_special_help' : 'order_new_help')), specialBox, special ? h('h4', t('special_catalog')) : null, srcBar,
       h('div.form-grid', field(t('item'), item, { wide: true }), field(t('qty'), qty),
         h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line'))), field(t('note'), note, { wide: true })),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', ''))), body)),
       h('div.form-actions',
         h('button.btn.secondary', { type: 'button', onclick: (e) => save(false, e.currentTarget) }, t('save_draft')),
         h('button.btn.save-btn', { type: 'button', onclick: (e) => save(true, e.currentTarget) }, t('order_send')),
-        editing ? h('button.btn.secondary', { type: 'button', onclick: () => { editing = null; lines = []; drawEditor(); } }, t('close')) : null)));
+        editing ? h('button.btn.secondary', { type: 'button', onclick: () => { editing = null; lines = []; sp = {}; kind = 'normal'; drawEditor(); } }, t('close')) : null)));
     draw();
   }
 
@@ -179,7 +237,10 @@ export async function render(root, name) {
   };
 
   function card(o) {
-    const approving = approveMode && Data.can('orders.approve') && o.status === 'sent';
+    const approving = approveMode && Data.can('orders.approve') && o.status === 'sent' && o.kind !== 'special';
+    // the production manager: each described line of a special order goes to the department that makes it
+    const routing = approveMode && Data.can('orders.route') && o.status === 'sent' && o.kind === 'special';
+    const routes = [];
     // the cashier receives a delivered order: what came, per line; less than handed needs a reason
     const receiving = !approveMode && Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
     const got = [];
@@ -188,7 +249,12 @@ export async function render(root, name) {
     const reviewing = approveMode && Data.can('orders.acceptDiff') && o.status === 'received' && o.diff_status === 'pending';
     const decide = [];
     const rows = o.lines.map((l) => {
-      const it = Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit };
+      const it = l.item_id ? Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit } : { name: l.description, unit: l.unit };
+      if (routing && !l.item_id) {
+        const sel = h('select.input.small', h('option', { value: '' }, '—'), Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)),
+          h('option', { value: PURCHASE }, t('route_purchase')));
+        routes.push({ line_no: l.line_no, sel });
+      }
       const inp = approving ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: l.qty })) : null;
       if (inp) inputs.push({ line_no: l.line_no, inp });
       let recv = null;
@@ -213,9 +279,13 @@ export async function render(root, name) {
       const state = o.status === 'approved' || o.status === 'ready'
         ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', removed: 'out' }[l.status] || 'soon') }, t('line_' + l.status))
         : approving ? (Data.qty(l.item_id) > 0 ? h('span.pill.in', t('ord_available')) : h('span.pill.low', t('ord_not_available'))) : '';
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
+      const route = routes.find((x) => x.line_no === l.line_no);
+      const label = l.item_id ? h('bdi', Data.nameOf(it)) : h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ',
+        h('small.muted', money(l.price) + ' QR'), l.dept ? h('small.muted', ' · ' + (l.dept === PURCHASE ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept)) : '',
+        ' ', photoButton(l.photos) || '');
+      return h('tr', h('td.wrap', label), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
         h('td.num', l.approved_qty === '' ? '' : fmtNum(l.approved_qty)), h('td.num', l.handed_qty ? fmtNum(l.handed_qty) : ''),
-        h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''), h('td', inp || recv || received));
+        h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''), h('td', inp || recv || (route && route.sel) || received));
     });
     const actions = h('div.form-actions');
     if (reviewing) {
@@ -253,7 +323,20 @@ export async function render(root, name) {
           try { await act('orders.approve', { order_id: o.order_id, lines: ls }); toast(t('order_approved'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
           catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
         } }, t('order_approve')),
-        h('button.btn.danger', { type: 'button', onclick: async () => {
+        rejectBtn());
+    }
+    if (routing) {
+      actions.append(h('small.muted', t('route_help')), h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+        const btn = e.currentTarget;
+        const empty = routes.filter((x) => !x.sel.value);
+        if (empty.length) { empty.forEach((x) => flash(x.sel)); toast(t('err.dept_required'), 'err'); return; }
+        btn.disabled = true;
+        try { await act('orders.route', { order_id: o.order_id, lines: routes.map((x) => ({ line_no: x.line_no, dept: x.sel.value })) }); toast(t('order_routed'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      } }, t('order_route')), rejectBtn());
+    }
+    function rejectBtn() {
+      return h('button.btn.danger', { type: 'button', onclick: async () => {
           const why = await dialog((close) => {
             const r = trackFilled(h('textarea.input#o-why', { rows: 3 }));
             return [h('h3', t('order_reject'), ' ', o.order_no), field(t('reason'), r),
@@ -263,7 +346,7 @@ export async function render(root, name) {
           if (!why) return;
           try { await act('orders.reject', { order_id: o.order_id, reason: why }); toast(t('order_rejected'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
           catch (ex) { toast(errText(ex), 'err'); }
-        } }, t('order_reject')));
+        } }, t('order_reject'));
     }
     // being prepared: distribution may take what was handed and close the rest (the order goes on to the trips)
     if (approveMode && Data.can('orders.closeShort') && o.status === 'approved') {
@@ -284,7 +367,11 @@ export async function render(root, name) {
     if (!approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
       actions.append(
         h('button.btn', { type: 'button', onclick: () => {
-          editing = o; lines = o.lines.map((l) => ({ item_id: l.item_id, qty: l.qty }));
+          editing = o;
+          lines = o.lines.map((l) => (l.item_id ? { item_id: l.item_id, qty: l.qty }
+            : { description: l.description, qty: l.qty, unit: l.unit, price: l.price, photo_ids: l.photos, photos: [] }));
+          kind = o.kind === 'special' ? 'special' : 'normal';
+          sp = { customer_name: o.customer_name, customer_phone: o.customer_phone, delivery_date: o.delivery_date, delivery_time: o.delivery_time, place: o.place, address: o.address };
           tab = tabs[name] = 'new'; [...tabBar.children].forEach((b, i) => b.classList.toggle('on', keys[i] === 'new')); show(); window.scrollTo(0, 0);
         } }, t('edit')),
         h('button.btn.secondary', { type: 'button', onclick: async () => {
@@ -294,14 +381,24 @@ export async function render(root, name) {
     }
     return h('div.req-card',
       h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
-        h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date))),
+        h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date) + (o.delivery_time ? ' ' + o.delivery_time : ''))),
+        o.kind === 'special' ? h('span.pill.soon', t('order_kind_special')) : null,
         h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status)),
         o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null),
+      o.kind === 'special' ? h('p.muted', '👤 ', h('bdi', o.customer_name), o.customer_phone ? ' · ' + o.customer_phone : '', ' · ',
+        o.place === 'customer' ? h('span', t('place_customer'), ': ', linkify(o.address)) : t('place_shop')) : null,
       o.note ? h('p.muted', o.note) : null,
       o.status === 'rejected' && o.reason ? h('p.err-text', t('order_rejected_why', { why: o.reason })) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('requested')), h('th', t('approved_qty')), h('th', t('issued')),
         h('th', ''), h('th', approving ? t('approved_qty') : receiving || o.status === 'received' || o.status === 'invoiced' ? t('received') : ''))), h('tbody', rows))),
       actions);
+  }
+
+  // an address with a map link: the link opens the map
+  function linkify(text) {
+    const m = String(text || '').match(/https?:\/\/\S+/);
+    if (!m) return h('bdi', text || '');
+    return h('span', h('bdi', text.replace(m[0], '').trim()), ' ', h('a', { href: m[0], target: '_blank', rel: 'noopener' }, t('map_open')));
   }
 
   function confirm(text) {
