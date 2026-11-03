@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.114', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الفواتير: كل طلبية بانتظار فاتورتها تعرض لكل مادة ما طُلب وما سُلّم وما استُلم، والسطر المختلف ملوّن. وفي جدول البيانات أمر للقراءة فقط: MORO ثم Check for duplicate numbers.'] },
+    en: { news: ['(Development copy) Invoices: each order waiting for its invoice shows, for every item, what was ordered, handed and received, with a line that differs in colour. In the spreadsheet, a read-only command: MORO, then Check for duplicate numbers.'] },
+  },
+  {
     v: '0.9.113', date: '2026-11-02',
     ar: { news: ['(نسخة التطوير) فروق الاستلام: خانة المصير فارغة لكل سطر، ويجب أن يختار مسؤول التوزيع (رجع إلى المخزن أو تالف أو مفقود) قبل اعتماد الفرق.'] },
     en: { news: ['(Development copy) Receipt differences: the choice is empty on each line, and distribution must pick (back to the store, or damaged or lost) before accepting.'] },

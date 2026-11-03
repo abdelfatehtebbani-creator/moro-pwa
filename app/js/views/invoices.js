@@ -14,6 +14,15 @@ export async function render(root) {
   const today = Data.todayIso();
   if (!state.from) { state.from = today.slice(0, 8) + '01'; state.to = today; }
   const shopName = (id) => (Data.parties.get(id) || {}).name || id;
+  // each line as it went: ordered, handed by the stores and departments, received by the cashier
+  const qtyTable = (o) => h('div.table-wrap', h('table.table.inv-qty', h('thead', h('tr', h('th', t('item')),
+    h('th.num', t('qty_ordered')), h('th.num', t('qty_handed')), h('th.num', t('qty_received')))),
+    h('tbody', o.lines.filter((l) => l.status !== 'removed').map((l) => {
+      const got = l.received_qty === '' ? 0 : Number(l.received_qty);
+      const off = got !== Number(l.qty) || Number(l.handed_qty) !== Number(l.qty);
+      return h('tr', { class: off ? 'inv-off' : '' }, h('td.wrap', h('bdi', Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }))),
+        h('td.num', fmtNum(l.qty)), h('td.num', fmtNum(l.handed_qty)), h('td.num', fmtNum(got) + ' ' + (l.unit || '')));
+    }))));
 
   // ---------- received orders waiting for their invoice
   const waitBox = h('div.req-list');
@@ -23,6 +32,7 @@ export async function render(root) {
       waitBox.replaceChildren(...(list.length ? list.map((o) => h('div.req-card', h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
         h('span.muted', t('order_st_received'), ' ', h('span.num', fmtDate(String(o.received_at || '').slice(0, 10))))),
         h('small.muted', t('lines_n', { n: o.lines.filter((l) => Number(l.received_qty) > 0).length })),
+        qtyTable(o),
         o.diff_status === 'pending' ? h('p', h('span.pill.low', t('diff_pending')), ' ', h('small.muted', t('diff_wait_invoice'))) : null,
         o.diff_status === 'pending' ? null : h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
           const btn = e.currentTarget; btn.disabled = true;

@@ -265,3 +265,18 @@ test('a receipt short waits for distribution: back to the store or lost, then th
   assert.equal(g.api('orders.acceptDiff', { order_id: o.order_id, lines: [] }, tok.dist).error.code, 'order_decided');
   assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 0);
 });
+
+test('the sheet menu lists numbers used twice and changes nothing', () => {
+  const { g, tok } = env();
+  assert.deepEqual(JSON.parse(g.run('JSON.stringify(Recovery.duplicates())')), []);
+  g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier);
+  g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 2 }], send: true }, tok.cashier);
+  const o = g.rows('Orders');
+  const sh = g.spreadsheet.sheets.Orders.data;                       // two orders, one number (the old bug)
+  sh[2][sh[0].indexOf('order_no')] = o[0].order_no;
+  g.run('Repo.reset()');
+  const before = JSON.stringify(g.rows('Orders'));
+  const d = JSON.parse(g.run('JSON.stringify(Recovery.duplicates())'));
+  assert.deepEqual(d.map((x) => [x.sheet, x.key, x.value, x.rows]), [['Orders', 'order_no', o[0].order_no, [2, 3]]]);
+  assert.equal(JSON.stringify(g.rows('Orders')), before);
+});
