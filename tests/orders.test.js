@@ -531,3 +531,18 @@ test('daily sales: cash from the shifts, other channels by the accountant, sent 
   g.api('sales.decide', { day_id: sent.day_id, ok: true }, tok.admin);
   assert.equal(g.api('report.margin', {}, tok.admin).data.takings.P002, 920, 'the margin reads the approved sheet');
 });
+
+test('accounts: one permission per tab; a list saved with the old one keeps its tabs', () => {
+  const { g, tok, user } = env();
+  const id = user('acc2', 'accountant');
+  const sh = g.spreadsheet.sheets.Users.data;                     // a list saved before the split
+  sh.find((r) => r[sh[0].indexOf('user_id')] === id)[sh[0].indexOf('caps')] = 'accounts.view';
+  g.run('Repo.reset()');
+  const perms = g.api('data.bootstrap', {}, tok.acc2).data.permissions;
+  ['accounts.balances', 'accounts.statement', 'accounts.lpo'].forEach((p) => assert.ok(perms.includes(p), p));
+  assert.ok(!perms.includes('accounts.pay'));
+  g.api('users.save', { user_id: id, caps: ['accounts.balances'] }, tok.admin);
+  const tok2 = g.api('auth.login', { username: 'acc2', pin: '5678' }).data.token;
+  assert.equal(g.api('accounts.statement', { party_id: 'P002' }, tok2).error.code, 'forbidden');
+  assert.equal(g.api('accounts.balances', {}, tok2).ok, true);
+});

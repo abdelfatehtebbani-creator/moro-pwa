@@ -31,7 +31,13 @@ var PERM_TREE = [
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
-  { key: 'accounts', children: [{ leaf: 'accounts.view' }, { leaf: 'accounts.pay' }, { leaf: 'accounts.takings' }, { leaf: 'accounts.sales' }, { leaf: 'accounts.salesApprove' }] },
+  { key: 'accounts', children: [
+    { key: 'tab_acc_balances', children: [{ leaf: 'accounts.balances' }] },
+    { key: 'tab_acc_statement', children: [{ leaf: 'accounts.statement' }] },
+    { key: 'tab_acc_pay', children: [{ leaf: 'accounts.pay' }] },
+    { key: 'tab_acc_lpo', children: [{ leaf: 'accounts.lpo' }] },
+    { key: 'tab_acc_takings', children: [{ leaf: 'accounts.takings' }] },
+    { key: 'tab_acc_sales', children: [{ leaf: 'accounts.sales' }, { leaf: 'accounts.salesApprove' }] }] },
   { key: 'returns', children: [{ leaf: 'returns.create' }, { leaf: 'returns.decide' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
@@ -80,13 +86,16 @@ var CAPS = (function () {
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
     // the accounts of the suppliers and shops: money, so prices are seen
-    'accounts.view':     ['nav.accounts', 'accounts.statement', 'accounts.balances', 'accounts.lpo', 'see_prices'],
+    // one leaf per tab of the accounts screen
+    'accounts.balances': ['nav.accounts', 'accounts.balances', 'see_prices'],
+    'accounts.statement': ['nav.accounts', 'accounts.statement', 'see_prices'],
+    'accounts.lpo':      ['nav.accounts', 'accounts.lpo', 'see_prices'],
     // the cash each cashier collected in a shift, received by the accountant
     // the daily sales sheet of each shop: the accountant writes and sends it, the admin approves it
     'accounts.sales':    ['nav.accounts', 'sales.list', 'sales.save', 'see_prices'],
     'accounts.salesApprove': ['nav.accounts', 'sales.list', 'sales.decide', 'see_prices'],
     'accounts.takings':  ['nav.accounts', 'shifts.list', 'shifts.receive', 'see_prices'],
-    'accounts.pay':      ['nav.accounts', 'accounts.statement', 'accounts.balances', 'accounts.pay', 'accounts.void', 'see_prices'],
+    'accounts.pay':      ['nav.accounts', 'accounts.pay', 'accounts.void', 'see_prices'],
     'invoices.manage':   ['nav.invoices', 'invoices.list', 'invoices.get', 'invoices.create', 'orders.list'],
     'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
     'shop.unavailable':  ['shop.unavailable'],
@@ -146,6 +155,9 @@ var CAPS = (function () {
   return c;
 })();
 
+/** Leaves split in several (lists saved before keep what they opened). */
+var SPLIT_CAPS = { 'accounts.view': ['accounts.balances', 'accounts.statement', 'accounts.lpo'] };
+
 /** The bundles used before the tree, read as leaves (lists saved in Users.caps stay valid). */
 var OLD_CAPS = {
   receive: ['receive.view', 'receive.save', 'receive.return'],
@@ -194,13 +206,15 @@ var ROLE_CAPS = {
                  'report.unavailable', 'report.shopSales', 'prices.see'],
   driver:      ['trips.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
-  accountant:  ['lpo.view', 'cash.handover', 'accounts.view', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
+  accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
 };
 
 var Perm = {
   /** Leaves of a user row: its own list (old bundles read as leaves), or its role's template. */
   capsOf: function (u) {
     var own = String(u.caps || '').split(',').map(function (c) { return c.trim(); }).filter(String);
+    // a leaf split in several since it was saved: read as all of them
+    own = own.reduce(function (a, c) { return a.concat(SPLIT_CAPS[c] || [c]); }, []);
     if (!own.length) return (ROLE_CAPS[u.role] || []).slice();
     var leaves = own.filter(function (c) { return CAPS[c]; });
     var old = own.filter(function (c) { return OLD_CAPS[c]; });

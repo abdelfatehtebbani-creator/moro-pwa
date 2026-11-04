@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.137', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) شجرة الصلاحيات: الحسابات صارت تبويبًا تبويبًا (الأرصدة، كشف حساب، دفعة جديدة، مطابقة أوامر الشراء، مقبوضات النوبات، يومية المبيعات)، لكل منها خانته.'] },
+    en: { news: ['(Development copy) Permission tree: Accounts by tab (balances, statement, new payment, purchase orders matched, shift takings, daily sales), each with its own tick.'] },
+  },
+  {
     v: '0.9.136', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) مقبوضات النوبات: إن اختلف المستلم عن المصرّح به يكتب المحاسب "الإجراء المتخذ" (إلزامي). والمدير يرى "فروق المقبوضات" بإجراءاتها في تبويب المقبوضات، ورقمًا في قراراتك لكل فرق جديد حتى يطّلع عليه.'] },
     en: { news: ['(Development copy) Shift takings: when received differs from declared, the accountant writes the action taken (required). The admin sees Takings differences with their actions in the takings tab, and a number in Your decisions for each new one until looked at.'] },

@@ -24,8 +24,8 @@ export async function render(root) {
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name, hint: t('kind_' + p.kind) }));
   const body = h('div');
   const bar = h('div.tabs');
-  const keys = (Data.can('accounts.statement') ? ['balances', 'statement'] : []).concat(Data.can('accounts.pay') ? ['pay'] : [],
-    Data.can('accounts.statement') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : [], Data.can('sales.list') ? ['sales'] : []);
+  const keys = (Data.can('accounts.balances') ? ['balances'] : []).concat(Data.can('accounts.statement') ? ['statement'] : [], Data.can('accounts.pay') ? ['pay'] : [],
+    Data.can('accounts.lpo') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : [], Data.can('sales.list') ? ['sales'] : []);
   if (!keys.includes(state.tab)) state.tab = keys[0];
   keys.forEach((k) => bar.append(h('button', { type: 'button', class: k === state.tab ? 'on' : '',
     onclick: (e) => { state.tab = k; [...bar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('acc_tab_' + k))));
@@ -41,7 +41,7 @@ export async function render(root) {
     body.replaceChildren(h('p.muted', t('loading')));
     try {
       const list = await call('accounts.balances', {});
-      const row = (x) => h('tr.click', { onclick: () => { state.party = x.party_id; state.tab = 'statement'; [...bar.children].forEach((b, i) => b.classList.toggle('on', keys[i] === 'statement')); show(); } },
+      const row = (x) => h('tr.click', { onclick: () => { if (!keys.includes('statement')) return; state.party = x.party_id; state.tab = 'statement'; [...bar.children].forEach((b, i) => b.classList.toggle('on', keys[i] === 'statement')); show(); } },
         h('td.wrap', h('bdi', x.name)), h('td', t('kind_' + x.kind)), h('td.num', h('b', money(Math.abs(x.balance)))), h('td', side(x.balance, x.kind)));
       body.replaceChildren(h('small.muted', t('acc_balances_help')), h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('acc_party')), h('th', ''), h('th', t('balance')), h('th', ''))),
         h('tbody', list.length ? list.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name)).map(row) : [h('tr', h('td.empty', { colspan: 4 }, t('no_rows')))]))));
