@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.145', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الطلبيات: الاعتماد والرفض والتوجيه وإغلاق الناقص واعتماد الفرق والاستلام والإلغاء فورية، وتُرسل في الخلفية. البطاقة تقول "يُرسل" حتى تصل، ولا تعرض أزرارها مرة ثانية.'] },
+    en: { news: ['(Development copy) Orders: approve, reject, route, close the short, accept the difference, receive and cancel are immediate and sent in the background. The card says sending until it arrives and offers no button twice.'] },
+  },
+  {
     v: '0.9.144', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) طلبيتي: الإرسال والحفظ فوريان، والطلبية تُرسل إلى الخادم في الخلفية (وتنتظر الاتصال إن انقطع). تظهر "طلبية في الطريق" حتى تصل.'] },
     en: { news: ['(Development copy) My order: sending and saving are immediate; the order goes to the server in the background (and waits for the connection if it is lost). An on-the-way note shows until it arrives.'] },

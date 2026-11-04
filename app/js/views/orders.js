@@ -285,24 +285,31 @@ export async function render(root, name) {
 
   // a decision on its way: the list is not refreshed under it (a fresh card would offer the button again)
   let busy = 0;
+  // a decision on an order is queued on the device and sent in the background (the outbox): the screen does not
+  // wait for the server. Until it is sent the card says so and offers no button (no second press); a refusal
+  // (someone decided first…) shows in the list of refused saves.
+  const ORDER_ACTIONS = ['orders.approve', 'orders.reject', 'orders.route', 'orders.closeShort', 'orders.acceptDiff', 'orders.receive', 'orders.cancel'];
+  const sending = (id) => ORDER_ACTIONS.some((a) => Outbox.queued(a).some((j) => j.payload.order_id === id));
   const act = async (action, payload) => {
-    busy++;
-    try { return await call(action, payload); }
-    catch (e) { if (e.code === 'order_decided') setTimeout(() => loadList(true), 0); throw e; }
-    finally { busy--; }
+    const o = payload.order_id;
+    await Outbox.add(action, payload, o);
+    setTimeout(() => loadList(true), 0);
   };
+  const onOutbox = () => { if (!listBox.hidden) loadList(true); };
+  window.addEventListener('moro:outbox', onOutbox);
 
   function card(o) {
-    const approving = approveMode && Data.can('orders.approve') && o.status === 'sent' && o.kind !== 'special';
+    const going = sending(o.order_id);
+    const approving = !going && approveMode && Data.can('orders.approve') && o.status === 'sent' && o.kind !== 'special';
     // the production manager: each described line of a special order goes to the department that makes it
-    const routing = approveMode && Data.can('orders.route') && o.status === 'sent' && o.kind === 'special';
+    const routing = !going && approveMode && Data.can('orders.route') && o.status === 'sent' && o.kind === 'special';
     const routes = [];
     // the cashier receives a delivered order: what came, per line; less than handed needs a reason
-    const receiving = !approveMode && Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
+    const receiving = !going && !approveMode && Data.can('orders.receive') && o.status === 'delivered' && o.shop_party_id === shop;
     const got = [];
     const inputs = [];
     // distribution: an order received short – where the missing quantity went, per line
-    const reviewing = approveMode && Data.can('orders.acceptDiff') && o.status === 'received' && o.diff_status === 'pending';
+    const reviewing = !going && approveMode && Data.can('orders.acceptDiff') && o.status === 'received' && o.diff_status === 'pending';
     const decide = [];
     const rows = o.lines.map((l) => {
       const it = l.item_id ? Data.items.get(l.item_id) || { name: l.item_id, unit: l.unit } : { name: l.description, unit: l.unit };
@@ -350,7 +357,7 @@ export async function render(root, name) {
         const empty = decide.filter((x) => !x.pick.value);
         if (empty.length) { empty.forEach((x) => flash(x.pick)); toast(t('err.decision_required'), 'err'); return; }
         btn.disabled = true;
-        try { await act('orders.acceptDiff', { order_id: o.order_id, lines: decide.map((x) => ({ line_no: x.line_no, decision: x.pick.value })) }); toast(t('diff_accepted'), 'ok'); loadList(); }
+        try { await act('orders.acceptDiff', { order_id: o.order_id, lines: decide.map((x) => ({ line_no: x.line_no, decision: x.pick.value })) }); toast(t('diff_accepted'), 'ok'); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t('diff_accept')));
     }
@@ -376,7 +383,7 @@ export async function render(root, name) {
           const ls = inputs.map((x) => ({ line_no: x.line_no, qty: Number(x.inp.value) || 0 }));
           if (!ls.some((x) => x.qty > 0)) { inputs.forEach((x) => flash(x.inp)); return; }
           btn.disabled = true;
-          try { await act('orders.approve', { order_id: o.order_id, lines: ls }); toast(t('order_approved'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+          try { await act('orders.approve', { order_id: o.order_id, lines: ls }); toast(t('order_approved'), 'ok'); }
           catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
         } }, t('order_approve')),
         rejectBtn());
@@ -387,7 +394,7 @@ export async function render(root, name) {
         const empty = routes.filter((x) => !x.sel.value);
         if (empty.length) { empty.forEach((x) => flash(x.sel)); toast(t('err.dept_required'), 'err'); return; }
         btn.disabled = true;
-        try { await act('orders.route', { order_id: o.order_id, lines: routes.map((x) => ({ line_no: x.line_no, dept: x.sel.value })) }); toast(t('order_routed'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+        try { await act('orders.route', { order_id: o.order_id, lines: routes.map((x) => ({ line_no: x.line_no, dept: x.sel.value })) }); toast(t('order_routed'), 'ok'); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t('order_route')), rejectBtn());
     }
@@ -400,12 +407,12 @@ export async function render(root, name) {
                 h('button.btn.danger', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t('order_reject')))];
           });
           if (!why) return;
-          try { await act('orders.reject', { order_id: o.order_id, reason: why }); toast(t('order_rejected'), 'ok'); Data.refresh().catch(() => {}); loadList(); }
+          try { await act('orders.reject', { order_id: o.order_id, reason: why }); toast(t('order_rejected'), 'ok'); }
           catch (ex) { toast(errText(ex), 'err'); }
         } }, t('order_reject'));
     }
     // being prepared: distribution may take what was handed and close the rest (the order goes on to the trips)
-    if (approveMode && Data.can('orders.closeShort') && o.status === 'approved') {
+    if (!going && approveMode && Data.can('orders.closeShort') && o.status === 'approved') {
       const handed = o.lines.some((l) => l.handed_qty > 0);
       actions.append(h('small.muted', t('close_short_help')), h('button.btn.secondary', { type: 'button', onclick: async (e) => {
         const why = await dialog((close) => {
@@ -416,11 +423,11 @@ export async function render(root, name) {
         });
         if (!why) return;
         const btn = e.target; btn.disabled = true;
-        try { await act('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); loadList(); }
+        try { await act('orders.closeShort', { order_id: o.order_id, reason: why }); toast(t(handed ? 'close_short_done' : 'close_none_done'), 'ok'); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t(handed ? 'close_short' : 'close_none')));
     }
-    if (!approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
+    if (!going && !approveMode && o.status === 'draft' && o.created_by === Data.user.user_id) {
       actions.append(
         h('button.btn', { type: 'button', onclick: () => {
           editing = o;
@@ -432,7 +439,7 @@ export async function render(root, name) {
         } }, t('edit')),
         h('button.btn.secondary', { type: 'button', onclick: async () => {
           if (!(await confirm(t('order_cancel_confirm')))) return;
-          try { await act('orders.cancel', { order_id: o.order_id }); toast(t('order_cancelled'), 'ok'); loadList(); } catch (e) { toast(errText(e), 'err'); }
+          try { await act('orders.cancel', { order_id: o.order_id }); toast(t('order_cancelled'), 'ok'); } catch (e) { toast(errText(e), 'err'); }
         } }, t('order_cancel')));
     }
     return h('div.req-card',
@@ -440,7 +447,8 @@ export async function render(root, name) {
         h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date) + (o.delivery_time ? ' ' + o.delivery_time : ''))),
         o.kind === 'special' ? h('span.pill.soon', t('order_kind_special')) : null,
         h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status)),
-        o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null),
+        o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null,
+        going ? h('span.pill.soon', t('sending')) : null),
       o.kind === 'special' ? h('p.muted', '👤 ', h('bdi', o.customer_name), o.customer_phone ? ' · ' + o.customer_phone : '', ' · ',
         o.place === 'customer' ? h('span', t('place_customer'), ': ', linkify(o.address)) : t('place_shop')) : null,
       o.note ? h('p.muted', o.note) : null,
@@ -471,7 +479,7 @@ export async function render(root, name) {
   };
   const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 20000);
   window.addEventListener('moro:data', onData);
-  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); cleanup = null; };
+  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:outbox', onOutbox); cleanup = null; };
 }
 
 export function dispose() { if (cleanup) cleanup(); }
