@@ -12,6 +12,8 @@ import { photoButton } from '../photos.js';
 let tab = 'open';
 let group = '';            // the department or store tab
 let cleanup = null;
+// the last lines of each tab: shown at once when the screen opens, then checked against the server
+const last = {};
 
 export async function render(root) {
   if (cleanup) cleanup();
@@ -24,19 +26,37 @@ export async function render(root) {
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('shoporders')), tabs), body));
 
-  // quantities typed and not yet sent stay as they were through a refresh
-  const load = async (quiet) => {
+  // quantities typed and not yet sent stay as they were through a refresh; the screen is drawn again only when
+  // the lines changed, and where it was scrolled to stays
+  const toBuy = (l) => l.special && l.dept === 'PURCHASE';
+  const draw = (got) => {
     const typed = new Map([...body.querySelectorAll('input[data-key]')].filter((x) => x.value !== x.defaultValue).map((x) => [x.dataset.key, x.value]));
-    if (quiet !== true) body.replaceChildren(h('p.empty', '…'));
-    try {
-      const toBuy = (l) => l.special && l.dept === 'PURCHASE';
-      if (tab === 'special') {
-        const [reqs, open] = await Promise.all([call('special.list', { status: 'pending' }), call('shop.list', { status: 'open', native: true })]);
-        drawSpecial(reqs, open.filter(toBuy));
-      } else drawLines((await call('shop.list', { status: tab, native: true })).filter((l) => tab !== 'open' || !toBuy(l)));
-      body.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
-    } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
+    const y = window.scrollY;
+    if (tab === 'special') drawSpecial(got.reqs, got.open.filter(toBuy));
+    else drawLines(got.lines.filter((l) => tab !== 'open' || !toBuy(l)));
+    body.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
+    window.scrollTo(0, y);
   };
+  let shown = '';
+  const load = async (quiet) => {
+    const key = tab;
+    // what was there last time, at once (the server is asked meanwhile)
+    if (quiet !== true) { if (last[key]) { shown = JSON.stringify(last[key]); draw(last[key]); } else body.replaceChildren(h('p.empty', '…')); }
+    try {
+      const got = tab === 'special'
+        ? await Promise.all([call('special.list', { status: 'pending' }), call('shop.list', { status: 'open', native: true })]).then(([reqs, open]) => ({ reqs, open }))
+        : { lines: await call('shop.list', { status: tab, native: true }) };
+      if (key !== tab) return;
+      last[key] = got;
+      const now = JSON.stringify(got);
+      if (now === shown) return;                 // nothing changed: the screen stays as it is
+      shown = now;
+      draw(got);
+    } catch (e) { if (!last[key]) body.replaceChildren(h('p.empty', errText(e))); }
+  };
+  // a save sent and the data refreshed after it come one after the other: one reload for both
+  let soon = null;
+  const reloadSoon = () => { clearTimeout(soon); soon = setTimeout(() => load(true), 800); };
 
   const shopName = (id) => (Data.parties.get(id) || {}).name || id;
   const itemOf = (id) => Data.items.get(id) || { name: id, unit: '' };
@@ -249,19 +269,20 @@ export async function render(root) {
     catch (e) { toast(errText(e), 'err'); }
   }
 
-  const onData = () => { if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && body.contains(document.activeElement))) load(true); };
+  const onData = () => { if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && body.contains(document.activeElement))) reloadSoon(); };
   const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 15000);
   // the server answered: the list shows the new state; a refusal (e.g. not enough final products) is said
-  const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) load(true); };
+  const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) reloadSoon(); };
   const onRejected = (e) => {
     if (!e.detail || (e.detail.action !== 'shop.hand' && e.detail.action !== 'shop.return')) return;
     toast(errText({ code: e.detail.error, detail: e.detail.detail }), 'err');
+    shown = '';                                   // drawn again: the line is no longer sending
     load(true);
   };
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onRejected);
-  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+  cleanup = () => { clearInterval(timer); clearTimeout(soon); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
     window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
   load();
 }

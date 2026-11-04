@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.146', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) تجهيز الطلبيات: تظهر الأسطر فورًا من آخر مرة ثم تُحدَّث في الخلفية، ولا تُعاد رسم الصفحة بعد التسليم للتوزيع إلا إن تغيّرت الأسطر، ويبقى موضع التمرير.'] },
+    en: { news: ['(Development copy) Prepare orders: the lines show at once from last time and are checked in the background; after handing to distribution the page is drawn again only if the lines changed, and the scroll stays.'] },
+  },
+  {
     v: '0.9.145', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الطلبيات: الاعتماد والرفض والتوجيه وإغلاق الناقص واعتماد الفرق والاستلام والإلغاء فورية، وتُرسل في الخلفية. البطاقة تقول "يُرسل" حتى تصل، ولا تعرض أزرارها مرة ثانية.'] },
     en: { news: ['(Development copy) Orders: approve, reject, route, close the short, accept the difference, receive and cancel are immediate and sent in the background. The card says sending until it arrives and offers no button twice.'] },
