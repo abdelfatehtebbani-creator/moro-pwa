@@ -11,6 +11,7 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, newId } from '../components.js';
 import { shrink, photoButton } from '../photos.js';
+import { Outbox } from '../outbox.js';
 
 const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const PURCHASE = 'PURCHASE';
@@ -232,9 +233,11 @@ export async function render(root, name) {
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
           h('button.btn', { type: 'button', onclick: () => close(true) }, t('order_send')))]))) return;
       btn.disabled = true;
+      // queued on the device and sent in the background: the cashier does not wait for the server (a refusal
+      // shows in the list of refused saves; the client id keeps a resend from making a second order)
       try {
-        await call('orders.save', Object.assign({ order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send },
-          special ? Object.assign({ kind: 'special' }, sp) : {}));
+        await Outbox.add('orders.save', Object.assign({ order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send },
+          special ? Object.assign({ kind: 'special' }, sp) : {}), t(special ? 'order_kind_special' : 'orders'));
         toast(t(send ? 'order_sent' : 'saved'), 'ok');
         editing = null; lines = []; sp = {}; drawEditor();
       } catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
@@ -274,7 +277,9 @@ export async function render(root, name) {
         list = (tab ? all.filter(inTab) : all).slice(0, 200);
       }
       else { const all = await call('orders.list', {}); drawCounts(all); const want = CASHIER_TABS[tab] || []; list = all.filter((o) => want.includes(o.status)); }
-      listBox.replaceChildren(...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
+      // orders saved on this device and still on their way to the server
+      const going = approveMode ? 0 : Outbox.queued('orders.save').length;
+      listBox.replaceChildren(...(going ? [h('p.pill.soon', t('orders_sending', { n: going }))] : []), ...(list.length ? list.map(card) : [h('p.empty', t('no_rows'))]));
     } catch (e) { listBox.replaceChildren(h('p.empty', errText(e))); }
   }
 

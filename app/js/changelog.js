@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.144', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) طلبيتي: الإرسال والحفظ فوريان، والطلبية تُرسل إلى الخادم في الخلفية (وتنتظر الاتصال إن انقطع). تظهر "طلبية في الطريق" حتى تصل.'] },
+    en: { news: ['(Development copy) My order: sending and saving are immediate; the order goes to the server in the background (and waits for the connection if it is lost). An on-the-way note shows until it arrives.'] },
+  },
+  {
     v: '0.9.143', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) سرعة: إشعارات الهاتف تُرسل بعد الرد على الحفظ في طلب ثانٍ، فلا ينتظرها من يحفظ. وإضافة سطر إلى سجل التدقيق أو جدول طويل لم تعد تقرأ الجدول كله.'] },
     en: { news: ['(Development copy) Speed: phone messages go out after the save has answered, in a second request, so the person saving does not wait for them. Adding a row to the audit log or a long sheet no longer reads the whole sheet.'] },
