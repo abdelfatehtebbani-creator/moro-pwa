@@ -650,3 +650,14 @@ tr.cash-off td:nth-child(2) bdi { text-decoration: line-through; }
 .order-kind { margin-bottom: 8px; }
 .trip-row-main { display: flex; flex-direction: column; gap: 2px; }
 .trip-row.trip-special { border: 2px solid var(--warn, #b45309); background: color-mix(in srgb, var(--warn, #b45309) 8%, transparent); }
+
+/* the admin's home: waiting for you, favourites, folding groups */
+.home-admin { gap: 14px; }
+.home-disc-small { width: min(120px, 30cqw); margin: 0 auto; }
+.home-groups { width: 100%; display: grid; gap: 12px; }
+.home-group { width: 100%; background: var(--card, #fff); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.home-group-title { font-size: 15px; font-weight: 700; margin: 0 0 10px; cursor: pointer; }
+details.home-group:not([open]) > .home-group-title { margin-bottom: 0; }
+.home-wait { border: 2px solid var(--brand); }
+.home-star { position: absolute; top: 4px; inset-inline-start: 6px; border: 0; background: none; color: var(--warn, #b45309); font-size: 16px; cursor: pointer; padding: 2px; line-height: 1; }
+.home-admin .home-nav { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }

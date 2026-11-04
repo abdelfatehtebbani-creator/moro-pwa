@@ -26,6 +26,7 @@ import * as trips from './views/trips.js';
 import * as invoices from './views/invoices.js';
 import * as returns from './views/returns.js';
 import * as accounts from './views/accounts.js';
+import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
@@ -156,9 +157,13 @@ function buildShell() {
   const u = Data.user;
   const navLinks = [];
   let group = '';
-  for (const name of Object.keys(ROUTES)) {
+  // the admin: the menu in the same groups as the home screen
+  const groupOf = (name) => (u.role === 'admin' && name !== 'home' ? ((GROUPS.find((g) => g[1].includes(name)) || ['grp_other'])[0]) : ROUTES[name].group);
+  const order = u.role === 'admin' ? ['home'].concat(GROUPS.flatMap((g) => g[1]).filter((r) => ROUTES[r]), Object.keys(ROUTES).filter((r) => r !== 'home' && !GROUPS.some((g) => g[1].includes(r))))
+    : Object.keys(ROUTES);
+  for (const name of order) {
     if (!allowed(name)) continue;
-    if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
+    if (groupOf(name) !== group) { group = groupOf(name); navLinks.push(h('div.nav-group', t(group))); }
     navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
@@ -366,6 +371,11 @@ function updateBadges() {
     return c;
   }).reduce((a, b) => a + b, 0);
   Push.badge(n + r + o + sp + more);
+  // the same numbers for "waiting for you" on the admin's home screen
+  const ot2 = (Data.boot || {}).order_todo || {};
+  Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
+    trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0 };
+  window.dispatchEvent(new Event('moro:badges'));
 }
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
