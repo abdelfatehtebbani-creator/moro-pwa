@@ -96,6 +96,10 @@ var Accounts = {
       Repo.all('Invoices').forEach(function (v) {
         if (v.shop_party_id === party.party_id) out.push({ date: v.date, kind: 'invoice', ref: v.invoice_no + ' / ' + v.order_no, debit: Number(v.total), credit: 0 });
       });
+      // a shop is a branch: what it sold (its approved daily sales sheet, every channel) is what it gives back
+      Repo.all('DailySales').forEach(function (r) {
+        if (r.shop_party_id === party.party_id && r.status === 'approved') out.push({ date: r.date, kind: 'daily_sales', ref: r.day_id, debit: 0, credit: Number(r.total) || 0 });
+      });
     }
     Repo.all('Payments').forEach(function (x) {
       if (x.party_id !== party.party_id || x.status === 'void') return;
@@ -140,8 +144,9 @@ var Accounts = {
 
   /** p: {client_id, date, party_id, amount, method, ref, note}. */
   pay: function (session, p) {
+    // payments are the suppliers' only: a shop's money comes through its shifts and daily sales sheet
     var party = Repo.find('Parties', 'party_id', p.party_id);
-    Util.require(party && (party.kind === 'supplier' || party.kind === 'shop'), 'party_invalid');
+    Util.require(party && party.kind === 'supplier', 'party_invalid');
     var a = Util.num(p.amount);
     Util.require(a !== null && a > 0, 'amount_invalid');
     Util.require(Util.isDate(p.date || ''), 'date_invalid');

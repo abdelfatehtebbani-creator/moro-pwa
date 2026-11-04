@@ -80,7 +80,8 @@ export async function render(root) {
   }
 
   function pay() {
-    const who = combo({ id: 'ac-pparty', options: parties, placeholder: t('lookup_hint') });
+    const suppliers = () => parties().filter((o) => (Data.parties.get(o.value) || {}).kind === 'supplier');
+    const who = combo({ id: 'ac-pparty', options: suppliers, placeholder: t('lookup_hint') });
     const date = trackFilled(h('input.input#ac-date', { type: 'date', value: today }));
     const amount = trackFilled(h('input.input.num#ac-amount', { type: 'number', step: 'any', min: 0 }));
     const method = h('select.input#ac-method', h('option', { value: '' }, '—'), ['cash', 'bank', 'cheque'].map((m) => h('option', { value: m }, t('acc_m_' + m))));

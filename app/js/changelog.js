@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.138', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الحسابات: "دفعة جديدة" للموردين فقط. وكشف حساب المحل يُبنى وحده: الفواتير عليه، ويومية المبيعات المعتمدة له، فالرصيد ما استلمه المحل ولم يقابله بيع.'] },
+    en: { news: ['(Development copy) Accounts: New payment is for suppliers only. A shop statement builds itself: invoices against its approved daily sales, so the balance is what it received and has not sold.'] },
+  },
+  {
     v: '0.9.137', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) شجرة الصلاحيات: الحسابات صارت تبويبًا تبويبًا (الأرصدة، كشف حساب، دفعة جديدة، مطابقة أوامر الشراء، مقبوضات النوبات، يومية المبيعات)، لكل منها خانته.'] },
     en: { news: ['(Development copy) Permission tree: Accounts by tab (balances, statement, new payment, purchase orders matched, shift takings, daily sales), each with its own tick.'] },

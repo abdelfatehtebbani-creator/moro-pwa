@@ -546,3 +546,15 @@ test('accounts: one permission per tab; a list saved with the old one keeps its 
   assert.equal(g.api('accounts.statement', { party_id: 'P002' }, tok2).error.code, 'forbidden');
   assert.equal(g.api('accounts.balances', {}, tok2).ok, true);
 });
+
+test('a shop account: invoices against its approved daily sales; payments are the suppliers only', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  assert.equal(g.api('accounts.pay', { client_id: 'x', party_id: 'P002', date: '2026-11-01', amount: 10, method: 'cash' }, tok.acc).error.code, 'party_invalid');
+  g.api('orders.shiftEnd', { amount: 400 }, tok.cashier);
+  const today = JSON.parse(g.run('JSON.stringify(Util.today())'));
+  const d = g.api('sales.save', { date: today, shop_party_id: 'P002', channels: { card: 100 }, submit: true }, tok.acc).data.day;
+  g.api('sales.decide', { day_id: d.day_id, ok: true }, tok.admin);
+  const s = g.api('accounts.statement', { party_id: 'P002' }, tok.acc).data;
+  assert.deepEqual(s.lines.map((e) => [e.kind, e.credit]), [['daily_sales', 500]]);
+});
