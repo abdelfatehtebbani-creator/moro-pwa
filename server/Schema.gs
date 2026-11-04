@@ -61,13 +61,14 @@ var SCHEMA = {
                  'created_by', 'created_at'],
   InvoiceItems: ['invoice_id', 'line_no', 'item_id', 'section', 'qty', 'unit', 'price', 'amount', 'description'],
   Photos:       ['photo_id', 'order_id', 'part', 'data', 'created_by', 'created_at'],
+  Shifts:       ['shift_id', 'user_id', 'shop_party_id', 'opened_at', 'closed_at', 'amount', 'note', 'closed_by', 'client_id'],
   Payments:     ['payment_id', 'date', 'party_id', 'amount', 'method', 'ref', 'note', 'status', 'created_by', 'created_at', 'voided_by', 'voided_at', 'client_id'],
   Returns:      ['return_id', 'date', 'shop_party_id', 'order_id', 'order_no', 'line_no', 'item_id', 'qty', 'unit', 'reason', 'note',
                  'source', 'status', 'decision', 'decision_note', 'decided_by', 'decided_at', 'movement_id', 'created_by', 'created_at', 'client_id']
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',

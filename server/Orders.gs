@@ -307,16 +307,30 @@ var Orders = {
       var taken = Repo.all('Users').filter(function (x) { return x.user_id !== session.user_id && x.active === true && String(x.shop || '') === shop; })[0];
       Util.require(!taken, 'shop_taken', taken ? taken.display_name : '');
       Repo.update('Users', 'user_id', session.user_id, { shop: shop });
+      Repo.append('Shifts', [{ shift_id: 'SH' + Util.pad(Settings.next('seq_shift', 0), 5), user_id: session.user_id, shop_party_id: shop,
+        opened_at: Util.nowIso(), closed_at: '', amount: '', note: '', closed_by: '', client_id: '' }]);
       Audit.log(session.user_id, 'shift_open', 'Users', session.user_id, null, { shop: shop });
       return { shop: shop, version: Version.bump() };
     });
   },
 
-  shiftEnd: function (session) {
+  /** The cashier ends the shift with the amount collected in it. p: {amount, note}. */
+  shiftEnd: function (session, p) {
+    p = p || {};
+    var amount = Util.num(p.amount);
+    Util.require(amount !== null && amount >= 0, 'shift_amount_required');
     return withLock(function () {
       var u = Repo.find('Users', 'user_id', session.user_id);
+      var shop = u ? String(u.shop || '') : '';
+      if (!shop) return { version: Version.get() };          // ended already (pressed twice)
+      var now = Util.nowIso();
+      var open = Repo.all('Shifts').filter(function (s) { return s.user_id === session.user_id && s.shop_party_id === shop && !s.closed_at; }).pop();
+      var ch = { closed_at: now, amount: Util.round(amount), note: Util.clean(p.note), closed_by: session.user_id };
+      if (open) Repo.update('Shifts', 'shift_id', open.shift_id, ch);
+      else Repo.append('Shifts', [Object.assign({ shift_id: 'SH' + Util.pad(Settings.next('seq_shift', 0), 5), user_id: session.user_id,
+        shop_party_id: shop, opened_at: '', client_id: '' }, ch)]);       // a shift opened before shifts were recorded
       Repo.update('Users', 'user_id', session.user_id, { shop: '' });
-      Audit.log(session.user_id, 'shift_end', 'Users', session.user_id, null, { shop: u ? u.shop : '' });
+      Audit.log(session.user_id, 'shift_end', 'Users', session.user_id, null, { shop: shop, amount: ch.amount });
       return { version: Version.bump() };
     });
   },

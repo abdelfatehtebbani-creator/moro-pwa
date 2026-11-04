@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.129', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الكاشير: عند إنهاء النوبة يكتب المبلغ المحصّل فيها (وملاحظة)، ويُحفظ لكل نوبة. والشاشة الرئيسية للمدير: "قراراتك" و"عمل الفريق" في إطارين منفصلين.'] },
+    en: { news: ['(Development copy) The cashier: ending a shift asks the amount collected in it (and a note), kept for each shift. The admin home: Your decisions and Team work in two separate frames.'] },
+  },
+  {
     v: '0.9.128', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) المدير: رقم الإصدار وتغيير اللغة وتسجيل الخروج على الشريط العلوي في كل الشاشات.'] },
     en: { news: ['(Development copy) The admin: the version, the language and sign out on the top bar of every screen.'] },

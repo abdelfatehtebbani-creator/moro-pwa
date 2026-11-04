@@ -48,8 +48,16 @@ export async function render(root, name) {
   if (!approveMode) {
     parts.push(h('div.shift-bar', h('span', t('shift_in'), ' ', h('b', h('bdi', shopName(shop)))),
       h('button.btn.secondary', { type: 'button', onclick: async () => {
-        if (!(await confirm(t('shift_end_confirm')))) return;
-        try { await call('orders.shiftEnd', {}); await Data.refresh(); render(root, name); } catch (e) { toast(errText(e), 'err'); }
+        // the amount collected in this shift, before the shop is free for another cashier
+        const res = await dialog((close) => {
+          const amount = trackFilled(h('input.input.num#sh-amount', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' }));
+          const note = trackFilled(h('input.input#sh-note'));
+          const ok = () => (amount.value === '' || Number(amount.value) < 0 ? flash(amount) : close({ amount: Number(amount.value), note: note.value.trim() }));
+          return [h('h3', t('shift_end')), h('p', t('shift_end_confirm')), field(t('shift_amount'), amount), field(t('note'), note),
+            h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('shift_end')))];
+        });
+        if (!res) return;
+        try { await call('orders.shiftEnd', res); await Data.refresh(); render(root, name); } catch (e) { toast(errText(e), 'err'); }
       } }, t('shift_end'))));
   }
 

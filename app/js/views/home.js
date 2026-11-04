@@ -68,7 +68,7 @@ function renderGrouped(root, links, ctx) {
       BADGED.includes(r) ? h('span.badge', { hidden: !(Number((Counts.now || {})[r]) > 0) }, String(Number((Counts.now || {})[r]) || '')) : null,
       resume ? h('span.home-resume', t('idle_resume')) : null);
   };
-  const waitBox = h('section.home-group.home-wait', { hidden: true });
+  const waitBox = h('div.home-waiting', { hidden: true });
   const decisionTile = (d) => h('a.home-tab', { href: '#/' + d.route, 'data-route': d.route }, h('span.home-ico', icon(d.route)),
     h('span.home-label', t('dec_' + d.key)), h('span.badge', String(d.count)));
   const drawWait = () => {
@@ -78,14 +78,12 @@ function renderGrouped(root, links, ctx) {
     const decisions = ((Data.boot || {}).decisions || []).filter((d) => links.includes(d.route));
     const mine = decisions;
     const team = list.filter((r) => !decisions.some((d) => d.route === r));
+    // two frames: the admin's decisions (coloured), then the team's work (a quiet line)
     waitBox.hidden = !mine.length && !team.length;
-    waitBox.classList.toggle('home-wait-team', !mine.length);
-    // (replaceChildren writes a null as the text "null": only the parts there are)
     waitBox.replaceChildren(...[
-      mine.length ? h('h3.home-group-title', t('grp_decisions')) : null,
-      mine.length ? h('div.home-nav', mine.map((d) => decisionTile(d))) : null,
-      team.length ? h('div.home-team', h('b', t('grp_team') + ': '), team.flatMap((r, i) => [i ? ' · ' : '',
-        h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))])) : null].filter(Boolean));
+      mine.length ? h('section.home-group.home-wait', h('h3.home-group-title', t('grp_decisions')), h('div.home-nav', mine.map((d) => decisionTile(d)))) : null,
+      team.length ? h('section.home-group.home-team-box', h('div.home-team', h('b', t('grp_team') + ': '), team.flatMap((r, i) => [i ? ' · ' : '',
+        h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))]))) : null].filter(Boolean));
   };
   const body = h('div.home-groups');
   function draw() {

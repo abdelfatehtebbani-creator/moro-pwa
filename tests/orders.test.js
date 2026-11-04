@@ -144,7 +144,7 @@ test('cashier shift: the cashier chooses the shop they work in; another cashier 
   user('cash2', 'cashier');
   assert.equal(g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }] }, tok.cash2).error.code, 'cashier_no_shop');
   assert.equal(g.api('orders.shift', { shop: 'P002' }, tok.cash2).error.code, 'shop_taken');
-  assert.equal(g.api('orders.shiftEnd', {}, tok.cashier).ok, true);
+  assert.equal(g.api('orders.shiftEnd', { amount: 0 }, tok.cashier).ok, true);
   assert.equal(g.api('orders.shift', { shop: 'P002' }, tok.cash2).ok, true);
   assert.equal(g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cash2).data.order.shop_party_id, 'P002');
 });
@@ -477,4 +477,15 @@ test('the admin decisions: by the approval itself; the developer account decides
   g.api('users.save', { user_id: me, developer: true }, tok.admin);
   assert.deepEqual(g.api('data.bootstrap', {}, tok.admin).data.decisions, []);
   assert.ok(!JSON.parse(g.run("JSON.stringify(Push.usersWith('lpo.decide'))")).includes(me));
+});
+
+test('the cashier ends a shift with the amount collected in it', () => {
+  const { g, tok } = env();
+  g.api('users.save', { user_id: g.rows('Users').find((u) => u.username === 'cashier').user_id, shop: '' }, tok.admin);
+  g.api('orders.shift', { shop: 'P003' }, tok.cashier);
+  assert.equal(g.api('orders.shiftEnd', {}, tok.cashier).error.code, 'shift_amount_required');
+  assert.equal(g.api('orders.shiftEnd', { amount: 1250.5, note: 'card 300' }, tok.cashier).ok, true);
+  const s = g.rows('Shifts');
+  assert.deepEqual(s.map((x) => [x.shop_party_id, Number(x.amount), x.note, !!x.opened_at, !!x.closed_at]), [['P003', 1250.5, 'card 300', true, true]]);
+  assert.equal(g.rows('Users').find((u) => u.username === 'cashier').shop, '', 'the shop is free');
 });
