@@ -193,6 +193,19 @@ export async function render(root, name) {
       if (special && (desc.value.trim() || sQty.value !== '' || price.value !== '' || files.files.length)) return addSpecialBtn;
       return null;
     };
+    // the lines by where they are made or kept: each department, then each store, then the special products
+    const sendGroups = () => {
+      const by = new Map();
+      lines.forEach((l) => {
+        const it = l.item_id ? Data.items.get(l.item_id) || {} : null;
+        const st = it ? Data.storeOf(it) : '';
+        const key = !it ? '3|' + t('special') : st === 'FINAL' && it.dept ? '1|' + ((Data.parties.get(it.dept) || {}).name || it.dept) : '2|' + t('store_' + st);
+        if (!by.has(key)) by.set(key, []);
+        by.get(key).push(l);
+      });
+      return [...by].sort((x, y) => x[0].localeCompare(y[0])).map(([k, ls]) => [k.slice(2),
+        ls.slice().sort((a, b) => (a.item_id ? Data.nameOf(Data.items.get(a.item_id) || {}) : a.description).localeCompare(b.item_id ? Data.nameOf(Data.items.get(b.item_id) || {}) : b.description))]);
+    };
     const save = async (send, btn) => {
       const left = pending();
       if (left) {
@@ -212,9 +225,10 @@ export async function render(root, name) {
       // what is about to be sent, line by line, to be read once more
       if (send && !(await dialog((close) => [h('h3', t(special ? 'order_send_special_confirm' : 'order_send_confirm')),
         h('p.muted', t('order_send_lines', { n: lines.length })),
-        h('div.table-wrap', h('table', h('tbody', lines.map((l) => h('tr',
-          h('td.wrap', h('bdi', l.item_id ? Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }) : l.description)),
-          h('td.num', fmtNum(l.qty) + ' ' + (l.item_id ? (Data.items.get(l.item_id) || {}).unit || '' : l.unit || ''))))))),
+        h('div.table-wrap', h('table', h('tbody', sendGroups().flatMap(([g, ls]) => [h('tr.send-group', h('th', { colspan: 2 }, g, ' ', h('small.muted', String(ls.length))))]
+          .concat(ls.map((l) => h('tr',
+            h('td.wrap', h('bdi', l.item_id ? Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }) : l.description)),
+            h('td.num', fmtNum(l.qty) + ' ' + (l.item_id ? (Data.items.get(l.item_id) || {}).unit || '' : l.unit || ''))))))))),
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
           h('button.btn', { type: 'button', onclick: () => close(true) }, t('order_send')))]))) return;
       btn.disabled = true;

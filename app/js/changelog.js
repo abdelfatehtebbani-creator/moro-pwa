@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.140', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) نافذة تأكيد إرسال الطلبية: الأسطر مجمّعة حسب القسم ثم المخزن ثم المنتجات الخاصة، مع عدد كل مجموعة.'] },
+    en: { news: ['(Development copy) The order send window: lines grouped by department, then store, then special products, with the count of each.'] },
+  },
+  {
     v: '0.9.139', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) طلبيتي: لا إرسال ولا حفظ إن بقيت مادة أو كمية مكتوبة لم تُضف، ويومض زر "إضافة إلى الإذن". ونافذة الإرسال تعرض أسطر الطلبية لمراجعتها قبل التأكيد.'] },
     en: { news: ['(Development copy) My order: nothing is sent or saved while an item or quantity is typed and not added; the Add button flashes. The send window lists the lines to check before confirming.'] },
