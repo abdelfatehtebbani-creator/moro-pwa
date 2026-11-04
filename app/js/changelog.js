@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.149', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الإنتاج: المنتجات التي تنتظرها طلبيات المحلات تظهر أولًا في خانة "المنتج" لكل قسم، مع الكمية الناقصة (المطلوب ناقص الرصيد). واختيار منتج منها يملأ "الكمية" بها.'] },
+    en: { news: ['(Development copy) Production: the products the shop orders wait for come first in Product for each department, with the quantity still to make (ordered less stock); choosing one fills Quantity with it.'] },
+  },
+  {
     v: '0.9.148', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) اعتماد أوامر الشراء والصندوق، وإرسال المرتجع وقراره، فورية وتُرسل في الخلفية. وأرصدة الحسابات تُحسب بمرور واحد على الحركات بدل مرور لكل مورد، فصار تحميلها أسرع بكثير.'] },
     en: { news: ['(Development copy) Approving LPOs and cash sheets, sending a return and deciding it are immediate and sent in the background. The account balances read the movements once instead of once per supplier, so they load much faster.'] },
