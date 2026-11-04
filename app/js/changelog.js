@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.133', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) إصلاح: بعد كل تحديث للتطبيق تُقرأ الصلاحيات من جديد، فتظهر الشاشات والتبويبات الجديدة دون انتظار تغيّر في البيانات.'] },
+    en: { news: ['(Development copy) Fix: after each app update the permissions are read again, so new screens and tabs show without waiting for a data change.'] },
+  },
+  {
     v: '0.9.132', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الحسابات: عمود الطرف صار "المورد / المحل" بدل "المورد / القسم".'] },
     en: { news: ['(Development copy) Accounts: the party column reads Supplier / shop.'] },
