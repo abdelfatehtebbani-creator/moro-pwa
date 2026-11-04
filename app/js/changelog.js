@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.126', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) إصلاح: "قراراتك" و"عمل الفريق" في الشاشة الرئيسية للمدير كانا يعرضان نصًا خاطئًا بدل الأسماء والأرقام.'] },
+    en: { news: ['(Development copy) Fix: Your decisions and Team work on the admin home screen showed wrong text instead of the names and numbers.'] },
+  },
+  {
     v: '0.9.125', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الشاشة الرئيسية للمدير: "بانتظارك" صار قسمين: "قراراتك" لما لا يقرره غيرك، و"عمل الفريق" سطر أرقام لما ينتظر مستخدمين آخرين.'] },
     en: { news: ['(Development copy) The admin home screen: Waiting for you is now two parts: Your decisions, for what nobody else decides, and Team work, a line of numbers for what waits for other users.'] },

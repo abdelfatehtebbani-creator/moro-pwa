@@ -78,11 +78,12 @@ function renderGrouped(root, links, ctx) {
     const mine = list.filter((r) => !others.has('nav.' + r));
     waitBox.hidden = !list.length;
     waitBox.classList.toggle('home-wait-team', !mine.length);
-    waitBox.replaceChildren(
+    // (replaceChildren writes a null as the text "null": only the parts there are)
+    waitBox.replaceChildren(...[
       mine.length ? h('h3.home-group-title', t('grp_decisions')) : null,
       mine.length ? h('div.home-nav', mine.map((r) => tile(r))) : null,
-      team.length ? h('div.home-team', h('b', t('grp_team') + ': '), team.map((r, i) => [i ? ' · ' : '',
-        h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))])) : null);
+      team.length ? h('div.home-team', h('b', t('grp_team') + ': '), team.flatMap((r, i) => [i ? ' · ' : '',
+        h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))])) : null].filter(Boolean));
   };
   const body = h('div.home-groups');
   function draw() {
@@ -91,8 +92,7 @@ function renderGrouped(root, links, ctx) {
     const known = new Set(GROUPS.flatMap((g) => g[1]));
     const groups = GROUPS.map(([key, rs]) => [key, rs.filter((r) => links.includes(r))])
       .concat([['grp_other', links.filter((r) => !known.has(r))]]).filter((g) => g[1].length);
-    body.replaceChildren(
-      favs.length ? h('section.home-group', h('h3.home-group-title', '★ ' + t('grp_favs')), h('div.home-nav', favs.map((r) => tile(r, true)))) : null,
+    body.replaceChildren(...(favs.length ? [h('section.home-group', h('h3.home-group-title', '★ ' + t('grp_favs')), h('div.home-nav', favs.map((r) => tile(r, true))))] : []),
       ...groups.map(([key, rs]) => {
         const det = h('details.home-group', { open: open[key] !== false },
           h('summary.home-group-title', t(key), ' ', h('small.muted', String(rs.length))), h('div.home-nav', rs.map((r) => tile(r))));
