@@ -179,13 +179,27 @@ export async function render(root, name) {
       } catch { toast(t('err.photo_invalid'), 'err'); }
       btn.disabled = false;
     };
+    const addBtn = h('button.btn', { type: 'button', onclick: () => { addBtn.classList.remove('attn'); add(); } }, t('add_line'));
+    const addSpecialBtn = special ? h('button.btn', { type: 'button', onclick: (e) => { addSpecialBtn.classList.remove('attn'); addSpecial(e); } }, t('add_line')) : null;
     const specialBox = special ? h('div',
       h('div.form-grid', field(t('customer_name'), cName), field(t('customer_phone'), cPhone), field(t('delivery_date'), dDate), field(t('delivery_time'), dTime),
         field(t('place'), place), addrField),
       h('h4', t('special_product')), h('small.muted', t('special_product_help')),
       h('div.form-grid', field(t('description'), desc, { wide: true }), field(t('qty'), sQty), field(t('unit'), sUnit), field(t('price_unit'), price),
-        field(t('photos'), files), h('div.field.end', h('button.btn', { type: 'button', onclick: addSpecial }, t('add_line'))))) : null;
+        field(t('photos'), files), h('div.field.end', addSpecialBtn))) : null;
+    // something typed and not added to the order: it would be lost, so nothing is saved until it is added or cleared
+    const pending = () => {
+      if (item.value || item.input.value.trim() || qty.value !== '') return addBtn;
+      if (special && (desc.value.trim() || sQty.value !== '' || price.value !== '' || files.files.length)) return addSpecialBtn;
+      return null;
+    };
     const save = async (send, btn) => {
+      const left = pending();
+      if (left) {
+        left.classList.add('attn'); flash(left); left.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        toast(t('order_line_pending'), 'err');
+        return;
+      }
       if (!lines.length) { flash(special ? desc : item.input); return; }
       if (special) {
         keep();
@@ -195,7 +209,14 @@ export async function render(root, name) {
         if (sp.place === 'customer' && !sp.address) return flash(addr);
         if (sp.place === 'customer' && !sp.customer_phone) return flash(cPhone);
       }
-      if (send && !(await confirm(t(special ? 'order_send_special_confirm' : 'order_send_confirm')))) return;
+      // what is about to be sent, line by line, to be read once more
+      if (send && !(await dialog((close) => [h('h3', t(special ? 'order_send_special_confirm' : 'order_send_confirm')),
+        h('p.muted', t('order_send_lines', { n: lines.length })),
+        h('div.table-wrap', h('table', h('tbody', lines.map((l) => h('tr',
+          h('td.wrap', h('bdi', l.item_id ? Data.nameOf(Data.items.get(l.item_id) || { name: l.item_id }) : l.description)),
+          h('td.num', fmtNum(l.qty) + ' ' + (l.item_id ? (Data.items.get(l.item_id) || {}).unit || '' : l.unit || ''))))))),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
+          h('button.btn', { type: 'button', onclick: () => close(true) }, t('order_send')))]))) return;
       btn.disabled = true;
       try {
         await call('orders.save', Object.assign({ order_id: editing ? editing.order_id : undefined, client_id: newId(), note: note.value, lines, send },
@@ -206,7 +227,7 @@ export async function render(root, name) {
     };
     // the items of the list: always shown in a normal order; in a special order they open on demand
     const catalogBox = h('div', srcBar, h('div.form-grid', field(t('item'), item, { wide: true }), field(t('qty'), qty),
-      h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))));
+      h('div.field.end', addBtn)));
     const hasCatalog = lines.some((l) => l.item_id);
     catalogBox.hidden = special && !hasCatalog;
     const catalogToggle = special ? h('button.btn.secondary', { type: 'button', onclick: (e) => {

@@ -681,3 +681,5 @@ details.req-card.fold[open] > summary.card-head { margin-bottom: 10px; }
 .row-actions { display: flex; gap: 6px; }
 tr.new td { background: var(--warn-soft, #fff4e0); }
 summary .badge { background: var(--brand); color: #fff; border-radius: 10px; font-size: 12px; padding: 0 7px; }
+.btn.attn { animation: attn 0.9s ease-in-out 3; box-shadow: 0 0 0 3px var(--warn, #b45309); }
+@keyframes attn { 50% { transform: scale(1.08); } }

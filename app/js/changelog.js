@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.139', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) طلبيتي: لا إرسال ولا حفظ إن بقيت مادة أو كمية مكتوبة لم تُضف، ويومض زر "إضافة إلى الإذن". ونافذة الإرسال تعرض أسطر الطلبية لمراجعتها قبل التأكيد.'] },
+    en: { news: ['(Development copy) My order: nothing is sent or saved while an item or quantity is typed and not added; the Add button flashes. The send window lists the lines to check before confirming.'] },
+  },
+  {
     v: '0.9.138', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الحسابات: "دفعة جديدة" للموردين فقط. وكشف حساب المحل يُبنى وحده: الفواتير عليه، ويومية المبيعات المعتمدة له، فالرصيد ما استلمه المحل ولم يقابله بيع.'] },
     en: { news: ['(Development copy) Accounts: New payment is for suppliers only. A shop statement builds itself: invoices against its approved daily sales, so the balance is what it received and has not sold.'] },
