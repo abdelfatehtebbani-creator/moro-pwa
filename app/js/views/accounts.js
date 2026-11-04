@@ -20,7 +20,7 @@ export async function render(root) {
   const body = h('div');
   const bar = h('div.tabs');
   const keys = (Data.can('accounts.statement') ? ['balances', 'statement'] : []).concat(Data.can('accounts.pay') ? ['pay'] : [],
-    Data.can('accounts.statement') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : []);
+    Data.can('accounts.statement') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : [], Data.can('sales.list') ? ['sales'] : []);
   if (!keys.includes(state.tab)) state.tab = keys[0];
   keys.forEach((k) => bar.append(h('button', { type: 'button', class: k === state.tab ? 'on' : '',
     onclick: (e) => { state.tab = k; [...bar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('acc_tab_' + k))));
@@ -159,7 +159,79 @@ export async function render(root) {
     loadWait(); loadPeriod();
   }
 
-  const show = () => ({ balances, statement, pay, lpo, takings })[state.tab]();
+  // ---- the daily sales sheet: one line per shop, cash from the shifts and the other channels typed by the accountant
+  const lang = () => (document.documentElement.lang === 'ar' ? 'name_ar' : 'name_en');
+  const chName = (c) => c[lang()] || c.name_ar || c.name_en || c.id;
+  const PILL = { draft: 'out', submitted: 'soon', approved: 'in', returned: 'low' };
+  function sales() {
+    const channels = ((Data.boot || {}).sales_channels || []);
+    const shopName = (id) => (Data.parties.get(id) || {}).name || id;
+    const day = trackFilled(h('input.input#sl-date', { type: 'date', value: state.salesDate || today, max: today }));
+    const out = h('div.req-list');
+    const decideBox = h('div.req-list');
+    day.addEventListener('change', () => { state.salesDate = day.value; load(); });
+    const sheet = (v) => {
+      const fixed = v.status === 'submitted' || v.status === 'approved';
+      const mine = channels.filter((c) => (c.active || v.channels[c.id] !== undefined) && (!c.shops.length || c.shops.includes(v.shop_party_id)));
+      const inputs = mine.map((c) => {
+        const x = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: v.channels[c.id] === undefined ? '' : v.channels[c.id], disabled: fixed || !Data.can('sales.save') }));
+        return { c, x };
+      });
+      const total = h('b.num');
+      const sum = () => { total.textContent = money(v.cash + inputs.reduce((a, i) => a + (Number(i.x.value) || 0), 0)) + ' QR'; };
+      inputs.forEach((i) => i.x.addEventListener('input', sum)); sum();
+      const note = trackFilled(h('input.input.small', { value: v.note, placeholder: t('note'), disabled: fixed || !Data.can('sales.save') }));
+      const send = (submit) => async (e) => {
+        const btn = e.currentTarget; btn.disabled = true;
+        const ch = {}; inputs.forEach((i) => { if (i.x.value !== '') ch[i.c.id] = Number(i.x.value); });
+        try { await call('sales.save', { date: v.date, shop_party_id: v.shop_party_id, channels: ch, note: note.value, submit, client_id: newId() }); toast(t(submit ? 'sl_sent' : 'saved'), 'ok'); load(); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      };
+      return h('div.req-card', h('div.card-head', h('b', h('bdi', shopName(v.shop_party_id))), h('span.muted.num', fmtDate(v.date)),
+        v.status ? h('span', { class: 'pill ' + (PILL[v.status] || '') }, t('sl_st_' + v.status)) : null, h('span', t('total'), ': ', total)),
+        v.return_note ? h('p.err-text', t('sl_returned_why', { why: v.return_note })) : null,
+        h('div.form-grid', h('div.field', h('label', t('sl_cash')), h('div.num', h('b', money(v.cash) + ' QR'), v.not_received ? h('small.muted', ' · ' + t('sl_not_received', { n: v.not_received })) : '')),
+          ...inputs.map((i) => field(chName(i.c), i.x)), field(t('note'), note)),
+        !fixed && Data.can('sales.save') ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: send(false) }, t('save_draft')),
+          h('button.btn.save-btn', { type: 'button', onclick: send(true) }, t('sl_send'))) : null);
+    };
+    async function load() {
+      out.replaceChildren(h('p.muted', t('loading')));
+      try { const list = await call('sales.list', { date: day.value }); out.replaceChildren(...(list.length ? list.map(sheet) : [h('p.empty', t('no_rows'))])); }
+      catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
+    }
+    // the admin: the sheets sent, to approve or return
+    async function loadDecide() {
+      if (!Data.can('sales.decide')) return;
+      try {
+        const list = await call('sales.list', { status: 'submitted' });
+        decideBox.replaceChildren(...(list.length ? list.map((v) => h('div.req-card', h('div.card-head', h('b', h('bdi', shopName(v.shop_party_id))), h('span.muted.num', fmtDate(v.date)),
+          h('span', t('total'), ': ', h('b.num', money(v.total) + ' QR'))),
+          h('p', t('sl_cash') + ': ' + money(v.cash), ...channels.filter((c) => v.channels[c.id] !== undefined).map((c) => ' · ' + chName(c) + ': ' + money(v.channels[c.id]))),
+          v.note ? h('small.muted', v.note) : null,
+          h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: () => decide(v, true) }, t('sl_approve')),
+            h('button.btn.danger', { type: 'button', onclick: () => decide(v, false) }, t('sl_return'))))) : [h('p.empty', t('sl_none_sent'))]));
+      } catch (e) { decideBox.replaceChildren(h('p.empty', errText(e))); }
+    }
+    async function decide(v, ok) {
+      let note = '';
+      if (!ok) {
+        note = await dialog((close) => {
+          const r = trackFilled(h('input.input#sl-why'));
+          return [h('h3', t('sl_return')), field(t('reason'), r), h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+            h('button.btn.danger', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t('sl_return')))];
+        });
+        if (!note) return;
+      }
+      try { await call('sales.decide', { day_id: v.day_id, ok, note }); toast(t('saved'), 'ok'); loadDecide(); load(); Data.refresh().catch(() => {}); }
+      catch (e) { toast(errText(e), 'err'); }
+    }
+    body.replaceChildren(...(Data.can('sales.decide') ? [h('h3', t('sl_to_approve')), decideBox] : []), h('h3', t('sl_day')), field(t('date'), day), out,
+      h('small.muted', t('sl_help')));
+    load(); loadDecide();
+  }
+
+  const show = () => ({ balances, statement, pay, lpo, takings, sales })[state.tab]();
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('accounts')), bar), body));
   show();
 }

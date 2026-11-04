@@ -41,6 +41,7 @@ export const REPORTS = [
   { id: 'valuation', group: 'stock', opts: ['asof', 'stores'], prices: true, build: valuation },
   { id: 'margin', group: 'orders', opts: ['dates'], needs: 'margin', prices: true, build: margin },
   { id: 'takings', group: 'orders', opts: ['dates'], needs: 'takings', prices: true, build: takings },
+  { id: 'salesChannels', group: 'orders', opts: ['dates'], needs: 'salesChannels', prices: true, build: salesChannels },
   { id: 'orderTimes', group: 'orders', opts: ['dates'], needs: 'orders', build: orderTimes },
   { id: 'receiptShort', group: 'orders', opts: ['dates'], needs: 'orders', build: receiptShort },
   { id: 'unavailable', group: 'orders', opts: ['dates'], needs: 'orders', build: unavailable },
@@ -260,6 +261,20 @@ function takings(p, movs, list) {
     money(rows.reduce((a, r) => a + r[5], 0)), money(rows.reduce((a, r) => a + r[6], 0)), rows.reduce((a, r) => a + r[7], 0)]);
   return { title: 'Shop takings', subtitle: periodText(p) + '  ·  Difference = received − declared (negative: short)',
     columns: cols(['Date', 'd'], ['Shop', 't'], ['Cashier', 't'], ['Shifts', 'n'], ['Declared (QR)', 'm'], ['Received (QR)', 'm'], ['Difference (QR)', 'm'], ['Not received yet', 'n']), rows };
+}
+
+// ---------- the daily sales sheets: each shop and day by channel
+function salesChannels(p, movs, data) {
+  const ar = document.documentElement.lang === 'ar';
+  const used = (data.channels || []).filter((c) => data.days.some((d) => d.channels[c.id] !== undefined));
+  const name = (c) => (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) || c.id;
+  const STATUS = { draft: 'Draft', submitted: 'Sent', approved: 'Approved', returned: 'Returned' };
+  const rows = data.days.map((d) => [d.date, partyName(d.shop_party_id), money(d.cash), ...used.map((c) => (d.channels[c.id] === undefined ? '' : money(d.channels[c.id]))),
+    money(d.total), STATUS[d.status] || d.status]);
+  if (rows.length > 1) rows.push(['', 'Total', money(data.days.reduce((a, d) => a + d.cash, 0)),
+    ...used.map((c) => money(data.days.reduce((a, d) => a + (d.channels[c.id] || 0), 0))), money(data.days.reduce((a, d) => a + d.total, 0)), '']);
+  return { title: 'Sales by channel', subtitle: periodText(p) + '  ·  Cash: the shifts of the day; the other channels: the daily sales sheet',
+    columns: cols(['Date', 'd'], ['Shop', 't'], ['Cash (QR)', 'm'], ...used.map((c) => [name(c) + ' (QR)', 'm']), ['Total (QR)', 'm'], ['Status', 't']), rows };
 }
 
 function losses(p, movs, extra) {

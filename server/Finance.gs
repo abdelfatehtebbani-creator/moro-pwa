@@ -61,8 +61,8 @@ var Finance = {
         section: x.section, qty: Number(x.qty), unit: x.unit, price: Number(x.price), amount: Number(x.amount) };
     });
     // the cash the cashiers collected in the period, per shop (declared when each shift ended)
-    var takings = {};
-    Repo.all('Shifts').forEach(function (s) { if (s.closed_at && inP(String(s.closed_at).slice(0, 10))) takings[s.shop_party_id] = Util.round((takings[s.shop_party_id] || 0) + (Number(s.amount) || 0)); });
+    // (the approved daily sales sheet of a day, all channels; a day without one: the cash of its shifts)
+    var takings = Sales.byShop(p.from, p.to);
     return { lines: lines, takings: takings,
       recipes: Repo.all('Recipes').map(function (r) { return { product: r.product, item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }; }) };
   }

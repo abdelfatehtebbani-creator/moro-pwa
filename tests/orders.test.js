@@ -511,3 +511,20 @@ test('takings in the margin data and on the dashboard', () => {
   assert.deepEqual(d.map((x) => [x.shop_party_id, x.amount, x.shifts]), [['P002', 300, 1]]);
   assert.deepEqual(g.api('data.bootstrap', {}, tok.cashier).data.takings_today, []);
 });
+
+test('daily sales: cash from the shifts, other channels by the accountant, sent and approved by the admin', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  g.api('orders.shiftEnd', { amount: 500 }, tok.cashier);
+  const today = JSON.parse(g.run('JSON.stringify(Util.today())'));
+  const day = g.api('sales.list', { date: today }, tok.acc).data.find((x) => x.shop_party_id === 'P002');
+  assert.deepEqual([day.cash, day.not_received], [500, 1]);
+  assert.equal(g.api('sales.save', { date: today, shop_party_id: 'P002', channels: { qlub: 10 } }, tok.acc).error.code, 'channel_invalid', 'qlub is not this shop\'s');
+  const sent = g.api('sales.save', { date: today, shop_party_id: 'P002', channels: { card: 300, talabat: 120 }, submit: true }, tok.acc).data.day;
+  assert.deepEqual([sent.status, sent.total], ['submitted', 920]);
+  assert.equal(g.api('sales.save', { date: today, shop_party_id: 'P002', channels: { card: 1 } }, tok.acc).error.code, 'sales_locked');
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.admin).data.decisions.map((d) => d.key), ['sales']);
+  assert.equal(g.api('sales.decide', { day_id: sent.day_id, ok: true }, tok.acc).error.code, 'forbidden');
+  g.api('sales.decide', { day_id: sent.day_id, ok: true }, tok.admin);
+  assert.equal(g.api('report.margin', {}, tok.admin).data.takings.P002, 920, 'the margin reads the approved sheet');
+});

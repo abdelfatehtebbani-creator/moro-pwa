@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.134', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) يومية المبيعات في الحسابات: لكل محل ويوم النقد من النوبات، والبطاقة والتطبيقات يكتبها المحاسب، ثم يرسلها للمدير فيعتمدها أو يعيدها. القنوات تُضبط في شاشة المستخدمين (qlub للؤلؤة وحدها). وتقرير "المبيعات حسب القناة"، والهامش ولوحة التحكم يقرآن اليومية.'] },
+    en: { news: ['(Development copy) Daily sales sheet in Accounts: per shop and day, cash from the shifts, card and apps typed by the accountant, sent to the admin to approve or return. Channels set in the users screen (qlub for the Pearl only). A Sales by channel report; margin and dashboard read the sheet.'] },
+  },
+  {
     v: '0.9.133', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) إصلاح: بعد كل تحديث للتطبيق تُقرأ الصلاحيات من جديد، فتظهر الشاشات والتبويبات الجديدة دون انتظار تغيّر في البيانات.'] },
     en: { news: ['(Development copy) Fix: after each app update the permissions are read again, so new screens and tabs show without waiting for a data change.'] },

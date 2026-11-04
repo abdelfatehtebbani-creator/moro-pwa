@@ -24,7 +24,7 @@ var UNIQUE_KEYS = [
   ['CashFloat', ['entry_id']], ['CoffeeBatches', ['batch_id']], ['Audit', ['audit_id']],
   ['Orders', ['order_id']], ['Orders', ['order_no']], ['OrderItems', ['order_id', 'line_no']], ['Trips', ['trip_id']],
   ['TripStops', ['trip_id', 'order_id']], ['Invoices', ['invoice_id']], ['Invoices', ['invoice_no']], ['Invoices', ['order_id']],
-  ['InvoiceItems', ['invoice_id', 'line_no']], ['Returns', ['return_id']], ['Photos', ['photo_id', 'part']], ['Shifts', ['shift_id']], ['Payments', ['payment_id']]
+  ['InvoiceItems', ['invoice_id', 'line_no']], ['Returns', ['return_id']], ['Photos', ['photo_id', 'part']], ['Shifts', ['shift_id']], ['DailySales', ['day_id']], ['DailySales', ['date', 'shop_party_id']], ['Payments', ['payment_id']]
 ];
 
 var Recovery = {

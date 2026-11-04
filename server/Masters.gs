@@ -328,6 +328,7 @@ var Masters = {
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
       decisions: Masters.decisions(session),
+      sales_channels: Perm.has(session, 'sales.list') || Perm.has(session, 'sales.setChannels') ? Sales.channels() : [],
       // today's takings per shop (shifts ended today; shifts still open counted apart), for the dashboard
       takings_today: Perm.has(session, 'nav.dashboard') && Perm.has(session, 'see_prices') ? (function () {
         var today = Util.today(), by = {};
@@ -336,7 +337,12 @@ var Masters = {
           if (!s.closed_at) x.open++;
           else if (String(s.closed_at).slice(0, 10) === today) { x.shifts++; x.amount = Util.round(x.amount + (Number(s.amount) || 0)); }
         });
-        return Object.keys(by).map(function (k) { return by[k]; }).filter(function (x) { return x.shifts || x.open; });
+        Repo.all('DailySales').forEach(function (r) {
+          if (r.date !== today || r.status === 'returned') return;
+          var x = by[r.shop_party_id] || (by[r.shop_party_id] = { shop_party_id: r.shop_party_id, amount: 0, shifts: 0, open: 0 });
+          x.amount = Number(r.total) || 0; x.sheet = true;
+        });
+        return Object.keys(by).map(function (k) { return by[k]; }).filter(function (x) { return x.shifts || x.open || x.sheet; });
       })() : [],
       // approved purchase orders, for a receipt to name the one it answers
       lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
@@ -365,7 +371,8 @@ var DECISIONS = [
   { key: 'lpo', route: 'lpo', perm: 'lpo.decide', count: function () { return Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length; } },
   { key: 'cash', route: 'lpo', perm: 'cash.decide', count: function () { return Repo.all('CashSheets').filter(function (s) { return s.status === 'submitted'; }).length; } },
   { key: 'counts', route: 'counts', perm: 'counts.approve', count: function () { return Repo.all('Counts').filter(function (c) { return c.status === 'open'; }).length; } },
-  { key: 'special', route: 'orderapprove', perm: 'orders.route', count: function () { return Orders.pendingSpecial(); } }
+  { key: 'special', route: 'orderapprove', perm: 'orders.route', count: function () { return Orders.pendingSpecial(); } },
+  { key: 'sales', route: 'accounts', perm: 'sales.decide', count: function () { return Repo.all('DailySales').filter(function (r) { return r.status === 'submitted'; }).length; } }
 ];
 
 Masters.decisions = function (session) {

@@ -82,6 +82,11 @@ var ROUTES = {
   'shifts.list':      function (s, p) { return Takings.list(s, p); },
   'shifts.receive':   function (s, p) { return Takings.receive(s, p); },
   'report.takings':   function (s, p) { return Takings.list(s, p); },
+  'sales.list':       function (s, p) { return Sales.list(s, p); },
+  'sales.save':       function (s, p) { return Sales.save(s, p); },
+  'sales.decide':     function (s, p) { return Sales.decide(s, p); },
+  'sales.setChannels': function (s, p) { return Sales.setChannels(s, p); },
+  'report.salesChannels': function (s, p) { return { days: Sales.list(s, { from: p.from, to: p.to }), channels: Sales.channels() }; },
   'settings.close':   function (s, p) { return Period.save(s, p); },
   'photos.get':       function (s, p) { return Photos.get(s, p); },
   'returns.list':     function (s, p) { return Returns.list(s, p); },
@@ -138,7 +143,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '42';
+var SCHEMA_VERSION = '43';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

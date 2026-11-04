@@ -39,8 +39,36 @@ export async function render(root) {
     return h('div.card', h('h2', t('settings_general')),
       h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
       h('small.muted', t('idle_minutes_help')),
+      Data.can('sales.setChannels') ? channelsBox() : null,
       Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // the sales channels of the daily sales sheet: names, the shops of each (none = all), stopped or not
+  function channelsBox() {
+    const list = ((Data.boot || {}).sales_channels || []).map((c) => Object.assign({}, c, { shops: [...(c.shops || [])] }));
+    const shops = [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name));
+    const box = h('div');
+    const draw = () => box.replaceChildren(...list.map((c) => {
+      const ar = trackFilled(h('input.input.small', { value: c.name_ar, placeholder: 'عربي' }));
+      const en = trackFilled(h('input.input.small', { value: c.name_en, placeholder: 'English' }));
+      const on = h('input', { type: 'checkbox', checked: c.active !== false });
+      ar.addEventListener('input', () => { c.name_ar = ar.value; }); en.addEventListener('input', () => { c.name_en = en.value; });
+      on.addEventListener('change', () => { c.active = on.checked; });
+      const sh = h('div.months', shops.map((s) => {
+        const cb = h('input', { type: 'checkbox', checked: c.shops.includes(s.party_id) });
+        cb.addEventListener('change', () => { c.shops = cb.checked ? c.shops.concat([s.party_id]) : c.shops.filter((x) => x !== s.party_id); });
+        return h('label.check', cb, ' ', h('bdi', s.name));
+      }));
+      return h('div.req-card', h('div.form-grid', ar, en, h('label.check', on, ' ', t('active'))), h('small.muted', t('sl_ch_shops')), sh);
+    }));
+    draw();
+    const add = () => { list.push({ id: 'ch' + Date.now().toString(36).slice(-6), name_ar: '', name_en: '', shops: [], active: true }); draw(); };
+    const save = async () => {
+      try { await call('sales.setChannels', { channels: list }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); } catch (e) { toast(errText(e), 'err'); }
+    };
+    return h('div', h('h3', t('sl_channels')), h('small.muted', t('sl_channels_help')), box,
+      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: add }, '+ ' + t('sl_ch_add')), h('button.btn', { type: 'button', onclick: save }, t('save'))));
   }
 
   function confirmClose(d) {
