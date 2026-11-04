@@ -209,7 +209,7 @@ var Takings = {
     var got = s.received_amount === '' || s.received_amount === undefined ? '' : Number(s.received_amount);
     return { shift_id: s.shift_id, user_id: s.user_id, cashier: u.display_name || s.user_id, shop_party_id: s.shop_party_id,
       opened_at: s.opened_at, closed_at: s.closed_at, date: String(s.closed_at || '').slice(0, 10), amount: Number(s.amount) || 0, note: s.note || '',
-      received_amount: got, received_at: s.received_at || '', received_note: s.received_note || '',
+      received_amount: got, received_at: s.received_at || '', received_note: s.received_note || '', received_action: s.received_action || '',
       diff: got === '' ? '' : Util.round(got - (Number(s.amount) || 0)) };
   },
 
@@ -228,14 +228,23 @@ var Takings = {
   receive: function (session, p) {
     var a = Util.num(p.amount);
     Util.require(a !== null && a >= 0, 'amount_invalid');
+    var action = Util.clean(p.action);
     return withLock(function () {
       var s = Repo.find('Shifts', 'shift_id', p.shift_id);
+      // a difference needs the action taken (asked the cashier, deducted, recounted…)
+      Util.require(Util.round(a) === Util.round(Number(s && s.amount) || 0) || action, 'action_required');
       Util.require(s && s.closed_at, 'not_found');
       Util.require(s.received_amount === '' || s.received_amount === undefined, 'shift_received', s.shift_id);
       Period.require(Util.today());
       var res = Repo.update('Shifts', 'shift_id', s.shift_id, { received_amount: Util.round(a), received_by: session.user_id, received_at: Util.nowIso(),
-        received_note: Util.clean(p.note) });
+        received_note: Util.clean(p.note), received_action: action });
       Audit.log(session.user_id, 'shift_receive', 'Shifts', s.shift_id, res.before, res.after);
+      if (action) {
+        var shop = (Repo.find('Parties', 'party_id', s.shop_party_id) || {}).name || s.shop_party_id;
+        var d = Util.round(a - (Number(s.amount) || 0));
+        OrderNotify.send(Push.usersWith('sales.decide'), session, 'accounts', ['فرق في مقبوضات نوبة', shop + ': ' + d + ' QR – ' + action],
+          ['Difference in shift takings', shop + ': ' + d + ' QR – ' + action]);
+      }
       return { shift: Takings.view(res.after), version: Version.bump() };
     });
   }

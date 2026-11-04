@@ -679,3 +679,5 @@ details.req-card.fold[open] > summary.card-head { margin-bottom: 10px; }
 .sales-grid th, .sales-grid td { white-space: nowrap; }
 .sales-grid tfoot td { border-top: 2px solid var(--line); }
 .row-actions { display: flex; gap: 6px; }
+tr.new td { background: var(--warn-soft, #fff4e0); }
+summary .badge { background: var(--brand); color: #fff; border-radius: 10px; font-size: 12px; padding: 0 7px; }

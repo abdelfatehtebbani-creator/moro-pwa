@@ -5,7 +5,7 @@
 import { t } from '../i18n.js';
 import { h, icon, toast } from '../ui.js';
 import { Data } from '../data.js';
-import { GROUPS, Counts, Favs, OpenGroups } from '../groups.js';
+import { GROUPS, Counts, Favs, OpenGroups, DiffSeen } from '../groups.js';
 
 let cleanup = null;
 const BADGED = ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'];
@@ -69,13 +69,16 @@ function renderGrouped(root, links, ctx) {
       resume ? h('span.home-resume', t('idle_resume')) : null);
   };
   const waitBox = h('div.home-waiting', { hidden: true });
-  const decisionTile = (d) => h('a.home-tab', { href: '#/' + d.route, 'data-route': d.route }, h('span.home-ico', icon(d.route)),
+  const decisionTile = (d) => h('a.home-tab', { href: '#/' + d.route, 'data-route': d.route.split('?')[0] }, h('span.home-ico', icon(d.route.split('?')[0])),
     h('span.home-label', t('dec_' + d.key)), h('span.badge', String(d.count)));
   const drawWait = () => {
     const now = Counts.now || {};
     const list = links.filter((r) => Number(now[r]) > 0);
     // the admin's own decisions (counted by the approval, server side); every other number is the team's work
     const decisions = ((Data.boot || {}).decisions || []).filter((d) => links.includes(d.route));
+    // new differences in the shift takings: a number to look at them (with the action the accountant took)
+    const nd = Data.can('sales.decide') ? DiffSeen.unseen((Data.boot || {}).takings_diffs) : 0;
+    if (nd && links.includes('accounts')) decisions.push({ key: 'diffs', route: 'accounts?tab=takings', count: nd });
     const mine = decisions;
     const team = list.filter((r) => !decisions.some((d) => d.route === r));
     // two frames: the admin's decisions (coloured), then the team's work (a quiet line)

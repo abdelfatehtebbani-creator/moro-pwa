@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.136', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) مقبوضات النوبات: إن اختلف المستلم عن المصرّح به يكتب المحاسب "الإجراء المتخذ" (إلزامي). والمدير يرى "فروق المقبوضات" بإجراءاتها في تبويب المقبوضات، ورقمًا في قراراتك لكل فرق جديد حتى يطّلع عليه.'] },
+    en: { news: ['(Development copy) Shift takings: when received differs from declared, the accountant writes the action taken (required). The admin sees Takings differences with their actions in the takings tab, and a number in Your decisions for each new one until looked at.'] },
+  },
+  {
     v: '0.9.135', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) يومية المبيعات: المحلات وإعداد القنوات تنطوي، وخانة النقد بشكل بقية الخانات. واليوميات للاعتماد في جدول واحد: المحلات في الأسطر والقنوات في الأعمدة، مع الإجمالي وزر اعتماد الكل.'] },
     en: { news: ['(Development copy) Daily sales: the shops and the channels settings fold, and the cash field looks like the others. The sheets to approve in one table: shops in rows, channels in columns, with totals and Approve all.'] },

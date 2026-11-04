@@ -8,12 +8,17 @@ import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, newId } from '../components.js';
+import { DiffSeen } from '../groups.js';
 
 const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const state = { tab: 'balances', party: '', from: '', to: '' };
+const isoDays = (n) => { const d = new Date(Data.todayIso() + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 export async function render(root) {
   const today = Data.todayIso();
+  // a link may open a tab (the admin's number on the differences: #/accounts?tab=takings)
+  const want = (location.hash.split('?')[1] || '').match(/(?:^|&)tab=(\w+)/);
+  if (want) state.tab = want[1];
   if (!state.from) { state.from = today.slice(0, 8) + '01'; state.to = today; }
   const parties = () => [...Data.parties.values()].filter((p) => (p.kind === 'supplier' || p.kind === 'shop') && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name, hint: t('kind_' + p.kind) }));
@@ -127,16 +132,22 @@ export async function render(root) {
         waitBox.replaceChildren(...(list.length ? list.map((s) => {
           const got = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: s.amount }));
           const note = trackFilled(h('input.input.small', { placeholder: t('note') }));
+          // a difference: the action taken is required
+          const action = trackFilled(h('input.input.small', { placeholder: t('tk_action') }));
+          const actionField = field(t('tk_action'), action);
+          const sync = () => { actionField.hidden = Number(got.value) === s.amount || got.value === ''; };
+          got.addEventListener('input', sync); sync();
           const btn = h('button.btn.save-btn', { type: 'button', onclick: async () => {
             if (got.value === '' || Number(got.value) < 0) return flash(got);
+            if (Number(got.value) !== s.amount && !action.value.trim()) { flash(action); return toast(t('err.action_required'), 'err'); }
             btn.disabled = true;
-            try { await call('shifts.receive', { shift_id: s.shift_id, amount: Number(got.value), note: note.value }); toast(t('saved'), 'ok'); loadWait(); loadPeriod(); }
+            try { await call('shifts.receive', { shift_id: s.shift_id, amount: Number(got.value), note: note.value, action: action.value.trim() }); toast(t('saved'), 'ok'); loadWait(); loadPeriod(); }
             catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
           } }, t('tk_receive'));
           return h('div.req-card', h('div.card-head', h('b', h('bdi', name(s.shop_party_id))), h('span', h('bdi', s.cashier)),
             h('span.muted.num', String(s.closed_at).replace('T', ' ').slice(0, 16))),
             h('p', t('tk_declared'), ': ', h('b', money(s.amount) + ' QR'), s.note ? h('small.muted', ' · ' + s.note) : ''),
-            h('div.form-actions', field(t('tk_received'), got), note, btn));
+            h('div.form-actions', field(t('tk_received'), got), actionField, note, btn));
         }) : [h('p.empty', t('tk_none_waiting'))]));
       } catch (e) { waitBox.replaceChildren(h('p.empty', errText(e))); }
     }
@@ -147,16 +158,33 @@ export async function render(root) {
         let a = 0, r = 0, d = 0;
         list.forEach((s) => { a += s.amount; if (s.received_amount !== '') { r += s.received_amount; d += s.diff; } });
         out.replaceChildren(h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('shop')), h('th', t('tk_cashier')), h('th', t('tk_declared')),
-          h('th', t('tk_received')), h('th', t('acc_diff')))),
+          h('th', t('tk_received')), h('th', t('acc_diff')), h('th', t('tk_action')))),
           h('tbody', list.length ? list.map((s) => h('tr', h('td.num', fmtDate(s.date)), h('td.wrap', h('bdi', name(s.shop_party_id))), h('td.wrap', h('bdi', s.cashier)),
             h('td.num', money(s.amount)), h('td.num', s.received_amount === '' ? '—' : money(s.received_amount)),
-            h('td.num', { class: s.diff ? 'err-text' : '' }, s.diff === '' ? '' : money(s.diff))))
-            .concat([h('tr', h('td', h('b', t('total'))), h('td', ''), h('td', ''), h('td.num', h('b', money(a))), h('td.num', h('b', money(r))), h('td.num', h('b', money(d))))])
-            : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]))), h('small.muted', t('tk_help')));
+            h('td.num', { class: s.diff ? 'err-text' : '' }, s.diff === '' ? '' : money(s.diff)), h('td.wrap', s.received_action || '')))
+            .concat([h('tr', h('td', h('b', t('total'))), h('td', ''), h('td', ''), h('td.num', h('b', money(a))), h('td.num', h('b', money(r))), h('td.num', h('b', money(d))), h('td', ''))])
+            : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]))), h('small.muted', t('tk_help')));
       } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
     }
-    body.replaceChildren(h('h3', t('tk_waiting')), waitBox, h('h3', t('tk_period')), dates(loadPeriod), out);
-    loadWait(); loadPeriod();
+    const diffBox = h('div');
+    async function loadDiffs() {
+      if (!Data.can('sales.decide')) return;
+      try {
+        const all = await call('shifts.list', { from: isoDays(-90), to: today });
+        const list = all.filter((s) => s.diff !== '' && s.diff !== 0);
+        const unseen = DiffSeen.unseen(list.map((s) => s.received_at));
+        const det = h('details.fold.home-group', { open: unseen > 0 }, h('summary', h('b', t('tk_diffs')), ' ', unseen ? h('span.badge', String(unseen)) : h('small.muted', String(list.length))),
+          list.length ? h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('shop')), h('th', t('tk_cashier')), h('th', t('acc_diff')), h('th', t('tk_action')))),
+            h('tbody', ...list.map((s) => h('tr', { class: String(s.received_at) > DiffSeen.get() ? 'new' : '' }, h('td.num', fmtDate(s.date)), h('td.wrap', h('bdi', name(s.shop_party_id))),
+              h('td.wrap', h('bdi', s.cashier)), h('td.num.err-text', money(s.diff)), h('td.wrap', s.received_action || '')))))) : h('p.empty', t('tk_no_diffs')));
+        // looked at: the number goes
+        det.addEventListener('toggle', () => { if (det.open && list.length) { DiffSeen.set(list.map((s) => String(s.received_at)).sort().pop()); window.dispatchEvent(new Event('moro:badges')); } });
+        if (det.open && list.length) DiffSeen.set(list.map((s) => String(s.received_at)).sort().pop());
+        diffBox.replaceChildren(det);
+      } catch (e) { diffBox.replaceChildren(h('p.empty', errText(e))); }
+    }
+    body.replaceChildren(diffBox, h('h3', t('tk_waiting')), waitBox, h('h3', t('tk_period')), dates(loadPeriod), out);
+    loadDiffs(); loadWait(); loadPeriod();
   }
 
   // ---- the daily sales sheet: one line per shop, cash from the shifts and the other channels typed by the accountant

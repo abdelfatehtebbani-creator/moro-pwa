@@ -31,3 +31,12 @@ export const OpenGroups = {
   get: () => read(OPEN, null),
   set: (v) => write(OPEN, v),
 };
+
+// the differences in shift takings the admin has seen (the newest received_at seen, on this device)
+const DIFF_SEEN = 'moro.takings.diffSeen';
+export const DiffSeen = {
+  get: () => read(DIFF_SEEN, ''),
+  set: (v) => write(DIFF_SEEN, v),
+  /** How many differences arrived after the last look. */
+  unseen: (list) => { const s = DiffSeen.get(); return (list || []).filter((x) => String(x) > s).length; },
+};

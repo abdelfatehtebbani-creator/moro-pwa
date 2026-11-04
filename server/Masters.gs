@@ -328,6 +328,10 @@ var Masters = {
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
       decisions: Masters.decisions(session),
+      takings_diffs: Perm.has(session, 'sales.decide') ? Repo.all('Shifts').filter(function (s) {
+        return s.received_at && Util.round(Number(s.received_amount) || 0) !== Util.round(Number(s.amount) || 0)
+          && daysBetweenIso(String(s.received_at).slice(0, 10), Util.today()) <= 90;
+      }).map(function (s) { return String(s.received_at); }) : [],
       sales_channels: Perm.has(session, 'sales.list') || Perm.has(session, 'sales.setChannels') ? Sales.channels() : [],
       // today's takings per shop (shifts ended today; shifts still open counted apart), for the dashboard
       takings_today: Perm.has(session, 'nav.dashboard') && Perm.has(session, 'see_prices') ? (function () {
@@ -422,3 +426,5 @@ Masters.deptOf = function (id) {
   Util.require(p && p.kind === 'section', 'party_not_section');
   return id;
 };
+
+function daysBetweenIso(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }

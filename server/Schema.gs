@@ -62,7 +62,7 @@ var SCHEMA = {
   InvoiceItems: ['invoice_id', 'line_no', 'item_id', 'section', 'qty', 'unit', 'price', 'amount', 'description'],
   Photos:       ['photo_id', 'order_id', 'part', 'data', 'created_by', 'created_at'],
   Shifts:       ['shift_id', 'user_id', 'shop_party_id', 'opened_at', 'closed_at', 'amount', 'note', 'closed_by', 'client_id',
-                 'received_amount', 'received_by', 'received_at', 'received_note'],
+                 'received_amount', 'received_by', 'received_at', 'received_note', 'received_action'],
   DailySales:   ['day_id', 'date', 'shop_party_id', 'cash', 'channels', 'total', 'note', 'status', 'return_note', 'created_by', 'created_at',
                  'submitted_at', 'decided_by', 'decided_at', 'updated_at', 'client_id'],
   Payments:     ['payment_id', 'date', 'party_id', 'amount', 'method', 'ref', 'note', 'status', 'created_by', 'created_at', 'voided_by', 'voided_at', 'client_id'],
