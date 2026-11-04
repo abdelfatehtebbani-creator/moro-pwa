@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.131', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) تقرير التكلفة والهامش: لكل محل مقبوضاته في الفترة والفرق بينها وبين ما فوتر له. ولوحة التحكم: بطاقة مقبوضات اليوم لكل محل، مع النوبات المفتوحة.'] },
+    en: { news: ['(Development copy) Cost and margin report: each shop with its takings in the period and the difference against what it was invoiced. The dashboard: a card of today\u2019s takings per shop, with the shifts still open.'] },
+  },
+  {
     v: '0.9.130', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) مقبوضات النوبات: في شاشة الحسابات تبويب جديد، يستلم فيه المحاسب نقد كل نوبة مغلقة ويكتب ما استلمه فيظهر الفرق. وتقرير جديد "مقبوضات المحلات" لكل يوم ومحل وكاشير.'] },
     en: { news: ['(Development copy) Shift takings: a new tab in Accounts where the accountant receives the cash of each closed shift; the difference shows. A new report, Shop takings, per day, shop and cashier.'] },

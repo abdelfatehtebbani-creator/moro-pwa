@@ -166,7 +166,15 @@ export async function render(root) {
   }
   drawStoreTabs();
   updateCards();
-  root.replaceChildren(requestsNote, choices.length ? storeBar : '', kpis, hint, panelBox);
+  // today's takings per shop: the cash of the shifts ended today, and the shifts still open
+  const tk = (Data.boot || {}).takings_today || [];
+  const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const takingsCard = tk.length ? h('div.card.takings-today', h('div.card-head', h('h2', t('takings_today')),
+    h('b.num', money(tk.reduce((a, x) => a + x.amount, 0)) + ' QR')),
+    h('div.table-wrap', h('table', h('tbody', tk.sort((a, b) => b.amount - a.amount).map((x) => h('tr',
+      h('td.wrap', h('bdi', (Data.parties.get(x.shop_party_id) || {}).name || x.shop_party_id)), h('td.num', money(x.amount) + ' QR'),
+      h('td', h('small.muted', t('takings_shifts', { n: x.shifts }) + (x.open ? ' · ' + t('takings_open', { n: x.open }) : ''))))))))) : null;
+  root.replaceChildren(...[requestsNote, choices.length ? storeBar : '', kpis, takingsCard, hint, panelBox].filter((x) => x !== null));
   fillLookup();
   open(panel);
 

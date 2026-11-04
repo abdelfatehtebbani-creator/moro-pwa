@@ -60,7 +60,11 @@ var Finance = {
       return { date: v.date, invoice_no: v.invoice_no, shop_party_id: v.shop_party_id, item_id: x.item_id, description: x.description || '',
         section: x.section, qty: Number(x.qty), unit: x.unit, price: Number(x.price), amount: Number(x.amount) };
     });
-    return { lines: lines, recipes: Repo.all('Recipes').map(function (r) { return { product: r.product, item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }; }) };
+    // the cash the cashiers collected in the period, per shop (declared when each shift ended)
+    var takings = {};
+    Repo.all('Shifts').forEach(function (s) { if (s.closed_at && inP(String(s.closed_at).slice(0, 10))) takings[s.shop_party_id] = Util.round((takings[s.shop_party_id] || 0) + (Number(s.amount) || 0)); });
+    return { lines: lines, takings: takings,
+      recipes: Repo.all('Recipes').map(function (r) { return { product: r.product, item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }; }) };
   }
 };
 

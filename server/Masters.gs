@@ -328,6 +328,16 @@ var Masters = {
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
       decisions: Masters.decisions(session),
+      // today's takings per shop (shifts ended today; shifts still open counted apart), for the dashboard
+      takings_today: Perm.has(session, 'nav.dashboard') && Perm.has(session, 'see_prices') ? (function () {
+        var today = Util.today(), by = {};
+        Repo.all('Shifts').forEach(function (s) {
+          var x = by[s.shop_party_id] || (by[s.shop_party_id] = { shop_party_id: s.shop_party_id, amount: 0, shifts: 0, open: 0 });
+          if (!s.closed_at) x.open++;
+          else if (String(s.closed_at).slice(0, 10) === today) { x.shifts++; x.amount = Util.round(x.amount + (Number(s.amount) || 0)); }
+        });
+        return Object.keys(by).map(function (k) { return by[k]; }).filter(function (x) { return x.shifts || x.open; });
+      })() : [],
       // approved purchase orders, for a receipt to name the one it answers
       lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
         .map(function (l) { return [String(l.lpo_no), l.party_id, String(l.date)]; }).slice(-300) : [],

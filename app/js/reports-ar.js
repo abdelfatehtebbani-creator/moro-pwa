@@ -10,7 +10,9 @@ const W = {
   'Traceability: materials issued and their batches': 'التتبع: المواد المصروفة ودفعاتها', 'Shop orders: time of each step': 'طلبيات المحلات: وقت كل مرحلة',
   'Shop orders: received short': 'طلبيات المحلات: استلام ناقص', 'Shop orders: could not be supplied': 'طلبيات المحلات: ما تعذّر توفيره',
   'Shop sales (invoices)': 'مبيعات المحلات (الفواتير)', 'Cost and margin of the shop invoices': 'التكلفة والهامش لفواتير المحلات',
-  'Shop takings': 'مقبوضات المحلات', 'Difference = received − declared (negative: short)': 'الفرق = المستلم − المصرّح به (السالب: عجز)',
+  'Shop takings': 'مقبوضات المحلات', 'Takings (QR)': 'المقبوضات (ر.ق)', 'Takings − invoiced (QR)': 'المقبوضات − المفوتر (ر.ق)',
+  'Takings: the cash its cashiers declared; takings − invoiced below zero: it sold less than it received': 'المقبوضات: ما صرّح به كاشيرو المحل؛ المقبوضات − المفوتر تحت الصفر: باع أقل مما استلم',
+  'Line': 'السطر', 'Difference = received − declared (negative: short)': 'الفرق = المستلم − المصرّح به (السالب: عجز)',
   'Cashier': 'الكاشير', 'Shifts': 'النوبات', 'Declared (QR)': 'المصرّح به (ر.ق)', 'Received (QR)': 'المستلم (ر.ق)', 'Difference (QR)': 'الفرق (ر.ق)', 'Not received yet': 'لم يُستلم بعد',
   'Losses: disposals, count differences, returns and goods lost on the way': 'الخسائر: الإتلاف وفروق الجرد والمرتجعات والضائع في الطريق',
   // subtitle parts

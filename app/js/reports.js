@@ -226,15 +226,22 @@ function margin(p, movs, data) {
   const pct = (m, s) => (s ? Math.round((m / s) * 1000) / 10 : '');
   const rows = [...by.values()].sort((a, b) => b.sales - a.sales).map((r) => {
     const m = r.known ? money(r.sales - r.cost) : '';
-    return ['Item', r.name, r6(r.qty), r.unit, money(r.sales), r.known ? money(r.cost) : '', m, r.known ? pct(r.sales - r.cost, r.sales) : ''];
+    return ['Item', r.name, r6(r.qty), r.unit, money(r.sales), r.known ? money(r.cost) : '', m, r.known ? pct(r.sales - r.cost, r.sales) : '', '', ''];
   });
-  [...shops].sort((a, b) => byName(partyName(a[0]), partyName(b[0]))).forEach(([id, s]) => {
+  // each shop: its invoices, their cost and margin, and the cash its cashiers collected against what it was invoiced
+  const took = data.takings || {};
+  const ids = new Set([...shops.keys(), ...Object.keys(took)]);
+  [...ids].sort((a, b) => byName(partyName(a), partyName(b))).forEach((id) => {
+    const s = shops.get(id) || { sales: 0, cost: 0, unknown: 0 };
     const known = s.sales - s.unknown;
-    rows.push(['Shop', partyName(id), '', '', money(s.sales), money(s.cost), money(known - s.cost), pct(known - s.cost, known)]);
+    const tk = took[id] || 0;
+    rows.push(['Shop', partyName(id), '', '', money(s.sales), money(s.cost), money(known - s.cost), pct(known - s.cost, known), money(tk), money(tk - s.sales)]);
   });
   return { title: 'Cost and margin of the shop invoices', subtitle: periodText(p) + '  ·  Cost: recipe ingredients or the item at its last purchase price'
-      + '  ·  Empty: no cost known (no recipe, special product)  ·  A shop margin leaves out the lines without cost',
-    columns: cols(['Line', 't'], ['Item / shop', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Sales (QR)', 'm'], ['Cost (QR)', 'm'], ['Margin (QR)', 'm'], ['Margin %', 'n']), rows };
+      + '  ·  Empty: no cost known (no recipe, special product)  ·  A shop margin leaves out the lines without cost'
+      + '  ·  Takings: the cash its cashiers declared; takings − invoiced below zero: it sold less than it received',
+    columns: cols(['Line', 't'], ['Item / shop', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Sales (QR)', 'm'], ['Cost (QR)', 'm'], ['Margin (QR)', 'm'], ['Margin %', 'n'],
+      ['Takings (QR)', 'm'], ['Takings − invoiced (QR)', 'm']), rows };
 }
 
 // ---------- the shops' takings: the cash each cashier collected, per day and shop, and what the accountant received

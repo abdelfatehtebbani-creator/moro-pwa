@@ -502,3 +502,12 @@ test('takings: the accountant receives the cash of a closed shift; the differenc
   assert.equal(g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 1000 }, tok.acc).error.code, 'shift_received');
   assert.equal(g.api('shifts.list', { waiting: true }, tok.acc).data.length, 0);
 });
+
+test('takings in the margin data and on the dashboard', () => {
+  const { g, tok } = env();
+  g.api('orders.shiftEnd', { amount: 300 }, tok.cashier);
+  assert.equal(g.api('report.margin', {}, tok.admin).data.takings.P002, 300);
+  const d = g.api('data.bootstrap', {}, tok.admin).data.takings_today;
+  assert.deepEqual(d.map((x) => [x.shop_party_id, x.amount, x.shifts]), [['P002', 300, 1]]);
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.cashier).data.takings_today, []);
+});
