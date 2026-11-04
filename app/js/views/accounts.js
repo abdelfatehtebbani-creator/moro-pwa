@@ -38,7 +38,7 @@ export async function render(root) {
       const list = await call('accounts.balances', {});
       const row = (x) => h('tr.click', { onclick: () => { state.party = x.party_id; state.tab = 'statement'; [...bar.children].forEach((b, i) => b.classList.toggle('on', keys[i] === 'statement')); show(); } },
         h('td.wrap', h('bdi', x.name)), h('td', t('kind_' + x.kind)), h('td.num', h('b', money(Math.abs(x.balance)))), h('td', side(x.balance, x.kind)));
-      body.replaceChildren(h('small.muted', t('acc_balances_help')), h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('party')), h('th', ''), h('th', t('balance')), h('th', ''))),
+      body.replaceChildren(h('small.muted', t('acc_balances_help')), h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('acc_party')), h('th', ''), h('th', t('balance')), h('th', ''))),
         h('tbody', list.length ? list.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name)).map(row) : [h('tr', h('td.empty', { colspan: 4 }, t('no_rows')))]))));
     } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
   }
@@ -63,7 +63,7 @@ export async function render(root) {
           h('small.muted', t(s.party.kind === 'supplier' ? 'acc_supplier_help' : 'acc_shop_help')));
       } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
     }
-    body.replaceChildren(field(t('party'), who), dates(load), out);
+    body.replaceChildren(field(t('acc_party'), who), dates(load), out);
     load();
   }
 
@@ -94,7 +94,7 @@ export async function render(root) {
       btn.disabled = false;
     };
     body.replaceChildren(h('div.form-card', h('small.muted', t('acc_pay_help')),
-      h('div.form-grid', field(t('party'), who), field(t('date'), date), field(t('amount'), amount), field(t('acc_method'), method), field(t('reference'), ref), field(t('note'), note, { wide: true })),
+      h('div.form-grid', field(t('acc_party'), who), field(t('date'), date), field(t('amount'), amount), field(t('acc_method'), method), field(t('reference'), ref), field(t('note'), note, { wide: true })),
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: save }, t('save')))));
   }
 
@@ -104,7 +104,7 @@ export async function render(root) {
       out.replaceChildren(h('p.muted', t('loading')));
       try {
         const list = await call('accounts.lpo', { from: state.from, to: state.to });
-        out.replaceChildren(h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'LPO'), h('th', t('date')), h('th', t('party')), h('th', t('acc_ordered')),
+        out.replaceChildren(h('div.table-wrap', h('table', h('thead', h('tr', h('th', 'LPO'), h('th', t('date')), h('th', t('acc_party')), h('th', t('acc_ordered')),
           h('th', t('acc_received')), h('th', t('acc_diff')), h('th', t('acc_invoices')))),
           h('tbody', list.length ? list.map((x) => { const d = Math.round((x.received - x.ordered) * 100) / 100;
             return h('tr', h('td.num', x.lpo_no), h('td.num', fmtDate(x.date)), h('td.wrap', h('bdi', (Data.parties.get(x.party_id) || {}).name || x.party_id)),

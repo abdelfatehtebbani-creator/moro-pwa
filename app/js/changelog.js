@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.132', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الحسابات: عمود الطرف صار "المورد / المحل" بدل "المورد / القسم".'] },
+    en: { news: ['(Development copy) Accounts: the party column reads Supplier / shop.'] },
+  },
+  {
     v: '0.9.131', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) تقرير التكلفة والهامش: لكل محل مقبوضاته في الفترة والفرق بينها وبين ما فوتر له. ولوحة التحكم: بطاقة مقبوضات اليوم لكل محل، مع النوبات المفتوحة.'] },
     en: { news: ['(Development copy) Cost and margin report: each shop with its takings in the period and the difference against what it was invoiced. The dashboard: a card of today\u2019s takings per shop, with the shifts still open.'] },
