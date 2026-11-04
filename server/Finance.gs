@@ -87,22 +87,23 @@ var Accounts = {
   entries: function (party) {
     var out = [];
     if (party.kind === 'supplier') {
-      Repo.all('Movements').concat(Repo.all('Archive')).forEach(function (m) {
-        if (m.party_id !== party.party_id || m.status === 'deleted') return;
+      var own = (Repo.groupBy('Movements', 'party_id')[party.party_id] || []).concat(Repo.groupBy('Archive', 'party_id')[party.party_id] || []);
+      own.forEach(function (m) {
+        if (m.status === 'deleted') return;
         if (m.kind === 'RECEIPT') out.push({ date: m.date, kind: 'receipt', ref: m.doc_no, debit: 0, credit: Util.round(Accounts.money(m)) });
         if (m.kind === 'SUPPLIER_RETURN') out.push({ date: m.date, kind: 'supplier_return', ref: m.doc_no, debit: Util.round(Accounts.money(m)), credit: 0 });
       });
     } else {
-      Repo.all('Invoices').forEach(function (v) {
-        if (v.shop_party_id === party.party_id) out.push({ date: v.date, kind: 'invoice', ref: v.invoice_no + ' / ' + v.order_no, debit: Number(v.total), credit: 0 });
+      (Repo.groupBy('Invoices', 'shop_party_id')[party.party_id] || []).forEach(function (v) {
+        out.push({ date: v.date, kind: 'invoice', ref: v.invoice_no + ' / ' + v.order_no, debit: Number(v.total), credit: 0 });
       });
       // a shop is a branch: what it sold (its approved daily sales sheet, every channel) is what it gives back
-      Repo.all('DailySales').forEach(function (r) {
-        if (r.shop_party_id === party.party_id && r.status === 'approved') out.push({ date: r.date, kind: 'daily_sales', ref: r.day_id, debit: 0, credit: Number(r.total) || 0 });
+      (Repo.groupBy('DailySales', 'shop_party_id')[party.party_id] || []).forEach(function (r) {
+        if (r.status === 'approved') out.push({ date: r.date, kind: 'daily_sales', ref: r.day_id, debit: 0, credit: Number(r.total) || 0 });
       });
     }
-    Repo.all('Payments').forEach(function (x) {
-      if (x.party_id !== party.party_id || x.status === 'void') return;
+    (Repo.groupBy('Payments', 'party_id')[party.party_id] || []).forEach(function (x) {
+      if (x.status === 'void') return;
       var a = Number(x.amount);
       out.push({ date: x.date, kind: 'payment', ref: x.payment_id + (x.ref ? ' / ' + x.ref : '') + ' · ' + x.method, payment_id: x.payment_id,
         debit: party.kind === 'supplier' ? a : 0, credit: party.kind === 'supplier' ? 0 : a });

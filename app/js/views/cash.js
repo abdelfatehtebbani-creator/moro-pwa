@@ -2,6 +2,7 @@
 // (shop materials, expenses, payments to suppliers), sends the sheet to the admin, and prints it once approved.
 // The cash in hand is a running balance: what the admin hands over less every sent or approved sheet.
 import { call } from '../api.js';
+import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
@@ -33,6 +34,9 @@ const lineText = (x) => {
   return (who ? who + ' – ' : '') + x.description;
 };
 
+let sentHook = null;
+['moro:sent', 'moro:rejected'].forEach((ev) => window.addEventListener(ev, (e) => { if (sentHook) sentHook(e); }));
+
 export async function render(root) {
   const canWrite = Data.can('cash.save');
   const canDecide = Data.can('cash.decide');
@@ -46,6 +50,7 @@ export async function render(root) {
   const drawTabs = () => tabs.replaceChildren(...['', ...STATUSES].map((s) => h('button', { type: 'button', class: filter === s ? 'on' : '',
     onclick: () => { filter = s; drawTabs(); loadList(); } }, s ? t('lpo_st_' + s) : t('all'))));
 
+  sentHook = (e) => { if (e.detail && e.detail.action === 'cash.decide') loadList(e.detail.payload.sheet_id); };
   async function loadList(openId) {
     let res;
     try { res = await call('cash.list', filter ? { status: filter } : {}); } catch (e) { toast(errText(e), 'err'); return; }
@@ -93,11 +98,11 @@ export async function render(root) {
         }
         if (rejected_lines.length === lines.length) { toast(t('err.cash_all_rejected'), 'err'); return; }
       }
-      try { await call('cash.decide', { sheet_id: s.sheet_id, approve, note, rejected_lines }); toast(t(approve ? 'cash_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
+      try { await Outbox.add('cash.decide', { sheet_id: s.sheet_id, approve, note, rejected_lines }, s.sheet_id); toast(t(approve ? 'cash_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
       catch (e) { toast(errText(e), 'err'); return; }
-      Data.refresh().catch(() => {});
       loadList(s.sheet_id);
     };
+    const going = Outbox.queued('cash.decide').some((j) => j.payload.sheet_id === s.sheet_id);
     const deciding = canDecide && s.status === 'submitted';
     const refuse = [];
     const approvedTotal = s.status === 'approved' && s.approved_total !== '' ? Number(s.approved_total) : Number(s.total);
@@ -143,8 +148,9 @@ export async function render(root) {
       h('div.grand-total', t('lpo_grand_total') + ': ', h('b.num', totalCell2)),
       deciding ? h('small.muted', t('cash_refuse_help')) : null,
       h('div.form-actions',
-        canDecide && s.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
-        canDecide && s.status === 'submitted' ? h('button.btn.danger', { type: 'button', onclick: () => decide(false) }, t('lpo_reject')) : null,
+        going ? h('span.pill.soon', t('sending')) : null,
+        !going && canDecide && s.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
+        !going && canDecide && s.status === 'submitted' ? h('button.btn.danger', { type: 'button', onclick: () => decide(false) }, t('lpo_reject')) : null,
         s.status === 'approved' ? h('button.btn', { type: 'button', onclick: () => printSheet(s, lines) }, t('cash_print')) : null,
         h('button.btn.secondary', { type: 'button', onclick: () => detail.replaceChildren() }, t('close')))));
     detail.scrollIntoView({ behavior: 'smooth', block: 'start' });

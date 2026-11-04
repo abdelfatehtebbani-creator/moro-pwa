@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.148', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) اعتماد أوامر الشراء والصندوق، وإرسال المرتجع وقراره، فورية وتُرسل في الخلفية. وأرصدة الحسابات تُحسب بمرور واحد على الحركات بدل مرور لكل مورد، فصار تحميلها أسرع بكثير.'] },
+    en: { news: ['(Development copy) Approving LPOs and cash sheets, sending a return and deciding it are immediate and sent in the background. The account balances read the movements once instead of once per supplier, so they load much faster.'] },
+  },
+  {
     v: '0.9.147', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الرحلات: إنشاء الرحلة وتحميل السائق وتسليمه وإلغاء الرحلة فورية وتُرسل في الخلفية، ونموذج "رحلة جديدة" يفتح فورًا بما كان آخر مرة.'] },
     en: { news: ['(Development copy) Trips: creating a trip, the driver loading and delivering, and cancelling are immediate and sent in the background; the New trip form opens at once with what was there last time.'] },

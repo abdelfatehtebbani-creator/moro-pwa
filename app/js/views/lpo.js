@@ -2,6 +2,7 @@
 // and prints it in the company's LPO layout once approved. Picking a supplier lists what it supplied
 // before; picking an item shows the prices paid for it and the other suppliers of it (from the receipts).
 import { call } from '../api.js';
+import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
@@ -42,6 +43,9 @@ async function receipts() {
 
 // the screen has two tabs: purchase orders and cash purchases (each shown to whoever may open it)
 let section = '';
+let sentHook = null;
+['moro:sent', 'moro:rejected'].forEach((ev) => window.addEventListener(ev, (e) => { if (sentHook) sentHook(e); }));
+
 export async function render(root) {
   const parts = [Data.can('lpo.list') ? 'lpo' : null, Data.can('cash.list') ? 'cash' : null].filter(Boolean);
   if (!parts.includes(section)) section = parts[0] || 'lpo';
@@ -74,6 +78,8 @@ async function renderLpo(root) {
   const drawTabs = () => tabs.replaceChildren(...['', ...STATUSES].map((s) => h('button', { type: 'button', class: filter === s ? 'on' : '',
     onclick: () => { filter = s; drawTabs(); loadList(); } }, s ? t('lpo_st_' + s) : t('all'))));
 
+  // a decision sent (or refused): the list and the open LPO follow
+  sentHook = (e) => { if (e.detail && e.detail.action === 'lpo.decide') loadList(e.detail.payload.lpo_id); };
   async function loadList(openId) {
     let res;
     try { res = await call('lpo.list', filter ? { status: filter } : {}); } catch (e) { toast(errText(e), 'err'); return; }
@@ -111,11 +117,12 @@ async function renderLpo(root) {
         });
         if (!note) return;
       }
-      try { await call('lpo.decide', { lpo_id: l.lpo_id, approve, note }); toast(t(approve ? 'lpo_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
+      // queued and sent in the background: the screen does not wait for the server
+      try { await Outbox.add('lpo.decide', { lpo_id: l.lpo_id, approve, note }, 'LPO ' + l.lpo_no); toast(t(approve ? 'lpo_approved_msg' : 'lpo_rejected_msg'), 'ok'); }
       catch (e) { toast(errText(e), 'err'); return; }
-      Data.refresh().catch(() => {});
-      loadList(l.lpo_id);
+      viewer(l, lines);
     };
+    const going = Outbox.queued('lpo.decide').some((j) => j.payload.lpo_id === l.lpo_id);
     detail.replaceChildren(h('div.card',
       h('h2', 'LPO ', l.lpo_no, ' ', h('span', { class: 'pill ' + PILL[l.status] }, t('lpo_st_' + l.status))),
       h('div.lpo-facts',
@@ -128,8 +135,9 @@ async function renderLpo(root) {
         l.decision_note ? fact(t('lpo_reject_why'), h('b.err-text', l.decision_note)) : null),
       linesTable(lines),
       h('div.form-actions',
-        canDecide && l.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
-        canDecide && l.status === 'submitted' ? h('button.btn.danger', { type: 'button', onclick: () => decide(false) }, t('lpo_reject')) : null,
+        going ? h('span.pill.soon', t('sending')) : null,
+        !going && canDecide && l.status === 'submitted' ? h('button.btn', { type: 'button', onclick: () => decide(true) }, t('lpo_approve')) : null,
+        !going && canDecide && l.status === 'submitted' ? h('button.btn.danger', { type: 'button', onclick: () => decide(false) }, t('lpo_reject')) : null,
         l.status === 'approved' ? h('button.btn', { type: 'button', onclick: () => printLpo(l, lines) }, t('lpo_print')) : null,
         h('button.btn.secondary', { type: 'button', onclick: () => detail.replaceChildren() }, t('close')))));
     detail.scrollIntoView({ behavior: 'smooth', block: 'start' });

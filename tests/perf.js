@@ -103,3 +103,4 @@ const RP2 = Object.getPrototypeOf(anySheet.getRange(1, 1, 1, 1));
 const gv = RP2.getValues; RP2.getValues = function (...a) { seen.push(this.sheet.name + ':' + this.rows); return gv.apply(this, a); };
 g.api('orders.save', { lines: items.slice(0, 5).map((id) => ({ item_id: id, qty: 1 })), send: true }, users.cash);
 console.log('orders.save reads:', seen.join(', '));
+measure('accounts.balances', () => g.api('accounts.balances', {}, admin));

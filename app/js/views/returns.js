@@ -3,6 +3,7 @@
 //  - the production manager (returns.decide) checks what waits in quarantine and decides each item:
 //    back in the stock, damaged or expired. Nothing is picked for them: the choice starts empty.
 import { call } from '../api.js';
+import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate } from '../ui.js';
@@ -64,8 +65,9 @@ export async function render(root) {
     const send = h('button.btn.save-btn', { type: 'button', onclick: async () => {
       if (!lines.length) return toast(t('return_add_first'), 'err');
       send.disabled = true;
+      // queued and sent in the background (the client id keeps a resend from making a second return)
       try {
-        await call('returns.create', { client_id: cid, lines });
+        await Outbox.add('returns.create', { client_id: cid, lines: lines.slice() }, t('returns'));
         toast(t('return_sent'), 'ok');
         cid = newId(); lines.length = 0; draw();
       } catch (e) { toast(errText(e), 'err'); }
@@ -83,10 +85,11 @@ export async function render(root) {
     const btn = h('button.btn.save-btn', { type: 'button', onclick: async () => {
       if (!sel.value) { flash(sel); return toast(t('err.decision_required'), 'err'); }
       btn.disabled = true;
-      try { await call('returns.decide', { lines: [{ return_id: r.return_id, decision: sel.value, note: note.value.trim() }] }); toast(t('return_decided'), 'ok'); load(); }
-      catch (e) { toast(errText(e), 'err'); btn.disabled = false; if (e.code === 'return_decided') load(); }
+      try { await Outbox.add('returns.decide', { lines: [{ return_id: r.return_id, decision: sel.value, note: note.value.trim() }] }, r.return_id); toast(t('return_decided'), 'ok'); load(); }
+      catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
     } }, t('return_decide'));
-    return row(r, h('div.form-actions', sel, note, btn));
+    const going = Outbox.queued('returns.decide').some((j) => j.payload.lines.some((x) => x.return_id === r.return_id));
+    return row(r, going ? h('span.pill.soon', t('sending')) : h('div.form-actions', sel, note, btn));
   }
 
   async function load() {
