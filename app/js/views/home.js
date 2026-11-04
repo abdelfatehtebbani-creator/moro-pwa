@@ -69,19 +69,21 @@ function renderGrouped(root, links, ctx) {
       resume ? h('span.home-resume', t('idle_resume')) : null);
   };
   const waitBox = h('section.home-group.home-wait', { hidden: true });
+  const decisionTile = (d) => h('a.home-tab', { href: '#/' + d.route, 'data-route': d.route }, h('span.home-ico', icon(d.route)),
+    h('span.home-label', t('dec_' + d.key)), h('span.badge', String(d.count)));
   const drawWait = () => {
     const now = Counts.now || {};
     const list = links.filter((r) => Number(now[r]) > 0);
-    // what another user works in is the team's: a line of numbers; the rest waits for the admin's own decision
-    const others = new Set((Data.boot || {}).others_nav || []);
-    const team = list.filter((r) => others.has('nav.' + r));
-    const mine = list.filter((r) => !others.has('nav.' + r));
-    waitBox.hidden = !list.length;
+    // the admin's own decisions (counted by the approval, server side); every other number is the team's work
+    const decisions = ((Data.boot || {}).decisions || []).filter((d) => links.includes(d.route));
+    const mine = decisions;
+    const team = list.filter((r) => !decisions.some((d) => d.route === r));
+    waitBox.hidden = !mine.length && !team.length;
     waitBox.classList.toggle('home-wait-team', !mine.length);
     // (replaceChildren writes a null as the text "null": only the parts there are)
     waitBox.replaceChildren(...[
       mine.length ? h('h3.home-group-title', t('grp_decisions')) : null,
-      mine.length ? h('div.home-nav', mine.map((r) => tile(r))) : null,
+      mine.length ? h('div.home-nav', mine.map((d) => decisionTile(d))) : null,
       team.length ? h('div.home-team', h('b', t('grp_team') + ': '), team.flatMap((r, i) => [i ? ' · ' : '',
         h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))])) : null].filter(Boolean));
   };

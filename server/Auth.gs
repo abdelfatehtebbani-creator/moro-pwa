@@ -65,7 +65,7 @@ var Auth = {
   publicUser: function (u) {
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
              custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
-             shop: String(u.shop || ''), depts: Auth.deptsOf(u) };
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u), developer: u.developer === true };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -171,6 +171,7 @@ var Auth = {
       }
       changes.shop = shop;
     }
+    if (p.developer !== undefined) changes.developer = p.developer === true;
     if (p.depts !== undefined) {
       changes.depts = (p.depts || []).filter(function (d, i, a) {
         var party = Repo.find('Parties', 'party_id', d);

@@ -29,7 +29,7 @@ var SCHEMA = {
   SpecialRequests: ['request_id', 'ext_id', 'order_id', 'order_no', 'shop_party_id', 'description', 'qty', 'unit', 'image', 'status',
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms', 'caps', 'stores', 'store_ops', 'shop', 'depts'],
+                 'pin_changed_ms', 'caps', 'stores', 'store_ops', 'shop', 'depts', 'developer'],
   Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
   CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price',
                  'theory_expiry', 'counted_expiry'],

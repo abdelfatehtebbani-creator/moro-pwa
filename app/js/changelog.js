@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.127', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) "قراراتك" تُحسب من صلاحية الاعتماد نفسها (أوامر الشراء، الصندوق، الجرد، الطلبيات الخاصة) لا من الشاشة. وخانة "حساب المطوّر" في شاشة المستخدمين: يرى كل شيء ولا تُعرض عليه القرارات ولا تصله إشعارات الأدوار.'] },
+    en: { news: ['(Development copy) Your decisions are counted by the approval itself (purchase orders, cash, stock counts, special orders), not by the screen. A Developer account tick in the users screen: sees everything, is shown no decisions and gets no role messages.'] },
+  },
+  {
     v: '0.9.126', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) إصلاح: "قراراتك" و"عمل الفريق" في الشاشة الرئيسية للمدير كانا يعرضان نصًا خاطئًا بدل الأسماء والأرقام.'] },
     en: { news: ['(Development copy) Fix: Your decisions and Team work on the admin home screen showed wrong text instead of the names and numbers.'] },

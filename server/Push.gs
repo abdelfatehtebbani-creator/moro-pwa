@@ -85,7 +85,7 @@ var Push = {
 
   /** Active users holding a permission (e.g. who approves LPOs). */
   usersWith: function (perm) {
-    return Repo.all('Users').filter(function (u) { return u.active === true && Perm.permsOf(u).indexOf(perm) >= 0; })
+    return Repo.all('Users').filter(function (u) { return u.active === true && u.developer !== true && Perm.permsOf(u).indexOf(perm) >= 0; })
       .map(function (u) { return u.user_id; });
   },
 

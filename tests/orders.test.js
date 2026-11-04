@@ -461,10 +461,20 @@ test('a receipt names its purchase order: an approved LPO of the same supplier o
   assert.deepEqual([m.ordered, m.received, m.exact], [100, 100, true]);
 });
 
-test('the admin sees which screens another user works in (their numbers are team work)', () => {
-  const { g, tok } = env();
-  const nav = g.api('data.bootstrap', {}, tok.admin).data.others_nav;
-  assert.ok(nav.includes('nav.orderapprove'), 'distribution approves orders');
-  assert.ok(!nav.includes('nav.lpo'), 'nobody else approves LPOs here');
-  assert.deepEqual(g.api('data.bootstrap', {}, tok.dist).data.others_nav, []);
+test('the admin decisions: by the approval itself; the developer account decides nothing and gets no role messages', () => {
+  const { g, tok, user } = env();
+  user('boss', 'admin');
+  const o = g.api('orders.save', { kind: 'special', customer_name: 'A', delivery_date: '2099-01-02', delivery_time: '10:00', place: 'shop', send: true,
+    lines: [{ description: 'Cake', qty: 1, price: 10 }] }, tok.cashier).data.order;
+  assert.ok(o);
+  // the production manager routes special orders: the team's work, not the admin's decision
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.boss).data.decisions, []);
+  g.seed('LPOs', [{ lpo_id: 'L1', lpo_no: 1, date: '2026-10-01', party_id: 'P001', total: 1, status: 'submitted' }]);
+  g.run('Repo.reset()');
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.boss).data.decisions.map((d) => [d.key, d.count]), [['lpo', 1]], 'only an admin approves LPOs');
+  // the developer: nothing to decide, no role messages
+  const me = g.rows('Users').find((u) => u.username === 'admin').user_id;
+  g.api('users.save', { user_id: me, developer: true }, tok.admin);
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.admin).data.decisions, []);
+  assert.ok(!JSON.parse(g.run("JSON.stringify(Push.usersWith('lpo.decide'))")).includes(me));
 });

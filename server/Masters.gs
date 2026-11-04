@@ -327,15 +327,7 @@ var Masters = {
       orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
-      // the admin: the screens another active user also works in (their numbers are the team's work, not the admin's decisions)
-      others_nav: session.role === 'admin' ? (function () {
-        var set = {};
-        Repo.all('Users').forEach(function (u) {
-          if (u.active !== true || u.user_id === session.user_id || u.role === 'admin') return;
-          Perm.permsOf(u).forEach(function (x) { if (String(x).indexOf('nav.') === 0) set[x] = true; });
-        });
-        return Object.keys(set);
-      })() : [],
+      decisions: Masters.decisions(session),
       // approved purchase orders, for a receipt to name the one it answers
       lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
         .map(function (l) { return [String(l.lpo_no), l.party_id, String(l.date)]; }).slice(-300) : [],
@@ -353,6 +345,26 @@ var Masters = {
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }
+};
+
+/**
+ * The admin's own decisions: the approvals this user holds that no other active user (not an admin, not the
+ * developer's account) holds too – those are the team's. [{key, route, count}], only those waiting.
+ */
+var DECISIONS = [
+  { key: 'lpo', route: 'lpo', perm: 'lpo.decide', count: function () { return Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length; } },
+  { key: 'cash', route: 'lpo', perm: 'cash.decide', count: function () { return Repo.all('CashSheets').filter(function (s) { return s.status === 'submitted'; }).length; } },
+  { key: 'counts', route: 'counts', perm: 'counts.approve', count: function () { return Repo.all('Counts').filter(function (c) { return c.status === 'open'; }).length; } },
+  { key: 'special', route: 'orderapprove', perm: 'orders.route', count: function () { return Orders.pendingSpecial(); } }
+];
+
+Masters.decisions = function (session) {
+  var me = Repo.find('Users', 'user_id', session.user_id) || {};
+  if (session.role !== 'admin' || me.developer === true) return [];
+  var others = Repo.all('Users').filter(function (u) { return u.active === true && u.user_id !== session.user_id && u.role !== 'admin' && u.developer !== true; })
+    .map(function (u) { return Perm.permsOf(u); });
+  return DECISIONS.filter(function (d) { return Perm.has(session, d.perm) && !others.some(function (ps) { return ps.indexOf(d.perm) >= 0; }); })
+    .map(function (d) { return { key: d.key, route: d.route, count: d.count() }; }).filter(function (d) { return d.count > 0; });
 };
 
 /** Minutes without activity before the app goes back to the home screen (0 = never). Read by every device from the bootstrap settings. */
