@@ -34,9 +34,9 @@ var Orders = {
 
   /** Lines of an order (OrderItems), and how each stands in the shop order lines once approved. */
   view: function (o) {
-    var items = Repo.all('OrderItems').filter(function (x) { return x.order_id === o.order_id; });
+    var items = Repo.groupBy('OrderItems', 'order_id')[o.order_id] || [];
     var shop = {};
-    Repo.all('ShopOrderLines').forEach(function (l) { if (l.order_id === o.order_id) shop[l.order_item_id] = l; });
+    (Repo.groupBy('ShopOrderLines', 'order_id')[o.order_id] || []).forEach(function (l) { shop[l.order_item_id] = l; });
     var lines = items.map(function (x) {
       var s = shop[o.order_id + '-' + x.line_no];
       var direct = !!(s && s.direct === true);

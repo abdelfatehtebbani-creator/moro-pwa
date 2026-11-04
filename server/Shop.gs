@@ -227,7 +227,7 @@ var Shop = {
   },
 
   orderItemOf: function (l) {
-    return Repo.all('OrderItems').filter(function (r) { return r.order_id + '-' + r.line_no === String(l.order_item_id); })[0] || null;
+    return (Repo.groupBy('OrderItems', 'order_id')[l.order_id] || []).filter(function (r) { return r.order_id + '-' + r.line_no === String(l.order_item_id); })[0] || null;
   },
 
   photosOf: function (l) {

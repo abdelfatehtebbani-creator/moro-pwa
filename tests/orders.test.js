@@ -341,7 +341,7 @@ test('a special order: described by the cashier, routed by the production manage
   g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
   const got = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id);
   assert.equal(got.status, 'received');
-  g.run("Repo.update('Items', 'item_id', 'I0002', { final_price: 10 })");
+  g.run("Repo.update('Items', 'item_id', 'I0002', { final_price: 10 }); Repo.flush()");
   const inv = g.api('invoices.create', { order_id: o.order_id }, tok.dist).data.invoice;
   assert.deepEqual(inv.items.map((x) => [x.description || x.item_id, x.amount]), [['Birthday cake, blue, name Sara', 250], ['I0002', 10]]);
   assert.equal(inv.shop_party_id, 'P002', 'invoiced to the shop that took it');

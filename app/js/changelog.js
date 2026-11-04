@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.142', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) سرعة: الحفظ يكتب تغييراته دفعة واحدة في آخر العملية بدل كتابة كل سطر وحده، ولا يعيد قراءة الجداول تحت القفل إن لم يكتب أحد. والبحث في الجداول بفهرس، فصار تحميل البيانات وقائمة الطلبيات أسرع بكثير.'] },
+    en: { news: ['(Development copy) Speed: a save writes its changes together at the end instead of one row at a time, and does not read the sheets again under the lock when nobody wrote. Lookups use an index, so loading the data and the orders list are much faster.'] },
+  },
+  {
     v: '0.9.141', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) لوحة التحكم: "مقبوضات اليوم" صارت خانة مستقلة في شجرة الصلاحيات (لوحة التحكم ← مقبوضات اليوم للمحلات)، للمدير فقط افتراضيًا، فلا تظهر لأمناء المخازن.'] },
     en: { news: ['(Development copy) Dashboard: Today’s takings is its own tick in the permission tree (Dashboard → Shops’ takings of the day), the admin only by default, so storekeepers no longer see it.'] },

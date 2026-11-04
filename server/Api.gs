@@ -119,7 +119,7 @@ var PUBLIC = {
 };
 
 function handle(body) {
-  Repo.reset();
+  Repo.discard();
   var req;
   try {
     req = JSON.parse(body || '{}');
@@ -130,12 +130,15 @@ function handle(body) {
     ensureSchema();
     var action = String(req.action || '');
     var payload = req.payload || {};
-    if (PUBLIC[action]) return { ok: true, data: PUBLIC[action](payload) };
-    if (LINK_ROUTES[action]) { Link.check(payload.key); return { ok: true, data: LINK_ROUTES[action](payload) }; }
+    if (PUBLIC[action]) { var pub = PUBLIC[action](payload); Repo.flush(); return { ok: true, data: pub }; }
+    if (LINK_ROUTES[action]) { Link.check(payload.key); var lk = LINK_ROUTES[action](payload); Repo.flush(); return { ok: true, data: lk }; }
     var session = Auth.verify(req.token);
     Perm.check(action, session);
-    return { ok: true, data: ROUTES[action](session, payload) };
+    var data = ROUTES[action](session, payload);
+    Repo.flush();                                  // what was changed outside a lock (rare)
+    return { ok: true, data: data };
   } catch (e) {
+    Repo.discard();
     if (e && e.name === 'AppError') return { ok: false, error: { code: e.code, detail: e.detail } };
     console.error('server_error ' + (req && req.action) + ' ' + (e && e.stack || e));
     return { ok: false, error: { code: 'server_error' } };

@@ -50,7 +50,7 @@ test('count: opened by the storekeeper of the store, theory on the count date, n
 
 test('count: the expiry found on the shelf replaces the last expiry on approval (with or without a quantity)', () => {
   const { g, tok } = env();
-  g.run("Repo.update('Balances', 'item_id', 'I0002', { last_expiry: '2026-12-01' })");
+  g.run("Repo.update('Balances', 'item_id', 'I0002', { last_expiry: '2026-12-01' }); Repo.flush()");
   const id = g.api('counts.open', { store: 'CHILLED', date: '2026-09-30', period: 'monthly' }, tok.store).data.count.count_id;
   assert.equal(g.api('counts.get', { count_id: id }, tok.store).data.lines.find((l) => l.item_id === 'I0002').theory_expiry, '2026-12-01');
   assert.equal(g.api('counts.save', { count_id: id, lines: [{ item_id: 'I0002', counted_expiry: 'bad' }] }, tok.store).error.code, 'expiry_invalid');

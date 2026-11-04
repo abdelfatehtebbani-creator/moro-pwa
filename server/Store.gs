@@ -73,13 +73,15 @@ function withLock(fn) {
   if (!lock.tryLock(20000)) throw new AppError('busy');
   var out;
   // what this request read before the lock may be old by now (another request wrote meanwhile: a counter,
-  // a balance): inside the lock everything is read again from the sheets
-  if (!LOCK_DEPTH) Repo.reset();
+  // a balance): then everything is read again from the sheets. Nobody wrote since: what was read stands.
+  if (!LOCK_DEPTH && Repo.stale()) Repo.reset();
   LOCK_DEPTH++;
   try {
     out = fn();
+    // the changes reach the sheets together, before the lock is released
+    if (LOCK_DEPTH === 1) Repo.flush();
   } catch (e) {
-    if (LOCK_DEPTH === 1) AFTER_LOCK = [];          // the operation failed: nothing to tell
+    if (LOCK_DEPTH === 1) { AFTER_LOCK = []; Repo.discard(); }   // the operation failed: nothing written, nothing to tell
     throw e;
   } finally {
     LOCK_DEPTH--;
