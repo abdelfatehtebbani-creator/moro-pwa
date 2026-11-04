@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.141', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) لوحة التحكم: "مقبوضات اليوم" صارت خانة مستقلة في شجرة الصلاحيات (لوحة التحكم ← مقبوضات اليوم للمحلات)، للمدير فقط افتراضيًا، فلا تظهر لأمناء المخازن.'] },
+    en: { news: ['(Development copy) Dashboard: Today’s takings is its own tick in the permission tree (Dashboard → Shops’ takings of the day), the admin only by default, so storekeepers no longer see it.'] },
+  },
+  {
     v: '0.9.140', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) نافذة تأكيد إرسال الطلبية: الأسطر مجمّعة حسب القسم ثم المخزن ثم المنتجات الخاصة، مع عدد كل مجموعة.'] },
     en: { news: ['(Development copy) The order send window: lines grouped by department, then store, then special products, with the count of each.'] },

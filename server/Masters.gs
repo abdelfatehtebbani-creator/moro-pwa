@@ -334,7 +334,7 @@ var Masters = {
       }).map(function (s) { return String(s.received_at); }) : [],
       sales_channels: Perm.has(session, 'sales.list') || Perm.has(session, 'sales.setChannels') ? Sales.channels() : [],
       // today's takings per shop (shifts ended today; shifts still open counted apart), for the dashboard
-      takings_today: Perm.has(session, 'nav.dashboard') && Perm.has(session, 'see_prices') ? (function () {
+      takings_today: Perm.has(session, 'dash.takings') ? (function () {
         var today = Util.today(), by = {};
         Repo.all('Shifts').forEach(function (s) {
           var x = by[s.shop_party_id] || (by[s.shop_party_id] = { shop_party_id: s.shop_party_id, amount: 0, shifts: 0, open: 0 });

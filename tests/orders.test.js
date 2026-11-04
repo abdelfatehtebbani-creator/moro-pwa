@@ -513,6 +513,7 @@ test('takings in the margin data and on the dashboard', () => {
   const d = g.api('data.bootstrap', {}, tok.admin).data.takings_today;
   assert.deepEqual(d.map((x) => [x.shop_party_id, x.amount, x.shifts]), [['P002', 300, 1]]);
   assert.deepEqual(g.api('data.bootstrap', {}, tok.cashier).data.takings_today, []);
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.store).data.takings_today, [], 'not the storekeeper, who sees prices');
 });
 
 test('daily sales: cash from the shifts, other channels by the accountant, sent and approved by the admin', () => {

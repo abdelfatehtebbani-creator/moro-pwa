@@ -20,7 +20,7 @@ var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [
-  { key: 'dashboard', children: [{ leaf: 'dash.view' }, { leaf: 'dash.min' }] },
+  { key: 'dashboard', children: [{ leaf: 'dash.view' }, { leaf: 'dash.min' }, { leaf: 'dash.takings' }] },
   { key: 'receive', children: [{ leaf: 'receive.view' }, { leaf: 'receive.save' }, { leaf: 'receive.return' },
     { leaf: 'receive.edit_own' }, { leaf: 'receive.edit_all' }, { leaf: 'receive.delete' }] },
   { key: 'issue', children: [{ leaf: 'issue.view' }, { leaf: 'issue.post' }, { leaf: 'issue.dept_return' }, { leaf: 'issue.disposal' },
@@ -63,6 +63,8 @@ var CAPS = (function () {
   var c = {
     'dash.view':         ['nav.dashboard'],
     'dash.min':          ['nav.dashboard', 'items.save', 'min_stock'],
+    // today's takings of the shops (money: for the admin, not the stores)
+    'dash.takings':      ['nav.dashboard', 'dash.takings', 'see_prices'],
     'receive.view':      ['nav.receive'],
     'receive.save':      ['nav.receive', 'movements.save', 'kind.RECEIPT'],
     'receive.return':    ['nav.receive', 'movements.save', 'kind.SUPPLIER_RETURN'],
