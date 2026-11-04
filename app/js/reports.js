@@ -40,6 +40,7 @@ export const REPORTS = [
   { id: 'losses', group: 'move', opts: ['dates', 'stores'], needs: 'losses', build: losses },
   { id: 'valuation', group: 'stock', opts: ['asof', 'stores'], prices: true, build: valuation },
   { id: 'margin', group: 'orders', opts: ['dates'], needs: 'margin', prices: true, build: margin },
+  { id: 'takings', group: 'orders', opts: ['dates'], needs: 'takings', prices: true, build: takings },
   { id: 'orderTimes', group: 'orders', opts: ['dates'], needs: 'orders', build: orderTimes },
   { id: 'receiptShort', group: 'orders', opts: ['dates'], needs: 'orders', build: receiptShort },
   { id: 'unavailable', group: 'orders', opts: ['dates'], needs: 'orders', build: unavailable },
@@ -234,6 +235,24 @@ function margin(p, movs, data) {
   return { title: 'Cost and margin of the shop invoices', subtitle: periodText(p) + '  ·  Cost: recipe ingredients or the item at its last purchase price'
       + '  ·  Empty: no cost known (no recipe, special product)  ·  A shop margin leaves out the lines without cost',
     columns: cols(['Line', 't'], ['Item / shop', 't'], ['Quantity', 'n'], ['Unit', 't'], ['Sales (QR)', 'm'], ['Cost (QR)', 'm'], ['Margin (QR)', 'm'], ['Margin %', 'n']), rows };
+}
+
+// ---------- the shops' takings: the cash each cashier collected, per day and shop, and what the accountant received
+function takings(p, movs, list) {
+  const by = new Map();
+  (list || []).forEach((s) => {
+    const k = s.date + '|' + s.shop_party_id + '|' + s.cashier;
+    const r = by.get(k) || { date: s.date, shop: s.shop_party_id, cashier: s.cashier, n: 0, amount: 0, got: 0, open: 0, diff: 0 };
+    r.n++; r.amount += s.amount;
+    if (s.received_amount === '') r.open++; else { r.got += s.received_amount; r.diff += s.diff; }
+    by.set(k, r);
+  });
+  const rows = [...by.values()].sort((a, b) => (a.date === b.date ? byName(partyName(a.shop), partyName(b.shop)) : a.date < b.date ? 1 : -1))
+    .map((r) => [r.date, partyName(r.shop), r.cashier, r.n, money(r.amount), money(r.got), money(r.diff), r.open]);
+  if (rows.length > 1) rows.push(['', 'Total', '', rows.reduce((a, r) => a + r[3], 0), money(rows.reduce((a, r) => a + r[4], 0)),
+    money(rows.reduce((a, r) => a + r[5], 0)), money(rows.reduce((a, r) => a + r[6], 0)), rows.reduce((a, r) => a + r[7], 0)]);
+  return { title: 'Shop takings', subtitle: periodText(p) + '  ·  Difference = received − declared (negative: short)',
+    columns: cols(['Date', 'd'], ['Shop', 't'], ['Cashier', 't'], ['Shifts', 'n'], ['Declared (QR)', 'm'], ['Received (QR)', 'm'], ['Difference (QR)', 'm'], ['Not received yet', 'n']), rows };
 }
 
 function losses(p, movs, extra) {

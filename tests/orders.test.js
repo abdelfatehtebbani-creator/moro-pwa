@@ -489,3 +489,16 @@ test('the cashier ends a shift with the amount collected in it', () => {
   assert.deepEqual(s.map((x) => [x.shop_party_id, Number(x.amount), x.note, !!x.opened_at, !!x.closed_at]), [['P003', 1250.5, 'card 300', true, true]]);
   assert.equal(g.rows('Users').find((u) => u.username === 'cashier').shop, '', 'the shop is free');
 });
+
+test('takings: the accountant receives the cash of a closed shift; the difference stays with it', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  g.api('orders.shiftEnd', { amount: 1000 }, tok.cashier);
+  const w = g.api('shifts.list', { waiting: true }, tok.acc).data;
+  assert.equal(w.length, 1);
+  assert.equal(g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 990 }, tok.cashier).error.code, 'forbidden');
+  const r = g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 990, note: 'short 10' }, tok.acc).data.shift;
+  assert.deepEqual([r.amount, r.received_amount, r.diff], [1000, 990, -10]);
+  assert.equal(g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 1000 }, tok.acc).error.code, 'shift_received');
+  assert.equal(g.api('shifts.list', { waiting: true }, tok.acc).data.length, 0);
+});

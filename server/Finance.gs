@@ -194,3 +194,45 @@ var Accounts = {
     });
   }
 };
+
+/**
+ * Takings: the cash each cashier says they collected in a shift (Shifts.amount, written when the shift ends),
+ * and what the accountant received of it. The difference (short or over) stays with the shift.
+ */
+var Takings = {
+  view: function (s) {
+    var u = Repo.find('Users', 'user_id', s.user_id) || {};
+    var got = s.received_amount === '' || s.received_amount === undefined ? '' : Number(s.received_amount);
+    return { shift_id: s.shift_id, user_id: s.user_id, cashier: u.display_name || s.user_id, shop_party_id: s.shop_party_id,
+      opened_at: s.opened_at, closed_at: s.closed_at, date: String(s.closed_at || '').slice(0, 10), amount: Number(s.amount) || 0, note: s.note || '',
+      received_amount: got, received_at: s.received_at || '', received_note: s.received_note || '',
+      diff: got === '' ? '' : Util.round(got - (Number(s.amount) || 0)) };
+  },
+
+  /** p: {from, to, waiting}. Closed shifts by closing date; waiting: not received yet (whatever their date). */
+  list: function (session, p) {
+    p = p || {};
+    return Repo.all('Shifts').filter(function (s) {
+      if (!s.closed_at) return false;
+      if (p.waiting) return s.received_amount === '' || s.received_amount === undefined;
+      var d = String(s.closed_at).slice(0, 10);
+      return (!p.from || d >= p.from) && (!p.to || d <= p.to);
+    }).map(Takings.view).sort(function (a, b) { return String(b.closed_at).localeCompare(String(a.closed_at)); });
+  },
+
+  /** The accountant received the cash of a shift. p: {shift_id, amount, note}. */
+  receive: function (session, p) {
+    var a = Util.num(p.amount);
+    Util.require(a !== null && a >= 0, 'amount_invalid');
+    return withLock(function () {
+      var s = Repo.find('Shifts', 'shift_id', p.shift_id);
+      Util.require(s && s.closed_at, 'not_found');
+      Util.require(s.received_amount === '' || s.received_amount === undefined, 'shift_received', s.shift_id);
+      Period.require(Util.today());
+      var res = Repo.update('Shifts', 'shift_id', s.shift_id, { received_amount: Util.round(a), received_by: session.user_id, received_at: Util.nowIso(),
+        received_note: Util.clean(p.note) });
+      Audit.log(session.user_id, 'shift_receive', 'Shifts', s.shift_id, res.before, res.after);
+      return { shift: Takings.view(res.after), version: Version.bump() };
+    });
+  }
+};

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.130', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) مقبوضات النوبات: في شاشة الحسابات تبويب جديد، يستلم فيه المحاسب نقد كل نوبة مغلقة ويكتب ما استلمه فيظهر الفرق. وتقرير جديد "مقبوضات المحلات" لكل يوم ومحل وكاشير.'] },
+    en: { news: ['(Development copy) Shift takings: a new tab in Accounts where the accountant receives the cash of each closed shift; the difference shows. A new report, Shop takings, per day, shop and cashier.'] },
+  },
+  {
     v: '0.9.129', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الكاشير: عند إنهاء النوبة يكتب المبلغ المحصّل فيها (وملاحظة)، ويُحفظ لكل نوبة. والشاشة الرئيسية للمدير: "قراراتك" و"عمل الفريق" في إطارين منفصلين.'] },
     en: { news: ['(Development copy) The cashier: ending a shift asks the amount collected in it (and a note), kept for each shift. The admin home: Your decisions and Team work in two separate frames.'] },

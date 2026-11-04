@@ -19,7 +19,9 @@ export async function render(root) {
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name, hint: t('kind_' + p.kind) }));
   const body = h('div');
   const bar = h('div.tabs');
-  const keys = ['balances', 'statement'].concat(Data.can('accounts.pay') ? ['pay'] : [], ['lpo']);
+  const keys = (Data.can('accounts.statement') ? ['balances', 'statement'] : []).concat(Data.can('accounts.pay') ? ['pay'] : [],
+    Data.can('accounts.statement') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : []);
+  if (!keys.includes(state.tab)) state.tab = keys[0];
   keys.forEach((k) => bar.append(h('button', { type: 'button', class: k === state.tab ? 'on' : '',
     onclick: (e) => { state.tab = k; [...bar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('acc_tab_' + k))));
   const dates = (onChange) => {
@@ -114,7 +116,50 @@ export async function render(root) {
     load();
   }
 
-  const show = () => ({ balances, statement, pay, lpo })[state.tab]();
+  // ---- the cash of the shifts: waiting to be received, then the period
+  function takings() {
+    const waitBox = h('div.req-list');
+    const out = h('div');
+    const name = (id) => (Data.parties.get(id) || {}).name || id;
+    async function loadWait() {
+      try {
+        const list = await call('shifts.list', { waiting: true });
+        waitBox.replaceChildren(...(list.length ? list.map((s) => {
+          const got = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: s.amount }));
+          const note = trackFilled(h('input.input.small', { placeholder: t('note') }));
+          const btn = h('button.btn.save-btn', { type: 'button', onclick: async () => {
+            if (got.value === '' || Number(got.value) < 0) return flash(got);
+            btn.disabled = true;
+            try { await call('shifts.receive', { shift_id: s.shift_id, amount: Number(got.value), note: note.value }); toast(t('saved'), 'ok'); loadWait(); loadPeriod(); }
+            catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
+          } }, t('tk_receive'));
+          return h('div.req-card', h('div.card-head', h('b', h('bdi', name(s.shop_party_id))), h('span', h('bdi', s.cashier)),
+            h('span.muted.num', String(s.closed_at).replace('T', ' ').slice(0, 16))),
+            h('p', t('tk_declared'), ': ', h('b', money(s.amount) + ' QR'), s.note ? h('small.muted', ' · ' + s.note) : ''),
+            h('div.form-actions', field(t('tk_received'), got), note, btn));
+        }) : [h('p.empty', t('tk_none_waiting'))]));
+      } catch (e) { waitBox.replaceChildren(h('p.empty', errText(e))); }
+    }
+    async function loadPeriod() {
+      out.replaceChildren(h('p.muted', t('loading')));
+      try {
+        const list = await call('shifts.list', { from: state.from, to: state.to });
+        let a = 0, r = 0, d = 0;
+        list.forEach((s) => { a += s.amount; if (s.received_amount !== '') { r += s.received_amount; d += s.diff; } });
+        out.replaceChildren(h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('shop')), h('th', t('tk_cashier')), h('th', t('tk_declared')),
+          h('th', t('tk_received')), h('th', t('acc_diff')))),
+          h('tbody', list.length ? list.map((s) => h('tr', h('td.num', fmtDate(s.date)), h('td.wrap', h('bdi', name(s.shop_party_id))), h('td.wrap', h('bdi', s.cashier)),
+            h('td.num', money(s.amount)), h('td.num', s.received_amount === '' ? '—' : money(s.received_amount)),
+            h('td.num', { class: s.diff ? 'err-text' : '' }, s.diff === '' ? '' : money(s.diff))))
+            .concat([h('tr', h('td', h('b', t('total'))), h('td', ''), h('td', ''), h('td.num', h('b', money(a))), h('td.num', h('b', money(r))), h('td.num', h('b', money(d))))])
+            : [h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))]))), h('small.muted', t('tk_help')));
+      } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
+    }
+    body.replaceChildren(h('h3', t('tk_waiting')), waitBox, h('h3', t('tk_period')), dates(loadPeriod), out);
+    loadWait(); loadPeriod();
+  }
+
+  const show = () => ({ balances, statement, pay, lpo, takings })[state.tab]();
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('accounts')), bar), body));
   show();
 }
