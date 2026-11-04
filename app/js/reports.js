@@ -6,7 +6,7 @@ import { daysBetween } from './ui.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const r6 = (n) => Math.round(n * 1e6) / 1e6;
-const itemName = (id) => (Data.items.get(id) || {}).name || id;
+const itemName = (id) => Data.nameOf(Data.items.get(id)) || id;
 /** [qty, unit] of a stock-unit quantity in the item's report unit (eggs: 720 PC -> 2 BOX). */
 const ru = (id, qty) => Data.inReportUnit(Data.items.get(id), qty);
 const partyName = (id) => (Data.parties.get(id) || {}).name || id;
@@ -131,7 +131,7 @@ function slowMoving(p, movs) {
     const idle = out ? daysBetween(out, today) : null;
     if (idle !== null && idle < days) continue;
     const [rq, u] = ru(it.item_id, q);
-    rows.push([it.name, STORE_NAMES[Data.storeOf(it)], rq, u, out, idle === null ? 'Never issued' : String(idle),
+    rows.push([Data.nameOf(it), STORE_NAMES[Data.storeOf(it)], rq, u, out, idle === null ? 'Never issued' : String(idle),
       ...(prices ? [cost.has(it.item_id) ? money(q * cost.get(it.item_id)) : ''] : [])]);
   }
   rows.sort((a, b) => (prices ? (Number(b[6]) || 0) - (Number(a[6]) || 0) : 0) || byName(a[0], b[0]));
@@ -159,7 +159,7 @@ function daysOfCover(p, movs) {
     const cover = Math.floor(q / avg);
     const order = Math.max(0, avg * days - q);
     const [rq, unit] = ru(id, q);
-    rows.push([it.name, STORE_NAMES[Data.storeOf(it)], rq, unit, ru(id, u)[0], Math.round(ru(id, avg)[0] * 100) / 100, cover, Math.ceil(ru(id, order)[0] * 100) / 100]);
+    rows.push([Data.nameOf(it), STORE_NAMES[Data.storeOf(it)], rq, unit, ru(id, u)[0], Math.round(ru(id, avg)[0] * 100) / 100, cover, Math.ceil(ru(id, order)[0] * 100) / 100]);
   }
   rows.sort((a, b) => a[6] - b[6] || byName(a[0], b[0]));
   return { title: 'Days of cover (use of the last ' + days + ' days)', subtitle: todayText() + storesText(p)
@@ -184,7 +184,7 @@ function valuation(p, movs) {
     const st = STORE_NAMES[Data.storeOf(it)];
     if (v !== '') by.set(st, money((by.get(st) || 0) + v));
     const [rq, u] = ru(it.item_id, q);
-    rows.push([st, it.name, rq, u, c === undefined || !rq ? '' : money(v / rq), v]);
+    rows.push([st, Data.nameOf(it), rq, u, c === undefined || !rq ? '' : money(v / rq), v]);
   }
   rows.sort((a, b) => byName(a[0], b[0]) || byName(a[1], b[1]));
   [...by].sort((a, b) => byName(a[0], b[0])).forEach(([st, v]) => rows.push([st, 'Total ' + st, '', '', '', v]));
@@ -272,12 +272,12 @@ function itemList(list, title) {
   const ids = Data.list(list);
   const rows = [...ids].map((id) => Data.items.get(id)).filter(Boolean)
     .sort((a, b) => (a.category === b.category ? byName(a.name, b.name) : a.category === 'Food' ? -1 : 1))
-    .map((it) => [it.category, it.name, ...ru(it.item_id, Data.qty(it.item_id))]);
+    .map((it) => [it.category, Data.nameOf(it), ...ru(it.item_id, Data.qty(it.item_id))]);
   return { title, subtitle: todayText(), columns: cols(['Category', 't'], ['Item', 't'], ['Quantity', 'n'], ['Unit', 't']), rows };
 }
 
 function minStock(p) {
-  const rows = Data.lowStock().filter((x) => inStores(p, x.item.item_id)).map((x) => { const [q, u] = ru(x.item.item_id, x.qty); return [x.item.name, q, ru(x.item.item_id, x.min)[0], u]; });
+  const rows = Data.lowStock().filter((x) => inStores(p, x.item.item_id)).map((x) => { const [q, u] = ru(x.item.item_id, x.qty); return [Data.nameOf(x.item), q, ru(x.item.item_id, x.min)[0], u]; });
   return { title: 'Items at or below minimum stock', subtitle: todayText() + storesText(p),
     columns: cols(['Item', 't'], ['Available', 'n'], ['Minimum stock', 'n'], ['Unit', 't']), rows };
 }
@@ -302,12 +302,12 @@ function stockExpiry(p) {
     if (exp || dated.length) {
       if (p.packOnly) continue;
       // one line per expiry date still in stock (stock is taken earliest-expiry first)
-      if (q > 0 && dated.length) Data.batchesOf(it.item_id).forEach((x) => rows.push(['Food', it.name, ...ru(it.item_id, x.qty), x.expiry,
+      if (q > 0 && dated.length) Data.batchesOf(it.item_id).forEach((x) => rows.push(['Food', Data.nameOf(it), ...ru(it.item_id, x.qty), x.expiry,
         x.expiry ? expiryStatus(daysBetween(today, x.expiry)) : 'No expiry']));
-      else rows.push(['Food', it.name, ...ru(it.item_id, q), exp, expiryStatus(daysBetween(today, exp))]);
+      else rows.push(['Food', Data.nameOf(it), ...ru(it.item_id, q), exp, expiryStatus(daysBetween(today, exp))]);
     } else {
       if (p.foodOnly) continue;
-      rows.push(['Packaging', it.name, ...ru(it.item_id, q), '', 'No expiry']);
+      rows.push(['Packaging', Data.nameOf(it), ...ru(it.item_id, q), '', 'No expiry']);
     }
   }
   rows.sort((a, b) => (a[0] === b[0] ? byName(a[1], b[1]) : a[0] === 'Packaging' ? -1 : 1));
@@ -318,14 +318,14 @@ function stockExpiry(p) {
 function nearExpiry(p) {
   const days = Number(p.days) || 90;
   const rows = Data.expiring(days).filter((x) => x.left >= 0 && (p.zero || x.qty > 0) && inStores(p, x.item.item_id))
-    .map((x) => [x.item.name, x.expiry, x.left, ...ru(x.item.item_id, x.qty)]);
+    .map((x) => [Data.nameOf(x.item), x.expiry, x.left, ...ru(x.item.item_id, x.qty)]);
   if (p.zero) {
     const today = Data.todayIso();
     for (const b of Data.balances.values()) {
       const it = Data.items.get(b.item_id);
       if (!it || !b.last_expiry || Number(b.qty) > 0 || !inStores(p, it.item_id)) continue;
       const left = daysBetween(today, b.last_expiry);
-      if (left >= 0 && left <= days) rows.push([it.name, b.last_expiry, left, ...ru(it.item_id, Number(b.qty))]);
+      if (left >= 0 && left <= days) rows.push([Data.nameOf(it), b.last_expiry, left, ...ru(it.item_id, Number(b.qty))]);
     }
     rows.sort((a, b) => a[2] - b[2]);
   }
@@ -561,6 +561,6 @@ export function reportText(rep, fmtNum, fmtDate) {
       return String(v);
     }).filter(Boolean).join(' | '));
   });
-  if (!rep.rows.length) lines.push('No data.');
+  if (!rep.rows.length) lines.push((rep.labels || {}).none || 'No data.');
   return lines.join('\n');
 }

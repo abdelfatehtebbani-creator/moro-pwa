@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.123', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) التقارير تتبع لغة الشاشة: بالعربية العنوان والأعمدة والكلمات الثابتة وأسماء الأصناف، في المعاينة والطباعة وExcel وواتساب، من اليمين إلى اليسار.'] },
+    en: { news: ['(Development copy) Reports follow the screen language: in Arabic the title, columns, fixed words and item names, in the preview, print, Excel and WhatsApp, right to left.'] },
+  },
+  {
     v: '0.9.122', date: '2026-11-03',
     ar: { news: ['(نسخة التطوير) الاستلام: خانة "أمر الشراء (اختياري)" تعرض أوامر الشراء المعتمدة للمورد المختار، فتصير مطابقة أوامر الشراء في الحسابات دقيقة لكل استلام يحمل رقمه.'] },
     en: { news: ['(Development copy) Receiving: a Purchase order (optional) field lists the approved LPOs of the chosen supplier, so the purchase order matching in Accounts is exact for each receipt that names it.'] },
