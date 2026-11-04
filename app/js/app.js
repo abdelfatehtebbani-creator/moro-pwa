@@ -189,7 +189,11 @@ function buildShell() {
   homeLayer = h('section.content', { hidden: true });
   shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
     // who is signed in, on every screen
-    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl), content, homeLayer));
+    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl,
+    // the admin (and the developer's account): the version, the language and sign out always at hand
+    Data.user.role === 'admin' ? h('div.top-admin', h('span.top-ver', { title: t('whats_new'), onclick: () => whatsNew(true) }, 'v' + APP_VERSION),
+      h('button.btn.secondary.small', { type: 'button', onclick: toggleLang }, t('lang_other')),
+      h('button.btn.secondary.small', { type: 'button', onclick: logout }, t('logout'))) : null), content, homeLayer));
   root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();

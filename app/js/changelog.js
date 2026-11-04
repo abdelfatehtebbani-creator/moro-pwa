@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.128', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) المدير: رقم الإصدار وتغيير اللغة وتسجيل الخروج على الشريط العلوي في كل الشاشات.'] },
+    en: { news: ['(Development copy) The admin: the version, the language and sign out on the top bar of every screen.'] },
+  },
+  {
     v: '0.9.127', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) "قراراتك" تُحسب من صلاحية الاعتماد نفسها (أوامر الشراء، الصندوق، الجرد، الطلبيات الخاصة) لا من الشاشة. وخانة "حساب المطوّر" في شاشة المستخدمين: يرى كل شيء ولا تُعرض عليه القرارات ولا تصله إشعارات الأدوار.'] },
     en: { news: ['(Development copy) Your decisions are counted by the approval itself (purchase orders, cash, stock counts, special orders), not by the screen. A Developer account tick in the users screen: sees everything, is shown no decisions and gets no role messages.'] },
