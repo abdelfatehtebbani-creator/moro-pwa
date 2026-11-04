@@ -96,3 +96,10 @@ measure('shop.list', () => g.api('shop.list', { native: true }, users.store));
 if (line.line_id) measure('shop.hand', () => g.api('shop.hand', { date: today, client_id: 'perf-h', lines: [{ line_id: line.line_id, qty: 1 }] }, users.store));
 measure('orders.list (dist)', () => g.api('orders.list', { limit: 1000 }, users.dist));
 measure('report.losses', () => g.api('report.losses', {}, admin));
+
+// which sheets a cashier's send reads
+const seen = [];
+const RP2 = Object.getPrototypeOf(anySheet.getRange(1, 1, 1, 1));
+const gv = RP2.getValues; RP2.getValues = function (...a) { seen.push(this.sheet.name + ':' + this.rows); return gv.apply(this, a); };
+g.api('orders.save', { lines: items.slice(0, 5).map((id) => ({ item_id: id, qty: 1 })), send: true }, users.cash);
+console.log('orders.save reads:', seen.join(', '));

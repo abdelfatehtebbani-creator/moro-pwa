@@ -11,7 +11,7 @@
 var ALL_ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 /** Actions every signed-in user may call. */
-var BASE_PERMS = ['photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
+var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
                   'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels'];

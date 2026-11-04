@@ -21,22 +21,44 @@ var Repo = (function () {
     return sh;
   }
 
-  function table(name) {
-    if (tables[name]) return tables[name];
-    if (seenSeq === null) seenSeq = seqNow();
-    var sh = sheet(name);
-    // one call: the used area of the sheet
-    var values = sh.getDataRange().getValues();
-    if (!values.length) values = [[]];
-    var head = values[0].map(String);
+  function make(name, sh, head, rows, base) {
     var idx = {};
     head.forEach(function (h, i) { idx[h] = i; });
-    var rows = values.slice(1);
     // which columns hold text (dates, ids): looked up once, not for every cell
     var text = head.map(function (h) { return TEXT_COLUMNS.indexOf(h) >= 0; });
     var stamp = head.map(function (h) { return /(^|_)at$/.test(h); });
-    tables[name] = { name: name, sh: sh, head: head, idx: idx, rows: rows, text: text, stamp: stamp, saved: rows.length, dirty: {}, groups: {}, index: {} };
-    return tables[name];
+    return { name: name, sh: sh, head: head, idx: idx, rows: rows, text: text, stamp: stamp, saved: rows.length, base: base, dirty: {}, groups: {}, index: {} };
+  }
+
+  function table(name) {
+    var t = tables[name];
+    if (t && !t.light) return t;
+    if (seenSeq === null) seenSeq = seqNow();
+    var sh = t ? t.sh : sheet(name);
+    // one call: the used area of the sheet
+    var values = sh.getDataRange().getValues();
+    if (!values.length) values = [[]];
+    var full = make(name, sh, values[0].map(String), values.slice(1), 0);
+    // a sheet only appended to so far: its rows not written yet follow what the sheet holds
+    if (t) { t.rows.slice(t.saved).forEach(function (r) { full.rows.push(r); }); full.groups = {}; }
+    tables[name] = full;
+    return full;
+  }
+
+  /**
+   * For adding rows only (the audit log, new movements…): the header and the number of rows, not the rows
+   * themselves – a sheet of many thousand rows is not read just to add one. Read in full when needed.
+   */
+  function tableToAdd(name) {
+    if (tables[name]) return tables[name];
+    if (seenSeq === null) seenSeq = seqNow();
+    var sh = sheet(name);
+    var last = sh.getLastRow();
+    var head = last > 0 ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : [];
+    var t = make(name, sh, head, [], Math.max(0, last - 1));
+    t.light = true;
+    tables[name] = t;
+    return t;
   }
 
   /**
@@ -104,7 +126,7 @@ var Repo = (function () {
 
   function append(name, objs) {
     if (!objs.length) return;
-    var t = table(name);
+    var t = tableToAdd(name);
     objs.forEach(function (o) {
       t.rows.push(t.head.map(function (h) { return o[h] === undefined || o[h] === null ? '' : o[h]; }));
     });
@@ -157,6 +179,7 @@ var Repo = (function () {
     if (n) t.sh.getRange(2, 1, n, t.head.length).clearContent();
     t.rows = [];
     t.saved = 0;
+    t.base = 0;
     t.groups = {}; t.index = {};
     append(name, objs);
   }
@@ -187,7 +210,7 @@ var Repo = (function () {
     t.dirty = {};
     // new rows: one write at the bottom (the sheet grows first when it is full)
     if (t.rows.length > t.saved) {
-      var start = t.saved + 2, n = t.rows.length - t.saved;
+      var start = t.base + t.saved + 2, n = t.rows.length - t.saved;
       var max = t.sh.getMaxRows();
       if (start + n - 1 > max) {
         t.sh.insertRowsAfter(max, start + n - 1 - max + 100);

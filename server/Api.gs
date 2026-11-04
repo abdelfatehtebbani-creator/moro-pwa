@@ -72,6 +72,7 @@ var ROUTES = {
   'orders.closeShort': function (s, p) { return Orders.closeShort(s, p); },
   'orders.acceptDiff': function (s, p) { return Orders.acceptDiff(s, p); },
   'orders.route':     function (s, p) { return Orders.route(s, p); },
+  'push.flush':       function () { return Push.flush(); },
   'report.losses':    function (s, p) { return Finance.losses(s, p); },
   'report.margin':    function (s, p) { return Finance.margin(s, p); },
   'accounts.statement': function (s, p) { return Accounts.statement(s, p); },
@@ -120,6 +121,12 @@ var PUBLIC = {
 
 function handle(body) {
   Repo.discard();
+  PUSH_QUEUE = [];
+  IN_REQUEST = true;
+  try { return handleRequest(body); } finally { IN_REQUEST = false; }
+}
+
+function handleRequest(body) {
   var req;
   try {
     req = JSON.parse(body || '{}');
@@ -136,7 +143,8 @@ function handle(body) {
     Perm.check(action, session);
     var data = ROUTES[action](session, payload);
     Repo.flush();                                  // what was changed outside a lock (rare)
-    return { ok: true, data: data };
+    // phone messages: kept, and the app asks right after to send them (push: true)
+    return Push.keep() ? { ok: true, data: data, push: true } : { ok: true, data: data };
   } catch (e) {
     Repo.discard();
     if (e && e.name === 'AppError') return { ok: false, error: { code: e.code, detail: e.detail } };

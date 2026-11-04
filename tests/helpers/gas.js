@@ -136,7 +136,10 @@ function createGas(opts = {}) {
     /** Calls the web app like the PWA does and returns the parsed response. */
     api(action, payload, token) {
       context.__body = JSON.stringify({ action, payload, token });
-      return JSON.parse(run('doPost({postData: {contents: __body}}).text'));
+      const out = JSON.parse(run('doPost({postData: {contents: __body}}).text'));
+      // the app asks right after to send the phone messages the server kept (push.flush)
+      if (out.push && action !== 'push.flush') { context.__body = JSON.stringify({ action: 'push.flush', payload: {}, token }); run('doPost({postData: {contents: __body}}).text'); }
+      return out;
     },
   };
 }
