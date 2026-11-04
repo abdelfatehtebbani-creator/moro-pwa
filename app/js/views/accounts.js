@@ -187,11 +187,14 @@ export async function render(root) {
         try { await call('sales.save', { date: v.date, shop_party_id: v.shop_party_id, channels: ch, note: note.value, submit, client_id: newId() }); toast(t(submit ? 'sl_sent' : 'saved'), 'ok'); load(); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };
-      return h('div.req-card', h('div.card-head', h('b', h('bdi', shopName(v.shop_party_id))), h('span.muted.num', fmtDate(v.date)),
-        v.status ? h('span', { class: 'pill ' + (PILL[v.status] || '') }, t('sl_st_' + v.status)) : null, h('span', t('total'), ': ', total)),
+      const cash = h('input.input.num.small', { type: 'text', value: money(v.cash), disabled: true });
+      // folded: the shop, its state and its total; open (a sheet still to write) shows the channels
+      return h('details.req-card.fold', { open: !fixed && !!v.return_note },
+        h('summary.card-head', h('b', h('bdi', shopName(v.shop_party_id))),
+          v.status ? h('span', { class: 'pill ' + (PILL[v.status] || '') }, t('sl_st_' + v.status)) : null, h('span', t('total'), ': ', total)),
         v.return_note ? h('p.err-text', t('sl_returned_why', { why: v.return_note })) : null,
-        h('div.form-grid', h('div.field', h('label', t('sl_cash')), h('div.num', h('b', money(v.cash) + ' QR'), v.not_received ? h('small.muted', ' · ' + t('sl_not_received', { n: v.not_received })) : '')),
-          ...inputs.map((i) => field(chName(i.c), i.x)), field(t('note'), note)),
+        h('div.form-grid', field(t('sl_cash'), cash), ...inputs.map((i) => field(chName(i.c), i.x)), field(t('note'), note)),
+        v.not_received ? h('small.muted', t('sl_not_received', { n: v.not_received })) : null,
         !fixed && Data.can('sales.save') ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: send(false) }, t('save_draft')),
           h('button.btn.save-btn', { type: 'button', onclick: send(true) }, t('sl_send'))) : null);
     };
@@ -205,12 +208,23 @@ export async function render(root) {
       if (!Data.can('sales.decide')) return;
       try {
         const list = await call('sales.list', { status: 'submitted' });
-        decideBox.replaceChildren(...(list.length ? list.map((v) => h('div.req-card', h('div.card-head', h('b', h('bdi', shopName(v.shop_party_id))), h('span.muted.num', fmtDate(v.date)),
-          h('span', t('total'), ': ', h('b.num', money(v.total) + ' QR'))),
-          h('p', t('sl_cash') + ': ' + money(v.cash), ...channels.filter((c) => v.channels[c.id] !== undefined).map((c) => ' · ' + chName(c) + ': ' + money(v.channels[c.id]))),
-          v.note ? h('small.muted', v.note) : null,
-          h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: () => decide(v, true) }, t('sl_approve')),
-            h('button.btn.danger', { type: 'button', onclick: () => decide(v, false) }, t('sl_return'))))) : [h('p.empty', t('sl_none_sent'))]));
+        if (!list.length) { decideBox.replaceChildren(h('p.empty', t('sl_none_sent'))); return; }
+        const used = channels.filter((c) => list.some((v) => v.channels[c.id] !== undefined));
+        const col = (f) => list.reduce((a, v) => a + (Number(f(v)) || 0), 0);
+        const cell = (n) => h('td.num', n === undefined || n === '' ? '—' : money(n));
+        decideBox.replaceChildren(h('div.table-wrap', h('table.sales-grid',
+          h('thead', h('tr', h('th', t('date')), h('th', t('shop')), h('th', t('sl_cash')), ...used.map((c) => h('th', chName(c))), h('th', t('total')), h('th', ''))),
+          h('tbody', ...list.map((v) => h('tr', h('td.num', fmtDate(v.date)), h('td.wrap', h('bdi', shopName(v.shop_party_id)), v.note ? h('small.muted', h('br'), v.note) : ''),
+            cell(v.cash), ...used.map((c) => cell(v.channels[c.id])), h('td.num', h('b', money(v.total))),
+            h('td', h('div.row-actions', h('button.btn.save-btn.small', { type: 'button', onclick: () => decide(v, true) }, t('sl_approve')),
+              h('button.btn.danger.small', { type: 'button', onclick: () => decide(v, false) }, t('sl_return'))))))),
+          h('tfoot', h('tr', h('td', h('b', t('total'))), h('td', ''), h('td.num', h('b', money(col((v) => v.cash)))),
+            ...used.map((c) => h('td.num', h('b', money(col((v) => v.channels[c.id]))))), h('td.num', h('b', money(col((v) => v.total)))),
+            h('td', list.length > 1 ? h('button.btn.save-btn.small', { type: 'button', onclick: approveAll }, t('sl_approve_all')) : ''))))));
+        async function approveAll() {
+          for (const v of list) { try { await call('sales.decide', { day_id: v.day_id, ok: true }); } catch (e) { toast(errText(e), 'err'); break; } }
+          toast(t('saved'), 'ok'); loadDecide(); load(); Data.refresh().catch(() => {});
+        }
       } catch (e) { decideBox.replaceChildren(h('p.empty', errText(e))); }
     }
     async function decide(v, ok) {

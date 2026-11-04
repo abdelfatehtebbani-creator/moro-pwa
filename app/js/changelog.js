@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.135', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) يومية المبيعات: المحلات وإعداد القنوات تنطوي، وخانة النقد بشكل بقية الخانات. واليوميات للاعتماد في جدول واحد: المحلات في الأسطر والقنوات في الأعمدة، مع الإجمالي وزر اعتماد الكل.'] },
+    en: { news: ['(Development copy) Daily sales: the shops and the channels settings fold, and the cash field looks like the others. The sheets to approve in one table: shops in rows, channels in columns, with totals and Approve all.'] },
+  },
+  {
     v: '0.9.134', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) يومية المبيعات في الحسابات: لكل محل ويوم النقد من النوبات، والبطاقة والتطبيقات يكتبها المحاسب، ثم يرسلها للمدير فيعتمدها أو يعيدها. القنوات تُضبط في شاشة المستخدمين (qlub للؤلؤة وحدها). وتقرير "المبيعات حسب القناة"، والهامش ولوحة التحكم يقرآن اليومية.'] },
     en: { news: ['(Development copy) Daily sales sheet in Accounts: per shop and day, cash from the shifts, card and apps typed by the accountant, sent to the admin to approve or return. Channels set in the users screen (qlub for the Pearl only). A Sales by channel report; margin and dashboard read the sheet.'] },

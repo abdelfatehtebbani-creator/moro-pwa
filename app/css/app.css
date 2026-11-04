@@ -673,3 +673,9 @@ details.home-group:not([open]) > .home-group-title { margin-bottom: 0; }
 .home-waiting[hidden] { display: none; }
 .home-team-box { padding: 8px 12px; }
 .home-team-box .home-team { margin-top: 0; }
+details.fold > summary { cursor: pointer; list-style: revert; }
+details.req-card.fold > summary.card-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+details.req-card.fold[open] > summary.card-head { margin-bottom: 10px; }
+.sales-grid th, .sales-grid td { white-space: nowrap; }
+.sales-grid tfoot td { border-top: 2px solid var(--line); }
+.row-actions { display: flex; gap: 6px; }

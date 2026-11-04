@@ -67,7 +67,8 @@ export async function render(root) {
     const save = async () => {
       try { await call('sales.setChannels', { channels: list }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); } catch (e) { toast(errText(e), 'err'); }
     };
-    return h('div', h('h3', t('sl_channels')), h('small.muted', t('sl_channels_help')), box,
+    return h('details.fold', h('summary', h('b', t('sl_channels')), ' ', h('small.muted', String(list.filter((c) => c.active !== false).length))),
+      h('small.muted', t('sl_channels_help')), box,
       h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: add }, '+ ' + t('sl_ch_add')), h('button.btn', { type: 'button', onclick: save }, t('save'))));
   }
 
