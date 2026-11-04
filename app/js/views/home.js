@@ -72,10 +72,17 @@ function renderGrouped(root, links, ctx) {
   const drawWait = () => {
     const now = Counts.now || {};
     const list = links.filter((r) => Number(now[r]) > 0);
+    // what another user works in is the team's: a line of numbers; the rest waits for the admin's own decision
+    const others = new Set((Data.boot || {}).others_nav || []);
+    const team = list.filter((r) => others.has('nav.' + r));
+    const mine = list.filter((r) => !others.has('nav.' + r));
     waitBox.hidden = !list.length;
-    waitBox.replaceChildren(h('h3.home-group-title', t('grp_waiting')), h('div.home-nav', list.map((r) => {
-      return tile(r);
-    })));
+    waitBox.classList.toggle('home-wait-team', !mine.length);
+    waitBox.replaceChildren(
+      mine.length ? h('h3.home-group-title', t('grp_decisions')) : null,
+      mine.length ? h('div.home-nav', mine.map((r) => tile(r))) : null,
+      team.length ? h('div.home-team', h('b', t('grp_team') + ': '), team.map((r, i) => [i ? ' · ' : '',
+        h('a', { href: '#/' + r }, t(r) + ' ', h('b.num', String(now[r])))])) : null);
   };
   const body = h('div.home-groups');
   function draw() {

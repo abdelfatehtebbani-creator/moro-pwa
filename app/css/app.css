@@ -661,3 +661,8 @@ details.home-group:not([open]) > .home-group-title { margin-bottom: 0; }
 .home-wait { border: 2px solid var(--brand); }
 .home-star { position: absolute; top: 4px; inset-inline-start: 6px; border: 0; background: none; color: var(--warn, #b45309); font-size: 16px; cursor: pointer; padding: 2px; line-height: 1; }
 .home-admin .home-nav { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.home-team { font-size: 13px; color: var(--muted, #555); margin-top: 8px; line-height: 1.8; }
+.home-team a { color: inherit; text-decoration: none; white-space: nowrap; }
+.home-team a b { color: var(--brand); }
+.home-wait.home-wait-team { border-width: 1px; border-color: var(--line); padding: 6px 12px; }
+.home-wait-team .home-team { margin-top: 0; }

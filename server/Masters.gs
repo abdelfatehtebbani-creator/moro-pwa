@@ -327,6 +327,15 @@ var Masters = {
       orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       order_todo: OrderNotify.todo(session),
+      // the admin: the screens another active user also works in (their numbers are the team's work, not the admin's decisions)
+      others_nav: session.role === 'admin' ? (function () {
+        var set = {};
+        Repo.all('Users').forEach(function (u) {
+          if (u.active !== true || u.user_id === session.user_id || u.role === 'admin') return;
+          Perm.permsOf(u).forEach(function (x) { if (String(x).indexOf('nav.') === 0) set[x] = true; });
+        });
+        return Object.keys(set);
+      })() : [],
       // approved purchase orders, for a receipt to name the one it answers
       lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
         .map(function (l) { return [String(l.lpo_no), l.party_id, String(l.date)]; }).slice(-300) : [],

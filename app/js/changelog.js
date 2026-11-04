@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.125', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الشاشة الرئيسية للمدير: "بانتظارك" صار قسمين: "قراراتك" لما لا يقرره غيرك، و"عمل الفريق" سطر أرقام لما ينتظر مستخدمين آخرين.'] },
+    en: { news: ['(Development copy) The admin home screen: Waiting for you is now two parts: Your decisions, for what nobody else decides, and Team work, a line of numbers for what waits for other users.'] },
+  },
+  {
     v: '0.9.124', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الشاشة الرئيسية للمدير: "بانتظارك" في الأعلى بالشاشات التي عليها رقم، ثم المفضلة (النجمة على كل شاشة، حتى 6)، ثم خمس مجموعات قابلة للطي: المخازن، دورة الطلبيات، المشتريات والمالية، المتابعة، الإدارة. والقائمة الجانبية بالمجموعات نفسها.'] },
     en: { news: ['(Development copy) The admin home screen: Waiting for you at the top with the screens that have a number, then favourites (the star on each screen, up to 6), then five folding groups: stores, order cycle, purchasing and finance, follow-up, admin. The side menu uses the same groups.'] },

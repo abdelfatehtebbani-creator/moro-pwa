@@ -460,3 +460,11 @@ test('a receipt names its purchase order: an approved LPO of the same supplier o
   const m = g.api('accounts.lpo', {}, tok.admin).data[0];
   assert.deepEqual([m.ordered, m.received, m.exact], [100, 100, true]);
 });
+
+test('the admin sees which screens another user works in (their numbers are team work)', () => {
+  const { g, tok } = env();
+  const nav = g.api('data.bootstrap', {}, tok.admin).data.others_nav;
+  assert.ok(nav.includes('nav.orderapprove'), 'distribution approves orders');
+  assert.ok(!nav.includes('nav.lpo'), 'nobody else approves LPOs here');
+  assert.deepEqual(g.api('data.bootstrap', {}, tok.dist).data.others_nav, []);
+});
