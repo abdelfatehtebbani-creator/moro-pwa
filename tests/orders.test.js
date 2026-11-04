@@ -559,3 +559,17 @@ test('a shop account: invoices against its approved daily sales; payments are th
   const s = g.api('accounts.statement', { party_id: 'P002' }, tok.acc).data;
   assert.deepEqual(s.lines.map((e) => [e.kind, e.credit]), [['daily_sales', 500]]);
 });
+
+test('a trip sent twice (a resend after a lost reply) is made once', () => {
+  const { g, tok, user } = env();
+  const driver = user('drv', 'driver');
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const l = g.api('shop.list', {}, tok.store).data.find((x) => x.order_id === o.order_id);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: l.line_id, qty: 1 }] }, tok.store);
+  const a = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id], client_id: 'trip-1' }, tok.dist).data;
+  const b = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id], client_id: 'trip-1' }, tok.dist).data;
+  assert.equal(b.duplicate, true);
+  assert.equal(a.trip.trip_id, b.trip.trip_id);
+  assert.equal(g.rows('Trips').length, 1);
+});

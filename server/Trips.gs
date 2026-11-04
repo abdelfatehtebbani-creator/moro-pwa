@@ -57,14 +57,17 @@ var Trips = {
     Util.require(ids.length, 'nothing_to_save');
     var driver = Repo.find('Users', 'user_id', p.driver_id);
     Util.require(driver && driver.active === true && driver.role === 'driver', 'driver_invalid');
+    var cid = Util.clean(p.client_id);
     return withLock(function () {
+      var again = cid ? Repo.find('Trips', 'client_id', cid) : null;
+      if (again) return { trip: Trips.view(again), duplicate: true, version: Version.get() };
       ids.forEach(function (id) {
         var o = Repo.find('Orders', 'order_id', id);
         Util.require(o && Orders.view(o).status === 'ready', 'order_not_ready', o ? o.order_no : id);
       });
       var now = Util.nowIso();
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
-                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now };
+                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
       Repo.append('Trips', [trip]);
       Repo.append('TripStops', ids.map(function (id, i) {
         return { trip_id: trip.trip_id, order_id: id, seq: i + 1, loaded_at: '', loaded_by: '', delivered_at: '', delivered_by: '' };

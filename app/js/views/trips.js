@@ -2,14 +2,16 @@
 // order of the stops; the driver confirms each stop: loaded, then delivered. From "loaded" an order is
 // no longer changed. The cashier then receives it (the shop orders screen).
 import { call } from '../api.js';
+import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtDate, fmtNum, trackFilled, dialog } from '../ui.js';
-import { field } from '../components.js';
+import { field, newId } from '../components.js';
 
 const PILL = { preparing: 'soon', loaded: 'soon', in_transit: 'soon', completed: 'in', cancelled: 'out' };
 let tab = 'open';
 let cleanup = null;
+let lastNew = null;            // the ready orders and drivers seen last time (the new-trip form opens at once)
 
 export async function render(root) {
   if (cleanup) cleanup();
@@ -21,10 +23,24 @@ export async function render(root) {
 
   // ---------- a new trip (distribution)
   const newBox = h('div');
-  async function drawNew() {
-    let ready = [], drivers = [];
-    try { [ready, drivers] = await Promise.all([call('orders.list', { status: 'ready' }), call('trips.drivers', {})]); }
-    catch (e) { newBox.replaceChildren(h('div.card', h('p.empty', errText(e)))); return; }
+  // orders put in a trip on this device and not sent yet are not offered again
+  const inTrip = () => new Set(Outbox.queued('trips.save').flatMap((j) => j.payload.order_ids));
+  async function drawNew(quiet) {
+    // what was there last time, at once; then the server
+    const cached = quiet !== true && !!lastNew;
+    if (cached) build(lastNew.ready, lastNew.drivers);
+    else if (quiet !== true) newBox.replaceChildren(h('p.empty', '…'));
+    try {
+      const [ready, drivers] = await Promise.all([call('orders.list', { status: 'ready' }), call('trips.drivers', {})]);
+      const changed = !lastNew || JSON.stringify(lastNew) !== JSON.stringify({ ready, drivers });
+      lastNew = { ready, drivers };
+      // drawn again only when something changed (what was ticked meanwhile stays)
+      if (changed || (!cached && quiet !== true)) build(ready, drivers);
+    } catch (e) { if (!lastNew) newBox.replaceChildren(h('div.card', h('p.empty', errText(e)))); }
+  }
+  function build(readyAll, drivers) {
+    const going = inTrip();
+    const ready = readyAll.filter((o) => !going.has(o.order_id));
     const chosen = [];           // order ids, in the order of the stops
     const list = h('div.trip-pick');
     const drawPick = () => list.replaceChildren(...(ready.length ? ready.map((o) => {
@@ -47,7 +63,9 @@ export async function render(root) {
       if (!chosen.length) { flash(list); return; }
       if (!driver.value) { flash(driver); return; }
       const btn = e.currentTarget; btn.disabled = true;
-      try { await call('trips.save', { driver_id: driver.value, order_ids: chosen, note: note.value }); toast(t('trip_created'), 'ok'); drawNew(); loadList(); }
+      // queued and sent in the background (the client id makes a resend the same trip)
+      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
+        build(lastNew ? lastNew.ready : readyAll, drivers); }
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };
     drawPick();
@@ -55,6 +73,7 @@ export async function render(root) {
       ready.some((o) => o.kind === 'special' && o.place === 'customer') ? h('small.muted', t('trip_special_help')) : null, list,
       h('div.form-grid', field(t('driver'), driver), field(t('note'), note, { wide: true })),
       drivers.length ? null : h('p.err-text', t('no_drivers')),
+      going.size ? h('p.pill.soon', t('trips_sending', { n: Outbox.queued('trips.save').length })) : null,
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: create }, t('trip_create')))));
   }
   // ---------- the trips
@@ -103,9 +122,10 @@ export async function render(root) {
     return loadTable([...sum.values()].sort((a, b) => itemName(a).localeCompare(itemName(b))));
   };
 
-  // a step on its way: the list is not refreshed under it
+  // a step (loaded, delivered, trip cancelled) is queued and sent in the background; until then the stop says so
   let busy = 0;
-  const act = async (action, payload) => { busy++; try { return await call(action, payload); } finally { busy--; } };
+  const act = async (action, payload) => { await Outbox.add(action, payload, payload.trip_id); setTimeout(() => loadList(true), 0); };
+  const stepGoing = (tripId, orderId) => ['trips.load', 'trips.deliver', 'trips.cancel'].some((a) => Outbox.queued(a).some((j) => j.payload.trip_id === tripId && (!orderId || !j.payload.order_id || j.payload.order_id === orderId)));
 
   // the customer's address: a map link in it opens the map
   function mapText(text) {
@@ -131,7 +151,7 @@ export async function render(root) {
         try { await act('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };
-      const button = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
+      const button = stepGoing(trip.trip_id, s.order_id) ? h('span.pill.soon', t('sending')) : drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
         ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: doStep('load') }, t('stop_load'))
           : !s.delivered_at ? (trip.stops.every((x) => x.loaded_at) ? h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver'))
             : h('small.muted', t('deliver_after_all_loaded'))) : null) : null;
@@ -149,7 +169,7 @@ export async function render(root) {
     if (trip.stops.length > 1) actions.append(allBtn);
     if (manage && trip.status === 'preparing' && !trip.stops.some((s) => s.loaded_at)) {
       actions.append(h('button.btn.secondary', { type: 'button', onclick: async () => {
-        try { await act('trips.cancel', { trip_id: trip.trip_id }); toast(t('trip_cancelled'), 'ok'); drawNew(); loadList(); } catch (e) { toast(errText(e), 'err'); }
+        try { await act('trips.cancel', { trip_id: trip.trip_id }); toast(t('trip_cancelled'), 'ok'); } catch (e) { toast(errText(e), 'err'); }
       } }, t('trip_cancel')));
     }
     return h('div.req-card', h('div.card-head', h('b', trip.trip_id), h('span', '🚚 ', h('bdi', driverName)), h('span.muted.num', fmtDate(String(trip.created_at).slice(0, 10))),
@@ -159,7 +179,10 @@ export async function render(root) {
   root.replaceChildren(...parts);
   show();
   const timer = setInterval(() => { if (!busy && document.visibilityState === 'visible') loadList(true); }, 20000);
-  cleanup = () => { clearInterval(timer); cleanup = null; };
+  // a step or a trip sent (or refused): the lists follow
+  const onOutbox = () => { if (tab === 'new') drawNew(true); else loadList(true); };
+  window.addEventListener('moro:outbox', onOutbox);
+  cleanup = () => { clearInterval(timer); window.removeEventListener('moro:outbox', onOutbox); cleanup = null; };
 }
 
 export function dispose() { if (cleanup) cleanup(); }

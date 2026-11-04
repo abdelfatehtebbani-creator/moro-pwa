@@ -55,7 +55,7 @@ var SCHEMA = {
                  'delivery_time', 'place', 'address'],
   OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status', 'received_qty', 'short_reason', 'short_note',
                  'short_decision', 'description', 'price', 'dept', 'photos', 'purchase'],
-  Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at'],
+  Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at', 'client_id'],
   TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by'],
   Invoices:     ['invoice_id', 'invoice_no', 'order_id', 'order_no', 'shop_party_id', 'date', 'total_final', 'total_store', 'total',
                  'created_by', 'created_at'],

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.147', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الرحلات: إنشاء الرحلة وتحميل السائق وتسليمه وإلغاء الرحلة فورية وتُرسل في الخلفية، ونموذج "رحلة جديدة" يفتح فورًا بما كان آخر مرة.'] },
+    en: { news: ['(Development copy) Trips: creating a trip, the driver loading and delivering, and cancelling are immediate and sent in the background; the New trip form opens at once with what was there last time.'] },
+  },
+  {
     v: '0.9.146', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) تجهيز الطلبيات: تظهر الأسطر فورًا من آخر مرة ثم تُحدَّث في الخلفية، ولا تُعاد رسم الصفحة بعد التسليم للتوزيع إلا إن تغيّرت الأسطر، ويبقى موضع التمرير.'] },
     en: { news: ['(Development copy) Prepare orders: the lines show at once from last time and are checked in the background; after handing to distribution the page is drawn again only if the lines changed, and the scroll stays.'] },
