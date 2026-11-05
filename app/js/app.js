@@ -26,6 +26,7 @@ import * as trips from './views/trips.js';
 import * as invoices from './views/invoices.js';
 import * as returns from './views/returns.js';
 import * as accounts from './views/accounts.js';
+import * as exec from './views/exec.js';
 import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
@@ -33,6 +34,7 @@ import * as coffee from './views/coffee.js';
 
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
+  exec:      { view: exec, perm: 'nav.exec', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
   orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
   orderapprove: { view: orders, perm: 'nav.orderapprove', group: 'nav_ops' },
@@ -125,7 +127,7 @@ async function start() {
 
 function allowed(name) { return Data.can(ROUTES[name].perm); }
 // the first screen: home (every user may open it)
-function firstScreen() { return Object.keys(ROUTES).find(allowed) || 'home'; }
+function firstScreen() { return (Data.user && Data.user.role === 'pdg' && allowed('exec')) ? 'exec' : Object.keys(ROUTES).find(allowed) || 'home'; }
 
 // ---------- what's new: shown once after each update, with what the user needs to do
 const SEEN_KEY = 'moro.seen_version';

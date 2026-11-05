@@ -108,3 +108,4 @@ const it0 = g.rows('Items')[0];
 measure('items.save (edit min)', () => g.api('items.save', { item_id: it0.item_id, min_stock: 3 }, admin));
 measure('items.save (new)', () => g.api('items.save', { name: 'PERF NEW ITEM', store: 'DRY', unit: 'KG' }, admin));
 measure('parties.save (new)', () => g.api('parties.save', { name: 'PERF SUPPLIER', kind: 'supplier' }, admin));
+measure('exec.summary', () => g.api('exec.summary', {}, admin));

@@ -586,3 +586,16 @@ test('a department product not in stock counts on Production first, then on Prep
   g.api('production.post', { product: 'BAKLAVA BOX', qty: 2, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
   assert.deepEqual([b().prod_todo, b().shop_todo], [0, 1], 'made: back on Prepare orders');
 });
+
+test('the general manager screen: one read-only summary of the period against the one before', () => {
+  const { g, tok, user } = env();
+  user('boss', 'pdg');
+  g.api('orders.shiftEnd', { amount: 700 }, tok.cashier);
+  assert.equal(g.api('exec.summary', {}, tok.cashier).error.code, 'forbidden');
+  const d = g.api('exec.summary', {}, tok.boss).data;
+  assert.equal(d.sales.total, 700, 'the shift cash, no daily sheet yet');
+  assert.equal(d.sales.byShop.P002, 700);
+  assert.ok(d.stock.value > 0 || d.stock.value === 0);
+  assert.ok('fill' in d.service && 'owed' in d.suppliers && 'byType' in d.losses);
+  assert.equal(g.api('movements.save', { movements: [] }, tok.boss).error.code, 'forbidden', 'reads only');
+});

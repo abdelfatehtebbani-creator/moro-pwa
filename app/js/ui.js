@@ -89,6 +89,7 @@ export function dialog(build) {
 }
 
 const ICONS = {
+  exec: 'M3 13h2v7H3zm4-4h2v11H7zm4-4h2v15h-2zm4 7h2v8h-2zm4-3h2v11h-2zM3 3h18v2H3z',
   accounts: 'M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z',
   returns: 'M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z',
   home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',

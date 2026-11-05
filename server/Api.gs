@@ -73,6 +73,7 @@ var ROUTES = {
   'orders.acceptDiff': function (s, p) { return Orders.acceptDiff(s, p); },
   'orders.route':     function (s, p) { return Orders.route(s, p); },
   'push.flush':       function () { return Push.flush(); },
+  'exec.summary':     function (s, p) { return Exec.summary(s, p); },
   'report.losses':    function (s, p) { return Finance.losses(s, p); },
   'report.margin':    function (s, p) { return Finance.margin(s, p); },
   'accounts.statement': function (s, p) { return Accounts.statement(s, p); },

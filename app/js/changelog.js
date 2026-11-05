@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.152', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) لوحة المدير العام: شاشة قراءة فقط بدور "مدير عام"، في سبعة تبويبات (نظرة عامة، المبيعات، الربحية، المخزون، الخسائر، الموردون، الخدمة)، لكل فترة مقارنة بالفترة التي قبلها، مع رسوم وطباعة.'] },
+    en: { news: ['(Development copy) The general manager screen: read only, with a General manager role, in seven tabs (overview, sales, profitability, stock, losses, suppliers, service), each period against the one before, with charts and print.'] },
+  },
+  {
     v: '0.9.151', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) المواد والموردون: نافذة الحفظ تُغلق حالما يحفظ الخادم، وتُقرأ البيانات من جديد في الخلفية بدل انتظار طلب ثانٍ بطيء.'] },
     en: { news: ['(Development copy) Items and suppliers: the save window closes as soon as the server has saved; the data is read again in the background instead of waiting for a second slow request.'] },
