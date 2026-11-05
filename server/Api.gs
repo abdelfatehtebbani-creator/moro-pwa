@@ -81,6 +81,9 @@ var ROUTES = {
   'accounts.pay':     function (s, p) { return Accounts.pay(s, p); },
   'accounts.void':    function (s, p) { return Accounts.void(s, p); },
   'accounts.lpo':     function (s, p) { return Accounts.lpoMatch(s, p); },
+  'accounts.openings': function () { return Accounts.openings(); },
+  'accounts.setOpening': function (s, p) { return Accounts.setOpening(s, p); },
+  'accounts.setStart': function (s, p) { return Accounts.setStart(s, p); },
   'shifts.list':      function (s, p) { return Takings.list(s, p); },
   'shifts.receive':   function (s, p) { return Takings.receive(s, p); },
   'report.takings':   function (s, p) { return Takings.list(s, p); },
@@ -155,7 +158,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '45';
+var SCHEMA_VERSION = '46';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -167,6 +170,8 @@ function ensureSchema() {
     Masters.seedUnits();
     if (Number(Settings.get('schema_version', '0')) < 5) Stores.seed();
     if (Number(Settings.get('schema_version', '0')) < 26) Perm.addDashView();
+    // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
+    if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
   });
 }

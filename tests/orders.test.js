@@ -435,6 +435,7 @@ test('accounts: a supplier statement from receipts and payments, a shop statemen
   g.seed('Parties', [{ party_id: 'P009', name: 'Supplier X', kind: 'supplier', active: true }]);
   const rec = (date, cid, amount) => g.api('movements.save', { movements: [{ client_id: cid, kind: 'RECEIPT', date, party_id: 'P009', item_id: 'I0001', qty: 1, unit: 'BAG',
     doc_no: 'INV-' + cid, price: amount, per: 'BAG', amount, location: 'Shelves F 01', expiry: '2027-01-31' }] }, tok.admin);
+  g.api('accounts.setStart', { date: '2026-01-01' }, tok.admin);   // these accounts start before the receipts
   rec('2026-01-05', 'a', 100); rec('2026-02-05', 'b', 50);
   assert.equal(g.api('accounts.pay', { client_id: 'p1', party_id: 'P009', date: '2026-02-10', amount: 120, method: 'bank' }, tok.cashier).error.code, 'forbidden');
   const p1 = g.api('accounts.pay', { client_id: 'p1', party_id: 'P009', date: '2026-02-10', amount: 120, method: 'bank', ref: 'TR-1' }, tok.acc).data.payment;
@@ -598,4 +599,18 @@ test('the general manager screen: one read-only summary of the period against th
   assert.ok(d.stock.value > 0 || d.stock.value === 0);
   assert.ok('fill' in d.service && 'owed' in d.suppliers && 'byType' in d.losses);
   assert.equal(g.api('movements.save', { movements: [] }, tok.boss).error.code, 'forbidden', 'reads only');
+});
+
+test('accounts start at zero: what came before the start day is replaced by the opening balance the accountant writes', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  g.seed('Parties', [{ party_id: 'P009', name: 'Supplier X', kind: 'supplier', active: true }]);
+  g.api('movements.save', { movements: [{ client_id: 'old', kind: 'RECEIPT', date: '2026-01-05', party_id: 'P009', item_id: 'I0001', qty: 1, unit: 'BAG',
+    doc_no: 'INV-old', price: 100, per: 'BAG', amount: 100, location: 'Shelves F 01', expiry: '2027-01-31' }] }, tok.admin);
+  g.api('accounts.setStart', { date: '2026-06-01' }, tok.admin);
+  assert.equal(g.api('accounts.statement', { party_id: 'P009' }, tok.acc).data.closing, 0, 'nothing written: zero');
+  g.api('accounts.setOpening', { party_id: 'P009', amount: 40, note: 'as on 1 June' }, tok.acc);
+  const s = g.api('accounts.statement', { party_id: 'P009' }, tok.acc).data;
+  assert.deepEqual([s.lines[0].kind, s.closing], ['opening', -40], 'we owe 40');
+  assert.equal(g.api('accounts.setStart', { date: '2026-06-01' }, tok.acc).error.code, 'forbidden', 'the start day is the admin\'s');
 });

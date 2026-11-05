@@ -38,7 +38,8 @@ var PERM_TREE = [
     { key: 'tab_acc_pay', children: [{ leaf: 'accounts.pay' }] },
     { key: 'tab_acc_lpo', children: [{ leaf: 'accounts.lpo' }] },
     { key: 'tab_acc_takings', children: [{ leaf: 'accounts.takings' }] },
-    { key: 'tab_acc_sales', children: [{ leaf: 'accounts.sales' }, { leaf: 'accounts.salesApprove' }] }] },
+    { key: 'tab_acc_sales', children: [{ leaf: 'accounts.sales' }, { leaf: 'accounts.salesApprove' }] },
+    { key: 'tab_acc_opening', children: [{ leaf: 'accounts.opening' }, { leaf: 'accounts.start' }] }] },
   { key: 'returns', children: [{ leaf: 'returns.create' }, { leaf: 'returns.decide' }] },
   { key: 'shoporders', children: [{ leaf: 'shop.view' }, { leaf: 'shop.hand' }, { leaf: 'shop.unavailable' }, { leaf: 'shop.return' },
     { leaf: 'shop.shortage' }, { leaf: 'shop.special' }, { leaf: 'shop.depts' }] },
@@ -92,6 +93,9 @@ var CAPS = (function () {
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
     // the accounts of the suppliers and shops: money, so prices are seen
     // one leaf per tab of the accounts screen
+    // the opening balances of the suppliers and shops (the accountant), and the day the accounts start (the admin)
+    'accounts.opening':  ['nav.accounts', 'accounts.openings', 'accounts.setOpening', 'see_prices'],
+    'accounts.start':    ['nav.accounts', 'accounts.openings', 'accounts.setStart', 'see_prices'],
     'accounts.balances': ['nav.accounts', 'accounts.balances', 'see_prices'],
     'accounts.statement': ['nav.accounts', 'accounts.statement', 'see_prices'],
     'accounts.lpo':      ['nav.accounts', 'accounts.lpo', 'see_prices'],
@@ -213,7 +217,7 @@ var ROLE_CAPS = {
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],
-  accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
+  accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'accounts.opening', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
 };
 
 var Perm = {

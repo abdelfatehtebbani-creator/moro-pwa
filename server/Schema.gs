@@ -65,6 +65,7 @@ var SCHEMA = {
                  'received_amount', 'received_by', 'received_at', 'received_note', 'received_action'],
   DailySales:   ['day_id', 'date', 'shop_party_id', 'cash', 'channels', 'total', 'note', 'status', 'return_note', 'created_by', 'created_at',
                  'submitted_at', 'decided_by', 'decided_at', 'updated_at', 'client_id'],
+  Openings:     ['party_id', 'amount', 'note', 'created_by', 'created_at'],
   Payments:     ['payment_id', 'date', 'party_id', 'amount', 'method', 'ref', 'note', 'status', 'created_by', 'created_at', 'voided_by', 'voided_at', 'client_id'],
   Returns:      ['return_id', 'date', 'shop_party_id', 'order_id', 'order_no', 'line_no', 'item_id', 'qty', 'unit', 'reason', 'note',
                  'source', 'status', 'decision', 'decision_note', 'decided_by', 'decided_at', 'movement_id', 'created_by', 'created_at', 'client_id']

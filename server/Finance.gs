@@ -116,7 +116,56 @@ var Accounts = {
       if (key[k]) { key[k].debit = Util.round(key[k].debit + e.debit); key[k].credit = Util.round(key[k].credit + e.credit); return; }
       key[k] = e; merged.push(e);
     });
-    return merged.sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+    // the accounts start on a day: before it, only the opening balance the accountant wrote (none written: 0)
+    var start = Accounts.start();
+    var op = Accounts.openingOf(party.party_id);
+    var kept = merged.filter(function (e) { return !start || String(e.date) >= start; });
+    if (op) kept.push({ date: start || '0000-00-00', kind: 'opening', ref: op.note || '', debit: party.kind === 'supplier' ? 0 : op.amount, credit: party.kind === 'supplier' ? op.amount : 0 });
+    return kept.sort(function (a, b) { return a.kind === 'opening' ? -1 : b.kind === 'opening' ? 1 : String(a.date).localeCompare(String(b.date)); });
+  },
+
+  /** The day the accounts start ('' = from the beginning). */
+  start: function () { return String(Settings.get('accounts_start', '') || ''); },
+
+  /** The last opening balance written for a party: {amount, note} (for a supplier, what we owe it; for a shop, what it holds). */
+  openingOf: function (id) {
+    var rows = (Repo.groupBy('Openings', 'party_id')[id] || []);
+    var r = rows.slice().sort(function (a, b) { return String(a.created_at).localeCompare(String(b.created_at)); }).pop();
+    return r && Number(r.amount) ? { amount: Number(r.amount), note: r.note || '' } : null;
+  },
+
+  /** Every supplier and shop with its opening balance (0 when none written). */
+  openings: function () {
+    return { start: Accounts.start(), parties: Repo.all('Parties').filter(function (x) { return (x.kind === 'supplier' || x.kind === 'shop') && x.active === true; })
+      .map(function (x) { var o = Accounts.openingOf(x.party_id); return { party_id: x.party_id, name: x.name, kind: x.kind, amount: o ? o.amount : 0, note: o ? o.note : '' }; }) };
+  },
+
+  /** The accountant writes a party's opening balance (kept with the previous ones: the last counts). p: {party_id, amount, note}. */
+  setOpening: function (session, p) {
+    var party = Repo.find('Parties', 'party_id', p.party_id);
+    Util.require(party && (party.kind === 'supplier' || party.kind === 'shop'), 'party_invalid');
+    var a = Util.num(p.amount);
+    Util.require(a !== null && a >= 0, 'amount_invalid');
+    Period.require(Accounts.start());
+    return withLock(function () {
+      var before = Accounts.openingOf(party.party_id);
+      var row = { party_id: party.party_id, amount: Util.round(a), note: Util.clean(p.note), created_by: session.user_id, created_at: Util.nowIso() };
+      Repo.append('Openings', [row]);
+      Audit.log(session.user_id, 'opening_balance', 'Parties', party.party_id, before, row);
+      return { opening: row, version: Version.bump() };
+    });
+  },
+
+  /** The admin moves the day the accounts start. p: {date}. */
+  setStart: function (session, p) {
+    var d = Util.clean(p.date);
+    Util.require(Util.isDate(d) && d <= Util.today(), 'date_invalid');
+    return withLock(function () {
+      var before = Accounts.start();
+      Settings.set('accounts_start', d);
+      Audit.log(session.user_id, 'accounts_start', 'Settings', 'accounts_start', before, d);
+      return { start: d, version: Version.bump() };
+    });
   },
 
   /** p: {party_id, from, to} → {party, opening, lines (with running balance), closing}. Balance > 0: they owe us; < 0: we owe them. */

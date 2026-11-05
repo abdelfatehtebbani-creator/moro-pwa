@@ -25,7 +25,7 @@ export async function render(root) {
   const body = h('div');
   const bar = h('div.tabs');
   const keys = (Data.can('accounts.balances') ? ['balances'] : []).concat(Data.can('accounts.statement') ? ['statement'] : [], Data.can('accounts.pay') ? ['pay'] : [],
-    Data.can('accounts.lpo') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : [], Data.can('sales.list') ? ['sales'] : []);
+    Data.can('accounts.lpo') ? ['lpo'] : [], Data.can('shifts.receive') ? ['takings'] : [], Data.can('sales.list') ? ['sales'] : [], Data.can('accounts.openings') ? ['opening'] : []);
   if (!keys.includes(state.tab)) state.tab = keys[0];
   keys.forEach((k) => bar.append(h('button', { type: 'button', class: k === state.tab ? 'on' : '',
     onclick: (e) => { state.tab = k; [...bar.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('acc_tab_' + k))));
@@ -274,7 +274,37 @@ export async function render(root) {
     load(); loadDecide();
   }
 
-  const show = () => ({ balances, statement, pay, lpo, takings, sales })[state.tab]();
+  // ---- the opening balances: what each supplier was owed and each shop held on the day the accounts start
+  async function opening() {
+    body.replaceChildren(h('p.muted', t('loading')));
+    let o;
+    try { o = await call('accounts.openings', {}); } catch (e) { body.replaceChildren(h('p.empty', errText(e))); return; }
+    const startIn = trackFilled(h('input.input#op-start', { type: 'date', value: o.start, max: today, disabled: !Data.can('accounts.setStart') }));
+    const saveStart = h('button.btn.secondary', { type: 'button', hidden: !Data.can('accounts.setStart'), onclick: async () => {
+      if (!startIn.value) return flash(startIn);
+      try { await call('accounts.setStart', { date: startIn.value }); toast(t('saved'), 'ok'); opening(); } catch (e) { toast(errText(e), 'err'); }
+    } }, t('save'));
+    const row = (x) => {
+      const a = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: x.amount || '' }));
+      const n = trackFilled(h('input.input.small', { value: x.note, placeholder: t('note') }));
+      const b = h('button.btn.small', { type: 'button', disabled: !Data.can('accounts.setOpening'), onclick: async () => {
+        if (a.value !== '' && Number(a.value) < 0) return flash(a);
+        b.disabled = true;
+        try { await call('accounts.setOpening', { party_id: x.party_id, amount: Number(a.value) || 0, note: n.value }); toast(t('saved'), 'ok'); b.disabled = false; }
+        catch (e) { toast(errText(e), 'err'); b.disabled = false; }
+      } }, t('save'));
+      return h('tr', h('td.wrap', h('bdi', x.name)), h('td', t('kind_' + x.kind)), h('td', a), h('td', n), h('td', b));
+    };
+    const list = (kind) => o.parties.filter((x) => x.kind === kind).sort((a, b) => a.name.localeCompare(b.name));
+    body.replaceChildren(h('div.form-card', h('small.muted', t('op_help')),
+      h('div.form-grid', field(t('op_start'), startIn), h('div.field', h('label', '\u00a0'), saveStart))),
+      ...['supplier', 'shop'].map((k) => h('details.fold.home-group', { open: k === 'supplier' }, h('summary', h('b', t(k === 'supplier' ? 'op_suppliers' : 'op_shops')),
+        ' ', h('small.muted', String(list(k).length))), h('small.muted', t(k === 'supplier' ? 'op_supplier_help' : 'op_shop_help')),
+        h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('acc_party')), h('th', ''), h('th', t('op_amount')), h('th', t('note')), h('th', ''))),
+          h('tbody', list(k).map(row)))))));
+  }
+
+  const show = () => ({ balances, statement, pay, lpo, takings, sales, opening })[state.tab]();
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('accounts')), bar), body));
   show();
 }

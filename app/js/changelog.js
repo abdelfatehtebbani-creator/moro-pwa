@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.153', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) الحسابات: تاريخ بداية للحسابات (يوم التثبيت افتراضيًا)، وتبويب "الرصيد الافتتاحي" يكتب فيه المحاسب ما علينا لكل مورد وما عند كل محل في ذلك اليوم. ما قبل البداية لا يُحسب، فتبدأ الأرصدة من صفر حتى يُكتب الافتتاحي.'] },
+    en: { news: ['(Development copy) Accounts: a day the accounts start (the install day by default), and an Opening balances tab where the accountant writes what was owed to each supplier and held by each shop that day. What came before is not counted, so balances start at zero until an opening balance is written.'] },
+  },
+  {
     v: '0.9.152', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) لوحة المدير العام: شاشة قراءة فقط بدور "مدير عام"، في سبعة تبويبات (نظرة عامة، المبيعات، الربحية، المخزون، الخسائر، الموردون، الخدمة)، لكل فترة مقارنة بالفترة التي قبلها، مع رسوم وطباعة.'] },
     en: { news: ['(Development copy) The general manager screen: read only, with a General manager role, in seven tabs (overview, sales, profitability, stock, losses, suppliers, service), each period against the one before, with charts and print.'] },
