@@ -326,6 +326,7 @@ var Masters = {
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
       orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
+      prod_todo: Perm.has(session, 'production.post') ? Shop.prodTodo(session) : 0,
       order_todo: OrderNotify.todo(session),
       decisions: Masters.decisions(session),
       takings_diffs: Perm.has(session, 'sales.decide') ? Repo.all('Shifts').filter(function (s) {

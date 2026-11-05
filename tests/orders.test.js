@@ -573,3 +573,16 @@ test('a trip sent twice (a resend after a lost reply) is made once', () => {
   assert.equal(a.trip.trip_id, b.trip.trip_id);
   assert.equal(g.rows('Trips').length, 1);
 });
+
+test('a department product not in stock counts on Production first, then on Prepare orders once made', () => {
+  const { g, tok } = env();
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 5 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const b = () => g.api('data.bootstrap', {}, tok.baklava).data;
+  assert.deepEqual([b().prod_todo, b().shop_todo], [1, 1], 'stock 3 of 5: some can be handed, the rest made');
+  const l = g.api('shop.list', {}, tok.baklava).data.find((x) => x.order_id === o.order_id);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: l.line_id, qty: 3 }] }, tok.baklava);
+  assert.deepEqual([b().prod_todo, b().shop_todo], [1, 0], 'no stock left: only Production counts it');
+  g.api('production.post', { product: 'BAKLAVA BOX', qty: 2, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
+  assert.deepEqual([b().prod_todo, b().shop_todo], [0, 1], 'made: back on Prepare orders');
+});

@@ -71,6 +71,8 @@ var Production = {
     });
     movs.push({ client_id: cid + '-o', kind: 'PROD_OUTPUT', date: p.date, party_id: setup.output, item_id: setup.item.item_id,
                 qty: qty, unit: setup.item.unit, doc_no: doc, purpose: Util.clean(p.product) });
-    return Movements.save(session, { movements: movs }, ['PROD_CONSUME', 'PROD_OUTPUT']);
+    var saved = Movements.save(session, { movements: movs }, ['PROD_CONSUME', 'PROD_OUTPUT']);
+    Shop.madeNotify(session, setup.item.item_id);
+    return saved;
   }
 };

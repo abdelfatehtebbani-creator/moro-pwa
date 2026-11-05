@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.150', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) القسم الإنتاجي: إن لم يكفِ رصيد منتج القسم للطلبيات يظهر الرقم على "الإنتاج" والإشعار "إنتاج مطلوب"، وبعد الإنتاج ينتقل الرقم إلى "تجهيز الطلبيات" مع إشعار "جاهز للتجهيز".'] },
+    en: { news: ['(Development copy) Producing departments: when a department product\u2019s stock does not cover the orders, the number shows on Production with a Production needed message; once made, the number moves to Prepare orders with a Ready to prepare message.'] },
+  },
+  {
     v: '0.9.149', date: '2026-11-04',
     ar: { news: ['(نسخة التطوير) الإنتاج: المنتجات التي تنتظرها طلبيات المحلات تظهر أولًا في خانة "المنتج" لكل قسم، مع الكمية الناقصة (المطلوب ناقص الرصيد). واختيار منتج منها يملأ "الكمية" بها.'] },
     en: { news: ['(Development copy) Production: the products the shop orders wait for come first in Product for each department, with the quantity still to make (ordered less stock); choosing one fills Quantity with it.'] },

@@ -69,15 +69,34 @@ var Shop = {
   },
 
   /** Lines of orders made in MORO waiting to be prepared by this user (the badge of "Prepare orders"). */
+  /** A department's product (final products store): made in the production screen before it is handed. */
+  made: function (item, l) { return !!(item && !l.description && Stores.of(item) === 'FINAL' && item.dept); },
+
   todo: function (session) {
     var native = {};
     Repo.all('Orders').forEach(function (o) { native[o.order_id] = true; });
     var orders = {};
     Repo.all('ShopOrderLines').forEach(function (l) {
       if (!native[l.order_id] || LINE_OPEN.indexOf(l.status) < 0 || !Shop.approved(l)) return;
-      if (Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id), l)) orders[l.order_id] = true;
+      var item = Repo.find('Items', 'item_id', l.item_id);
+      // a product still to be made counts on the production screen first: here once there is stock to hand
+      if (Shop.made(item, l) && Shop.balance(l.item_id) <= 0) return;
+      if (Shop.mayWork(session, item, l)) orders[l.order_id] = true;
     });
     return Object.keys(orders).length;
+  },
+
+  /** Products of this user's departments the open orders need more of than the stock holds (the number on Production). */
+  prodTodo: function (session) {
+    var native = {}, left = {};
+    Repo.all('Orders').forEach(function (o) { native[o.order_id] = true; });
+    Repo.all('ShopOrderLines').forEach(function (l) {
+      if (!native[l.order_id] || LINE_OPEN.indexOf(l.status) < 0 || !Shop.approved(l)) return;
+      var item = Repo.find('Items', 'item_id', l.item_id);
+      if (!Shop.made(item, l) || !Shop.mayWork(session, item, l)) return;
+      left[l.item_id] = Util.round((left[l.item_id] || 0) + Shop.left(l));
+    });
+    return Object.keys(left).filter(function (id) { return left[id] > Math.max(0, Shop.balance(id)); }).length;
   },
 
   /** Phone message to whoever prepares some of these new lines: the departments and storekeepers concerned. */
@@ -89,9 +108,25 @@ var Shop = {
       if (s.perms.indexOf('shop.hand') < 0) return false;
       return lines.some(function (x) { return Shop.mayWork(s, Repo.find('Items', 'item_id', x.item_id), x); });
     }).map(function (u) { return u.user_id; });
-    Push.toUsers(to, {
-      ar: { title: 'طلبية للتجهيز ' + o.order_no, body: shop }, en: { title: 'Order to prepare ' + o.order_no, body: shop },
-      page: 'shoporders', badge: 1 });
+    // a department's product not in stock: to be made first (the production screen)
+    var make = lines.some(function (x) { var it = Repo.find('Items', 'item_id', x.item_id); return Shop.made(it, x) && Shop.balance(x.item_id) < Number(x.qty); });
+    Push.toUsers(to, make
+      ? { ar: { title: 'إنتاج مطلوب ' + o.order_no, body: shop }, en: { title: 'Production needed ' + o.order_no, body: shop }, page: 'production', badge: 1 }
+      : { ar: { title: 'طلبية للتجهيز ' + o.order_no, body: shop }, en: { title: 'Order to prepare ' + o.order_no, body: shop }, page: 'shoporders', badge: 1 });
+  },
+
+  /** A product was made: the department heads with orders waiting for it can hand them now. */
+  madeNotify: function (session, itemId) {
+    var item = Repo.find('Items', 'item_id', itemId);
+    var waiting = Repo.all('ShopOrderLines').filter(function (l) { return l.item_id === itemId && LINE_OPEN.indexOf(l.status) >= 0 && Shop.approved(l); });
+    if (!item || !Shop.made(item, {}) || !waiting.length) return;
+    var to = Repo.all('Users').filter(function (u) {
+      if (u.active !== true) return false;
+      var s = Shop.sessionOf(u);
+      return s.perms.indexOf('shop.hand') >= 0 && Shop.mayWork(s, item, waiting[0]);
+    }).map(function (u) { return u.user_id; });
+    OrderNotify.send(to, session, 'shoporders', ['جاهز للتجهيز: ' + (item.name_ar || item.name), waiting.length + ' طلبية بانتظاره'],
+      ['Ready to prepare: ' + item.name, waiting.length + ' order(s) waiting for it']);
   },
 
   /** An order made in MORO (Orders.gs), approved: its lines join the shop order lines. lines [{order_item_id, item_id, qty, unit}]. */

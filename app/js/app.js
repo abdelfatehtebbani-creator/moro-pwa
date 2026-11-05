@@ -164,7 +164,7 @@ function buildShell() {
   for (const name of order) {
     if (!allowed(name)) continue;
     if (groupOf(name) !== group) { group = groupOf(name); navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -176,7 +176,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -367,6 +367,9 @@ function updateBadges() {
   // orders whose lines this user prepares (their stores, their departments)
   const sp = allowed('shoporders') ? Number((Data.boot || {}).shop_todo) || 0 : 0;
   document.querySelectorAll('a[data-route="shoporders"] .badge').forEach((b) => { b.hidden = !sp; b.textContent = String(sp); });
+  // products the orders wait for that are not made yet (the department's production screen)
+  const pr = allowed('production') ? Number((Data.boot || {}).prod_todo) || 0 : 0;
+  document.querySelectorAll('a[data-route="production"] .badge').forEach((b) => { b.hidden = !pr; b.textContent = String(pr); });
   // the rest of the order cycle: the cashier's orders to receive, trips to make or drive, orders to invoice
   const ot = (Data.boot || {}).order_todo || {};
   const more = [['orders', 'orders'], ['trips', 'trips'], ['invoices', 'invoices'], ['returns', 'returns']].map(([route, key]) => {
@@ -374,10 +377,10 @@ function updateBadges() {
     document.querySelectorAll('a[data-route="' + route + '"] .badge').forEach((b) => { b.hidden = !c; b.textContent = String(c); });
     return c;
   }).reduce((a, b) => a + b, 0);
-  Push.badge(n + r + o + sp + more);
+  Push.badge(n + r + o + sp + pr + more);
   // the same numbers for "waiting for you" on the admin's home screen
   const ot2 = (Data.boot || {}).order_todo || {};
-  Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
+  Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, production: pr, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
     trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0 };
   window.dispatchEvent(new Event('moro:badges'));
 }

@@ -8,7 +8,7 @@ import { Data } from '../data.js';
 import { GROUPS, Counts, Favs, OpenGroups, DiffSeen } from '../groups.js';
 
 let cleanup = null;
-const BADGED = ['lpo', 'requests', 'orderapprove', 'shoporders', 'orders', 'trips', 'invoices', 'returns'];
+const BADGED = ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'];
 
 export function render(root, name, ctx) {
   dispose();
