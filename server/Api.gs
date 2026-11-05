@@ -72,6 +72,8 @@ var ROUTES = {
   'orders.closeShort': function (s, p) { return Orders.closeShort(s, p); },
   'orders.acceptDiff': function (s, p) { return Orders.acceptDiff(s, p); },
   'orders.route':     function (s, p) { return Orders.route(s, p); },
+  'orders.follow':    function () { return Orders.follow(); },
+  'orders.setFollowHours': function (s, p) { return Orders.setFollowHours(s, p); },
   'push.flush':       function () { return Push.flush(); },
   'exec.summary':     function (s, p) { return Exec.summary(s, p); },
   'report.losses':    function (s, p) { return Finance.losses(s, p); },

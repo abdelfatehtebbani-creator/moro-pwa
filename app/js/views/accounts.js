@@ -131,23 +131,23 @@ export async function render(root) {
       try {
         const list = await call('shifts.list', { waiting: true });
         waitBox.replaceChildren(...(list.length ? list.map((s) => {
-          const got = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: s.amount }));
+          const got = trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: s.undeclared ? '' : s.amount }));
           const note = trackFilled(h('input.input.small', { placeholder: t('note') }));
           // a difference: the action taken is required
           const action = trackFilled(h('input.input.small', { placeholder: t('tk_action') }));
           const actionField = field(t('tk_action'), action);
-          const sync = () => { actionField.hidden = Number(got.value) === s.amount || got.value === ''; };
+          const sync = () => { actionField.hidden = !s.undeclared && (Number(got.value) === s.amount || got.value === ''); };
           got.addEventListener('input', sync); sync();
           const btn = h('button.btn.save-btn', { type: 'button', onclick: async () => {
             if (got.value === '' || Number(got.value) < 0) return flash(got);
-            if (Number(got.value) !== s.amount && !action.value.trim()) { flash(action); return toast(t('err.action_required'), 'err'); }
+            if ((s.undeclared || Number(got.value) !== s.amount) && !action.value.trim()) { flash(action); return toast(t('err.action_required'), 'err'); }
             btn.disabled = true;
             try { await call('shifts.receive', { shift_id: s.shift_id, amount: Number(got.value), note: note.value, action: action.value.trim() }); toast(t('saved'), 'ok'); loadWait(); loadPeriod(); }
             catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
           } }, t('tk_receive'));
           return h('div.req-card', h('div.card-head', h('b', h('bdi', name(s.shop_party_id))), h('span', h('bdi', s.cashier)),
             h('span.muted.num', String(s.closed_at).replace('T', ' ').slice(0, 16))),
-            h('p', t('tk_declared'), ': ', h('b', money(s.amount) + ' QR'), s.note ? h('small.muted', ' · ' + s.note) : ''),
+            h('p', t('tk_declared'), ': ', s.undeclared ? h('b.err-text', t('tk_undeclared')) : h('b', money(s.amount) + ' QR'), s.note ? h('small.muted', ' · ' + s.note) : ''),
             h('div.form-actions', field(t('tk_received'), got), actionField, note, btn));
         }) : [h('p.empty', t('tk_none_waiting'))]));
       } catch (e) { waitBox.replaceChildren(h('p.empty', errText(e))); }

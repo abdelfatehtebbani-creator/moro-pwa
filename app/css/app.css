@@ -774,3 +774,29 @@ tr.send-group th { text-align: start; background: var(--teal-soft, #e6f4f1); pad
 }
 .ex-best { display: inline-flex; gap: 4px; align-items: center; }
 .ex-best i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); display: inline-block; }
+
+/* ---------- the follow-up of the orders ---------- */
+.fu-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.fu-chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.fu-chip b { color: var(--teal); }
+.fu-chip.bad b { color: var(--danger); }
+.fu-chip.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+.fu-chip.on b { color: #fff; }
+.fu-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(170px, 1.4fr) minmax(150px, 1fr); gap: 12px; align-items: center;
+  padding: 12px 14px; border: 1px solid var(--line); border-inline-start: 5px solid var(--ok); border-radius: 12px; background: var(--surface); }
+.fu-row.late { border-inline-start-color: var(--warn); background: linear-gradient(90deg, var(--warn-soft), var(--surface) 40%); }
+.fu-row.very { border-inline-start-color: var(--danger); background: linear-gradient(90deg, var(--danger-soft), var(--surface) 40%); }
+[dir='rtl'] .fu-row.late { background: linear-gradient(270deg, var(--warn-soft), var(--surface) 40%); }
+[dir='rtl'] .fu-row.very { background: linear-gradient(270deg, var(--danger-soft), var(--surface) 40%); }
+.fu-who { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.fu-steps { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.fu-step { height: 8px; border-radius: 999px; background: #e4e8ed; }
+.fu-step.done { background: var(--teal); opacity: .55; }
+.fu-step.now { background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+.fu-row.late .fu-step.now { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.fu-row.very .fu-step.now { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+.fu-now { display: grid; gap: 2px; }
+.fu-age { color: var(--muted); }
+.fu-row.late .fu-age { color: var(--warn); font-weight: 600; }
+.fu-row.very .fu-age { color: var(--danger); font-weight: 700; }
+@media (max-width: 720px) { .fu-row { grid-template-columns: 1fr; gap: 8px; } }

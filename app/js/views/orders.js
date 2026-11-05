@@ -22,7 +22,9 @@ const SHORT_REASONS = ['damaged', 'short_in_trip', 'loading_error', 'other'];
 // the cashier's tabs: a tab shows the orders of these statuses
 const CASHIER_TABS = { new: null, draft: ['draft'], sent: ['sent', 'approved', 'ready', 'in_trip', 'loaded'], delivered: ['delivered'],
   archive: ['received', 'invoiced', 'rejected', 'cancelled'] };
-const APPROVE_TABS = ['sent', 'approved', 'ready', 'diff', 'rejected', ''];
+const APPROVE_TABS = ['follow', 'sent', 'approved', 'ready', 'diff', 'rejected', ''];
+// the stages of an order on the follow-up tab, in order
+const STAGES = ['sent', 'approved', 'ready', 'in_trip', 'loaded', 'delivered', 'received', 'invoiced'];
 const tabs = { orders: 'new', orderapprove: 'sent' };
 let cleanup = null;
 
@@ -41,7 +43,14 @@ export async function render(root, name) {
         if (!sel.value) return flash(sel);
         const btn = e.currentTarget; btn.disabled = true;
         try { await call('orders.shift', { shop: sel.value }); await Data.refresh(); render(root, name); }
-        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+        catch (ex) {
+          btn.disabled = false;
+          if (ex.code !== 'shop_taken') return toast(errText(ex), 'err');
+          // left open by a cashier who signed out: taken over, that shift closes without its amount
+          if (!(await confirm(t('shift_takeover_confirm', { name: ex.detail || '' })))) return;
+          try { await call('orders.shift', { shop: sel.value, takeover: true }); await Data.refresh(); render(root, name); }
+          catch (e2) { toast(errText(e2), 'err'); }
+        }
       } }, t('shift_start')))));
     return;
   }
@@ -93,6 +102,9 @@ export async function render(root, name) {
       else if (o.status in n) n[o.status]++;
     });
     Object.keys(n).forEach((k) => { if (counts[k]) { counts[k].hidden = !n[k]; counts[k].textContent = String(n[k]); } });
+    // late orders on their way (worked out by the server, with the data)
+    const late = Number((Data.boot || {}).follow_late) || 0;
+    if (counts.follow && tab !== 'follow') { counts.follow.hidden = !late; counts.follow.textContent = String(late); }
   }
   const editorBox = h('div');
   const listBox = h('div.req-list');
@@ -270,6 +282,7 @@ export async function render(root, name) {
     if (quiet !== true) listBox.replaceChildren(h('p.empty', '…'));
     try {
       let list;
+      if (approveMode && tab === 'follow') { const f = await call('orders.follow', {}); drawFollow(f); call('orders.list', { limit: 1000 }).then(drawCounts).catch(() => {}); return; }
       if (approveMode) {
         const all = await call('orders.list', { limit: 1000 });
         drawCounts(all);
@@ -285,6 +298,42 @@ export async function render(root, name) {
 
   // a decision on its way: the list is not refreshed under it (a fresh card would offer the button again)
   let busy = 0;
+  // ---------- the follow-up: every order on its way, its stage, how long it has been there, late or not
+  let followFilter = '';
+  function drawFollow(f) {
+    if (counts.follow) { const late = f.orders.filter((x) => x.level !== 'ok').length; counts.follow.hidden = !late; counts.follow.textContent = String(late); }
+    const by = {};
+    f.orders.forEach((x) => { by[x.stage] = (by[x.stage] || 0) + 1; });
+    const lateN = f.orders.filter((x) => x.level !== 'ok').length;
+    const shown = f.orders.filter((x) => !followFilter || (followFilter === 'late' ? x.level !== 'ok' : x.stage === followFilter));
+    const dur = (hrs) => (hrs < 1 ? t('fu_min', { n: Math.round(hrs * 60) }) : hrs < 48 ? t('fu_h', { n: Math.round(hrs * 10) / 10 }) : t('fu_d', { n: Math.round(hrs / 24) }));
+    const chip = (k, label, n, cls) => h('button', { type: 'button', class: 'fu-chip ' + (cls || '') + (followFilter === k ? ' on' : ''),
+      onclick: () => { followFilter = followFilter === k ? '' : k; drawFollow(f); } }, h('b.num', String(n)), h('span', label));
+    const row = (x) => {
+      const at = STAGES.indexOf(x.stage);
+      return h('div', { class: 'fu-row ' + x.level },
+        h('div.fu-who', h('b', x.order_no), h('bdi', shopName(x.shop_party_id)), x.kind === 'special' ? h('span.pill.soon', t('special')) : null),
+        h('div.fu-steps', STAGES.map((s, i) => h('span', { class: 'fu-step' + (i < at ? ' done' : i === at ? ' now' : ''), title: t('fu_st_' + s) }))),
+        h('div.fu-now', h('b', t('fu_st_' + x.stage)), x.diff_pending ? h('small.err-text', ' · ' + t('diff_pending')) : null,
+          h('small', { class: 'fu-age' }, t('fu_since', { d: dur(x.hours) }), x.level !== 'ok' ? ' · ' + t('fu_usual', { d: dur(x.limit) }) : '')));
+    };
+    listBox.replaceChildren(
+      h('div.fu-chips', chip('late', t('fu_late'), lateN, lateN ? 'bad' : ''), ...STAGES.filter((s) => by[s]).map((s) => chip(s, t('fu_st_' + s), by[s]))),
+      h('small.muted', t('fu_help')),
+      ...(shown.length ? shown.map(row) : [h('p.empty', t('fu_none'))]),
+      Data.can('orders.setFollowHours') ? followHoursBox(f.hours) : null);
+  }
+  function followHoursBox(hours) {
+    const inputs = {};
+    const box = h('details.fold.home-group', h('summary', h('b', t('fu_hours_title'))), h('small.muted', t('fu_hours_help')),
+      h('div.form-grid', Object.keys(hours).map((k) => { inputs[k] = h('input.input.num.small', { type: 'number', min: 0.5, step: 0.5, value: hours[k] }); return field(t('fu_st_' + k), inputs[k]); })),
+      h('div.form-actions', h('button.btn', { type: 'button', onclick: async () => {
+        const out = {}; Object.keys(inputs).forEach((k) => { out[k] = Number(inputs[k].value); });
+        try { await call('orders.setFollowHours', { hours: out }); toast(t('saved'), 'ok'); loadList(true); } catch (e) { toast(errText(e), 'err'); }
+      } }, t('save'))));
+    return box;
+  }
+
   // a decision on an order is queued on the device and sent in the background (the outbox): the screen does not
   // wait for the server. Until it is sent the card says so and offers no button (no second press); a refusal
   // (someone decided first…) shows in the list of refused saves.

@@ -83,7 +83,7 @@ var CAPS = (function () {
     // every department's lines (and the stores', to see): records for the departments (the production manager)
     'shop.depts':        ['nav.shoporders', 'shop.list', 'shop.depts', 'shop.hand', 'shop.unavailable', 'kind.ISSUE'],
     'orders.create':     ['nav.orders', 'orders.list', 'orders.save', 'orders.cancel', 'orders.shift', 'orders.shiftEnd'],
-    'orders.approve':    ['nav.orderapprove', 'orders.list', 'orders.approve', 'orders.reject', 'orders.closeShort', 'orders.acceptDiff'],
+    'orders.approve':    ['nav.orderapprove', 'orders.list', 'orders.follow', 'orders.approve', 'orders.reject', 'orders.closeShort', 'orders.acceptDiff'],
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
     // special orders: the production manager reads them and sends each special line to a department (or purchasing)
     'orders.route':      ['nav.orderapprove', 'orders.list', 'orders.route', 'orders.reject'],
@@ -155,7 +155,7 @@ var CAPS = (function () {
     'recipes.edit':      ['recipes.save'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle', 'settings.close', 'sales.setChannels'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.154', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات: تبويب "المتابعة" بكل طلبية من إرسالها حتى فوترتها، بمراحلها ومدة مرحلتها ولون التأخر، ورقم المتأخرة على التبويب والقائمة. والكاشير: عند الخروج ونوبته مفتوحة يُطلب منه إنهاؤها بالمبلغ، والكاشير التالي يستطيع استلام محل تُرك مفتوحًا، فتُغلق النوبة دون مبلغ ويكملها المحاسب.'] },
+    en: { news: ['(Development copy) Approve orders: a Follow-up tab with every order from sending to its invoice, its stage, how long it has been there and a colour when late, with the number of late ones on the tab and the menu. The cashier: signing out with a shift open asks to end it with its amount; the next cashier can take over a shop left open, its shift closing without an amount for the accountant to complete.'] },
+  },
+  {
     v: '0.9.153', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) الحسابات: تاريخ بداية للحسابات (يوم التثبيت افتراضيًا)، وتبويب "الرصيد الافتتاحي" يكتب فيه المحاسب ما علينا لكل مورد وما عند كل محل في ذلك اليوم. ما قبل البداية لا يُحسب، فتبدأ الأرصدة من صفر حتى يُكتب الافتتاحي.'] },
     en: { news: ['(Development copy) Accounts: a day the accounts start (the install day by default), and an Opening balances tab where the accountant writes what was owed to each supplier and held by each shop that day. What came before is not counted, so balances start at zero until an opening balance is written.'] },

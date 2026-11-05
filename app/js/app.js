@@ -364,7 +364,8 @@ function updateBadges() {
   document.querySelectorAll('a[data-route="requests"] .badge').forEach((b) => { b.hidden = !r; b.textContent = String(r); });
   document.querySelectorAll('.home-note-req').forEach((x) => { x.hidden = !r; x.textContent = t('open_requests', { n: r }); });
   // sent orders waiting for distribution's approval
-  const o = allowed('orderapprove') ? Number((Data.boot || {}).orders_pending) || 0 : 0;
+  // orders waiting for distribution's approval, and orders late on their way (the follow-up tab)
+  const o = allowed('orderapprove') ? (Number((Data.boot || {}).orders_pending) || 0) + (Number((Data.boot || {}).follow_late) || 0) : 0;
   document.querySelectorAll('a[data-route="orderapprove"] .badge').forEach((b) => { b.hidden = !o; b.textContent = String(o); });
   // orders whose lines this user prepares (their stores, their departments)
   const sp = allowed('shoporders') ? Number((Data.boot || {}).shop_todo) || 0 : 0;
@@ -482,6 +483,19 @@ function toggleLang() {
 }
 
 async function logout() {
+  // a cashier still on shift: the shift is ended with its amount first (or kept open on purpose)
+  if (Data.user && Data.user.shop && Data.can('orders.shiftEnd')) {
+    const res = await dialog((close) => {
+      const amount = h('input.input.num#lo-amount', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' });
+      const note = h('input.input#lo-note');
+      return [h('h3', t('logout_shift_title')), h('p', t('logout_shift_help')),
+        h('div.field', h('label', t('shift_amount')), amount), h('div.field', h('label', t('note')), note),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close('keep') }, t('logout_keep')),
+          h('button.btn', { type: 'button', onclick: () => (amount.value === '' || Number(amount.value) < 0 ? flash(amount) : close({ amount: Number(amount.value), note: note.value.trim() })) }, t('logout_end_shift')))];
+    });
+    if (!res) return;
+    if (res !== 'keep') { try { await call('orders.shiftEnd', res); } catch (e) { toast(errText(e), 'err'); return; } }
+  }
   await Push.signOut();
   session.token = '';
   await kv.clear();

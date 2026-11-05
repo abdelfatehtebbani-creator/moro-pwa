@@ -305,7 +305,18 @@ var Orders = {
       var party = Repo.find('Parties', 'party_id', shop);
       Util.require(party && party.kind === 'shop' && party.active === true, 'shop_invalid');
       var taken = Repo.all('Users').filter(function (x) { return x.user_id !== session.user_id && x.active === true && String(x.shop || '') === shop; })[0];
-      Util.require(!taken, 'shop_taken', taken ? taken.display_name : '');
+      Util.require(!taken || p.takeover === true, 'shop_taken', taken ? taken.display_name : '');
+      var now = Util.nowIso();
+      if (taken) {
+        // the shift the other cashier left open (signed out without ending it): closed now, its amount not declared –
+        // the accountant writes what was received, with the action taken
+        var open = Repo.all('Shifts').filter(function (s) { return s.user_id === taken.user_id && s.shop_party_id === shop && !s.closed_at; }).pop();
+        if (open) Repo.update('Shifts', 'shift_id', open.shift_id, { closed_at: now, amount: '', note: 'Left open: closed when ' + session.user_id + ' took the shop', closed_by: session.user_id });
+        Repo.update('Users', 'user_id', taken.user_id, { shop: '' });
+        Audit.log(session.user_id, 'shift_takeover', 'Users', taken.user_id, null, { shop: shop, shift: open ? open.shift_id : '' });
+        OrderNotify.send([taken.user_id].concat(Push.usersWith('shifts.receive')), session, 'accounts',
+          ['نوبة أُغلقت دون مبلغ', party.name + ': ' + taken.display_name + ' لم يُنهِ نوبته'], ['A shift closed without its amount', party.name + ': ' + taken.display_name + ' did not end the shift']);
+      }
       Repo.update('Users', 'user_id', session.user_id, { shop: shop });
       Repo.append('Shifts', [{ shift_id: 'SH' + Util.pad(Settings.next('seq_shift', 0), 5), user_id: session.user_id, shop_party_id: shop,
         opened_at: Util.nowIso(), closed_at: '', amount: '', note: '', closed_by: '', client_id: '' }]);
@@ -334,6 +345,57 @@ var Orders = {
       return { version: Version.bump() };
     });
   },
+
+  /** The usual hours of each stage (the admin may change them): past it an order is late, past twice it very late. */
+  followHours: function () {
+    var dflt = { sent: 2, approved: 12, ready: 4, in_trip: 6, loaded: 6, delivered: 2, received: 24 };
+    try { var own = JSON.parse(Settings.get('follow_hours', '') || '{}'); Object.keys(own).forEach(function (k) { if (k in dflt && Number(own[k]) > 0) dflt[k] = Number(own[k]); }); } catch (e) { /* the defaults */ }
+    return dflt;
+  },
+
+  setFollowHours: function (session, p) {
+    var cur = Orders.followHours(), out = {};
+    Object.keys(cur).forEach(function (k) { var v = Util.num((p.hours || {})[k]); out[k] = v !== null && v > 0 ? Util.round(v) : cur[k]; });
+    return withLock(function () {
+      Settings.set('follow_hours', JSON.stringify(out));
+      Audit.log(session.user_id, 'follow_hours', 'Settings', 'follow_hours', cur, out);
+      return { hours: out, version: Version.bump() };
+    });
+  },
+
+  /**
+   * Every order on its way (sent and not invoiced yet): its stage, since when, and whether it is late.
+   * [{order_id, order_no, shop_party_id, kind, stage, since, hours, limit, level: ok|late|very}], the latest first.
+   */
+  follow: function () {
+    var limits = Orders.followHours(), now = new Date().getTime();
+    var trips = {};
+    Repo.all('Trips').forEach(function (t) { trips[t.trip_id] = t; });
+    var lines = Repo.groupBy('ShopOrderLines', 'order_id');
+    var out = [];
+    Repo.all('Orders').forEach(function (o) {
+      if (['draft', 'rejected', 'cancelled', 'invoiced'].indexOf(o.status) >= 0 || !o.sent_at) return;
+      var v = Orders.view(o), stage = v.status, since = '';
+      if (stage === 'sent') since = o.sent_at;
+      else if (stage === 'approved') since = o.decided_at;
+      else if (stage === 'ready') since = (lines[o.order_id] || []).map(function (l) { return String(l.handed_at || l.updated_at || ''); }).sort().pop() || o.decided_at;
+      else if (stage === 'in_trip') since = (trips[o.trip_id] || {}).created_at || o.updated_at;
+      else if (stage === 'loaded') since = o.loaded_at;
+      else if (stage === 'delivered') since = o.delivered_at;
+      else if (stage === 'received') since = o.received_at;
+      if (!since || !(stage in limits)) return;
+      var t0 = new Date(String(since).length === 19 ? since + '+03:00' : since).getTime();
+      var hours = Math.max(0, Math.round((now - t0) / 36e5 * 10) / 10);
+      var limit = limits[stage];
+      out.push({ order_id: o.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, kind: o.kind || '', stage: stage, since: since,
+        hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending' });
+    });
+    var rank = { very: 0, late: 1, ok: 2 };
+    return { hours: limits, orders: out.sort(function (a, b) { return rank[a.level] - rank[b.level] || b.hours - a.hours; }) };
+  },
+
+  /** How many orders are late (the number on the follow-up tab and the menu). */
+  followLate: function () { return Orders.follow().orders.filter(function (x) { return x.level !== 'ok'; }).length; },
 
   /** Orders waiting for distribution (the badge): sent, to approve; being prepared with a line short, to decide. */
   /** Special orders waiting for the production manager. */

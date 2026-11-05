@@ -614,3 +614,32 @@ test('accounts start at zero: what came before the start day is replaced by the 
   assert.deepEqual([s.lines[0].kind, s.closing], ['opening', -40], 'we owe 40');
   assert.equal(g.api('accounts.setStart', { date: '2026-06-01' }, tok.acc).error.code, 'forbidden', 'the start day is the admin\'s');
 });
+
+test('a shop left open: the next cashier takes it over; the shift closes without its amount, the accountant completes it', () => {
+  const { g, tok, user } = env();
+  user('acc', 'accountant');
+  user('cashtwo', 'cashier');
+  g.api('orders.shift', { shop: 'P003' }, tok.cashtwo);   // forgets to end it
+  g.api('users.save', { user_id: g.rows('Users').find((u) => u.username === 'cashier').user_id, shop: '' }, tok.admin);
+  const tokC = g.api('auth.login', { username: 'cashier', pin: '5678' }).data.token;
+  assert.equal(g.api('orders.shift', { shop: 'P003' }, tokC).error.code, 'shop_taken');
+  assert.equal(g.api('orders.shift', { shop: 'P003', takeover: true }, tokC).ok, true);
+  const w = g.api('shifts.list', { waiting: true }, tok.acc).data;
+  assert.deepEqual(w.map((s) => [s.shop_party_id, s.undeclared]), [['P003', true]]);
+  assert.equal(g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 0 }, tok.acc).error.code, 'action_required');
+  assert.equal(g.api('shifts.receive', { shift_id: w[0].shift_id, amount: 350, action: 'counted with the cashier' }, tok.acc).ok, true);
+});
+
+test('follow-up: every order on its way with its stage; late past the usual time', () => {
+  const { g, tok } = env();
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+  let f = g.api('orders.follow', {}, tok.dist).data;
+  assert.deepEqual(f.orders.map((x) => [x.order_no, x.stage, x.level]), [[o.order_no, 'sent', 'ok']]);
+  // sent three hours ago (usual 2): late
+  const sh = g.spreadsheet.sheets.Orders.data;
+  sh[1][sh[0].indexOf('sent_at')] = new Date(Date.now() - 3 * 36e5).toISOString();
+  g.run('Repo.reset()');
+  f = g.api('orders.follow', {}, tok.dist).data;
+  assert.equal(f.orders[0].level, 'late');
+  assert.equal(g.api('data.bootstrap', {}, tok.dist).data.follow_late, 1);
+});
