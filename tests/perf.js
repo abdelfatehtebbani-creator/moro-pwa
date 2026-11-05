@@ -104,3 +104,7 @@ const gv = RP2.getValues; RP2.getValues = function (...a) { seen.push(this.sheet
 g.api('orders.save', { lines: items.slice(0, 5).map((id) => ({ item_id: id, qty: 1 })), send: true }, users.cash);
 console.log('orders.save reads:', seen.join(', '));
 measure('accounts.balances', () => g.api('accounts.balances', {}, admin));
+const it0 = g.rows('Items')[0];
+measure('items.save (edit min)', () => g.api('items.save', { item_id: it0.item_id, min_stock: 3 }, admin));
+measure('items.save (new)', () => g.api('items.save', { name: 'PERF NEW ITEM', store: 'DRY', unit: 'KG' }, admin));
+measure('parties.save (new)', () => g.api('parties.save', { name: 'PERF SUPPLIER', kind: 'supplier' }, admin));

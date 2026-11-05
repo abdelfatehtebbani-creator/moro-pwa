@@ -31,13 +31,16 @@ function watch(fill) {
 
 export function dispose() { if (cleanup) cleanup(); }
 
+// the window closes as soon as the server has saved; the data on the device is read again in the background
+// (the list follows when it arrives) instead of keeping the window open for a second slow request
+const refreshSoon = (then) => Data.refresh().then(() => { if (then) then(); }).catch(() => { /* the next sync */ });
 async function save(action, payload, close, err, after) {
   try {
     await call(action, payload);
-    await Data.refresh();
     toast(t('saved'), 'ok');
     close(true);
     if (after) after();
+    refreshSoon();
   } catch (e) { err.textContent = errText(e); }
 }
 
@@ -176,7 +179,7 @@ function items(body, isAdmin) {
       if (ci < 0 || ai < 0) { toast(t('names_ar_bad_file'), 'err'); return; }
       const names = rows.filter((r) => r[ci] && Data.items.has(r[ci].trim())).map((r) => ({ item_id: r[ci].trim(), name_ar: (r[ai] || '').trim() }));
       if (!names.length) { toast(t('names_ar_bad_file'), 'err'); return; }
-      try { const r = await call('items.namesAr', { names }); toast(t('names_ar_saved', { n: r.changed }), 'ok'); await Data.refresh(); fill(); }
+      try { const r = await call('items.namesAr', { names }); toast(t('names_ar_saved', { n: r.changed }), 'ok'); refreshSoon(fill); }
       catch (e) { toast(errText(e), 'err'); }
     });
     file.click();
@@ -267,7 +270,7 @@ async function convertUnit(it, preset) {
     h('p.muted', t('convert_history', { n: pv.movements, f: pv.factor })),
     h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('convert_now')))]);
   if (!go) return;
-  try { await call('items.convertUnit', { item_id: it.item_id, ...asked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+  try { await call('items.convertUnit', { item_id: it.item_id, ...asked }); toast(t('saved'), 'ok'); refreshSoon(); }
   catch (e) { toast(errText(e), 'err'); }
 }
 
@@ -315,7 +318,7 @@ function units(body, isAdmin) {
       const box = h('input', { type: 'checkbox', checked: u.active !== false, disabled: !isAdmin, 'aria-label': t('active') });
       box.addEventListener('change', async () => {
         box.disabled = true;
-        try { await call('units.save', { unit: u.unit, active: box.checked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+        try { await call('units.save', { unit: u.unit, active: box.checked }); toast(t('saved'), 'ok'); refreshSoon(); }
         catch (e) { box.checked = !box.checked; toast(errText(e), 'err'); }
         box.disabled = false;
       });
@@ -326,7 +329,7 @@ function units(body, isAdmin) {
   const unit = trackFilled(h('input.input#e-newunit', { autocapitalize: 'characters', placeholder: 'TRAY' }));
   const add = async () => {
     if (!unit.value.trim()) return flash(unit);
-    try { await call('units.save', { unit: unit.value }); unit.value = ''; await Data.refresh(); toast(t('saved'), 'ok'); fill(); }
+    try { await call('units.save', { unit: unit.value }); unit.value = ''; toast(t('saved'), 'ok'); refreshSoon(fill); }
     catch (e) { toast(errText(e), 'err'); flash(unit); }
   };
   unit.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
@@ -365,7 +368,7 @@ function recipes(body) {
     if (!product.value.trim()) return flash(product);
     try {
       await call('recipes.save', { product: product.value.trim(), lines });
-      await Data.refresh();
+      refreshSoon();
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
   };

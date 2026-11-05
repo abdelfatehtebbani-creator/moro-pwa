@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.151', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) المواد والموردون: نافذة الحفظ تُغلق حالما يحفظ الخادم، وتُقرأ البيانات من جديد في الخلفية بدل انتظار طلب ثانٍ بطيء.'] },
+    en: { news: ['(Development copy) Items and suppliers: the save window closes as soon as the server has saved; the data is read again in the background instead of waiting for a second slow request.'] },
+  },
+  {
     v: '0.9.150', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) القسم الإنتاجي: إن لم يكفِ رصيد منتج القسم للطلبيات يظهر الرقم على "الإنتاج" والإشعار "إنتاج مطلوب"، وبعد الإنتاج ينتقل الرقم إلى "تجهيز الطلبيات" مع إشعار "جاهز للتجهيز".'] },
     en: { news: ['(Development copy) Producing departments: when a department product\u2019s stock does not cover the orders, the number shows on Production with a Production needed message; once made, the number moves to Prepare orders with a Ready to prepare message.'] },
