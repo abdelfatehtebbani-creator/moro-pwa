@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.155', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) المواد: زر "استيراد المنتجات" للمدير، يقرأ قائمة أسعار (ملف CSV: القسم، الاسم، الاسم العربي، الوحدة، السعر) ويعرض قبل الحفظ ما سيُضاف وما سيُحدّث وما يُترك، ثم يحفظها دفعة واحدة. القسم غير الموجود يُنشأ قسمًا منتجًا، والاسم الذي لمادة خام لا يتحول إلى منتج.'] },
+    en: { news: ['(Development copy) Materials: an "Import products" button for the admin reads a price list (a CSV file: department, name, Arabic name, unit, price), shows what will be added, updated or left out, then saves it at once. A missing department is created as a producing one; a name used by a raw material is never turned into a product.'] },
+  },
+  {
     v: '0.9.154', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) اعتماد الطلبيات: تبويب "المتابعة" بكل طلبية من إرسالها حتى فوترتها، بمراحلها ومدة مرحلتها ولون التأخر، ورقم المتأخرة على التبويب والقائمة. والكاشير: عند الخروج ونوبته مفتوحة يُطلب منه إنهاؤها بالمبلغ، والكاشير التالي يستطيع استلام محل تُرك مفتوحًا، فتُغلق النوبة دون مبلغ ويكملها المحاسب.'] },
     en: { news: ['(Development copy) Approve orders: a Follow-up tab with every order from sending to its invoice, its stage, how long it has been there and a colour when late, with the number of late ones on the tab and the menu. The cashier: signing out with a shift open asks to end it with its amount; the next cashier can take over a shop left open, its shift closing without an amount for the accountant to complete.'] },

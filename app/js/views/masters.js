@@ -184,8 +184,44 @@ function items(body, isAdmin) {
     });
     file.click();
   };
+  // final products from a price list (CSV: dept, name, name_ar, unit, price): checked first, then saved at once
+  const importItems = async () => {
+    const file = h('input', { type: 'file', accept: '.csv,text/csv' });
+    file.addEventListener('change', async () => {
+      const f = file.files[0];
+      if (!f) return;
+      const all = csvRows(await f.text());
+      const head = (all.shift() || []).map((x) => x.trim().toLowerCase());
+      const col = (k) => head.indexOf(k);
+      if (col('name') < 0 || col('dept') < 0) { toast(t('import_bad_file'), 'err'); return; }
+      const rows = all.map((r) => ({ dept: r[col('dept')] || '', name: r[col('name')] || '', name_ar: col('name_ar') >= 0 ? r[col('name_ar')] || '' : '',
+        unit: col('unit') >= 0 ? r[col('unit')] || '' : '', price: col('price') >= 0 ? r[col('price')] || '' : '' }));
+      let pv;
+      try { pv = await call('items.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+      const c = pv.counts || {};
+      const tag = (a) => h('span.pill.imp-' + a, t('imp_' + a));
+      const go = await dialog((close) => [h('h3', t('import_items')),
+        h('p', t('import_summary', { n: c.new || 0, u: c.update || 0, s: c.same || 0, x: (c.conflict || 0) + (c.dup || 0) + (c.bad || 0) })),
+        pv.new_depts.length ? h('p', t('import_new_depts'), ' ', h('b', pv.new_depts.join('، '))) : null,
+        pv.prices ? null : h('p.muted', t('import_no_prices')),
+        h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('department')), h('th', t('unit')), h('th', t('final_price')), h('th', ''))),
+          h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : null),
+            h('td', l.dept), h('td', l.unit, l.unit_differs ? h('small.muted', ' (' + l.unit_differs + ')') : null), h('td.num', l.price === '' ? '—' : fmtNum(l.price)),
+            h('td', tag(l.action), l.action === 'conflict' ? h('small.muted', ' ' + t('imp_conflict_help', { s: l.why })) : l.action === 'dup' ? h('small.muted', ' #' + l.why) : null)))))),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+          h('button.btn', { type: 'button', disabled: !(c.new || c.update), onclick: () => close(true) }, t('import_save')))]);
+      if (!go) return;
+      try {
+        const r = await call('items.import', { rows, apply: true });
+        toast(t('import_done', { n: r.created, u: r.updated, d: r.departments }), 'ok');
+        refreshSoon(fill);
+      } catch (e) { toast(errText(e), 'err'); }
+    });
+    file.click();
+  };
   body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
-      Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null),
+      Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
+      Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
       h('th', t('min_stock')), h('th', t('balance')), h('th', ''))), tb)));

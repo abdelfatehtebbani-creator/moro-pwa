@@ -141,7 +141,7 @@ var CAPS = (function () {
     'items.min':         ['items.save', 'min_stock'],
     'items.packaging':   ['items.save', 'packaging'],
     'items.convert':     ['items.convertUnit'],
-    'items.final_price': ['items.save', 'final_price'],
+    'items.final_price': ['items.save', 'final_price', 'items.import'],
     'parties.view':      ['nav.masters', 'tab.parties'],
     'parties.add':       ['parties.save'],
     'parties.rename':    ['parties.save', 'rename.parties'],

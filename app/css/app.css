@@ -173,6 +173,11 @@ tr.click { cursor: pointer; }
 .pill.st-chilled { background: var(--chilled-soft); color: var(--chilled); }
 .pill.st-pack { background: var(--pack-soft); color: var(--pack); }
 .pill.st-final { background: var(--final-soft); color: var(--final); }
+/* the lines of a price list being imported */
+.pill.imp-new { background: var(--food-soft); color: var(--food); }
+.pill.imp-update { background: var(--final-soft); color: var(--final); }
+.pill.imp-same { background: var(--line, #eee); color: var(--muted, #666); }
+.pill.imp-conflict, .pill.imp-dup, .pill.imp-bad { background: #fde8e8; color: #b42318; }
 .pill.st-clean { background: var(--clean-soft); color: var(--clean); }
 .pill.low { background: var(--danger-soft); color: var(--danger); }
 .pill.soon { background: var(--warn-soft); color: var(--warn); }

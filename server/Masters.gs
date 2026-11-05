@@ -420,6 +420,99 @@ Masters.namesAr = function (session, p) {
   });
 };
 
+/**
+ * Final products from a price list, at once: p.rows [{dept, name, name_ar, unit, price}], p.apply.
+ * Without apply it only says what would happen (the admin checks first). A department is found by its
+ * name, or made (a producing department); a product is found by its name (or an old name): its
+ * department, Arabic name and price are updated; a new one goes to the FINAL store. A name already
+ * used by a raw material is never turned into a product: that line is left for the admin.
+ */
+Masters.UNIT_ALIASES = { 'PC/PCS': 'PC', 'PCS': 'PC', 'PIECE': 'PC', 'LRT': 'L', 'LTR': 'L' };
+Masters.importItems = function (session, p) {
+  var rows = (p.rows || []).slice(0, 2000);
+  Util.require(rows.length, 'nothing_to_save');
+  var prices = Perm.has(session, 'final_price');
+  var run = function () {
+    var depts = {}, byName = {}, seen = {}, plan = [], newDepts = [];
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'section') depts[Util.key(x.name)] = x; });
+    Repo.all('Items').forEach(function (i) {
+      byName[Util.key(i.name)] = i;
+      String(i.aliases || '').split(' | ').filter(String).forEach(function (a) { if (!byName[Util.key(a)]) byName[Util.key(a)] = i; });
+    });
+    rows.forEach(function (r, ix) {
+      var line = { line: ix + 1, name: Util.clean(r && r.name), name_ar: Util.clean(r && r.name_ar), dept: Util.clean(r && r.dept) };
+      var u = Util.clean(r && r.unit).toUpperCase();
+      line.unit = Masters.UNIT_ALIASES[u] || u;
+      var price = r && r.price !== undefined && r.price !== null && String(r.price).trim() !== '' ? Util.num(r.price) : '';
+      line.price = price;
+      plan.push(line);
+      if (!line.name || !line.dept) { line.action = 'bad'; line.why = 'name_dept_required'; return; }
+      if (price === null || (price !== '' && price < 0)) { line.action = 'bad'; line.why = 'price_invalid'; return; }
+      var k = Util.key(line.name);
+      if (seen[k]) { line.action = 'dup'; line.why = String(seen[k]); return; }
+      seen[k] = line.line;
+      if (!depts[Util.key(line.dept)]) { depts[Util.key(line.dept)] = { party_id: '', name: line.dept, kind: 'section' }; newDepts.push(line.dept); }
+      var cur = byName[k];
+      if (!cur) {
+        if (!line.unit) { line.action = 'bad'; line.why = 'unit_required'; return; }
+        line.action = 'new';
+        return;
+      }
+      line.item_id = cur.item_id;
+      if (Stores.of(cur) !== 'FINAL') { line.action = 'conflict'; line.why = Stores.of(cur); return; }
+      var d = depts[Util.key(line.dept)], ch = [];
+      if (String(cur.dept || '') !== String(d.party_id || '-')) ch.push('dept');
+      if (line.name_ar && line.name_ar !== String(cur.name_ar || '')) ch.push('name_ar');
+      if (prices && price !== '' && String(price) !== String(cur.final_price === undefined ? '' : cur.final_price)) ch.push('price');
+      if (line.unit && line.unit !== String(cur.unit || '').toUpperCase()) line.unit_differs = String(cur.unit);
+      line.action = ch.length ? 'update' : 'same';
+      line.changes = ch;
+    });
+    var counts = {};
+    plan.forEach(function (l) { counts[l.action] = (counts[l.action] || 0) + 1; });
+    var res = { plan: plan, new_depts: newDepts, counts: counts, prices: prices };
+    if (!p.apply) return res;
+
+    Perm.require(session, 'add_items');
+    var n = 0, np = 0, now = Util.nowIso(), created = [], updated = [];
+    Repo.column('Parties', 'party_id').forEach(function (id) { np = Math.max(np, Number(String(id).slice(1)) || 0); });
+    var parties = newDepts.map(function (name) {
+      var party = { party_id: 'P' + Util.pad(++np, 3), name: name, kind: 'section', active: true, producing: true };
+      depts[Util.key(name)] = party;
+      return party;
+    });
+    if (parties.length) Repo.append('Parties', parties);
+    Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
+    var items = [];
+    plan.forEach(function (l) {
+      var d = depts[Util.key(l.dept)];
+      if (l.action === 'new') {
+        var item = { item_id: 'I' + Util.pad(++n, 4), name: l.name, category: Stores.categoryOf('FINAL'), unit: l.unit, min_stock: 0, image: '',
+                     active: true, aliases: '', created_at: now, store: 'FINAL', pack_units: '', report_unit: '', sale_price: '', shop_orderable: false,
+                     store_unit: '', final_price: prices && l.price !== '' ? Util.round(l.price) : '', name_ar: l.name_ar, dept: d.party_id };
+        items.push(item);
+        l.item_id = item.item_id;
+        created.push(item.item_id);
+      } else if (l.action === 'update') {
+        var ch = { dept: d.party_id };
+        if (l.changes.indexOf('name_ar') >= 0) ch.name_ar = l.name_ar;
+        if (l.changes.indexOf('price') >= 0) ch.final_price = Util.round(l.price);
+        Repo.update('Items', 'item_id', l.item_id, ch);
+        updated.push(l.item_id);
+      }
+    });
+    if (items.length) Repo.append('Items', items);
+    Audit.log(session.user_id, 'items_import', 'Items', '', null,
+      { created: created, updated: updated, departments: parties.map(function (x) { return x.party_id; }), counts: counts });
+    res.created = created.length;
+    res.updated = updated.length;
+    res.departments = parties.length;
+    res.version = Version.bump();
+    return res;
+  };
+  return p.apply ? withLock(run) : run();
+};
+
 /** A department (a section party) for a final product, or '' (checked). */
 Masters.deptOf = function (id) {
   id = String(id || '');
