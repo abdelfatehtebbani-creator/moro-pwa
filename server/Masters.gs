@@ -428,13 +428,31 @@ Masters.namesAr = function (session, p) {
  * used by a raw material is never turned into a product: that line is left for the admin.
  */
 Masters.UNIT_ALIASES = { 'PC/PCS': 'PC', 'PCS': 'PC', 'PIECE': 'PC', 'LRT': 'L', 'LTR': 'L' };
+/** The ways a department is written: "Section (الكنافة) Kunafa", "Kunafa" and "الكنافة" are the same one. */
+Masters.deptKeys = function (name) {
+  var s = String(name || ''), keys = [Util.key(s)];
+  var inside = (s.match(/\(([^)]*)\)/) || [])[1];
+  if (inside && Util.key(inside)) keys.push(Util.key(inside));
+  var outside = Util.key(s.replace(/\([^)]*\)/g, ' ').replace(/\bsection\b/ig, ' '));
+  if (outside) keys.push(outside);
+  return keys;
+};
 Masters.importItems = function (session, p) {
   var rows = (p.rows || []).slice(0, 2000);
   Util.require(rows.length, 'nothing_to_save');
   var prices = Perm.has(session, 'final_price');
   var run = function () {
-    var depts = {}, byName = {}, seen = {}, plan = [], newDepts = [];
-    Repo.all('Parties').forEach(function (x) { if (x.kind === 'section') depts[Util.key(x.name)] = x; });
+    var depts = {}, byName = {}, seen = {}, plan = [], newDepts = [], sections = [];
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'section') { depts[Util.key(x.name)] = x; sections.push(x); } });
+    // a department written another way in the list is the existing one (unless it could be two)
+    var findDept = function (name) {
+      if (depts[Util.key(name)]) return depts[Util.key(name)];
+      var mine = Masters.deptKeys(name);
+      var hits = sections.filter(function (x) { return Masters.deptKeys(x.name).some(function (k) { return mine.indexOf(k) >= 0; }); });
+      if (hits.length > 1) return 'ambiguous';
+      if (hits.length) depts[Util.key(name)] = hits[0];
+      return hits[0] || null;
+    };
     Repo.all('Items').forEach(function (i) {
       byName[Util.key(i.name)] = i;
       String(i.aliases || '').split(' | ').filter(String).forEach(function (a) { if (!byName[Util.key(a)]) byName[Util.key(a)] = i; });
@@ -451,7 +469,11 @@ Masters.importItems = function (session, p) {
       var k = Util.key(line.name);
       if (seen[k]) { line.action = 'dup'; line.why = String(seen[k]); return; }
       seen[k] = line.line;
-      if (!depts[Util.key(line.dept)]) { depts[Util.key(line.dept)] = { party_id: '', name: line.dept, kind: 'section' }; newDepts.push(line.dept); }
+      var found = findDept(line.dept);
+      if (found === 'ambiguous') { line.action = 'bad'; line.why = 'dept_ambiguous'; return; }
+      if (!found) { depts[Util.key(line.dept)] = { party_id: '', name: line.dept, kind: 'section' }; newDepts.push(line.dept); }
+      line.dept_id = depts[Util.key(line.dept)].party_id;
+      line.dept_name = depts[Util.key(line.dept)].name;
       var cur = byName[k];
       if (!cur) {
         if (!line.unit) { line.action = 'bad'; line.why = 'unit_required'; return; }

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.156', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) استيراد المنتجات: القسم يُعرف بأي طريقة كُتب بها ("Kunafa" أو "الكنافة" أو "Section (الكنافة) Kunafa")، فيذهب المنتج إلى القسم الموجود ولا يُنشأ قسم مكرر. المعاينة تُظهر القسم الذي طابقه برقمه.'] },
+    en: { news: ['(Development copy) Import products: a department is recognised however it is written ("Kunafa", "الكنافة" or "Section (الكنافة) Kunafa"), so the product goes to the existing one and no duplicate is made. The preview shows the department matched, with its ID.'] },
+  },
+  {
     v: '0.9.155', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) المواد: زر "استيراد المنتجات" للمدير، يقرأ قائمة أسعار (ملف CSV: القسم، الاسم، الاسم العربي، الوحدة، السعر) ويعرض قبل الحفظ ما سيُضاف وما سيُحدّث وما يُترك، ثم يحفظها دفعة واحدة. القسم غير الموجود يُنشأ قسمًا منتجًا، والاسم الذي لمادة خام لا يتحول إلى منتج.'] },
     en: { news: ['(Development copy) Materials: an "Import products" button for the admin reads a price list (a CSV file: department, name, Arabic name, unit, price), shows what will be added, updated or left out, then saves it at once. A missing department is created as a producing one; a name used by a raw material is never turned into a product.'] },

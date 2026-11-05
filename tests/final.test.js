@@ -74,3 +74,16 @@ test('a price list imported at once: checked first, departments made, products a
   const again = g.api('items.import', { rows }, tok.admin).data;
   assert.deepEqual(again.plan.map((l) => l.action), ['same', 'same', 'conflict', 'dup', 'same']);
 });
+
+test('a price list: a department written another way is the existing one', () => {
+  const { g, tok } = env();
+  g.api('parties.save', { name: 'Section (الكنافة) Kunafa', kind: 'section', producing: true }, tok.admin);
+  g.api('parties.save', { name: '(المخبز و المعجنات)Bakery', kind: 'section', producing: true }, tok.admin);
+  const rows = [{ dept: 'Kunafa', name: 'NAMA', unit: 'KG' }, { dept: 'Section (المخبز و المعجنات) Bakery', name: 'SAMOON', unit: 'BAG' },
+                { dept: 'الكنافة', name: 'KISHNA', unit: 'KG' }, { dept: 'Section (المطبخ) Kitchen', name: 'HUMUS', unit: 'KG' }];
+  const pv = g.api('items.import', { rows }, tok.admin).data;
+  assert.deepEqual(pv.plan.map((l) => l.dept_name), ['Section (الكنافة) Kunafa', '(المخبز و المعجنات)Bakery', 'Section (الكنافة) Kunafa', 'Section (المطبخ) Kitchen']);
+  assert.deepEqual(pv.new_depts, ['Section (المطبخ) Kitchen']);
+  g.api('items.import', { rows, apply: true }, tok.admin);
+  assert.equal(g.rows('Parties').filter((x) => x.kind === 'section').length, 3);
+});

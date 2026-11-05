@@ -206,7 +206,7 @@ function items(body, isAdmin) {
         pv.prices ? null : h('p.muted', t('import_no_prices')),
         h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('department')), h('th', t('unit')), h('th', t('final_price')), h('th', ''))),
           h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : null),
-            h('td', l.dept), h('td', l.unit, l.unit_differs ? h('small.muted', ' (' + l.unit_differs + ')') : null), h('td.num', l.price === '' ? '—' : fmtNum(l.price)),
+            h('td', l.dept_name || l.dept, l.dept_id ? h('small.muted', ' ' + l.dept_id) : l.dept_name ? h('small.muted', ' ' + t('imp_new')) : null), h('td', l.unit, l.unit_differs ? h('small.muted', ' (' + l.unit_differs + ')') : null), h('td.num', l.price === '' ? '—' : fmtNum(l.price)),
             h('td', tag(l.action), l.action === 'conflict' ? h('small.muted', ' ' + t('imp_conflict_help', { s: l.why })) : l.action === 'dup' ? h('small.muted', ' #' + l.why) : null)))))),
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
           h('button.btn', { type: 'button', disabled: !(c.new || c.update), onclick: () => close(true) }, t('import_save')))]);
