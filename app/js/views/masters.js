@@ -55,7 +55,22 @@ function items(body, isAdmin) {
   const showPrice = Data.can('see_prices') || Data.can('final_price');
   const priceOf = (i) => (i.final_price === '' || i.final_price === undefined || i.final_price === null ? '' : Number(i.final_price));
   // the price list of the department chosen (or of every department), printed
-  const printPrices = () => {
+  // the columns printed are chosen first (remembered on this device)
+  const PRINT_COLS = [['id', 'ID', (i) => i.item_id], ['name', 'Product', (i) => i.name], ['name_ar', 'الاسم', (i) => i.name_ar || ''],
+    ['unit', 'Unit', (i) => i.unit], ['price', 'Price', (i) => (priceOf(i) === '' ? '—' : fmtNum(priceOf(i)))]];
+  const choosePrint = async () => {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('moro.priceCols') || 'null'); } catch (e) { /* none */ }
+    const boxes = PRINT_COLS.map(([k]) => h('input', { type: 'checkbox', checked: !saved || saved.includes(k) }));
+    const cols = await dialog((close) => [h('h3', t('price_list_print')), h('p', t('price_list_cols')),
+      PRINT_COLS.map(([k, label], ix) => h('label.check', boxes[ix], ' ', t('pcol_' + k))),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+        h('button.btn', { type: 'button', onclick: () => { const on = PRINT_COLS.filter((c, ix) => boxes[ix].checked).map((c) => c[0]); if (on.length) close(on); else flash(boxes[0]); } }, t('print')))]);
+    if (!cols) return;
+    try { localStorage.setItem('moro.priceCols', JSON.stringify(cols)); } catch (e) { /* private mode */ }
+    printPrices(PRINT_COLS.filter((c) => cols.includes(c[0])));
+  };
+  const printPrices = (cols) => {
     const depts = deptFilter.value ? [Data.parties.get(deptFilter.value)].filter(Boolean) : Data.producingDepts();
     const groups = depts.map((d) => ({ d, rows: [...Data.items.values()].filter((i) => i.active === true && String(i.dept || '') === d.party_id)
       .sort((a, b) => a.name.localeCompare(b.name)) })).filter((g) => g.rows.length);
@@ -63,9 +78,8 @@ function items(body, isAdmin) {
     const area = h('div#print-area', { dir: 'ltr' }, h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', 'Inventory Management System'),
       h('div.pr-title', 'Price list'), h('div.pr-meta', h('b', deptFilter.value ? groups[0].d.name : 'All departments'), h('span', 'Printed: ' + new Date().toLocaleString('en-GB'))),
       groups.map((g) => [groups.length > 1 ? h('div.pr-title', g.d.name) : null,
-        h('table.pr-table', h('thead', h('tr', h('th', 'ID'), h('th', 'Product'), h('th', 'الاسم'), h('th', 'Unit'), h('th', 'Price'))),
-          h('tbody', g.rows.map((i) => h('tr', h('td', i.item_id), h('td', i.name), h('td', { dir: 'rtl' }, i.name_ar || ''), h('td', i.unit),
-            h('td.num', priceOf(i) === '' ? '—' : fmtNum(priceOf(i))))))),
+        h('table.pr-table', h('thead', h('tr', cols.map((c) => h('th', c[1])))),
+          h('tbody', g.rows.map((i) => h('tr', cols.map(([k, , v]) => h('td', k === 'price' ? { class: 'num' } : k === 'name_ar' ? { dir: 'rtl' } : {}, v(i))))))),
         h('div.pr-count', 'Number of products: ' + g.rows.length)]));
     document.body.append(area);
     const done = () => { area.remove(); window.removeEventListener('afterprint', done); };
@@ -243,7 +257,7 @@ function items(body, isAdmin) {
   body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
       Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
-      showPrice ? h('button.btn.secondary', { type: 'button', onclick: printPrices }, t('price_list_print')) : null),
+      showPrice ? h('button.btn.secondary', { type: 'button', onclick: choosePrint }, t('price_list_print')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
       showPrice ? h('th', t('price')) : null, h('th', t('balance')), h('th', ''))), tb)));

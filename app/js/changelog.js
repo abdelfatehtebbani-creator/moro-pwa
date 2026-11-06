@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.158', date: '2026-11-06',
+    ar: { news: ['(نسخة التطوير) طباعة قائمة الأسعار: تختار قبلها الأعمدة التي تُطبع (الرقم، الاسم الإنجليزي، الاسم العربي، الوحدة، السعر)، ويُحفظ اختيارك.'] },
+    en: { news: ['(Development copy) Printing the price list: choose the columns first (ID, English name, Arabic name, unit, price); your choice is kept.'] },
+  },
+  {
     v: '0.9.157', date: '2026-11-06',
     ar: { news: ['(نسخة التطوير) المواد: عمود "السعر" بدل الحد الأدنى في القائمة، وزر "طباعة قائمة الأسعار" للقسم المختار (أو لكل الأقسام).'] },
     en: { news: ['(Development copy) Materials: a Price column in place of the minimum in the list, and a "Print the price list" button for the department chosen (or every department).'] },
