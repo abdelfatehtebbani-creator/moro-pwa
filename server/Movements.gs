@@ -11,9 +11,15 @@
 var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1, DISPOSAL: -1 };
 var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN', 'DISPOSAL'];
 var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'discount_kind', 'final_amount',
-                'doc_no', 'location', 'expiry', 'purpose', 'image'];
+                'doc_no', 'location', 'expiry', 'purpose', 'image', 'lpo_no'];
 
 var Movements = {
+  checkLpo: function (m) {
+    if (!m.lpo_no) return;
+    var l = Repo.all('LPOs').filter(function (x) { return String(x.lpo_no) === String(m.lpo_no); })[0];
+    Util.require(l && l.status === 'approved' && l.party_id === m.party_id, 'lpo_unknown', m.lpo_no);
+  },
+
   /** Validates one movement (fields already normalised) and returns an error code or ''. */
   validate: function (m) {
     Util.require(Util.isDate(m.date), 'date_invalid');
@@ -67,6 +73,8 @@ var Movements = {
       // the net amount is always derived from amount and discount
       final_amount: amount === null ? '' : Movements.net(amount, discount, dkind),
       doc_no: Util.clean(src.doc_no),
+      // a receipt may name the purchase order it answers (an approved LPO of the same supplier)
+      lpo_no: src.kind === 'RECEIPT' ? Util.clean(src.lpo_no) : '',
       location: Util.clean(src.location),
       expiry: String(src.expiry || ''),
       purpose: Util.clean(src.purpose),
@@ -161,14 +169,18 @@ var Movements = {
           return;
         }
         Util.require(kinds.indexOf(src.kind) >= 0, 'kind_invalid', src.kind);
-        Perm.canKind(session, src.kind);
+        // '_checked': the caller (shop orders) checked who may do this, by its own permission
+        if (storeOp !== '_checked') Perm.canKind(session, src.kind);
         var item = Repo.find('Items', 'item_id', src.item_id);
         var m = Movements.normalise(src, item);
+        Period.require(m.date);
+        Movements.checkLpo(m);
         Movements.fixedPrice(m, item);
         item = Movements.validate(m);
         // receiving, issuing and returns only in the user's stores (production is not limited for now)
         // (storeOp: the screen that saves for the user – department requests, shop orders – instead of the kind's)
-        if (SAVE_KINDS.indexOf(m.kind) >= 0) Stores.require(session, Stores.of(item), storeOp || Stores.opOfKind(m.kind));
+        // ('_checked': the caller already checked who may do it – a department's shop-order line)
+        if (SAVE_KINDS.indexOf(m.kind) >= 0 && storeOp !== '_checked') Stores.require(session, Stores.of(item), storeOp || Stores.opOfKind(m.kind));
         if (m.kind === 'ISSUE' && !m.doc_no) {
           // one slip per save and date: what one person hands over together is one slip, whatever the stores
           var sk = m.date;
@@ -215,6 +227,7 @@ var Movements = {
     return withLock(function () {
       var cur = Repo.find('Movements', 'movement_id', payload.movement_id);
       Movements.requireActive(cur);
+      Period.require(cur.date);
       // a count's adjustment is part of an approved count: it is not edited by hand
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       // per screen: own entries with edit_own.<screen>, anyone's with edit_all.<screen>
@@ -236,6 +249,8 @@ var Movements = {
       // an edited final-product receipt keeps its own price (the product's price may have changed since)
       Movements.fixedPrice(m, item, src.item_id === cur.item_id && cur.price !== '' ? cur.price : undefined);
       var newItem = Movements.validate(m);
+      Period.require(m.date);
+      Movements.checkLpo(m);
       var changes = {};
       EDITABLE.forEach(function (f) { changes[f] = m[f]; });
       // a change of date or price alone keeps what was typed; a new quantity or unit replaces it
@@ -261,6 +276,7 @@ var Movements = {
       // already deleted (on another device, or this delete sent twice): the wanted result is there
       if (cur && cur.status === 'deleted') return { movement_id: cur.movement_id, already_deleted: true, version: Version.get() };
       Movements.requireActive(cur);
+      Period.require(cur.date);
       Util.require(cur.kind !== 'ADJUST' || String(cur.doc_no).charAt(0) !== 'C', 'count_adjustment');
       // per screen: delete.<screen>; someone else's entry also needs edit_all.<screen>
       var screen = Movements.screenOf(cur.kind);

@@ -39,7 +39,7 @@ var Masters = {
                      sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true,
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '',
-                     name_ar: Util.clean(p.name_ar) };
+                     name_ar: Util.clean(p.name_ar), dept: store === 'FINAL' ? Masters.deptOf(p.dept) : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -77,6 +77,11 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      // a final product: the department that makes it (its shop-order lines go to that department)
+      if (p.dept !== undefined && String(p.dept || '') !== String(cur.dept || '')) {
+        Perm.require(session, 'rename.items');
+        ch.dept = Masters.deptOf(p.dept);
+      }
       // the Arabic name is shown to Arabic users only; the name stays the item's name everywhere else
       if (p.name_ar !== undefined && Util.clean(p.name_ar) !== String(cur.name_ar || '')) {
         Perm.require(session, 'rename.items');
@@ -135,7 +140,7 @@ var Masters = {
         Util.require(PARTY_KINDS.indexOf(p.kind) >= 0, 'kind_invalid');
         var n = 0;
         Repo.column('Parties', 'party_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true };
+        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true, producing: p.kind === 'section' && p.producing === true };
         PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined) party[c] = Util.clean(p[c]); });
         Repo.append('Parties', [party]);
         Audit.log(session.user_id, 'party_create', 'Parties', party.party_id, null, party);
@@ -148,6 +153,11 @@ var Masters = {
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename.parties');
         ch.active = p.active === true;
+      }
+      // a department that makes products (its products' shop-order lines go to it), or not (cleaning, management…)
+      if (p.producing !== undefined && cur.kind === 'section' && (p.producing === true) !== (cur.producing === true)) {
+        Perm.require(session, 'rename.parties');
+        ch.producing = p.producing === true;
       }
       // a supplier's contact details (printed on the LPO): whoever may add suppliers keeps them up to date
       PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined && Util.clean(p[c]) !== String(cur[c] || '')) ch[c] = Util.clean(p[c]); });
@@ -314,6 +324,35 @@ var Masters = {
       })(),
       reserved: Shop.reservedMap(),
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
+      orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
+      follow_late: Perm.has(session, 'orders.follow') ? Orders.followLate() : 0,
+      shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
+      prod_todo: Perm.has(session, 'production.post') ? Shop.prodTodo(session) : 0,
+      order_todo: OrderNotify.todo(session),
+      decisions: Masters.decisions(session),
+      takings_diffs: Perm.has(session, 'sales.decide') ? Repo.all('Shifts').filter(function (s) {
+        return s.received_at && Util.round(Number(s.received_amount) || 0) !== Util.round(Number(s.amount) || 0)
+          && daysBetweenIso(String(s.received_at).slice(0, 10), Util.today()) <= 90;
+      }).map(function (s) { return String(s.received_at); }) : [],
+      sales_channels: Perm.has(session, 'sales.list') || Perm.has(session, 'sales.setChannels') ? Sales.channels() : [],
+      // today's takings per shop (shifts ended today; shifts still open counted apart), for the dashboard
+      takings_today: Perm.has(session, 'dash.takings') ? (function () {
+        var today = Util.today(), by = {};
+        Repo.all('Shifts').forEach(function (s) {
+          var x = by[s.shop_party_id] || (by[s.shop_party_id] = { shop_party_id: s.shop_party_id, amount: 0, shifts: 0, open: 0 });
+          if (!s.closed_at) x.open++;
+          else if (String(s.closed_at).slice(0, 10) === today) { x.shifts++; x.amount = Util.round(x.amount + (Number(s.amount) || 0)); }
+        });
+        Repo.all('DailySales').forEach(function (r) {
+          if (r.date !== today || r.status === 'returned') return;
+          var x = by[r.shop_party_id] || (by[r.shop_party_id] = { shop_party_id: r.shop_party_id, amount: 0, shifts: 0, open: 0 });
+          x.amount = Number(r.total) || 0; x.sheet = true;
+        });
+        return Object.keys(by).map(function (k) { return by[k]; }).filter(function (x) { return x.shifts || x.open || x.sheet; });
+      })() : [],
+      // approved purchase orders, for a receipt to name the one it answers
+      lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
+        .map(function (l) { return [String(l.lpo_no), l.party_id, String(l.date)]; }).slice(-300) : [],
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
       // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {
@@ -328,6 +367,27 @@ var Masters = {
       contacts: Perm.has(session, 'see_prices') ? Repo.raw('Contacts') : { columns: [], rows: [] }
     };
   }
+};
+
+/**
+ * The admin's own decisions: the approvals this user holds that no other active user (not an admin, not the
+ * developer's account) holds too – those are the team's. [{key, route, count}], only those waiting.
+ */
+var DECISIONS = [
+  { key: 'lpo', route: 'lpo', perm: 'lpo.decide', count: function () { return Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length; } },
+  { key: 'cash', route: 'lpo', perm: 'cash.decide', count: function () { return Repo.all('CashSheets').filter(function (s) { return s.status === 'submitted'; }).length; } },
+  { key: 'counts', route: 'counts', perm: 'counts.approve', count: function () { return Repo.all('Counts').filter(function (c) { return c.status === 'open'; }).length; } },
+  { key: 'special', route: 'orderapprove', perm: 'orders.route', count: function () { return Orders.pendingSpecial(); } },
+  { key: 'sales', route: 'accounts', perm: 'sales.decide', count: function () { return Repo.all('DailySales').filter(function (r) { return r.status === 'submitted'; }).length; } }
+];
+
+Masters.decisions = function (session) {
+  var me = Repo.find('Users', 'user_id', session.user_id) || {};
+  if (session.role !== 'admin' || me.developer === true) return [];
+  var others = Repo.all('Users').filter(function (u) { return u.active === true && u.user_id !== session.user_id && u.role !== 'admin' && u.developer !== true; })
+    .map(function (u) { return Perm.permsOf(u); });
+  return DECISIONS.filter(function (d) { return Perm.has(session, d.perm) && !others.some(function (ps) { return ps.indexOf(d.perm) >= 0; }); })
+    .map(function (d) { return { key: d.key, route: d.route, count: d.count() }; }).filter(function (d) { return d.count > 0; });
 };
 
 /** Minutes without activity before the app goes back to the home screen (0 = never). Read by every device from the bootstrap settings. */
@@ -359,3 +419,129 @@ Masters.namesAr = function (session, p) {
     return { changed: n, version: Version.bump() };
   });
 };
+
+/**
+ * Final products from a price list, at once: p.rows [{dept, name, name_ar, unit, price}], p.apply.
+ * Without apply it only says what would happen (the admin checks first). A department is found by its
+ * name, or made (a producing department); a product is found by its name (or an old name): its
+ * department, Arabic name and price are updated; a new one goes to the FINAL store. A name already
+ * used by a raw material is never turned into a product: that line is left for the admin.
+ */
+Masters.UNIT_ALIASES = { 'PC/PCS': 'PC', 'PCS': 'PC', 'PIECE': 'PC', 'LRT': 'L', 'LTR': 'L' };
+/** The ways a department is written: "Section (الكنافة) Kunafa", "Kunafa" and "الكنافة" are the same one. */
+Masters.deptKeys = function (name) {
+  var s = String(name || ''), keys = [Util.key(s)];
+  var inside = (s.match(/\(([^)]*)\)/) || [])[1];
+  if (inside && Util.key(inside)) keys.push(Util.key(inside));
+  var outside = Util.key(s.replace(/\([^)]*\)/g, ' ').replace(/\bsection\b/ig, ' '));
+  if (outside) keys.push(outside);
+  return keys;
+};
+Masters.importItems = function (session, p) {
+  var rows = (p.rows || []).slice(0, 2000);
+  Util.require(rows.length, 'nothing_to_save');
+  var prices = Perm.has(session, 'final_price');
+  var run = function () {
+    var depts = {}, byName = {}, seen = {}, plan = [], newDepts = [], sections = [];
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'section') { depts[Util.key(x.name)] = x; sections.push(x); } });
+    // a department written another way in the list is the existing one (unless it could be two)
+    var findDept = function (name) {
+      if (depts[Util.key(name)]) return depts[Util.key(name)];
+      var mine = Masters.deptKeys(name);
+      var hits = sections.filter(function (x) { return Masters.deptKeys(x.name).some(function (k) { return mine.indexOf(k) >= 0; }); });
+      if (hits.length > 1) return 'ambiguous';
+      if (hits.length) depts[Util.key(name)] = hits[0];
+      return hits[0] || null;
+    };
+    Repo.all('Items').forEach(function (i) {
+      byName[Util.key(i.name)] = i;
+      String(i.aliases || '').split(' | ').filter(String).forEach(function (a) { if (!byName[Util.key(a)]) byName[Util.key(a)] = i; });
+    });
+    rows.forEach(function (r, ix) {
+      var line = { line: ix + 1, name: Util.clean(r && r.name), name_ar: Util.clean(r && r.name_ar), dept: Util.clean(r && r.dept) };
+      var u = Util.clean(r && r.unit).toUpperCase();
+      line.unit = Masters.UNIT_ALIASES[u] || u;
+      var price = r && r.price !== undefined && r.price !== null && String(r.price).trim() !== '' ? Util.num(r.price) : '';
+      line.price = price;
+      plan.push(line);
+      if (!line.name || !line.dept) { line.action = 'bad'; line.why = 'name_dept_required'; return; }
+      if (price === null || (price !== '' && price < 0)) { line.action = 'bad'; line.why = 'price_invalid'; return; }
+      var k = Util.key(line.name);
+      if (seen[k]) { line.action = 'dup'; line.why = String(seen[k]); return; }
+      seen[k] = line.line;
+      var found = findDept(line.dept);
+      if (found === 'ambiguous') { line.action = 'bad'; line.why = 'dept_ambiguous'; return; }
+      if (!found) { depts[Util.key(line.dept)] = { party_id: '', name: line.dept, kind: 'section' }; newDepts.push(line.dept); }
+      line.dept_id = depts[Util.key(line.dept)].party_id;
+      line.dept_name = depts[Util.key(line.dept)].name;
+      var cur = byName[k];
+      if (!cur) {
+        if (!line.unit) { line.action = 'bad'; line.why = 'unit_required'; return; }
+        line.action = 'new';
+        return;
+      }
+      line.item_id = cur.item_id;
+      if (Stores.of(cur) !== 'FINAL') { line.action = 'conflict'; line.why = Stores.of(cur); return; }
+      var d = depts[Util.key(line.dept)], ch = [];
+      if (String(cur.dept || '') !== String(d.party_id || '-')) ch.push('dept');
+      if (line.name_ar && line.name_ar !== String(cur.name_ar || '')) ch.push('name_ar');
+      if (prices && price !== '' && String(price) !== String(cur.final_price === undefined ? '' : cur.final_price)) ch.push('price');
+      if (line.unit && line.unit !== String(cur.unit || '').toUpperCase()) line.unit_differs = String(cur.unit);
+      line.action = ch.length ? 'update' : 'same';
+      line.changes = ch;
+    });
+    var counts = {};
+    plan.forEach(function (l) { counts[l.action] = (counts[l.action] || 0) + 1; });
+    var res = { plan: plan, new_depts: newDepts, counts: counts, prices: prices };
+    if (!p.apply) return res;
+
+    Perm.require(session, 'add_items');
+    var n = 0, np = 0, now = Util.nowIso(), created = [], updated = [];
+    Repo.column('Parties', 'party_id').forEach(function (id) { np = Math.max(np, Number(String(id).slice(1)) || 0); });
+    var parties = newDepts.map(function (name) {
+      var party = { party_id: 'P' + Util.pad(++np, 3), name: name, kind: 'section', active: true, producing: true };
+      depts[Util.key(name)] = party;
+      return party;
+    });
+    if (parties.length) Repo.append('Parties', parties);
+    Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
+    var items = [];
+    plan.forEach(function (l) {
+      var d = depts[Util.key(l.dept)];
+      if (l.action === 'new') {
+        var item = { item_id: 'I' + Util.pad(++n, 4), name: l.name, category: Stores.categoryOf('FINAL'), unit: l.unit, min_stock: 0, image: '',
+                     active: true, aliases: '', created_at: now, store: 'FINAL', pack_units: '', report_unit: '', sale_price: '', shop_orderable: false,
+                     store_unit: '', final_price: prices && l.price !== '' ? Util.round(l.price) : '', name_ar: l.name_ar, dept: d.party_id };
+        items.push(item);
+        l.item_id = item.item_id;
+        created.push(item.item_id);
+      } else if (l.action === 'update') {
+        var ch = { dept: d.party_id };
+        if (l.changes.indexOf('name_ar') >= 0) ch.name_ar = l.name_ar;
+        if (l.changes.indexOf('price') >= 0) ch.final_price = Util.round(l.price);
+        Repo.update('Items', 'item_id', l.item_id, ch);
+        updated.push(l.item_id);
+      }
+    });
+    if (items.length) Repo.append('Items', items);
+    Audit.log(session.user_id, 'items_import', 'Items', '', null,
+      { created: created, updated: updated, departments: parties.map(function (x) { return x.party_id; }), counts: counts });
+    res.created = created.length;
+    res.updated = updated.length;
+    res.departments = parties.length;
+    res.version = Version.bump();
+    return res;
+  };
+  return p.apply ? withLock(run) : run();
+};
+
+/** A department (a section party) for a final product, or '' (checked). */
+Masters.deptOf = function (id) {
+  id = String(id || '');
+  if (!id) return '';
+  var p = Repo.find('Parties', 'party_id', id);
+  Util.require(p && p.kind === 'section', 'party_not_section');
+  return id;
+};
+
+function daysBetweenIso(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }

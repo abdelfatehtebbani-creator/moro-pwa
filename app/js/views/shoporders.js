@@ -7,9 +7,13 @@ import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, storePill, newId } from '../components.js';
+import { photoButton } from '../photos.js';
 
 let tab = 'open';
+let group = '';            // the department or store tab
 let cleanup = null;
+// the last lines of each tab: shown at once when the screen opens, then checked against the server
+const last = {};
 
 export async function render(root) {
   if (cleanup) cleanup();
@@ -22,16 +26,37 @@ export async function render(root) {
     tabs.append(h('button', { type: 'button', class: k === tab ? 'on' : '', onclick: () => { tab = k; render(root); } }, names[k])));
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('shoporders')), tabs), body));
 
-  let touched = false;             // quantities being typed: the auto refresh waits
-  body.addEventListener('input', () => { touched = true; });
-  const load = async (quiet) => {
-    touched = false;
-    if (quiet !== true) body.replaceChildren(h('p.empty', '…'));
-    try {
-      if (tab === 'special') drawSpecial(await call('special.list', { status: 'pending' }));
-      else drawLines(await call('shop.list', { status: tab }));
-    } catch (e) { body.replaceChildren(h('p.empty', errText(e))); }
+  // quantities typed and not yet sent stay as they were through a refresh; the screen is drawn again only when
+  // the lines changed, and where it was scrolled to stays
+  const toBuy = (l) => l.special && l.dept === 'PURCHASE';
+  const draw = (got) => {
+    const typed = new Map([...body.querySelectorAll('input[data-key]')].filter((x) => x.value !== x.defaultValue).map((x) => [x.dataset.key, x.value]));
+    const y = window.scrollY;
+    if (tab === 'special') drawSpecial(got.reqs, got.open.filter(toBuy));
+    else drawLines(got.lines.filter((l) => tab !== 'open' || !toBuy(l)));
+    body.querySelectorAll('input[data-key]').forEach((x) => { if (typed.has(x.dataset.key)) { x.value = typed.get(x.dataset.key); x.dispatchEvent(new Event('input')); } });
+    window.scrollTo(0, y);
   };
+  let shown = '';
+  const load = async (quiet) => {
+    const key = tab;
+    // what was there last time, at once (the server is asked meanwhile)
+    if (quiet !== true) { if (last[key]) { shown = JSON.stringify(last[key]); draw(last[key]); } else body.replaceChildren(h('p.empty', '…')); }
+    try {
+      const got = tab === 'special'
+        ? await Promise.all([call('special.list', { status: 'pending' }), call('shop.list', { status: 'open', native: true })]).then(([reqs, open]) => ({ reqs, open }))
+        : { lines: await call('shop.list', { status: tab, native: true }) };
+      if (key !== tab) return;
+      last[key] = got;
+      const now = JSON.stringify(got);
+      if (now === shown) return;                 // nothing changed: the screen stays as it is
+      shown = now;
+      draw(got);
+    } catch (e) { if (!last[key]) body.replaceChildren(h('p.empty', errText(e))); }
+  };
+  // a save sent and the data refreshed after it come one after the other: one reload for both
+  let soon = null;
+  const reloadSoon = () => { clearTimeout(soon); soon = setTimeout(() => load(true), 800); };
 
   const shopName = (id) => (Data.parties.get(id) || {}).name || id;
   const itemOf = (id) => Data.items.get(id) || { name: id, unit: '' };
@@ -46,10 +71,19 @@ export async function render(root) {
           h('td.num.qty-neg', fmtNum(l.shortage) + ' ' + l.unit), h('td.num', fmtNum(Data.qty(l.item_id)))))))));
       return;
     }
+    // a tab per department (final products) and per store, when the lines belong to more than one
+    const groupOf = (l) => (l.special ? (l.dept === 'PURCHASE' ? 'p:' : 'd:' + l.dept) : l.store === 'FINAL' && l.dept ? 'd:' + l.dept : 's:' + l.store);
+    const groupName = (g) => (g === 'p:' ? t('route_purchase') : g.startsWith('d:') ? ((Data.parties.get(g.slice(2)) || {}).name || g.slice(2)) : t('store_' + g.slice(2)));
+    const groups = [...new Set(lines.map(groupOf))].sort((a, b) => (a[0] === b[0] ? groupName(a).localeCompare(groupName(b)) : a < b ? -1 : 1));
+    if (!groups.includes(group)) group = groups.length > 1 ? '' : groups[0];
+    const groupBar = groups.length > 1 ? h('div.tabs.shop-groups', h('button', { type: 'button', class: group === '' ? 'on' : '', onclick: () => { group = ''; drawLines(lines); } }, t('order_st_all')),
+      groups.map((g) => h('button', { type: 'button', class: group === g ? 'on' : '', onclick: () => { group = g; drawLines(lines); } },
+        h('bdi', groupName(g)), ' ', h('small', String(lines.filter((l) => groupOf(l) === g).length))))) : null;
+    const shown = group ? lines.filter((l) => groupOf(l) === group) : lines;
     // one card per order
     const orders = new Map();
-    lines.forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
-    body.replaceChildren(...[...orders.values()].map((ls) => orderCard(ls)));
+    shown.forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
+    body.replaceChildren(groupBar || '', ...[...orders.values()].map((ls) => orderCard(ls)));
   }
 
   function orderCard(ls) {
@@ -58,18 +92,26 @@ export async function render(root) {
     const rows = ls.map((l) => {
       const it = itemOf(l.item_id);
       const left = Math.max(0, Math.round((l.qty - l.handed_qty) * 1e6) / 1e6);
-      const open = tab === 'open' && left > 0 && l.approved !== false && Data.canStore(l.store, 'shop');
-      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, value: Math.min(left, l.reserved_qty) || '' })) : null;
-      if (inp) inputs.push({ line: l, inp, left });
-      const canBack = l.handed_qty - (l.returned_qty || 0) > 0;
+      // a line already sent for handing and not yet answered by the server: shown as sending, no second press
+      const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
+      const open = (tab === 'open' || tab === 'special') && left > 0 && l.approved !== false && l.can && !sending;
+      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: (l.special ? left : Math.min(left, l.reserved_qty)) || '' })) : null;
+      // bought by purchasing: to distribution, or straight to the shop
+      const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: '' }, '—'), h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
+      if (inp) inputs.push({ line: l, inp, left, dest });
+      const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
-        canBack && Data.canStore(l.store, 'shop') ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
+        canBack && l.can ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
         t('line_' + l.status)) : l.approved === false ? h('span.pill.soon', t('awaiting_approval'))
         : (l.shortage > 0 ? h('span.pill.low', t('missing') + ' ' + fmtNum(l.shortage)) : '');
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(l.store)), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
+      const where = l.special ? h('span.pill.st-final', h('bdi', l.dept === 'PURCHASE' ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept))
+        : l.store === 'FINAL' && l.dept ? h('span.pill.st-final', h('bdi', (Data.parties.get(l.dept) || {}).name || l.dept)) : storePill(l.store);
+      const label = l.special ? h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ', h('small.err-text', '⏰ ' + l.deadline), ' ', photoButton(l.photos) || '')
+        : h('bdi', Data.nameOf(it));
+      return h('tr', h('td.wrap', label), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
-        h('td', inp || '', ' ', no || ''));
+        h('td', inp || '', ' ', dest || '', ' ', no || ''));
     });
     const actions = h('div.form-actions');
     // lines still awaiting Masar's distribution approval: the button shows, greyed out, until approval
@@ -80,14 +122,14 @@ export async function render(root) {
     if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
-        const bad = inputs.filter((x) => Number(x.inp.value) > x.left);
-        if (bad.length) { bad.forEach((x) => flash(x.inp)); return; }
-        const give = inputs.map((x) => ({ line_id: x.line.line_id, qty: Number(x.inp.value) })).filter((x) => x.qty > 0);
+        const bad = inputs.filter((x) => Number(x.inp.value) > x.left || (x.dest && Number(x.inp.value) > 0 && !x.dest.value));
+        if (bad.length) { bad.forEach((x) => flash(x.dest && !x.dest.value && Number(x.inp.value) <= x.left ? x.dest : x.inp)); return; }
+        const give = inputs.map((x) => Object.assign({ line_id: x.line.line_id, qty: Number(x.inp.value) }, x.dest && x.dest.value === 'shop' ? { direct: true } : {})).filter((x) => x.qty > 0);
         if (!give.length) { inputs.forEach((x) => flash(x.inp)); return; }
-        btn.disabled = true;
+        btn.disabled = true; btn.textContent = t('sending');
+        inputs.forEach((x) => { x.inp.disabled = true; });
         await Outbox.add('shop.hand', { date: Data.todayIso(), client_id: newId(), lines: give }, shopName(first.shop_party_id));
         toast(t('handed_to_distribution'), 'ok');
-        setTimeout(load, 2000);
       } }, t('hand_to_distribution')));
     }
     return h('div.req-card',
@@ -95,7 +137,7 @@ export async function render(root) {
         h('span.muted.num', fmtDate(String(first.created_at).slice(0, 10)))),
       first.note ? h('p.muted', first.note) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')),
-        h('th', t('reserved')), h('th', ''), h('th', tab === 'open' ? t('to_issue') : ''))), h('tbody', rows))),
+        h('th', t('reserved')), h('th', ''), h('th', tab === 'open' || tab === 'special' ? t('to_issue') : ''))), h('tbody', rows))),
       actions);
   }
 
@@ -132,9 +174,13 @@ export async function render(root) {
     setTimeout(load, 2000);
   }
 
-  function drawSpecial(list) {
-    if (!list.length) { body.replaceChildren(h('p.empty', t('no_rows'))); return; }
-    body.replaceChildren(...list.map((r) => h('div.req-card',
+  function drawSpecial(list, toBuy) {
+    if (!list.length && !(toBuy || []).length) { body.replaceChildren(h('p.empty', t('no_rows'))); return; }
+    // special orders' products to buy ready-made (routed to purchasing): bought, then handed to distribution
+    // decided "buy": handed like any line; not decided yet: from the store, buy, or not available
+    const orders = new Map();
+    (toBuy || []).filter((l) => l.purchase === 'buy').forEach((l) => { if (!orders.has(l.order_id)) orders.set(l.order_id, []); orders.get(l.order_id).push(l); });
+    body.replaceChildren(...(toBuy || []).filter((l) => !l.purchase).map(decideCard), ...[...orders.values()].map((ls) => orderCard(ls)), ...list.map((r) => h('div.req-card',
       h('div.card-head', h('b', h('bdi', r.description)), h('span', h('bdi', shopName(r.shop_party_id))),
         h('span.muted.num', fmtDate(String(r.created_at).slice(0, 10)))),
       h('p', (r.qty ? fmtNum(r.qty) + ' ' + (r.unit || '') : ''), r.order_no ? h('span.muted', ' · ' + r.order_no) : '',
@@ -142,6 +188,50 @@ export async function render(root) {
       h('div.form-actions',
         h('button.btn', { type: 'button', onclick: () => approve(r) }, t('approve_buy')),
         h('button.btn.secondary', { type: 'button', onclick: () => reject(r) }, t('reject'))))));
+  }
+
+  function decideCard(l) {
+    const done = async (payload, okText) => {
+      try { await call('shop.purchase', Object.assign({ line_id: l.line_id }, payload)); toast(t(okText), 'ok'); load(); }
+      catch (e) { toast(errText(e), 'err'); if (e.code === 'purchase_decided') load(); }
+    };
+    const fromStore = async () => {
+      const res = await dialog((close) => {
+        const opts = () => Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL').sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+          .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
+        const it = combo({ id: 'sp-item', options: opts, placeholder: t('lookup_hint') });
+        const q = trackFilled(h('input.input.num#sp-qty', { type: 'number', step: 'any', min: 0, value: l.qty }));
+        const ok = () => { if (!it.value) return flash(it.input); if (!(Number(q.value) > 0)) return flash(q); close({ item_id: it.value, qty: Number(q.value) }); };
+        return [h('h3', t('buy_from_store'), ': ', h('bdi', l.description)), h('small.muted', t('buy_from_store_help')), field(t('item'), it), field(t('qty'), q),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+      });
+      if (res) done(Object.assign({ choice: 'store' }, res), 'buy_sent_store');
+    };
+    const buy = async () => {
+      const price = await dialog((close) => {
+        const pr = trackFilled(h('input.input.num#sp-price', { type: 'number', step: 'any', min: 0, value: l.price }));
+        const ok = () => (pr.value === '' || Number(pr.value) < 0 ? flash(pr) : close(Number(pr.value)));
+        return [h('h3', t('buy_it'), ': ', h('bdi', l.description)), h('small.muted', t('buy_it_help', { p: fmtNum(l.price) })), field(t('price_final'), pr),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
+      });
+      if (price !== undefined && price !== null) done({ choice: 'buy', price }, 'buy_priced');
+    };
+    const none = async () => {
+      const reason = await dialog((close) => {
+        const r = trackFilled(h('input.input#sp-why', { placeholder: t('reason') }));
+        return [h('h3', t('cannot_supply'), ': ', h('bdi', l.description)), field(t('reason'), r),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+            h('button.btn', { type: 'button', onclick: () => (r.value.trim() ? close(r.value.trim()) : flash(r)) }, t('save')))];
+      });
+      if (reason) done({ choice: 'unavailable', reason }, 'saved');
+    };
+    return h('div.req-card',
+      h('div.card-head', h('b', h('span.pill.soon', t('special')), ' ', h('bdi', l.description)), h('span', h('bdi', shopName(l.shop_party_id))),
+        h('span.muted', l.order_no)),
+      h('p', fmtNum(l.qty) + ' ' + (l.unit || ''), ' · ', t('price_estimate'), ': ', h('b', fmtNum(l.price) + ' QR'), ' · ', h('span.err-text', '⏰ ' + l.deadline), ' ', photoButton(l.photos) || ''),
+      h('div.form-actions', h('button.btn', { type: 'button', onclick: fromStore }, t('buy_from_store')),
+        h('button.btn', { type: 'button', onclick: buy }, t('buy_it')),
+        h('button.btn.secondary', { type: 'button', onclick: none }, t('cannot_supply'))));
   }
 
   async function approve(r) {
@@ -179,11 +269,21 @@ export async function render(root) {
     catch (e) { toast(errText(e), 'err'); }
   }
 
-  const onData = () => { if (!touched && !body.contains(document.activeElement)) load(true); };
-  const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) load(true); };
+  const onData = () => { if (!(document.activeElement && document.activeElement.tagName === 'INPUT' && body.contains(document.activeElement))) reloadSoon(); };
+  const timer = setInterval(() => { if (document.visibilityState === 'visible') onData(); }, 15000);
+  // the server answered: the list shows the new state; a refusal (e.g. not enough final products) is said
+  const onSent = (e) => { if (e.detail && (e.detail.action === 'shop.hand' || e.detail.action === 'shop.return')) reloadSoon(); };
+  const onRejected = (e) => {
+    if (!e.detail || (e.detail.action !== 'shop.hand' && e.detail.action !== 'shop.return')) return;
+    toast(errText({ code: e.detail.error, detail: e.detail.detail }), 'err');
+    shown = '';                                   // drawn again: the line is no longer sending
+    load(true);
+  };
   window.addEventListener('moro:data', onData);
   window.addEventListener('moro:sent', onSent);
-  cleanup = () => { window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent); cleanup = null; };
+  window.addEventListener('moro:rejected', onRejected);
+  cleanup = () => { clearInterval(timer); clearTimeout(soon); window.removeEventListener('moro:data', onData); window.removeEventListener('moro:sent', onSent);
+    window.removeEventListener('moro:rejected', onRejected); cleanup = null; };
   load();
 }
 

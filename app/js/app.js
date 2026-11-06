@@ -21,13 +21,27 @@ import * as masters from './views/masters.js';
 import * as users from './views/users.js';
 import * as reports from './views/reports.js';
 import * as shoporders from './views/shoporders.js';
+import * as orders from './views/orders.js';
+import * as trips from './views/trips.js';
+import * as invoices from './views/invoices.js';
+import * as returns from './views/returns.js';
+import * as accounts from './views/accounts.js';
+import * as exec from './views/exec.js';
+import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
 
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
+  exec:      { view: exec, perm: 'nav.exec', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
+  orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
+  orderapprove: { view: orders, perm: 'nav.orderapprove', group: 'nav_ops' },
+  trips:     { view: trips, perm: 'nav.trips', group: 'nav_ops' },
+  invoices:  { view: invoices, perm: 'nav.invoices', group: 'nav_ops' },
+  returns:   { view: returns, perm: 'nav.returns', group: 'nav_ops' },
+  accounts:  { view: accounts, perm: 'nav.accounts', group: 'nav_ops' },
   receive:   { view: receive, perm: 'nav.receive', group: 'nav_ops' },
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
@@ -105,7 +119,7 @@ async function start() {
   route();
   window.__moroStarted = true;
   whatsNew(false);
-  if (allowed('lpo')) Push.refresh();
+  Push.refresh();
   if (cached) sync(true);
   setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
@@ -113,7 +127,7 @@ async function start() {
 
 function allowed(name) { return Data.can(ROUTES[name].perm); }
 // the first screen: home (every user may open it)
-function firstScreen() { return Object.keys(ROUTES).find(allowed) || 'home'; }
+function firstScreen() { return (Data.user && Data.user.role === 'pdg' && allowed('exec')) ? 'exec' : Object.keys(ROUTES).find(allowed) || 'home'; }
 
 // ---------- what's new: shown once after each update, with what the user needs to do
 const SEEN_KEY = 'moro.seen_version';
@@ -145,10 +159,14 @@ function buildShell() {
   const u = Data.user;
   const navLinks = [];
   let group = '';
-  for (const name of Object.keys(ROUTES)) {
+  // the admin: the menu in the same groups as the home screen
+  const groupOf = (name) => (u.role === 'admin' && name !== 'home' ? ((GROUPS.find((g) => g[1].includes(name)) || ['grp_other'])[0]) : ROUTES[name].group);
+  const order = u.role === 'admin' ? ['home'].concat(GROUPS.flatMap((g) => g[1]).filter((r) => ROUTES[r]), Object.keys(ROUTES).filter((r) => r !== 'home' && !GROUPS.some((g) => g[1].includes(r))))
+    : Object.keys(ROUTES);
+  for (const name of order) {
     if (!allowed(name)) continue;
-    if (ROUTES[name].group !== group) { group = ROUTES[name].group; navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null));
+    if (groupOf(name) !== group) { group = groupOf(name); navLinks.push(h('div.nav-group', t(group))); }
+    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -160,7 +178,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), name === 'lpo' || name === 'requests' ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -173,7 +191,11 @@ function buildShell() {
   homeLayer = h('section.content', { hidden: true });
   shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
     // who is signed in, on every screen
-    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl), content, homeLayer));
+    h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl,
+    // the admin (and the developer's account): the version, the language and sign out always at hand
+    Data.user.role === 'admin' ? h('div.top-admin', h('span.top-ver', { title: t('whats_new'), onclick: () => whatsNew(true) }, 'v' + APP_VERSION),
+      h('button.btn.secondary.small', { type: 'button', onclick: toggleLang }, t('lang_other')),
+      h('button.btn.secondary.small', { type: 'button', onclick: logout }, t('logout'))) : null), content, homeLayer));
   root.replaceChildren(shellEl, bottom);
   updateSync();
   updateBadges();
@@ -341,12 +363,33 @@ function updateBadges() {
   const r = allowed('requests') ? Number((Data.boot || {}).requests_todo) || 0 : 0;
   document.querySelectorAll('a[data-route="requests"] .badge').forEach((b) => { b.hidden = !r; b.textContent = String(r); });
   document.querySelectorAll('.home-note-req').forEach((x) => { x.hidden = !r; x.textContent = t('open_requests', { n: r }); });
-  Push.badge(n + r);
+  // sent orders waiting for distribution's approval
+  // orders waiting for distribution's approval, and orders late on their way (the follow-up tab)
+  const o = allowed('orderapprove') ? (Number((Data.boot || {}).orders_pending) || 0) + (Number((Data.boot || {}).follow_late) || 0) : 0;
+  document.querySelectorAll('a[data-route="orderapprove"] .badge').forEach((b) => { b.hidden = !o; b.textContent = String(o); });
+  // orders whose lines this user prepares (their stores, their departments)
+  const sp = allowed('shoporders') ? Number((Data.boot || {}).shop_todo) || 0 : 0;
+  document.querySelectorAll('a[data-route="shoporders"] .badge').forEach((b) => { b.hidden = !sp; b.textContent = String(sp); });
+  // products the orders wait for that are not made yet (the department's production screen)
+  const pr = allowed('production') ? Number((Data.boot || {}).prod_todo) || 0 : 0;
+  document.querySelectorAll('a[data-route="production"] .badge').forEach((b) => { b.hidden = !pr; b.textContent = String(pr); });
+  // the rest of the order cycle: the cashier's orders to receive, trips to make or drive, orders to invoice
+  const ot = (Data.boot || {}).order_todo || {};
+  const more = [['orders', 'orders'], ['trips', 'trips'], ['invoices', 'invoices'], ['returns', 'returns']].map(([route, key]) => {
+    const c = allowed(route) ? Number(ot[key]) || 0 : 0;
+    document.querySelectorAll('a[data-route="' + route + '"] .badge').forEach((b) => { b.hidden = !c; b.textContent = String(c); });
+    return c;
+  }).reduce((a, b) => a + b, 0);
+  Push.badge(n + r + o + sp + pr + more);
+  // the same numbers for "waiting for you" on the admin's home screen
+  const ot2 = (Data.boot || {}).order_todo || {};
+  Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, production: pr, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
+    trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0 };
+  window.dispatchEvent(new Event('moro:badges'));
 }
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
 function pushButton(tag) {
-  if (!allowed('lpo')) return null;
   const st = Push.state();
   if (st === 'on' || st === 'off') return null;
   if (st === 'blocked') return h('small.muted.push-note', t('push_blocked'));
@@ -434,12 +477,25 @@ function updateSync() {
 
 function toggleLang() {
   setLang(getLang() === 'ar' ? 'en' : 'ar');
-  if (allowed('lpo')) Push.refresh();      // notifications follow the language of the app
+  Push.refresh();      // notifications follow the language of the app
   buildShell();
   route();
 }
 
 async function logout() {
+  // a cashier still on shift: the shift is ended with its amount first (or kept open on purpose)
+  if (Data.user && Data.user.shop && Data.can('orders.shiftEnd')) {
+    const res = await dialog((close) => {
+      const amount = h('input.input.num#lo-amount', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' });
+      const note = h('input.input#lo-note');
+      return [h('h3', t('logout_shift_title')), h('p', t('logout_shift_help')),
+        h('div.field', h('label', t('shift_amount')), amount), h('div.field', h('label', t('note')), note),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close('keep') }, t('logout_keep')),
+          h('button.btn', { type: 'button', onclick: () => (amount.value === '' || Number(amount.value) < 0 ? flash(amount) : close({ amount: Number(amount.value), note: note.value.trim() })) }, t('logout_end_shift')))];
+    });
+    if (!res) return;
+    if (res !== 'keep') { try { await call('orders.shiftEnd', res); } catch (e) { toast(errText(e), 'err'); return; } }
+  }
   await Push.signOut();
   session.token = '';
   await kv.clear();

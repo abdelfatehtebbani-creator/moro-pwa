@@ -11,10 +11,48 @@ function onOpen() {
     .addItem('Apply store changes made in the sheet', 'applyStoresFromSheet')
     .addItem('Create the Masar link key', 'newLinkKeyFromSheet')
     .addItem('Set up phone notifications (Firebase)', 'setupPushFromSheet')
+    .addItem('Check for duplicate numbers', 'checkDuplicatesFromSheet')
     .addToUi();
 }
 
+// the keys that must be unique in each sheet (several columns: unique together)
+var UNIQUE_KEYS = [
+  ['Items', ['item_id']], ['Parties', ['party_id']], ['Locations', ['location_id']], ['Purposes', ['purpose_id']],
+  ['Movements', ['movement_id']], ['Balances', ['item_id']], ['Requests', ['request_id']], ['RequestLines', ['request_id', 'line_no']],
+  ['ShopOrderLines', ['line_id']], ['SpecialRequests', ['request_id']], ['Users', ['user_id']], ['Users', ['username']],
+  ['Counts', ['count_id']], ['LPOs', ['lpo_id']], ['LPOs', ['lpo_no']], ['LPOLines', ['lpo_id', 'line']], ['CashSheets', ['sheet_id']],
+  ['CashFloat', ['entry_id']], ['CoffeeBatches', ['batch_id']], ['Audit', ['audit_id']],
+  ['Orders', ['order_id']], ['Orders', ['order_no']], ['OrderItems', ['order_id', 'line_no']], ['Trips', ['trip_id']],
+  ['TripStops', ['trip_id', 'order_id']], ['Invoices', ['invoice_id']], ['Invoices', ['invoice_no']], ['Invoices', ['order_id']],
+  ['InvoiceItems', ['invoice_id', 'line_no']], ['Returns', ['return_id']], ['Photos', ['photo_id', 'part']], ['Shifts', ['shift_id']], ['DailySales', ['day_id']], ['DailySales', ['date', 'shop_party_id']], ['Payments', ['payment_id']]
+];
+
 var Recovery = {
+  /**
+   * Reads every sheet and lists the values used more than once where they must be unique.
+   * Changes nothing. Returns [{sheet, key, value, rows: [sheet row numbers], status: [status of each row]}].
+   */
+  duplicates: function () {
+    var out = [];
+    UNIQUE_KEYS.forEach(function (u) {
+      var rows;
+      try { rows = Repo.all(u[0]); } catch (e) { return; }          // a sheet this copy does not have yet
+      var seen = {};
+      rows.forEach(function (r, i) {
+        var v = u[1].map(function (c) { return String(r[c] === undefined ? '' : r[c]).trim(); });
+        if (v.every(function (x) { return x === ''; })) return;     // an empty row
+        var k = v.join(' / ');
+        (seen[k] = seen[k] || []).push({ row: i + 2, status: r.status === undefined ? '' : String(r.status) });
+      });
+      Object.keys(seen).forEach(function (k) {
+        if (seen[k].length < 2) return;
+        out.push({ sheet: u[0], key: u[1].join(' + '), value: k,
+          rows: seen[k].map(function (x) { return x.row; }), status: seen[k].map(function (x) { return x.status; }) });
+      });
+    });
+    return out;
+  },
+
   /** Sets a new PIN for a user, re-activates the account and lifts a login lock. Returns the user. */
   resetPin: function (username, pin) {
     var name = Util.clean(username).toLowerCase();
@@ -30,6 +68,22 @@ var Recovery = {
     });
   }
 };
+
+function checkDuplicatesFromSheet() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var d = Recovery.duplicates();
+    if (!d.length) { ui.alert('Check for duplicate numbers', 'No duplicates: every number is used once. Nothing was changed.', ui.ButtonSet.OK); return; }
+    var text = d.slice(0, 40).map(function (x) {
+      var st = x.status.some(function (s) { return s; }) ? ' (status: ' + x.status.map(function (s) { return s || '-'; }).join(', ') + ')' : '';
+      return x.sheet + ' · ' + x.key + ' = ' + x.value + ' · rows ' + x.rows.join(', ') + st;
+    }).join('\n');
+    if (d.length > 40) text += '\n... and ' + (d.length - 40) + ' more';
+    ui.alert('Check for duplicate numbers', d.length + ' value(s) used more than once. Nothing was changed.\n\n' + text, ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('Not checked: ' + (e && e.code ? e.code : e));
+  }
+}
 
 function applyStoresFromSheet() {
   var ui = SpreadsheetApp.getUi();

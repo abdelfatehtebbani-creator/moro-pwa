@@ -86,9 +86,10 @@ export function reportToXlsx(report) {
   const line = (r, cells, ht) => rows.push(`<row r="${r}"${ht ? ` ht="${ht}" customHeight="1"` : ''}>${cells.join('')}</row>`);
   const span = (r, text, s) => [cell('A' + r, text, s, 't'), ...cols.slice(1).map((_, i) => `<c r="${colName(i + 1)}${r}" s="${s}"/>`)];
   line(1, span(1, report.company || 'ALAKER SWEETS', 1), 28);
-  line(2, span(2, 'Inventory Management System', 2), 16);
+  const L = report.labels || {};
+  line(2, span(2, L.system || 'Inventory Management System', 2), 16);
   line(3, span(3, report.title, 9), 24);
-  line(4, [cell('A4', report.subtitle || '', 11, 't'), cell(last + '4', 'Printed: ' + new Date().toLocaleString('en-GB'), 11, 't')]);
+  line(4, [cell('A4', report.subtitle || '', 11, 't'), cell(last + '4', (L.printed || 'Printed: ') + new Date().toLocaleString('en-GB'), 11, 't')]);
   const H = 6;
   line(H, cols.map((c, i) => cell(colName(i) + H, c.label, 3, 't')), 24);
   const style = { t: 4, n: 5, m: 10, d: 7, p: 8 };
@@ -101,7 +102,7 @@ export function reportToXlsx(report) {
     }));
   });
   const endRow = H + report.rows.length;
-  line(endRow + 2, [cell('A' + (endRow + 2), 'Number of records: ' + report.rows.length, 4, 't')]);
+  line(endRow + 2, [cell('A' + (endRow + 2), (L.records || 'Number of records: ') + report.rows.length, 4, 't')]);
   // column widths from content
   const widths = cols.map((c, i) => {
     const longest = Math.max(String(c.label).length, ...report.rows.slice(0, 500).map((r) => String(r[i] ?? '').length));
@@ -110,7 +111,7 @@ export function reportToXlsx(report) {
   const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
-<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="${H}" topLeftCell="A${H + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<sheetViews><sheetView workbookViewId="0" showGridLines="0"${report.rtl ? ' rightToLeft="1"' : ''}><pane ySplit="${H}" topLeftCell="A${H + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>
 <sheetData>${rows.join('')}</sheetData>
 ${report.rows.length ? `<autoFilter ref="A${H}:${last}${endRow}"/>` : ''}

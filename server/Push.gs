@@ -9,6 +9,9 @@
 var FCM_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 var FCM_PROPERTY = 'FCM_SERVICE_ACCOUNT';
 var PUSH_MAX_DEVICES = 10;
+var IN_REQUEST = false;      // a request of the app is running (handle)
+var PUSH_NOW = false;        // push.flush: send at once
+var PUSH_QUEUE = [];
 
 var Push = {
   configured: function () {
@@ -56,7 +59,50 @@ var Push = {
    * Sends {ar: {title, body}, en: {title, body}, page, badge} to every active device of the given users,
    * each in the language of the app on that device. Never throws. Returns the number of devices reached.
    */
+  /**
+   * During a request the messages are only kept (PUSH_QUEUE, then the cache at the end of the request);
+   * the app sends them right after with push.flush, so the person saving never waits on the phones.
+   */
   toUsers: function (userIds, msg) {
+    if (IN_REQUEST && !PUSH_NOW) { if (userIds && userIds.length) PUSH_QUEUE.push([userIds, msg]); return 0; }
+    return Push.sendNow(userIds, msg);
+  },
+
+  /** Keeps this request's messages for push.flush (called at the end of the request). Returns true when there are some. */
+  keep: function () {
+    if (!PUSH_QUEUE.length) return false;
+    var jobs = PUSH_QUEUE;
+    PUSH_QUEUE = [];
+    try {
+      var cache = CacheService.getScriptCache();
+      var cur = [];
+      try { cur = JSON.parse(cache.get('push_jobs') || '[]'); } catch (e) { cur = []; }
+      cache.put('push_jobs', JSON.stringify(cur.concat(jobs).slice(-200)), 21600);
+      return true;
+    } catch (e) {
+      console.error('push keep ' + (e && e.stack || e));
+      return false;
+    }
+  },
+
+  /** Sends every kept message (any signed-in app may ask: it only sends what is waiting). */
+  flush: function () {
+    var lock = LockService.getScriptLock();
+    var jobs = [];
+    if (lock.tryLock(5000)) {
+      try {
+        var cache = CacheService.getScriptCache();
+        try { jobs = JSON.parse(cache.get('push_jobs') || '[]'); } catch (e) { jobs = []; }
+        cache.remove('push_jobs');
+      } finally { lock.releaseLock(); }
+    }
+    var n = 0;
+    PUSH_NOW = true;
+    try { jobs.forEach(function (j) { n += Push.sendNow(j[0], j[1]); }); } finally { PUSH_NOW = false; }
+    return { sent: n, jobs: jobs.length };
+  },
+
+  sendNow: function (userIds, msg) {
     try {
       if (!userIds.length || !Push.configured()) return 0;
       var devices = Repo.all('PushDevices').filter(function (d) { return !d.revoked_at && userIds.indexOf(d.user_id) >= 0; });
@@ -83,7 +129,7 @@ var Push = {
 
   /** Active users holding a permission (e.g. who approves LPOs). */
   usersWith: function (perm) {
-    return Repo.all('Users').filter(function (u) { return u.active === true && Perm.permsOf(u).indexOf(perm) >= 0; })
+    return Repo.all('Users').filter(function (u) { return u.active === true && u.developer !== true && Perm.permsOf(u).indexOf(perm) >= 0; })
       .map(function (u) { return u.user_id; });
   },
 

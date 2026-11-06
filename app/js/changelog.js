@@ -3,6 +3,336 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.158', date: '2026-11-06',
+    ar: { news: ['(نسخة التطوير) طباعة قائمة الأسعار: تختار قبلها الأعمدة التي تُطبع (الرقم، الاسم الإنجليزي، الاسم العربي، الوحدة، السعر)، ويُحفظ اختيارك.'] },
+    en: { news: ['(Development copy) Printing the price list: choose the columns first (ID, English name, Arabic name, unit, price); your choice is kept.'] },
+  },
+  {
+    v: '0.9.157', date: '2026-11-06',
+    ar: { news: ['(نسخة التطوير) المواد: عمود "السعر" بدل الحد الأدنى في القائمة، وزر "طباعة قائمة الأسعار" للقسم المختار (أو لكل الأقسام).'] },
+    en: { news: ['(Development copy) Materials: a Price column in place of the minimum in the list, and a "Print the price list" button for the department chosen (or every department).'] },
+  },
+  {
+    v: '0.9.156', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) استيراد المنتجات: القسم يُعرف بأي طريقة كُتب بها ("Kunafa" أو "الكنافة" أو "Section (الكنافة) Kunafa")، فيذهب المنتج إلى القسم الموجود ولا يُنشأ قسم مكرر. المعاينة تُظهر القسم الذي طابقه برقمه.'] },
+    en: { news: ['(Development copy) Import products: a department is recognised however it is written ("Kunafa", "الكنافة" or "Section (الكنافة) Kunafa"), so the product goes to the existing one and no duplicate is made. The preview shows the department matched, with its ID.'] },
+  },
+  {
+    v: '0.9.155', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) المواد: زر "استيراد المنتجات" للمدير، يقرأ قائمة أسعار (ملف CSV: القسم، الاسم، الاسم العربي، الوحدة، السعر) ويعرض قبل الحفظ ما سيُضاف وما سيُحدّث وما يُترك، ثم يحفظها دفعة واحدة. القسم غير الموجود يُنشأ قسمًا منتجًا، والاسم الذي لمادة خام لا يتحول إلى منتج.'] },
+    en: { news: ['(Development copy) Materials: an "Import products" button for the admin reads a price list (a CSV file: department, name, Arabic name, unit, price), shows what will be added, updated or left out, then saves it at once. A missing department is created as a producing one; a name used by a raw material is never turned into a product.'] },
+  },
+  {
+    v: '0.9.154', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات: تبويب "المتابعة" بكل طلبية من إرسالها حتى فوترتها، بمراحلها ومدة مرحلتها ولون التأخر، ورقم المتأخرة على التبويب والقائمة. والكاشير: عند الخروج ونوبته مفتوحة يُطلب منه إنهاؤها بالمبلغ، والكاشير التالي يستطيع استلام محل تُرك مفتوحًا، فتُغلق النوبة دون مبلغ ويكملها المحاسب.'] },
+    en: { news: ['(Development copy) Approve orders: a Follow-up tab with every order from sending to its invoice, its stage, how long it has been there and a colour when late, with the number of late ones on the tab and the menu. The cashier: signing out with a shift open asks to end it with its amount; the next cashier can take over a shop left open, its shift closing without an amount for the accountant to complete.'] },
+  },
+  {
+    v: '0.9.153', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) الحسابات: تاريخ بداية للحسابات (يوم التثبيت افتراضيًا)، وتبويب "الرصيد الافتتاحي" يكتب فيه المحاسب ما علينا لكل مورد وما عند كل محل في ذلك اليوم. ما قبل البداية لا يُحسب، فتبدأ الأرصدة من صفر حتى يُكتب الافتتاحي.'] },
+    en: { news: ['(Development copy) Accounts: a day the accounts start (the install day by default), and an Opening balances tab where the accountant writes what was owed to each supplier and held by each shop that day. What came before is not counted, so balances start at zero until an opening balance is written.'] },
+  },
+  {
+    v: '0.9.152', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) لوحة المدير العام: شاشة قراءة فقط بدور "مدير عام"، في سبعة تبويبات (نظرة عامة، المبيعات، الربحية، المخزون، الخسائر، الموردون، الخدمة)، لكل فترة مقارنة بالفترة التي قبلها، مع رسوم وطباعة.'] },
+    en: { news: ['(Development copy) The general manager screen: read only, with a General manager role, in seven tabs (overview, sales, profitability, stock, losses, suppliers, service), each period against the one before, with charts and print.'] },
+  },
+  {
+    v: '0.9.151', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) المواد والموردون: نافذة الحفظ تُغلق حالما يحفظ الخادم، وتُقرأ البيانات من جديد في الخلفية بدل انتظار طلب ثانٍ بطيء.'] },
+    en: { news: ['(Development copy) Items and suppliers: the save window closes as soon as the server has saved; the data is read again in the background instead of waiting for a second slow request.'] },
+  },
+  {
+    v: '0.9.150', date: '2026-11-05',
+    ar: { news: ['(نسخة التطوير) القسم الإنتاجي: إن لم يكفِ رصيد منتج القسم للطلبيات يظهر الرقم على "الإنتاج" والإشعار "إنتاج مطلوب"، وبعد الإنتاج ينتقل الرقم إلى "تجهيز الطلبيات" مع إشعار "جاهز للتجهيز".'] },
+    en: { news: ['(Development copy) Producing departments: when a department product\u2019s stock does not cover the orders, the number shows on Production with a Production needed message; once made, the number moves to Prepare orders with a Ready to prepare message.'] },
+  },
+  {
+    v: '0.9.149', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الإنتاج: المنتجات التي تنتظرها طلبيات المحلات تظهر أولًا في خانة "المنتج" لكل قسم، مع الكمية الناقصة (المطلوب ناقص الرصيد). واختيار منتج منها يملأ "الكمية" بها.'] },
+    en: { news: ['(Development copy) Production: the products the shop orders wait for come first in Product for each department, with the quantity still to make (ordered less stock); choosing one fills Quantity with it.'] },
+  },
+  {
+    v: '0.9.148', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) اعتماد أوامر الشراء والصندوق، وإرسال المرتجع وقراره، فورية وتُرسل في الخلفية. وأرصدة الحسابات تُحسب بمرور واحد على الحركات بدل مرور لكل مورد، فصار تحميلها أسرع بكثير.'] },
+    en: { news: ['(Development copy) Approving LPOs and cash sheets, sending a return and deciding it are immediate and sent in the background. The account balances read the movements once instead of once per supplier, so they load much faster.'] },
+  },
+  {
+    v: '0.9.147', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الرحلات: إنشاء الرحلة وتحميل السائق وتسليمه وإلغاء الرحلة فورية وتُرسل في الخلفية، ونموذج "رحلة جديدة" يفتح فورًا بما كان آخر مرة.'] },
+    en: { news: ['(Development copy) Trips: creating a trip, the driver loading and delivering, and cancelling are immediate and sent in the background; the New trip form opens at once with what was there last time.'] },
+  },
+  {
+    v: '0.9.146', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) تجهيز الطلبيات: تظهر الأسطر فورًا من آخر مرة ثم تُحدَّث في الخلفية، ولا تُعاد رسم الصفحة بعد التسليم للتوزيع إلا إن تغيّرت الأسطر، ويبقى موضع التمرير.'] },
+    en: { news: ['(Development copy) Prepare orders: the lines show at once from last time and are checked in the background; after handing to distribution the page is drawn again only if the lines changed, and the scroll stays.'] },
+  },
+  {
+    v: '0.9.145', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الطلبيات: الاعتماد والرفض والتوجيه وإغلاق الناقص واعتماد الفرق والاستلام والإلغاء فورية، وتُرسل في الخلفية. البطاقة تقول "يُرسل" حتى تصل، ولا تعرض أزرارها مرة ثانية.'] },
+    en: { news: ['(Development copy) Orders: approve, reject, route, close the short, accept the difference, receive and cancel are immediate and sent in the background. The card says sending until it arrives and offers no button twice.'] },
+  },
+  {
+    v: '0.9.144', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) طلبيتي: الإرسال والحفظ فوريان، والطلبية تُرسل إلى الخادم في الخلفية (وتنتظر الاتصال إن انقطع). تظهر "طلبية في الطريق" حتى تصل.'] },
+    en: { news: ['(Development copy) My order: sending and saving are immediate; the order goes to the server in the background (and waits for the connection if it is lost). An on-the-way note shows until it arrives.'] },
+  },
+  {
+    v: '0.9.143', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) سرعة: إشعارات الهاتف تُرسل بعد الرد على الحفظ في طلب ثانٍ، فلا ينتظرها من يحفظ. وإضافة سطر إلى سجل التدقيق أو جدول طويل لم تعد تقرأ الجدول كله.'] },
+    en: { news: ['(Development copy) Speed: phone messages go out after the save has answered, in a second request, so the person saving does not wait for them. Adding a row to the audit log or a long sheet no longer reads the whole sheet.'] },
+  },
+  {
+    v: '0.9.142', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) سرعة: الحفظ يكتب تغييراته دفعة واحدة في آخر العملية بدل كتابة كل سطر وحده، ولا يعيد قراءة الجداول تحت القفل إن لم يكتب أحد. والبحث في الجداول بفهرس، فصار تحميل البيانات وقائمة الطلبيات أسرع بكثير.'] },
+    en: { news: ['(Development copy) Speed: a save writes its changes together at the end instead of one row at a time, and does not read the sheets again under the lock when nobody wrote. Lookups use an index, so loading the data and the orders list are much faster.'] },
+  },
+  {
+    v: '0.9.141', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) لوحة التحكم: "مقبوضات اليوم" صارت خانة مستقلة في شجرة الصلاحيات (لوحة التحكم ← مقبوضات اليوم للمحلات)، للمدير فقط افتراضيًا، فلا تظهر لأمناء المخازن.'] },
+    en: { news: ['(Development copy) Dashboard: Today’s takings is its own tick in the permission tree (Dashboard → Shops’ takings of the day), the admin only by default, so storekeepers no longer see it.'] },
+  },
+  {
+    v: '0.9.140', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) نافذة تأكيد إرسال الطلبية: الأسطر مجمّعة حسب القسم ثم المخزن ثم المنتجات الخاصة، مع عدد كل مجموعة.'] },
+    en: { news: ['(Development copy) The order send window: lines grouped by department, then store, then special products, with the count of each.'] },
+  },
+  {
+    v: '0.9.139', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) طلبيتي: لا إرسال ولا حفظ إن بقيت مادة أو كمية مكتوبة لم تُضف، ويومض زر "إضافة إلى الإذن". ونافذة الإرسال تعرض أسطر الطلبية لمراجعتها قبل التأكيد.'] },
+    en: { news: ['(Development copy) My order: nothing is sent or saved while an item or quantity is typed and not added; the Add button flashes. The send window lists the lines to check before confirming.'] },
+  },
+  {
+    v: '0.9.138', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الحسابات: "دفعة جديدة" للموردين فقط. وكشف حساب المحل يُبنى وحده: الفواتير عليه، ويومية المبيعات المعتمدة له، فالرصيد ما استلمه المحل ولم يقابله بيع.'] },
+    en: { news: ['(Development copy) Accounts: New payment is for suppliers only. A shop statement builds itself: invoices against its approved daily sales, so the balance is what it received and has not sold.'] },
+  },
+  {
+    v: '0.9.137', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) شجرة الصلاحيات: الحسابات صارت تبويبًا تبويبًا (الأرصدة، كشف حساب، دفعة جديدة، مطابقة أوامر الشراء، مقبوضات النوبات، يومية المبيعات)، لكل منها خانته.'] },
+    en: { news: ['(Development copy) Permission tree: Accounts by tab (balances, statement, new payment, purchase orders matched, shift takings, daily sales), each with its own tick.'] },
+  },
+  {
+    v: '0.9.136', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) مقبوضات النوبات: إن اختلف المستلم عن المصرّح به يكتب المحاسب "الإجراء المتخذ" (إلزامي). والمدير يرى "فروق المقبوضات" بإجراءاتها في تبويب المقبوضات، ورقمًا في قراراتك لكل فرق جديد حتى يطّلع عليه.'] },
+    en: { news: ['(Development copy) Shift takings: when received differs from declared, the accountant writes the action taken (required). The admin sees Takings differences with their actions in the takings tab, and a number in Your decisions for each new one until looked at.'] },
+  },
+  {
+    v: '0.9.135', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) يومية المبيعات: المحلات وإعداد القنوات تنطوي، وخانة النقد بشكل بقية الخانات. واليوميات للاعتماد في جدول واحد: المحلات في الأسطر والقنوات في الأعمدة، مع الإجمالي وزر اعتماد الكل.'] },
+    en: { news: ['(Development copy) Daily sales: the shops and the channels settings fold, and the cash field looks like the others. The sheets to approve in one table: shops in rows, channels in columns, with totals and Approve all.'] },
+  },
+  {
+    v: '0.9.134', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) يومية المبيعات في الحسابات: لكل محل ويوم النقد من النوبات، والبطاقة والتطبيقات يكتبها المحاسب، ثم يرسلها للمدير فيعتمدها أو يعيدها. القنوات تُضبط في شاشة المستخدمين (qlub للؤلؤة وحدها). وتقرير "المبيعات حسب القناة"، والهامش ولوحة التحكم يقرآن اليومية.'] },
+    en: { news: ['(Development copy) Daily sales sheet in Accounts: per shop and day, cash from the shifts, card and apps typed by the accountant, sent to the admin to approve or return. Channels set in the users screen (qlub for the Pearl only). A Sales by channel report; margin and dashboard read the sheet.'] },
+  },
+  {
+    v: '0.9.133', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) إصلاح: بعد كل تحديث للتطبيق تُقرأ الصلاحيات من جديد، فتظهر الشاشات والتبويبات الجديدة دون انتظار تغيّر في البيانات.'] },
+    en: { news: ['(Development copy) Fix: after each app update the permissions are read again, so new screens and tabs show without waiting for a data change.'] },
+  },
+  {
+    v: '0.9.132', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الحسابات: عمود الطرف صار "المورد / المحل" بدل "المورد / القسم".'] },
+    en: { news: ['(Development copy) Accounts: the party column reads Supplier / shop.'] },
+  },
+  {
+    v: '0.9.131', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) تقرير التكلفة والهامش: لكل محل مقبوضاته في الفترة والفرق بينها وبين ما فوتر له. ولوحة التحكم: بطاقة مقبوضات اليوم لكل محل، مع النوبات المفتوحة.'] },
+    en: { news: ['(Development copy) Cost and margin report: each shop with its takings in the period and the difference against what it was invoiced. The dashboard: a card of today\u2019s takings per shop, with the shifts still open.'] },
+  },
+  {
+    v: '0.9.130', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) مقبوضات النوبات: في شاشة الحسابات تبويب جديد، يستلم فيه المحاسب نقد كل نوبة مغلقة ويكتب ما استلمه فيظهر الفرق. وتقرير جديد "مقبوضات المحلات" لكل يوم ومحل وكاشير.'] },
+    en: { news: ['(Development copy) Shift takings: a new tab in Accounts where the accountant receives the cash of each closed shift; the difference shows. A new report, Shop takings, per day, shop and cashier.'] },
+  },
+  {
+    v: '0.9.129', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الكاشير: عند إنهاء النوبة يكتب المبلغ المحصّل فيها (وملاحظة)، ويُحفظ لكل نوبة. والشاشة الرئيسية للمدير: "قراراتك" و"عمل الفريق" في إطارين منفصلين.'] },
+    en: { news: ['(Development copy) The cashier: ending a shift asks the amount collected in it (and a note), kept for each shift. The admin home: Your decisions and Team work in two separate frames.'] },
+  },
+  {
+    v: '0.9.128', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) المدير: رقم الإصدار وتغيير اللغة وتسجيل الخروج على الشريط العلوي في كل الشاشات.'] },
+    en: { news: ['(Development copy) The admin: the version, the language and sign out on the top bar of every screen.'] },
+  },
+  {
+    v: '0.9.127', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) "قراراتك" تُحسب من صلاحية الاعتماد نفسها (أوامر الشراء، الصندوق، الجرد، الطلبيات الخاصة) لا من الشاشة. وخانة "حساب المطوّر" في شاشة المستخدمين: يرى كل شيء ولا تُعرض عليه القرارات ولا تصله إشعارات الأدوار.'] },
+    en: { news: ['(Development copy) Your decisions are counted by the approval itself (purchase orders, cash, stock counts, special orders), not by the screen. A Developer account tick in the users screen: sees everything, is shown no decisions and gets no role messages.'] },
+  },
+  {
+    v: '0.9.126', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) إصلاح: "قراراتك" و"عمل الفريق" في الشاشة الرئيسية للمدير كانا يعرضان نصًا خاطئًا بدل الأسماء والأرقام.'] },
+    en: { news: ['(Development copy) Fix: Your decisions and Team work on the admin home screen showed wrong text instead of the names and numbers.'] },
+  },
+  {
+    v: '0.9.125', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الشاشة الرئيسية للمدير: "بانتظارك" صار قسمين: "قراراتك" لما لا يقرره غيرك، و"عمل الفريق" سطر أرقام لما ينتظر مستخدمين آخرين.'] },
+    en: { news: ['(Development copy) The admin home screen: Waiting for you is now two parts: Your decisions, for what nobody else decides, and Team work, a line of numbers for what waits for other users.'] },
+  },
+  {
+    v: '0.9.124', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) الشاشة الرئيسية للمدير: "بانتظارك" في الأعلى بالشاشات التي عليها رقم، ثم المفضلة (النجمة على كل شاشة، حتى 6)، ثم خمس مجموعات قابلة للطي: المخازن، دورة الطلبيات، المشتريات والمالية، المتابعة، الإدارة. والقائمة الجانبية بالمجموعات نفسها.'] },
+    en: { news: ['(Development copy) The admin home screen: Waiting for you at the top with the screens that have a number, then favourites (the star on each screen, up to 6), then five folding groups: stores, order cycle, purchasing and finance, follow-up, admin. The side menu uses the same groups.'] },
+  },
+  {
+    v: '0.9.123', date: '2026-11-04',
+    ar: { news: ['(نسخة التطوير) التقارير تتبع لغة الشاشة: بالعربية العنوان والأعمدة والكلمات الثابتة وأسماء الأصناف، في المعاينة والطباعة وExcel وواتساب، من اليمين إلى اليسار.'] },
+    en: { news: ['(Development copy) Reports follow the screen language: in Arabic the title, columns, fixed words and item names, in the preview, print, Excel and WhatsApp, right to left.'] },
+  },
+  {
+    v: '0.9.122', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الاستلام: خانة "أمر الشراء (اختياري)" تعرض أوامر الشراء المعتمدة للمورد المختار، فتصير مطابقة أوامر الشراء في الحسابات دقيقة لكل استلام يحمل رقمه.'] },
+    en: { news: ['(Development copy) Receiving: a Purchase order (optional) field lists the approved LPOs of the chosen supplier, so the purchase order matching in Accounts is exact for each receipt that names it.'] },
+  },
+  {
+    v: '0.9.121', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) للمحاسب: إقفال الفترة حتى تاريخ (في شاشة المستخدمين)، وتقرير قيمة المخزون في تاريخ، وتقرير التكلفة والهامش، وتقرير الخسائر يضم المرتجعات التالفة والمنتهية والضائع في الطريق. وشاشة الحسابات: أرصدة الموردين والمحلات، وكشف حساب، وتسجيل الدفعات، ومطابقة أوامر الشراء.'] },
+    en: { news: ['(Development copy) For the accountant: the period closed until a date (users screen), stock value on a date, cost and margin, and the losses report with returns damaged or expired and goods lost on the way. The Accounts screen: supplier and shop balances, statements, payments, and purchase orders matched.'] },
+  },
+  {
+    v: '0.9.120', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الطلبية الخاصة: "مواد من القائمة (اختياري)" مطوية وتُفتح بالضغط. م.المشتريات: خانة "للتوزيع / للمحل مباشرة" فارغة ويجب اختيارها قبل التسليم.'] },
+    en: { news: ['(Development copy) Special order: Items from the list (optional) is folded and opens on a press. Purchasing: To distribution / Straight to the shop starts empty and must be chosen before handing.'] },
+  },
+  {
+    v: '0.9.119', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) المنتج الخاص المشترى: م.المشتريات يسلّمه للتوزيع أو للمحل مباشرة. الطلبية التي كل ما فيها سُلّم للمحل مباشرة لا تحتاج رحلة، وتظهر للكاشير "وصلت" ليستلمها. والسائق لا يرى في حمولته ما سُلّم للمحل مباشرة.'] },
+    en: { news: ['(Development copy) A bought special product: purchasing hands it to distribution or straight to the shop. An order whose every line went straight to the shop needs no trip and shows as arrived for the cashier to receive. The driver load leaves out what went straight to the shop.'] },
+  },
+  {
+    v: '0.9.118', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) المنتج الخاص الموجَّه إلى المشتريات: م.المشتريات يختار من المخزن (يذهب إلى أمين المخزن ويُخصم من الرصيد)، أو شراء بسعر نهائي يكتبه ثم يسلّمه هو للتوزيع، أو غير متوفر بسبب (يصل الكاشير إشعار). سعر الكاشير تقديري.'] },
+    en: { news: ['(Development copy) A special product sent to purchasing: from the store (to the storekeeper, taken from the balance), buy at a final price written by purchasing who hands it to distribution, or not available with a reason (the cashier is told). The cashier price is an estimate.'] },
+  },
+  {
+    v: '0.9.117', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) رحلة جديدة: الطلبية الخاصة بإطار ملوّن وموعدها واسم الزبون وعنوانه، وترسل مع أي سائق. النقص: كل مخزن أو قسم يرى نقصه وحده. صلاحيات تجهيز الطلبيات بالعربية. المنتج الخاص الموجَّه إلى المشتريات يظهر في طلبات الشراء الخاصة.'] },
+    en: { news: ['(Development copy) New trip: a special order has a coloured frame with its time, customer and address, and goes with any driver. Shortages: each store or department sees its own. Prepare orders permissions in Arabic. A special product routed to purchasing shows in Special purchase requests.'] },
+  },
+  {
+    v: '0.9.116', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الطلبية الخاصة: في "طلبيتي" يختار الكاشير طلبية خاصة، يكتب الزبون وتاريخ ووقت ومكان التسليم، ويصف المنتج بسعره المتفق عليه مع حتى 3 صور. مدير الإنتاج يوجّه كل منتج إلى قسمه أو إلى المشتريات، والقسم يراه في تجهيز الطلبيات بموعده. السائق يرى العنوان والهاتف، والتسليم عند الزبون يُعدّ استلامًا، والفاتورة على المحل.'] },
+    en: { news: ['(Development copy) Special orders: in My order the cashier picks a special order, writes the customer, date, time and place, and describes the product with the agreed price and up to 3 photos. The production manager sends each product to its department or to purchasing; the department sees it in Prepare orders with its deadline. The driver sees the address and phone; delivery at the customer counts as received, invoiced to the shop.'] },
+  },
+  {
+    v: '0.9.115', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) شاشة المرتجعات: الكاشير يُرجع بضاعة بسببها، فتدخل الحجر ولا تُحسب في الرصيد. مدير الإنتاج يقرر لكل صنف: يعود للمخزن أو تالف أو منتهي الصلاحية. و"إرجاع إلى المخزن" في فرق الاستلام يمر عبر الحجر أيضًا.'] },
+    en: { news: ['(Development copy) Returns screen: the cashier returns goods with a reason; they go to quarantine and are not in the balance. The production manager decides each item: back to the store, damaged or expired. A receipt difference back to the store goes through quarantine too.'] },
+  },
+  {
+    v: '0.9.114', date: '2026-11-03',
+    ar: { news: ['(نسخة التطوير) الفواتير: كل طلبية بانتظار فاتورتها تعرض لكل مادة ما طُلب وما سُلّم وما استُلم، والسطر المختلف ملوّن. وفي جدول البيانات أمر للقراءة فقط: MORO ثم Check for duplicate numbers.'] },
+    en: { news: ['(Development copy) Invoices: each order waiting for its invoice shows, for every item, what was ordered, handed and received, with a line that differs in colour. In the spreadsheet, a read-only command: MORO, then Check for duplicate numbers.'] },
+  },
+  {
+    v: '0.9.113', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) فروق الاستلام: خانة المصير فارغة لكل سطر، ويجب أن يختار مسؤول التوزيع (رجع إلى المخزن أو تالف أو مفقود) قبل اعتماد الفرق.'] },
+    en: { news: ['(Development copy) Receipt differences: the choice is empty on each line, and distribution must pick (back to the store, or damaged or lost) before accepting.'] },
+  },
+  {
+    v: '0.9.112', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) فروق الاستلام: طلبية استلمها الكاشير ناقصة تظهر في تبويب "فروق الاستلام" عند مسؤول التوزيع، ولا تُفوتر حتى يعتمد الفرق ويختار لكل سطر: رجع إلى المخزن (تعود الكمية إلى الرصيد) أو تالف أو مفقود.'] },
+    en: { news: ['(Development copy) Receipt differences: an order received short shows in distribution’s "Receipt differences" tab, and is not invoiced until the difference is accepted with, per line, back to the store (the quantity returns to stock) or damaged or lost.'] },
+  },
+  {
+    v: '0.9.111', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) الكاشير: رقم على تبويب "وصلت" بعدد الطلبيات التي وصلت ولم يؤكَّد استلامها.'] },
+    en: { news: ['(Development copy) The cashier: a number on "Delivered" with the orders that arrived and are not yet received.'] },
+  },
+  {
+    v: '0.9.110', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: تسليم محل قبل محل يسبقه في ترتيب الرحلة يطلب تأكيدًا.'] },
+    en: { news: ['(Development copy) The driver: delivering a shop before one earlier in the trip asks for a confirmation.'] },
+  },
+  {
+    v: '0.9.109', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: لا تسليم قبل تحميل كل طلبيات الرحلة. يظهر زر "تم التسليم" بعد تحميل الجميع.'] },
+    en: { news: ['(Development copy) The driver: no delivery before every order of the trip is loaded. "Delivered" shows once all are loaded.'] },
+  },
+  {
+    v: '0.9.108', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) حالات الطلبية بعد الرحلة: "بانتظار التحميل" (أُسندت لرحلة ولم تُحمَّل بعد) ثم "في الطريق" (حمّلها السائق) ثم "وصلت".'] },
+    en: { news: ['(Development copy) Order states after the trip: "Waiting to be loaded" (in a trip, not loaded yet), then "On the way" (the driver loaded it), then "Delivered".'] },
+  },
+  {
+    v: '0.9.107', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إصلاح: زرّا "تم التحميل" و"تم التسليم" عند السائق لم يكونا يحفظان شيئًا منذ النسخة 0.9.104.'] },
+    en: { news: ['(Development copy) Fix: the driver’s "Loaded" and "Delivered" buttons saved nothing since version 0.9.104.'] },
+  },
+  {
+    v: '0.9.106', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات: رقم على كل تبويب بعدد طلبياته (بانتظار الاعتماد، قيد التجهيز، جاهزة للتوزيع)، وعلى "مرفوضة" عدد ما رُفض منذ آخر فتح لها. يتحدّث مع كل تغيير.'] },
+    en: { news: ['(Development copy) Approve orders: a number on each tab with its orders (waiting, being prepared, ready), and on "Rejected" those rejected since it was last opened. It follows every change.'] },
+  },
+  {
+    v: '0.9.105', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إصلاح: طلبيتان في اللحظة نفسها كانتا تأخذان الرقم نفسه. كل رقم (طلبية، حركة، رحلة، فاتورة…) يُقرأ الآن من جديد داخل القفل.'] },
+    en: { news: ['(Development copy) Fix: two orders at the same moment took the same number. Every counter (order, movement, trip, invoice…) is now read afresh inside the lock.'] },
+  },
+  {
+    v: '0.9.104', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) اعتماد الطلبيات أسرع (الإشعارات تُرسل بعد حفظ القرار)، ولا تتحدّث القائمة أثناء إرسال القرار فلا يظهر الزر مرة ثانية. وإن سبقك أحد إلى الطلبية تظهر رسالة واضحة بدل "السجل غير موجود".'] },
+    en: { news: ['(Development copy) Approving orders is quicker (messages go out after the decision is saved), and the list does not refresh while a decision is on its way, so the button does not come back. If someone acted on the order first, a clear message replaces "Record not found".'] },
+  },
+  {
+    v: '0.9.103', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة «MORO» بخط رقيق وبين علامتي تنصيص.'] },
+    en: { news: ['(Development copy) The home screen disc: "MORO" in a thin type, between quotes.'] },
+  },
+  {
+    v: '0.9.101', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) القرص في الشاشة الرئيسية: كلمة MORO أصغر، وجملة Materials Operations & Records Organizer أكبر.'] },
+    en: { news: ['(Development copy) The home screen disc: MORO smaller, Materials Operations & Records Organizer larger.'] },
+  },
+  {
+    v: '0.9.100', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) السائق: زر "عرض الحمولة" لكل محل في الرحلة (ما سُلّم من كل مادة وكميته)، و"حمولة الرحلة كاملة" بمجموع كل المحلات، ليطابقها مع ما في السيارة قبل التحميل.'] },
+    en: { news: ['(Development copy) The driver: "Show the load" for each shop of the trip (each item handed and its quantity), and "The whole trip’s load" summed over the shops, to check against the car before loading.'] },
+  },
+  {
+    v: '0.9.99', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إصلاح: التطبيق لم يكن يفتح بعد النسخة 0.9.97.'] },
+    en: { news: ['(Development copy) Fix: the app did not open after version 0.9.97.'] },
+  },
+  {
+    v: '0.9.98', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) إشعار على الهاتف لكل خطوة في الطلبية، لمن عليه التصرّف: طلبية جديدة للاعتماد، اعتماد أو رفض للكاشير، نقص في التجهيز، جاهزة للتوزيع، رحلة جديدة أو ملغاة للسائق، في الطريق، وصلت، وطلبية للفوترة. وأرقام على "طلبيتي" و"الرحلات" و"الفواتير" بما ينتظرك.'] },
+    en: { news: ['(Development copy) A phone message for every step of an order, to whoever has to act: a new order to approve, approved or rejected for the cashier, short in preparation, ready for distribution, a new or cancelled trip for the driver, on the way, delivered, and an order to invoice. Numbers on "My order", "Trips" and "Invoices" for what waits for you.'] },
+  },
+  {
+    v: '0.9.97', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) طلبية لم تُجهَّز كاملة: في "اعتماد الطلبيات" ← قيد التجهيز، زر "اعتماد ما سُلّم وإغلاق الباقي" ينقلها بما سُلّم إلى الرحلات. إن لم يُسلَّم شيء تُغلق.'] },
+    en: { news: ['(Development copy) An order not fully prepared: in "Approve orders" → being prepared, "Accept what was handed, close the rest" sends it on to the trips with what was handed. Nothing handed: it is closed.'] },
+  },
+  {
+    v: '0.9.96', date: '2026-11-02',
+    ar: { news: ['(نسخة التطوير) القسم منتج أو غير منتج (التنظيف، الإدارة…): علّم "قسم منتج" في نافذة القسم. الأقسام المنتجة وحدها تظهر في "القسم الذي ينتجه" وفي أقسام مسؤول القسم وفلتر المواد.'] },
+    en: { news: ['(Development copy) A department makes products or not (cleaning, management…): tick "Producing department" in its window. Only producing departments show in "Made by department", the department head’s departments and the items filter.'] },
+  },
+  {
+    v: '0.9.87', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) أسماء جديدة: "طلبيتي" للكاشير، و"اعتماد الطلبيات" للتوزيع، و"تجهيز الطلبيات" للأقسام والمخازن. الكاشير يبدأ نوبة في المحل الذي يعمل فيه (لا يأخذه كاشير آخر حتى ينهيها)، ويختار المادة بتبويبات المخازن والأقسام. تبويبات للرحلات والفواتير، وفلتر القسم في قائمة المواد.'] },
+    en: { news: ['(Development copy) New names: "My order" for the cashier, "Approve orders" for distribution, "Prepare orders" for departments and stores. The cashier starts a shift in the shop they work in (no other cashier can take it until it ends) and picks items by store or department tabs. Tabs for trips and invoices, and a department filter in the items list.'] },
+  },
+  {
+    v: '0.9.86', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات، المرحلة 3: مسؤول التوزيع يُصدر فاتورة الطلبية المستلَمة بالكميات المستلَمة، بقسمين (منتجات نهائية بسعرها النهائي، ومواد المخزن بسعر آخر شراء) والسعر يُجمَّد لحظة الإصدار، وتُطبع بتصميم ورقة الشركة. وأربعة تقارير: توقيتات الطلبيات، فروق الاستلام، ما لم يمكن توفيره، ومبيعات المحلات بمجموع كل قسم.'] },
+    en: { news: ['(Development copy) Shop orders, stage 3: distribution issues the invoice of a received order from what was received, in two parts (final products at their final price, store items at their last purchase price), the prices frozen when issued, printed in the company layout. And four reports: order times, received short, could not be supplied, and shop sales with each part’s sum.'] },
+  },
+  {
+    v: '0.9.84', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات، المرحلة 2: مسؤول التوزيع ينشئ رحلة بسائق وطلبيات جاهزة بترتيب التوقف؛ السائق يؤكّد التحميل ثم التسليم لكل محل؛ الكاشير يستلم ويكتب المستلَم، والنقص بسببه. والإنتاج ممكن الآن دون وصفة للمنتجات النهائية.'] },
+    en: { news: ['(Development copy) Shop orders, stage 2: distribution makes a trip with a driver and ready orders in stop order; the driver confirms loading then delivery per shop; the cashier receives and enters what came, a shortfall with its reason. Final products can now be produced without a recipe.'] },
+  },
+  {
+    v: '0.9.83', date: '2026-11-01',
+    ar: { news: ['(نسخة التطوير) طلبيات المحلات داخل مورو، المرحلة 1: الكاشير يكتب طلبية محله ويرسلها لليوم الموالي، ومسؤول التوزيع يعتمدها، وكل سطر يذهب لقسمه المنتِج أو لمخزنه في "طلبيات المحلات"، بتبويبات لكل قسم ومخزن.'] },
+    en: { news: ['(Development copy) Shop orders inside MORO, stage 1: the cashier writes the shop’s order for the next day, distribution approves it, and each line goes to the department that makes it or to its store in "Shop orders", with a tab per department and store.'] },
+  },
+  {
     v: '0.9.83', date: '2026-11-02',
     ar: { news: ['إصلاح: عمليتان محفوظتان في اللحظة نفسها لم تعودا تأخذان الرقم نفسه.'] },
     en: { news: ['Fix: two operations saved at the same moment no longer take the same number.'] },

@@ -64,15 +64,40 @@ var Balances = {
 };
 
 /** Runs fn while holding the script lock (all writes go through here). */
+// work to do once the outermost lock is released (phone messages: slow, and nothing for others to wait on)
+var LOCK_DEPTH = 0;
+var AFTER_LOCK = [];
+
 function withLock(fn) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new AppError('busy');
+  var out;
   // what this request read before the lock may be old by now (another request wrote meanwhile: a counter,
-  // a balance): inside the lock everything is read again from the sheets
-  Repo.reset();
+  // a balance): then everything is read again from the sheets. Nobody wrote since: what was read stands.
+  if (!LOCK_DEPTH && Repo.stale()) Repo.reset();
+  LOCK_DEPTH++;
   try {
-    return fn();
+    out = fn();
+    // the changes reach the sheets together, before the lock is released
+    if (LOCK_DEPTH === 1) Repo.flush();
+  } catch (e) {
+    if (LOCK_DEPTH === 1) { AFTER_LOCK = []; Repo.discard(); }   // the operation failed: nothing written, nothing to tell
+    throw e;
   } finally {
-    lock.releaseLock();
+    LOCK_DEPTH--;
+    if (!LOCK_DEPTH) lock.releaseLock();
   }
+  if (!LOCK_DEPTH) afterLock();
+  return out;
+}
+
+/** Runs now outside a lock, or when the lock is released. */
+function whenUnlocked(job) {
+  if (LOCK_DEPTH) AFTER_LOCK.push(job); else job();
+}
+
+function afterLock() {
+  var jobs = AFTER_LOCK;
+  AFTER_LOCK = [];
+  jobs.forEach(function (j) { try { j(); } catch (e) { console.error('after lock ' + (e && e.stack || e)); } });
 }

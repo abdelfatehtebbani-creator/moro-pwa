@@ -35,6 +35,14 @@ export async function render(root) {
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
   const date = trackFilled(h('input.input#r-date', { type: 'date', value: today }));
   const invoice = trackFilled(h('input.input#r-invoice', { autocomplete: 'off' }));
+  // the purchase order this receipt answers: the approved LPOs of the chosen supplier (optional)
+  const lpo = h('select.input#r-lpo');
+  const drawLpo = (keep) => {
+    const mine = ((Data.boot || {}).lpo_open || []).filter((x) => x[1] === supplier.value).sort((a, b) => (a[2] < b[2] ? 1 : -1));
+    lpo.replaceChildren(h('option', { value: '' }, '—'), ...mine.map((x) => h('option', { value: x[0], selected: x[0] === keep }, 'LPO ' + x[0] + ' · ' + x[2])));
+  };
+  supplier.input.addEventListener('change', () => drawLpo(lpo.value));
+  drawLpo('');
   const parcels = trackFilled(h('input.input.num#r-parcels', { type: 'number', step: 'any', inputmode: 'decimal' }));
 
   const retail = trackFilled(h('input.input.num#r-retail', { type: 'number', step: 'any', inputmode: 'decimal', value: 1 }));
@@ -184,6 +192,7 @@ export async function render(root) {
       item_id: item.value, qty: Math.abs(Number(qty.value)), unit: unit.input.value.trim().toUpperCase(),
       price: price.value, per: per.input.value.trim().toUpperCase(), amount: amount.value, discount: discount.value || 0, discount_kind: dkind.value,
       doc_no: invoice.value.trim(), location: location.input.value.trim(), expiry: expiry.value,
+      lpo_no: isRet() ? '' : lpo.value,
     };
   }
 
@@ -228,7 +237,7 @@ export async function render(root) {
     if (!Data.canStore(Data.storeOf(it), 'receive')) { toast(t('store_not_yours'), 'err'); return; }
     if (Data.storeOf(it) !== zone.value) zone.set(Data.storeOf(it), true);
     editing = m;
-    item.set(m.item_id); supplier.set(m.party_id); date.value = m.date; invoice.value = m.doc_no;
+    item.set(m.item_id); supplier.set(m.party_id); date.value = m.date; invoice.value = m.doc_no; drawLpo(String(m.lpo_no || ''));
     parcels.value = ''; retail.value = '1';
     // edited as it was typed (10 BOX), not as stored (3600 PC)
     qty.value = String(m.entry_unit ? m.entry_qty : Math.abs(Number(m.qty)));
@@ -286,7 +295,7 @@ export async function render(root) {
       h('div.form-grid',
         field(t('item'), item, { wide: true }), info,
         field(t('supplier'), supplier, { wide: true }),
-        field(t('date'), date), field(t('invoice_no'), invoice),
+        field(t('date'), date), field(t('invoice_no'), invoice), field(t('lpo_no_field'), lpo),
         field(t('parcels'), parcels), field(t('per_parcel'), retail),
         field(t('qty'), qty), field(t('unit'), unit), conv,
         field(t('price'), price), field(t('per'), per),

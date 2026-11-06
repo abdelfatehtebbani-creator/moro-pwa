@@ -31,12 +31,16 @@ function watch(fill) {
 
 export function dispose() { if (cleanup) cleanup(); }
 
-async function save(action, payload, close, err) {
+// the window closes as soon as the server has saved; the data on the device is read again in the background
+// (the list follows when it arrives) instead of keeping the window open for a second slow request
+const refreshSoon = (then) => Data.refresh().then(() => { if (then) then(); }).catch(() => { /* the next sync */ });
+async function save(action, payload, close, err, after) {
   try {
     await call(action, payload);
-    await Data.refresh();
     toast(t('saved'), 'ok');
     close(true);
+    if (after) after();
+    refreshSoon();
   } catch (e) { err.textContent = errText(e); }
 }
 
@@ -44,18 +48,57 @@ function items(body, isAdmin) {
   const canMin = Data.can('min_stock');
   const search = trackFilled(h('input.input#m-search', { type: 'search', placeholder: t('lookup_hint') }));
   const showInactive = h('input#m-inactive', { type: 'checkbox' });
+  const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
+    Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
   const tb = h('tbody');
+  // the fixed price of a final product (the price list); other materials have none here
+  const showPrice = Data.can('see_prices') || Data.can('final_price');
+  const priceOf = (i) => (i.final_price === '' || i.final_price === undefined || i.final_price === null ? '' : Number(i.final_price));
+  // the price list of the department chosen (or of every department), printed
+  // the columns printed are chosen first (remembered on this device)
+  const PRINT_COLS = [['id', 'ID', (i) => i.item_id], ['name', 'Product', (i) => i.name], ['name_ar', 'الاسم', (i) => i.name_ar || ''],
+    ['unit', 'Unit', (i) => i.unit], ['price', 'Price', (i) => (priceOf(i) === '' ? '—' : fmtNum(priceOf(i)))]];
+  const choosePrint = async () => {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('moro.priceCols') || 'null'); } catch (e) { /* none */ }
+    const boxes = PRINT_COLS.map(([k]) => h('input', { type: 'checkbox', checked: !saved || saved.includes(k) }));
+    const cols = await dialog((close) => [h('h3', t('price_list_print')), h('p', t('price_list_cols')),
+      PRINT_COLS.map(([k, label], ix) => h('label.check', boxes[ix], ' ', t('pcol_' + k))),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+        h('button.btn', { type: 'button', onclick: () => { const on = PRINT_COLS.filter((c, ix) => boxes[ix].checked).map((c) => c[0]); if (on.length) close(on); else flash(boxes[0]); } }, t('print')))]);
+    if (!cols) return;
+    try { localStorage.setItem('moro.priceCols', JSON.stringify(cols)); } catch (e) { /* private mode */ }
+    printPrices(PRINT_COLS.filter((c) => cols.includes(c[0])));
+  };
+  const printPrices = (cols) => {
+    const depts = deptFilter.value ? [Data.parties.get(deptFilter.value)].filter(Boolean) : Data.producingDepts();
+    const groups = depts.map((d) => ({ d, rows: [...Data.items.values()].filter((i) => i.active === true && String(i.dept || '') === d.party_id)
+      .sort((a, b) => a.name.localeCompare(b.name)) })).filter((g) => g.rows.length);
+    if (!groups.length) { toast(t('price_list_empty'), 'err'); return; }
+    const area = h('div#print-area', { dir: 'ltr' }, h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', 'Inventory Management System'),
+      h('div.pr-title', 'Price list'), h('div.pr-meta', h('b', deptFilter.value ? groups[0].d.name : 'All departments'), h('span', 'Printed: ' + new Date().toLocaleString('en-GB'))),
+      groups.map((g) => [groups.length > 1 ? h('div.pr-title', g.d.name) : null,
+        h('table.pr-table', h('thead', h('tr', cols.map((c) => h('th', c[1])))),
+          h('tbody', g.rows.map((i) => h('tr', cols.map(([k, , v]) => h('td', k === 'price' ? { class: 'num' } : k === 'name_ar' ? { dir: 'rtl' } : {}, v(i))))))),
+        h('div.pr-count', 'Number of products: ' + g.rows.length)]));
+    document.body.append(area);
+    const done = () => { area.remove(); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  };
   const fill = () => {
     const q = search.value.trim().toLowerCase();
-    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q)))
+    const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q))
+      && (!deptFilter.value || String(i.dept || '') === deptFilter.value))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
       h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),
-      h('td', i.unit), h('td.num', Number(i.min_stock) > 0 ? fmtNum(i.min_stock) : ''), h('td.num', fmtNum(Data.qty(i.item_id))),
+      h('td', i.unit), showPrice ? h('td.num', priceOf(i) === '' ? '' : fmtNum(priceOf(i))) : null, h('td.num', fmtNum(Data.qty(i.item_id))),
       h('td', i.active === true ? '' : h('span.pill.out', t('inactive'))))));
   };
   search.addEventListener('input', fill);
   showInactive.addEventListener('change', fill);
+  deptFilter.addEventListener('change', fill);
   watch(fill);
 
   const edit = (it) => dialog((close) => {
@@ -63,14 +106,22 @@ function items(body, isAdmin) {
     // shown to Arabic users instead of the name (the name stays the item's name in the data and the reports)
     const nameAr = trackFilled(h('input.input#e-name-ar', { value: it ? it.name_ar || '' : '', dir: 'rtl', disabled: it && !Data.can('rename.items') }));
     const cat = storeSelect('e-cat', it ? Data.storeOf(it) : 'DRY', it && !isAdmin);
+    // a final product is made by one department: its shop-order lines go to that department
+    const deptSel = h('select.input#e-dept', { disabled: it && !Data.can('rename.items') }, h('option', { value: '' }, '—'),
+      Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
+    deptSel.value = it ? it.dept || '' : '';
+    const deptField = field(t('made_by_dept'), deptSel);
+    const showDept = () => { deptField.hidden = cat.value !== 'FINAL'; };
+    cat.addEventListener('change', showDept);
+    showDept();
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
     if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
-    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it); } }, t('change_stock_unit')) : null;
+    const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => ok(() => convertUnit(Data.items.get(it.item_id) || it)) }, t('change_stock_unit')) : null;
     // an item kept in its larger unit (TIN while KG exists): the admin moves it to the smallest unit once
     const smaller = it ? Data.packsOf(it).filter((x) => x.factor < 1).sort((a, b) => a.factor - b.factor)[0] : null;
     const toBaseBtn = smaller && Data.can('items.convertUnit')
       ? h('div.notice', t('base_not_smallest', { u: smaller.unit }), ' ',
-        h('button.link', { type: 'button', onclick: () => { close(); convertUnit(it, { new_unit: smaller.unit, factor: Math.round((1 / smaller.factor) * 1e6) / 1e6 }); } }, t('make_base', { u: smaller.unit })))
+        h('button.link', { type: 'button', onclick: () => ok(() => convertUnit(Data.items.get(it.item_id) || it, { new_unit: smaller.unit, factor: Math.round((1 / smaller.factor) * 1e6) / 1e6 })) }, t('make_base', { u: smaller.unit })))
       : null;
     const min = trackFilled(h('input.input.num#e-min', { type: 'number', min: 0, step: 'any', value: it ? Number(it.min_stock) || 0 : 0, disabled: !canMin }));
     const active = h('input#e-active', { type: 'checkbox', checked: !it || it.active === true, disabled: !isAdmin });
@@ -111,13 +162,15 @@ function items(body, isAdmin) {
     cat.addEventListener('change', showFinal);
     showFinal();
     const err = h('p.err-text', '');
-    const ok = () => {
+    // after: what to open once the item is saved (the unit windows)
+    const ok = (after) => {
       if (!name.value.trim()) return flash(name);
       if (!unit.input.value.trim()) return flash(unit.input);
       const p = { name: name.value, store: cat.value, unit: it ? it.unit : unit.input.value.trim().toUpperCase() };
       if (it) { p.item_id = it.item_id; if (!isAdmin) p.name = it.name; p.active = active.checked; }
       if (canMin) p.min_stock = Number(min.value) || 0;
       p.image = image.value.trim();
+      if (!it || Data.can('rename.items')) p.dept = cat.value === 'FINAL' ? deptSel.value : '';
       if (!it || Data.can('rename.items')) p.name_ar = nameAr.value.trim();
       if (canPack) {
         const bu = buyUnit.value.trim().toUpperCase(), bq = Number(buyQty.value);
@@ -135,9 +188,9 @@ function items(body, isAdmin) {
         if (finalPrice.value !== '' && !(Number(finalPrice.value) >= 0)) return flash(finalPrice);
         p.final_price = finalPrice.value;
       }
-      save('items.save', p, close, err);
+      save('items.save', p, close, err, typeof after === 'function' ? after : null);
     };
-    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), finalField,
+    return [h('h3', it ? t('edit_item') : t('new_item')), field(t('name'), name), field(t('name_ar'), nameAr), field(t('store'), cat), deptField, finalField,
       h('fieldset.units-box', h('legend', t('units_of_item')),
         field(t('base_unit'), unit), toBaseBtn,
         h('div.field', h('label', { for: 'e-buyunit' }, t('big_unit')),
@@ -161,16 +214,53 @@ function items(body, isAdmin) {
       if (ci < 0 || ai < 0) { toast(t('names_ar_bad_file'), 'err'); return; }
       const names = rows.filter((r) => r[ci] && Data.items.has(r[ci].trim())).map((r) => ({ item_id: r[ci].trim(), name_ar: (r[ai] || '').trim() }));
       if (!names.length) { toast(t('names_ar_bad_file'), 'err'); return; }
-      try { const r = await call('items.namesAr', { names }); toast(t('names_ar_saved', { n: r.changed }), 'ok'); await Data.refresh(); fill(); }
+      try { const r = await call('items.namesAr', { names }); toast(t('names_ar_saved', { n: r.changed }), 'ok'); refreshSoon(fill); }
       catch (e) { toast(errText(e), 'err'); }
     });
     file.click();
   };
-  body.replaceChildren(h('div.search', search, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
-      Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null),
+  // final products from a price list (CSV: dept, name, name_ar, unit, price): checked first, then saved at once
+  const importItems = async () => {
+    const file = h('input', { type: 'file', accept: '.csv,text/csv' });
+    file.addEventListener('change', async () => {
+      const f = file.files[0];
+      if (!f) return;
+      const all = csvRows(await f.text());
+      const head = (all.shift() || []).map((x) => x.trim().toLowerCase());
+      const col = (k) => head.indexOf(k);
+      if (col('name') < 0 || col('dept') < 0) { toast(t('import_bad_file'), 'err'); return; }
+      const rows = all.map((r) => ({ dept: r[col('dept')] || '', name: r[col('name')] || '', name_ar: col('name_ar') >= 0 ? r[col('name_ar')] || '' : '',
+        unit: col('unit') >= 0 ? r[col('unit')] || '' : '', price: col('price') >= 0 ? r[col('price')] || '' : '' }));
+      let pv;
+      try { pv = await call('items.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+      const c = pv.counts || {};
+      const tag = (a) => h('span.pill.imp-' + a, t('imp_' + a));
+      const go = await dialog((close) => [h('h3', t('import_items')),
+        h('p', t('import_summary', { n: c.new || 0, u: c.update || 0, s: c.same || 0, x: (c.conflict || 0) + (c.dup || 0) + (c.bad || 0) })),
+        pv.new_depts.length ? h('p', t('import_new_depts'), ' ', h('b', pv.new_depts.join('، '))) : null,
+        pv.prices ? null : h('p.muted', t('import_no_prices')),
+        h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('department')), h('th', t('unit')), h('th', t('final_price')), h('th', ''))),
+          h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : null),
+            h('td', l.dept_name || l.dept, l.dept_id ? h('small.muted', ' ' + l.dept_id) : l.dept_name ? h('small.muted', ' ' + t('imp_new')) : null), h('td', l.unit, l.unit_differs ? h('small.muted', ' (' + l.unit_differs + ')') : null), h('td.num', l.price === '' ? '—' : fmtNum(l.price)),
+            h('td', tag(l.action), l.action === 'conflict' ? h('small.muted', ' ' + t('imp_conflict_help', { s: l.why })) : l.action === 'dup' ? h('small.muted', ' #' + l.why) : null)))))),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+          h('button.btn', { type: 'button', disabled: !(c.new || c.update), onclick: () => close(true) }, t('import_save')))]);
+      if (!go) return;
+      try {
+        const r = await call('items.import', { rows, apply: true });
+        toast(t('import_done', { n: r.created, u: r.updated, d: r.departments }), 'ok');
+        refreshSoon(fill);
+      } catch (e) { toast(errText(e), 'err'); }
+    });
+    file.click();
+  };
+  body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
+      Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
+      Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
+      showPrice ? h('button.btn.secondary', { type: 'button', onclick: choosePrint }, t('price_list_print')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
-      h('th', t('min_stock')), h('th', t('balance')), h('th', ''))), tb)));
+      showPrice ? h('th', t('price')) : null, h('th', t('balance')), h('th', ''))), tb)));
   fill();
 }
 
@@ -197,7 +287,10 @@ function parties(body, isAdmin) {
       [c, trackFilled(h('input.input#e-p' + c, { value: p ? p[c] || '' : '', disabled: !canSave, dir: c === 'contact' ? 'auto' : 'ltr' }))]));
     const contactBox = h('div.party-contact', h('small.muted', t('party_contact_help')),
       ...Object.entries(contact).map(([c, el]) => field(t('party_' + c), el)));
-    const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; };
+    // a department makes products, or not (cleaning, management…): only those that make products take shop orders
+    const producing = h('input#e-pproducing', { type: 'checkbox', checked: !!(p && p.producing === true), disabled: p && !isAdmin });
+    const producingBox = h('label.check', producing, ' ', t('dept_producing'));
+    const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; producingBox.hidden = kind.value !== 'section'; };
     kind.addEventListener('change', showContact);
     showContact();
     const err = h('p.err-text', '');
@@ -206,10 +299,11 @@ function parties(body, isAdmin) {
       const pl = { name: name.value, kind: kind.value };
       if (p) { pl.party_id = p.party_id; pl.active = active.checked; }
       if (kind.value === 'supplier') Object.entries(contact).forEach(([c, el]) => { pl[c] = el.value; });
+      if (kind.value === 'section') pl.producing = producing.checked;
       save('parties.save', pl, close, err);
     };
     return [h('h3', p ? t('edit_party') : t('new_party')), field(t('name'), name), field(t('kind'), kind),
-      h('label.check', active, ' ', t('active')), contactBox, err,
+      h('label.check', active, ' ', t('active')), producingBox, contactBox, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];
   }).then((r) => { if (r) fill(); });
   search.addEventListener('input', fill);
@@ -248,7 +342,7 @@ async function convertUnit(it, preset) {
     h('p.muted', t('convert_history', { n: pv.movements, f: pv.factor })),
     h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('convert_now')))]);
   if (!go) return;
-  try { await call('items.convertUnit', { item_id: it.item_id, ...asked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+  try { await call('items.convertUnit', { item_id: it.item_id, ...asked }); toast(t('saved'), 'ok'); refreshSoon(); }
   catch (e) { toast(errText(e), 'err'); }
 }
 
@@ -296,7 +390,7 @@ function units(body, isAdmin) {
       const box = h('input', { type: 'checkbox', checked: u.active !== false, disabled: !isAdmin, 'aria-label': t('active') });
       box.addEventListener('change', async () => {
         box.disabled = true;
-        try { await call('units.save', { unit: u.unit, active: box.checked }); await Data.refresh(); toast(t('saved'), 'ok'); }
+        try { await call('units.save', { unit: u.unit, active: box.checked }); toast(t('saved'), 'ok'); refreshSoon(); }
         catch (e) { box.checked = !box.checked; toast(errText(e), 'err'); }
         box.disabled = false;
       });
@@ -307,7 +401,7 @@ function units(body, isAdmin) {
   const unit = trackFilled(h('input.input#e-newunit', { autocapitalize: 'characters', placeholder: 'TRAY' }));
   const add = async () => {
     if (!unit.value.trim()) return flash(unit);
-    try { await call('units.save', { unit: unit.value }); unit.value = ''; await Data.refresh(); toast(t('saved'), 'ok'); fill(); }
+    try { await call('units.save', { unit: unit.value }); unit.value = ''; toast(t('saved'), 'ok'); refreshSoon(fill); }
     catch (e) { toast(errText(e), 'err'); flash(unit); }
   };
   unit.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
@@ -346,7 +440,7 @@ function recipes(body) {
     if (!product.value.trim()) return flash(product);
     try {
       await call('recipes.save', { product: product.value.trim(), lines });
-      await Data.refresh();
+      refreshSoon();
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
   };

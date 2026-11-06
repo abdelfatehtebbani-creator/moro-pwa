@@ -3,6 +3,7 @@
 import { call, session } from './api.js';
 import { kv } from './db.js';
 import { daysBetween } from './ui.js';
+import { APP_VERSION } from './config.js';
 
 const objects = (raw) => (raw && raw.rows ? raw.rows.map((r) => Object.fromEntries(raw.columns.map((c, i) => [c, r[i]]))) : []);
 
@@ -69,6 +70,7 @@ export const Data = {
 
   async refresh() {
     this.boot = await call('data.bootstrap');
+    this.boot.app_ver = APP_VERSION;
     this.syncedAt = new Date().toISOString();
     await kv.set('boot', this.boot);
     await kv.set('boot_at', this.syncedAt);
@@ -79,7 +81,8 @@ export const Data = {
   /** Refreshes only when the server has newer data. Returns true when something changed. */
   async refreshIfChanged() {
     const { version } = await call('data.version');
-    if (version === this.version) return false;
+    // a new app version may come with new screens and permissions: its first check reads everything again
+    if (version === this.version && (this.boot || {}).app_ver === APP_VERSION) return false;
     await this.refresh();
     return true;
   },
@@ -114,6 +117,12 @@ export const Data = {
   },
 
   /** Store of an item or location (rows not yet sorted fall back to their category). */
+  /** Departments that make products: ticked "producing", or already set as the maker of a product. */
+  producingDepts() {
+    const makers = new Set(this.activeItems().map((i) => String(i.dept || '')).filter(Boolean));
+    return [...this.parties.values()].filter((p) => p.kind === 'section' && p.active === true && (p.producing === true || makers.has(p.party_id)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
   /** The name to show: the Arabic name for Arabic users when there is one (the item's name is not changed). */
   nameOf(it) {
     if (!it) return '';

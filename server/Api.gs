@@ -22,6 +22,7 @@ var ROUTES = {
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
   'items.namesAr':    function (s, p) { return Masters.namesAr(s, p); },
+  'items.import':     function (s, p) { return Masters.importItems(s, p); },
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
   'units.save':       function (s, p) { return Masters.saveUnit(s, p); },
@@ -62,8 +63,57 @@ var ROUTES = {
   'users.save':       function (s, p) { return Auth.saveUser(s, p); },
   'audit.list':       function (s, p) { return Audit.list(p || {}); },
   'shop.list':        function (s, p) { return Shop.list(s, p); },
+  'orders.list':      function (s, p) { return Orders.list(s, p); },
+  'orders.save':      function (s, p) { return Orders.save(s, p); },
+  'orders.cancel':    function (s, p) { return Orders.cancel(s, p); },
+  'orders.shift':     function (s, p) { return Orders.shift(s, p); },
+  'orders.shiftEnd':  function (s, p) { return Orders.shiftEnd(s, p); },
+  'orders.approve':   function (s, p) { return Orders.approve(s, p); },
+  'orders.reject':    function (s, p) { return Orders.reject(s, p); },
+  'orders.closeShort': function (s, p) { return Orders.closeShort(s, p); },
+  'orders.acceptDiff': function (s, p) { return Orders.acceptDiff(s, p); },
+  'orders.route':     function (s, p) { return Orders.route(s, p); },
+  'orders.follow':    function () { return Orders.follow(); },
+  'orders.setFollowHours': function (s, p) { return Orders.setFollowHours(s, p); },
+  'push.flush':       function () { return Push.flush(); },
+  'exec.summary':     function (s, p) { return Exec.summary(s, p); },
+  'report.losses':    function (s, p) { return Finance.losses(s, p); },
+  'report.margin':    function (s, p) { return Finance.margin(s, p); },
+  'accounts.statement': function (s, p) { return Accounts.statement(s, p); },
+  'accounts.balances': function () { return Accounts.balances(); },
+  'accounts.pay':     function (s, p) { return Accounts.pay(s, p); },
+  'accounts.void':    function (s, p) { return Accounts.void(s, p); },
+  'accounts.lpo':     function (s, p) { return Accounts.lpoMatch(s, p); },
+  'accounts.openings': function () { return Accounts.openings(); },
+  'accounts.setOpening': function (s, p) { return Accounts.setOpening(s, p); },
+  'accounts.setStart': function (s, p) { return Accounts.setStart(s, p); },
+  'shifts.list':      function (s, p) { return Takings.list(s, p); },
+  'shifts.receive':   function (s, p) { return Takings.receive(s, p); },
+  'report.takings':   function (s, p) { return Takings.list(s, p); },
+  'sales.list':       function (s, p) { return Sales.list(s, p); },
+  'sales.save':       function (s, p) { return Sales.save(s, p); },
+  'sales.decide':     function (s, p) { return Sales.decide(s, p); },
+  'sales.setChannels': function (s, p) { return Sales.setChannels(s, p); },
+  'report.salesChannels': function (s, p) { return { days: Sales.list(s, { from: p.from, to: p.to }), channels: Sales.channels() }; },
+  'settings.close':   function (s, p) { return Period.save(s, p); },
+  'photos.get':       function (s, p) { return Photos.get(s, p); },
+  'returns.list':     function (s, p) { return Returns.list(s, p); },
+  'returns.create':   function (s, p) { return Returns.create(s, p); },
+  'returns.decide':   function (s, p) { return Returns.decide(s, p); },
+  'orders.receive':   function (s, p) { return Trips.receive(s, p); },
+  'invoices.create':  function (s, p) { return Invoices.create(s, p); },
+  'invoices.list':    function (s, p) { return Invoices.list(s, p); },
+  'invoices.get':     function (s, p) { return Invoices.get(s, p); },
+  'orders.report':    function (s, p) { return Invoices.report(s, p); },
+  'trips.list':       function (s, p) { return Trips.list(s, p); },
+  'trips.drivers':    function () { return Trips.drivers(); },
+  'trips.save':       function (s, p) { return Trips.save(s, p); },
+  'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
+  'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
+  'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
   'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
+  'shop.purchase':    function (s, p) { return Shop.purchase(s, p); },
   'shop.return':      function (s, p) { return Shop.returnLine(s, p); },
   'special.list':     function (s, p) { return Shop.listSpecial(s, p); },
   'special.decide':   function (s, p) { return Shop.decideSpecial(s, p); }
@@ -77,7 +127,13 @@ var PUBLIC = {
 };
 
 function handle(body) {
-  Repo.reset();
+  Repo.discard();
+  PUSH_QUEUE = [];
+  IN_REQUEST = true;
+  try { return handleRequest(body); } finally { IN_REQUEST = false; }
+}
+
+function handleRequest(body) {
   var req;
   try {
     req = JSON.parse(body || '{}');
@@ -88,12 +144,16 @@ function handle(body) {
     ensureSchema();
     var action = String(req.action || '');
     var payload = req.payload || {};
-    if (PUBLIC[action]) return { ok: true, data: PUBLIC[action](payload) };
-    if (LINK_ROUTES[action]) { Link.check(payload.key); return { ok: true, data: LINK_ROUTES[action](payload) }; }
+    if (PUBLIC[action]) { var pub = PUBLIC[action](payload); Repo.flush(); return { ok: true, data: pub }; }
+    if (LINK_ROUTES[action]) { Link.check(payload.key); var lk = LINK_ROUTES[action](payload); Repo.flush(); return { ok: true, data: lk }; }
     var session = Auth.verify(req.token);
     Perm.check(action, session);
-    return { ok: true, data: ROUTES[action](session, payload) };
+    var data = ROUTES[action](session, payload);
+    Repo.flush();                                  // what was changed outside a lock (rare)
+    // phone messages: kept, and the app asks right after to send them (push: true)
+    return Push.keep() ? { ok: true, data: data, push: true } : { ok: true, data: data };
   } catch (e) {
+    Repo.discard();
     if (e && e.name === 'AppError') return { ok: false, error: { code: e.code, detail: e.detail } };
     console.error('server_error ' + (req && req.action) + ' ' + (e && e.stack || e));
     return { ok: false, error: { code: 'server_error' } };
@@ -101,7 +161,7 @@ function handle(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '28';
+var SCHEMA_VERSION = '46';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -113,6 +173,8 @@ function ensureSchema() {
     Masters.seedUnits();
     if (Number(Settings.get('schema_version', '0')) < 5) Stores.seed();
     if (Number(Settings.get('schema_version', '0')) < 26) Perm.addDashView();
+    // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
+    if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
   });
 }

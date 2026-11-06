@@ -5,7 +5,7 @@
  * secret kept in Script Properties (never in code). Tokens stay valid offline on the device;
  * every request re-checks that the user still exists, is active and has not changed PIN since.
  */
-var ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant'];
+var ROLES = ['admin', 'pdg', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 var TOKEN_DAYS = 30;
 var MAX_TRIES = 5;          // wrong PINs before a temporary lock
 var LOCK_MINUTES = 10;
@@ -55,12 +55,17 @@ var Auth = {
     // a PIN change or reset invalidates tokens issued before it
     if (u.pin_changed_ms && Number(parts[1]) < Number(u.pin_changed_ms)) throw new AppError('auth_expired');
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role,
-             caps: Perm.capsOf(u), perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u) };
+             caps: Perm.capsOf(u), perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u) };
   },
+
+  /** Departments of a user row (sections whose shop-order lines they prepare). */
+  deptsOf: function (u) { return String(u.depts || '').split(',').map(function (x) { return x.trim(); }).filter(String); },
 
   publicUser: function (u) {
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
-             custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u) };
+             custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u), developer: u.developer === true };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -155,6 +160,24 @@ var Auth = {
     if (p.stores !== undefined) changes.stores = Stores.pack(p.stores);
     // operations allowed store by store; null or {} = every operation in every store of the user
     if (p.store_ops !== undefined) { var ops = Stores.cleanOps(p.store_ops); changes.store_ops = ops ? JSON.stringify(ops) : ''; }
+    // a cashier's shop: one active cashier per shop
+    if (p.shop !== undefined) {
+      var shop = String(p.shop || '');
+      if (shop) {
+        var party = Repo.find('Parties', 'party_id', shop);
+        Util.require(party && party.kind === 'shop', 'shop_invalid');
+        var taken = Repo.all('Users').filter(function (x) { return x.user_id !== u.user_id && x.active === true && String(x.shop || '') === shop; })[0];
+        Util.require(!taken, 'shop_taken', taken ? taken.display_name : '');
+      }
+      changes.shop = shop;
+    }
+    if (p.developer !== undefined) changes.developer = p.developer === true;
+    if (p.depts !== undefined) {
+      changes.depts = (p.depts || []).filter(function (d, i, a) {
+        var party = Repo.find('Parties', 'party_id', d);
+        return party && party.kind === 'section' && a.indexOf(d) === i;
+      }).join(',');
+    }
     if (p.caps !== undefined) {
       // leaves of the tree; a list of the older bundles (receive, issue…) is read as leaves
       var input = p.caps || [];

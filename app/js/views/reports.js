@@ -7,6 +7,7 @@ import { MovStore } from '../movstore.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { REPORTS, reportText } from '../reports.js';
+import { localize } from '../reports-ar.js';
 import { reportToXlsx } from '../xlsx.js';
 import * as analysis from './analysis.js';
 
@@ -66,7 +67,7 @@ function renderTables(root) {
     .map((p) => ({ value: p.party_id, label: p.name }));
 
   function drawCards() {
-    const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), other: t('rep_group_other') };
+    const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), orders: t('rep_group_orders'), other: t('rep_group_other') };
     cards.replaceChildren(...Object.keys(groups).map((g) => h('div.rep-group', h('div.rep-group-title', groups[g]),
       reports.filter((r) => r.group === g).map((r) => h('button.rep-card', { type: 'button', class: r.id === selected ? 'on' : '',
         onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); } }, t('rep_' + r.id))))));
@@ -96,6 +97,13 @@ function renderTables(root) {
       parts.push(h('div.form-grid', h('div.field', h('label', t('from')), from), h('div.field', h('label', t('to')), to)),
         h('div.quick', h('button.link', { type: 'button', onclick: quick(0) }, t('today')), h('button.link', { type: 'button', onclick: quick(6) }, t('last_7')),
           h('button.link', { type: 'button', onclick: quick(29) }, t('last_30')), h('button.link', { type: 'button', onclick: quick(364) }, t('last_year'))));
+    }
+    if (o.includes('asof')) {
+      const at = trackFilled(h('input.input#rp-asof', { type: 'date', value: p.asof || Data.todayIso(), max: Data.todayIso() }));
+      at.addEventListener('change', () => { p.asof = at.value; });
+      const monthEnd = () => { const d = new Date(Data.todayIso().slice(0, 8) + '01T00:00:00Z'); d.setUTCDate(0); at.value = p.asof = d.toISOString().slice(0, 10); };
+      parts.push(h('div.field', h('label', t('as_of')), at), h('div.quick', h('button.link', { type: 'button', onclick: () => { at.value = p.asof = Data.todayIso(); } }, t('today')),
+        h('button.link', { type: 'button', onclick: monthEnd }, t('last_month_end'))));
     }
     if (o.includes('days')) {
       const d = trackFilled(h('input.input.num#rp-days', { type: 'number', min: 1, value: p.days }));
@@ -184,16 +192,22 @@ function renderTables(root) {
     if (rep.opts.includes('dates') && (!p.from || !p.to || p.from > p.to)) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
     status.textContent = t('loading'); status.className = 'form-status';
     let movs = [];
+    let extra = null;
     let note = '';
     try {
-      if (!['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
+      if (rep.needs === 'orders') extra = await call('orders.report', { from: p.from, to: p.to });
+      else if (rep.needs) extra = await call('report.' + rep.needs, { from: p.from, to: p.to, asof: p.asof });
+      // the orders reports read the server's data only; the others also read the movements
+      if (rep.needs !== 'orders' && !['fast', 'sensitive', 'min', 'expiry', 'near'].includes(selected)) {
         const res = await MovStore.all();
         movs = res.list;
         if (res.stale) note = '  ·  ' + t('offline_data', { at: new Date(res.at).toLocaleString('en-GB') });
         if (res.list.some((m) => m.pending)) note += '  ·  ' + t('includes_pending');
       }
     } catch (e) { status.textContent = errText(e); status.className = 'form-status err'; return; }
-    current = rep.build(p, movs.filter((m) => m.status !== 'deleted'));
+    current = rep.build(p, movs.filter((m) => m.status !== 'deleted'), extra);
+    // on an Arabic screen the report is in Arabic: preview, print, Excel and WhatsApp
+    if (document.documentElement.lang === 'ar') current = localize(current);
     status.textContent = t('report_rows', { n: current.rows.length }) + note; status.className = 'form-status ' + (note ? 'warn' : 'ok');
     drawPreview();
   }
@@ -212,9 +226,9 @@ function renderTables(root) {
     const c = current;
     preview.replaceChildren(
       h('div.rep-head', h('b', c.title), h('span.muted', c.subtitle)),
-      h('div.table-wrap.tall', h('table.rep-table', { dir: 'ltr' }, h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
+      h('div.table-wrap.tall', h('table.rep-table', { dir: c.rtl ? 'rtl' : 'ltr' }, h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
         h('tbody', c.rows.length ? c.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: ['n', 'm', 'p'].includes(c.columns[i].type) ? 'num' : '' }, cellText(v, c.columns[i].type))))) :
-          h('tr', h('td.empty', { colspan: c.columns.length }, 'No data'))))),
+          h('tr', h('td.empty', { colspan: c.columns.length }, (c.labels || {}).none || 'No data'))))),
       h('div.form-actions',
         h('button.btn', { type: 'button', onclick: pdf }, t('save_pdf')),
         h('button.btn', { type: 'button', onclick: excel }, t('save_excel')),
@@ -236,14 +250,15 @@ function renderTables(root) {
 
   function pdf() {
     const c = current;
-    const area = h('div#print-area', { dir: 'ltr' },
-      h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', 'Inventory Management System'),
+    const L = c.labels || {};
+    const area = h('div#print-area', { dir: c.rtl ? 'rtl' : 'ltr' },
+      h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', L.system || 'Inventory Management System'),
       h('div.pr-title', c.title),
-      h('div.pr-meta', h('b', c.subtitle), h('span', 'Printed: ' + new Date().toLocaleString('en-GB'))),
+      h('div.pr-meta', h('b', c.subtitle), h('span', (L.printed || 'Printed: ') + new Date().toLocaleString('en-GB'))),
       h('table.pr-table', h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
         h('tbody', c.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: ['n', 'm', 'p'].includes(c.columns[i].type) ? 'num' : c.columns[i].type === 'd' ? 'ctr' : '' }, cellText(v, c.columns[i].type))))))),
-      h('div.pr-count', 'Number of records: ' + c.rows.length),
-      h('div.pr-note', 'This report was generated by MORO. To keep it as a file choose "Save as PDF" in the print window.'));
+      h('div.pr-count', (L.records || 'Number of records: ') + c.rows.length),
+      h('div.pr-note', L.note || 'This report was generated by MORO. To keep it as a file choose "Save as PDF" in the print window.'));
     document.body.append(area);
     document.title = fileName('pdf').replace(/\.pdf$/, '');
     const done = () => { area.remove(); document.title = 'MORO – Materials Operations & Records Organizer'; window.removeEventListener('afterprint', done); clearPreview(); };

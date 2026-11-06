@@ -7,7 +7,7 @@ import { IDLE_HOME_MINUTES } from '../config.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { field, storePill } from '../components.js';
 
-const ROLES = ['admin', 'storekeeper', 'purchasing', 'production', 'accountant'];
+const ROLES = ['admin', 'pdg', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 export async function render(root) {
   const tb = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
@@ -28,9 +28,53 @@ export async function render(root) {
       try { await call('settings.idle', { minutes: n }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
       catch (e) { toast(errText(e), 'err'); }
     };
+    // the period closed for changes: no movement dated on or before it is saved, changed or deleted
+    const closed = trackFilled(h('input.input#set-closed', { type: 'date', value: (Data.settings || {}).closed_until || '', max: Data.todayIso() }));
+    const saveClosed = async () => {
+      const d = closed.value;
+      if (!(await confirmClose(d))) return;
+      try { await call('settings.close', { date: d }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { toast(errText(e), 'err'); }
+    };
     return h('div.card', h('h2', t('settings_general')),
       h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
-      h('small.muted', t('idle_minutes_help')));
+      h('small.muted', t('idle_minutes_help')),
+      Data.can('sales.setChannels') ? channelsBox() : null,
+      Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
+        h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // the sales channels of the daily sales sheet: names, the shops of each (none = all), stopped or not
+  function channelsBox() {
+    const list = ((Data.boot || {}).sales_channels || []).map((c) => Object.assign({}, c, { shops: [...(c.shops || [])] }));
+    const shops = [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name));
+    const box = h('div');
+    const draw = () => box.replaceChildren(...list.map((c) => {
+      const ar = trackFilled(h('input.input.small', { value: c.name_ar, placeholder: 'عربي' }));
+      const en = trackFilled(h('input.input.small', { value: c.name_en, placeholder: 'English' }));
+      const on = h('input', { type: 'checkbox', checked: c.active !== false });
+      ar.addEventListener('input', () => { c.name_ar = ar.value; }); en.addEventListener('input', () => { c.name_en = en.value; });
+      on.addEventListener('change', () => { c.active = on.checked; });
+      const sh = h('div.months', shops.map((s) => {
+        const cb = h('input', { type: 'checkbox', checked: c.shops.includes(s.party_id) });
+        cb.addEventListener('change', () => { c.shops = cb.checked ? c.shops.concat([s.party_id]) : c.shops.filter((x) => x !== s.party_id); });
+        return h('label.check', cb, ' ', h('bdi', s.name));
+      }));
+      return h('div.req-card', h('div.form-grid', ar, en, h('label.check', on, ' ', t('active'))), h('small.muted', t('sl_ch_shops')), sh);
+    }));
+    draw();
+    const add = () => { list.push({ id: 'ch' + Date.now().toString(36).slice(-6), name_ar: '', name_en: '', shops: [], active: true }); draw(); };
+    const save = async () => {
+      try { await call('sales.setChannels', { channels: list }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); } catch (e) { toast(errText(e), 'err'); }
+    };
+    return h('details.fold', h('summary', h('b', t('sl_channels')), ' ', h('small.muted', String(list.filter((c) => c.active !== false).length))),
+      h('small.muted', t('sl_channels_help')), box,
+      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: add }, '+ ' + t('sl_ch_add')), h('button.btn', { type: 'button', onclick: save }, t('save'))));
+  }
+
+  function confirmClose(d) {
+    return dialog((close) => [h('p', d ? t('close_confirm', { d }) : t('open_confirm')),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('ok')))]);
   }
 
   async function load() {
@@ -53,6 +97,23 @@ export async function render(root) {
         placeholder: u ? t('pin_keep') : '' }));
       const active = h('input#u-active', { type: 'checkbox', checked: !u || u.active });
       const err = h('p.err-text', '');
+      // a cashier works for one shop; a department head prepares the shop orders of their departments
+      const shops = [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name));
+      const shopSel = h('select.input#u-shop', h('option', { value: '' }, '—'), shops.map((p) => h('option', { value: p.party_id }, p.name)));
+      shopSel.value = u ? u.shop || '' : '';
+      const shopField = field(t('cashier_shop'), shopSel);
+      const depts = new Set(u ? u.depts || [] : []);
+      const deptBox = h('div.caps', Data.producingDepts().map((p) => {
+          const cb = h('input', { type: 'checkbox', checked: depts.has(p.party_id) });
+          cb.addEventListener('change', () => { cb.checked ? depts.add(p.party_id) : depts.delete(p.party_id); });
+          return h('label.check.cap', cb, h('span', h('bdi', p.name)));
+        }));
+      const deptField = h('div', h('div.card-head', h('b', t('head_of_depts'))), h('small.muted', t('head_of_depts_help')), deptBox);
+      const dev = h('input', { type: 'checkbox', checked: !!(u && u.developer) });
+      const devField = h('div', h('label.check', dev, ' ', t('developer_account')), h('small.muted', t('developer_help')));
+      const showRoleFields = () => { shopField.hidden = role.value !== 'cashier'; deptField.hidden = role.value !== 'section_head'; devField.hidden = role.value !== 'admin'; };
+      role.addEventListener('change', showRoleFields);
+      showRoleFields();
 
       // capabilities: ticked = allowed. Changing the role resets the ticks to that role's defaults.
       let chosen = new Set(u ? u.caps : Data.roleCaps[role.value] || []);
@@ -130,18 +191,20 @@ export async function render(root) {
         if (!name.value.trim()) return flash(name);
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
-        const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps() };
+        if (role.value === 'cashier' && !shopSel.value) return flash(shopSel);
+        const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps(),
+          shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' ? [...depts] : [], developer: dev.checked };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
         if (pin.value) p.pin = pin.value;
         try {
           const saved = await call('users.save', p);
           // a new user is created with the role defaults: apply a different set right after
-          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores, store_ops: p.store_ops });
+          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores, store_ops: p.store_ops, shop: p.shop, depts: p.depts });
           close(true);
         } catch (e) { err.textContent = errText(e); }
       };
       return [h('h3', u ? t('edit_user') : t('new_user')), field(t('display_name'), name), field(t('username'), user), field(t('role'), role),
-        field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null,
+        field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null, shopField, deptField, devField,
         h('div.card-head', h('b', t('permissions')), reset), capBox,
         h('div.card-head', h('b', t('stores'))), h('small.muted', t('stores_help')), storeBox, opsHead, opsBox, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];

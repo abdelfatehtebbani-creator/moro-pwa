@@ -47,5 +47,7 @@ export async function call(action, payload = {}) {
     }
     throw new ApiError(body.error.code, body.error.detail);
   }
+  // the server kept phone messages for this save: sent now, the person does not wait for them
+  if (body.push && action !== 'push.flush') call('push.flush').catch(() => { /* sent with the next save */ });
   return body.data;
 }
