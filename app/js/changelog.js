@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.157', date: '2026-11-06',
+    ar: { news: ['(نسخة التطوير) المواد: عمود "السعر" بدل الحد الأدنى في القائمة، وزر "طباعة قائمة الأسعار" للقسم المختار (أو لكل الأقسام).'] },
+    en: { news: ['(Development copy) Materials: a Price column in place of the minimum in the list, and a "Print the price list" button for the department chosen (or every department).'] },
+  },
+  {
     v: '0.9.156', date: '2026-11-05',
     ar: { news: ['(نسخة التطوير) استيراد المنتجات: القسم يُعرف بأي طريقة كُتب بها ("Kunafa" أو "الكنافة" أو "Section (الكنافة) Kunafa")، فيذهب المنتج إلى القسم الموجود ولا يُنشأ قسم مكرر. المعاينة تُظهر القسم الذي طابقه برقمه.'] },
     en: { news: ['(Development copy) Import products: a department is recognised however it is written ("Kunafa", "الكنافة" or "Section (الكنافة) Kunafa"), so the product goes to the existing one and no duplicate is made. The preview shows the department matched, with its ID.'] },

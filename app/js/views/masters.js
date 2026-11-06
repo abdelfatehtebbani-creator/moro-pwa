@@ -51,6 +51,27 @@ function items(body, isAdmin) {
   const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
     Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
   const tb = h('tbody');
+  // the fixed price of a final product (the price list); other materials have none here
+  const showPrice = Data.can('see_prices') || Data.can('final_price');
+  const priceOf = (i) => (i.final_price === '' || i.final_price === undefined || i.final_price === null ? '' : Number(i.final_price));
+  // the price list of the department chosen (or of every department), printed
+  const printPrices = () => {
+    const depts = deptFilter.value ? [Data.parties.get(deptFilter.value)].filter(Boolean) : Data.producingDepts();
+    const groups = depts.map((d) => ({ d, rows: [...Data.items.values()].filter((i) => i.active === true && String(i.dept || '') === d.party_id)
+      .sort((a, b) => a.name.localeCompare(b.name)) })).filter((g) => g.rows.length);
+    if (!groups.length) { toast(t('price_list_empty'), 'err'); return; }
+    const area = h('div#print-area', { dir: 'ltr' }, h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', 'Inventory Management System'),
+      h('div.pr-title', 'Price list'), h('div.pr-meta', h('b', deptFilter.value ? groups[0].d.name : 'All departments'), h('span', 'Printed: ' + new Date().toLocaleString('en-GB'))),
+      groups.map((g) => [groups.length > 1 ? h('div.pr-title', g.d.name) : null,
+        h('table.pr-table', h('thead', h('tr', h('th', 'ID'), h('th', 'Product'), h('th', 'الاسم'), h('th', 'Unit'), h('th', 'Price'))),
+          h('tbody', g.rows.map((i) => h('tr', h('td', i.item_id), h('td', i.name), h('td', { dir: 'rtl' }, i.name_ar || ''), h('td', i.unit),
+            h('td.num', priceOf(i) === '' ? '—' : fmtNum(priceOf(i))))))),
+        h('div.pr-count', 'Number of products: ' + g.rows.length)]));
+    document.body.append(area);
+    const done = () => { area.remove(); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  };
   const fill = () => {
     const q = search.value.trim().toLowerCase();
     const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q))
@@ -58,7 +79,7 @@ function items(body, isAdmin) {
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
       h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),
-      h('td', i.unit), h('td.num', Number(i.min_stock) > 0 ? fmtNum(i.min_stock) : ''), h('td.num', fmtNum(Data.qty(i.item_id))),
+      h('td', i.unit), showPrice ? h('td.num', priceOf(i) === '' ? '' : fmtNum(priceOf(i))) : null, h('td.num', fmtNum(Data.qty(i.item_id))),
       h('td', i.active === true ? '' : h('span.pill.out', t('inactive'))))));
   };
   search.addEventListener('input', fill);
@@ -221,10 +242,11 @@ function items(body, isAdmin) {
   };
   body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
-      Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null),
+      Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
+      showPrice ? h('button.btn.secondary', { type: 'button', onclick: printPrices }, t('price_list_print')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
-      h('th', t('min_stock')), h('th', t('balance')), h('th', ''))), tb)));
+      showPrice ? h('th', t('price')) : null, h('th', t('balance')), h('th', ''))), tb)));
   fill();
 }
 
