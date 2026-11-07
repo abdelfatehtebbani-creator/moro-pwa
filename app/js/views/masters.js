@@ -208,7 +208,7 @@ function items(body, isAdmin) {
     file.addEventListener('change', async () => {
       const f = file.files[0];
       if (!f) return;
-      const rows = csvRows(await f.text());
+      const rows = csvRows(await fileText(f));
       const head = (rows.shift() || []).map((x) => x.trim().toLowerCase());
       const ci = head.indexOf('item_id'), ai = head.indexOf('name_ar');
       if (ci < 0 || ai < 0) { toast(t('names_ar_bad_file'), 'err'); return; }
@@ -225,7 +225,7 @@ function items(body, isAdmin) {
     file.addEventListener('change', async () => {
       const f = file.files[0];
       if (!f) return;
-      const all = csvRows(await f.text());
+      const all = csvRows(await fileText(f));
       const head = (all.shift() || []).map((x) => x.trim().toLowerCase());
       const col = (k) => head.indexOf(k);
       if (col('name') < 0 || col('dept') < 0) { toast(t('import_bad_file'), 'err'); return; }
@@ -453,6 +453,12 @@ function recipes(body) {
 }
 
 /** Rows of a CSV text (quotes, commas and new lines inside quotes). */
+// a CSV saved by Excel on an Arabic Windows is not UTF-8 but Windows-1256: read either
+async function fileText(f) {
+  const buf = await f.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { return new TextDecoder('windows-1256').decode(buf); }
+}
 function csvRows(text) {
   const rows = []; let row = []; let cell = ''; let q = false;
   text = text.replace(/^\ufeff/, '');

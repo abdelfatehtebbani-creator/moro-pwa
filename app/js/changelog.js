@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.159', date: '2026-11-07',
+    ar: { news: ['استيراد المنتجات والأسماء العربية: يقرأ ملف CSV المحفوظ من Excel بالعربية كما هو، فلا تظهر الحروف العربية مشوّهة.'] },
+    en: { news: ['Importing products and Arabic names: a CSV file saved by Excel in Arabic is read as it is, so Arabic letters are no longer garbled.'] },
+  },
+  {
     v: '0.9.158', date: '2026-11-06',
     ar: { news: ['طباعة قائمة الأسعار: تختار قبلها الأعمدة التي تُطبع (الرقم، الاسم الإنجليزي، الاسم العربي، الوحدة، السعر)، ويُحفظ اختيارك.'] },
     en: { news: ['Printing the price list: choose the columns first (ID, English name, Arabic name, unit, price); your choice is kept.'] },
