@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.162', date: '2026-11-07',
-    ar: { news: ['(نسخة التطوير) المستخدمون: إضافة كاشير لا تطلب المحل بعد الآن؛ الكاشير يختار محله عند فتح النوبة.'] },
-    en: { news: ['(Development copy) Users: adding a cashier no longer asks for the shop; the cashier chooses it when opening the shift.'] },
+    ar: { news: ['المستخدمون: إضافة كاشير لا تطلب المحل بعد الآن؛ الكاشير يختار محله عند فتح النوبة.'] },
+    en: { news: ['Users: adding a cashier no longer asks for the shop; the cashier chooses it when opening the shift.'] },
   },
   {
     v: '0.9.161', date: '2026-11-07',
