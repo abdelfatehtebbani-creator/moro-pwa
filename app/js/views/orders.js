@@ -314,7 +314,7 @@ export async function render(root, name) {
       return h('div', { class: 'fu-row ' + x.level },
         h('div.fu-who', h('b', x.order_no), h('bdi', shopName(x.shop_party_id)), x.kind === 'special' ? h('span.pill.soon', t('special')) : null),
         h('div.fu-steps', STAGES.map((s, i) => h('span', { class: 'fu-step' + (i < at ? ' done' : i === at ? ' now' : ''), title: t('fu_st_' + s) }))),
-        h('div.fu-now', h('b', t('fu_st_' + x.stage)), x.diff_pending ? h('small.err-text', ' · ' + t('diff_pending')) : null,
+        h('div.fu-now', h('b', t('fu_st_' + x.stage)), x.diff_pending ? h('small.err-text', ' · ' + t('diff_pending')) : null, x.mgr_note ? h('small.mgr-note', ' · 📝 ' + x.mgr_note) : null,
           h('small', { class: 'fu-age' }, t('fu_since', { d: dur(x.hours) }), x.level !== 'ok' ? ' · ' + t('fu_usual', { d: dur(x.limit) }) : '')));
     };
     listBox.replaceChildren(
@@ -501,6 +501,7 @@ export async function render(root, name) {
       o.kind === 'special' ? h('p.muted', '👤 ', h('bdi', o.customer_name), o.customer_phone ? ' · ' + o.customer_phone : '', ' · ',
         o.place === 'customer' ? h('span', t('place_customer'), ': ', linkify(o.address)) : t('place_shop')) : null,
       o.note ? h('p.muted', o.note) : null,
+      o.mgr_note ? h('p.mgr-note', '📝 ', t('mgr_note'), ': ', o.mgr_note) : null,
       o.status === 'rejected' && o.reason ? h('p.err-text', t('order_rejected_why', { why: o.reason })) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('requested')), h('th', t('approved_qty')), h('th', t('issued')),
         h('th', ''), h('th', approving ? t('approved_qty') : receiving || o.status === 'received' || o.status === 'invoiced' ? t('received') : ''))), h('tbody', rows))),

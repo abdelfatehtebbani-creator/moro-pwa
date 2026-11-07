@@ -5,7 +5,7 @@
  * secret kept in Script Properties (never in code). Tokens stay valid offline on the device;
  * every request re-checks that the user still exists, is active and has not changed PIN since.
  */
-var ROLES = ['admin', 'pdg', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
+var ROLES = ['admin', 'pdg', 'branch_manager', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 var TOKEN_DAYS = 30;
 var MAX_TRIES = 5;          // wrong PINs before a temporary lock
 var LOCK_MINUTES = 10;
@@ -56,7 +56,7 @@ var Auth = {
     if (u.pin_changed_ms && Number(parts[1]) < Number(u.pin_changed_ms)) throw new AppError('auth_expired');
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role,
              caps: Perm.capsOf(u), perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
-             shop: String(u.shop || ''), depts: Auth.deptsOf(u) };
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u), branches: Branches.ofUser(u) };
   },
 
   /** Departments of a user row (sections whose shop-order lines they prepare). */
@@ -65,7 +65,7 @@ var Auth = {
   publicUser: function (u) {
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
              custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
-             shop: String(u.shop || ''), depts: Auth.deptsOf(u), developer: u.developer === true };
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u), branches: Branches.ofUser(u), developer: u.developer === true };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -172,6 +172,13 @@ var Auth = {
       changes.shop = shop;
     }
     if (p.developer !== undefined) changes.developer = p.developer === true;
+    // a branch manager's shops
+    if (p.branches !== undefined) {
+      changes.branches = (p.branches || []).filter(function (d, i, a) {
+        var party = Repo.find('Parties', 'party_id', d);
+        return party && party.kind === 'shop' && a.indexOf(d) === i;
+      }).join(',');
+    }
     if (p.depts !== undefined) {
       changes.depts = (p.depts || []).filter(function (d, i, a) {
         var party = Repo.find('Parties', 'party_id', d);

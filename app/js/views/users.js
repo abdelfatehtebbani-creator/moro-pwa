@@ -7,7 +7,7 @@ import { IDLE_HOME_MINUTES } from '../config.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { field, storePill } from '../components.js';
 
-const ROLES = ['admin', 'pdg', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
+const ROLES = ['admin', 'pdg', 'branch_manager', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 export async function render(root) {
   const tb = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
@@ -110,9 +110,16 @@ export async function render(root) {
           return h('label.check.cap', cb, h('span', h('bdi', p.name)));
         }));
       const deptField = h('div', h('div.card-head', h('b', t('head_of_depts'))), h('small.muted', t('head_of_depts_help')), deptBox);
+      const branches = new Set(u ? u.branches || [] : []);
+      const branchBox = h('div.caps', [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
+          const cb = h('input', { type: 'checkbox', checked: branches.has(p.party_id) });
+          cb.addEventListener('change', () => { cb.checked ? branches.add(p.party_id) : branches.delete(p.party_id); });
+          return h('label.check.cap', cb, h('span', h('bdi', p.name)));
+        }));
+      const branchField = h('div', h('div.card-head', h('b', t('manager_of_branches'))), h('small.muted', t('manager_of_branches_help')), branchBox);
       const dev = h('input', { type: 'checkbox', checked: !!(u && u.developer) });
       const devField = h('div', h('label.check', dev, ' ', t('developer_account')), h('small.muted', t('developer_help')));
-      const showRoleFields = () => { shopField.hidden = role.value !== 'cashier'; deptField.hidden = role.value !== 'section_head'; devField.hidden = role.value !== 'admin'; };
+      const showRoleFields = () => { shopField.hidden = role.value !== 'cashier'; deptField.hidden = role.value !== 'section_head'; branchField.hidden = role.value !== 'branch_manager'; devField.hidden = role.value !== 'admin'; };
       role.addEventListener('change', showRoleFields);
       showRoleFields();
 
@@ -193,18 +200,18 @@ export async function render(root) {
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
         const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps(),
-          shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' ? [...depts] : [], developer: dev.checked };
+          shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' ? [...depts] : [], branches: role.value === 'branch_manager' ? [...branches] : [], developer: dev.checked };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
         if (pin.value) p.pin = pin.value;
         try {
           const saved = await call('users.save', p);
           // a new user is created with the role defaults: apply a different set right after
-          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores, store_ops: p.store_ops, shop: p.shop, depts: p.depts });
+          if (!u && saved.user_id) await call('users.save', { user_id: saved.user_id, caps: [...chosen], stores: p.stores, store_ops: p.store_ops, shop: p.shop, depts: p.depts, branches: p.branches });
           close(true);
         } catch (e) { err.textContent = errText(e); }
       };
       return [h('h3', u ? t('edit_user') : t('new_user')), field(t('display_name'), name), field(t('username'), user), field(t('role'), role),
-        field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null, shopField, deptField, devField,
+        field(u ? t('reset_pin') : t('pin'), pin), u ? h('label.check', active, ' ', t('active')) : null, shopField, deptField, branchField, devField,
         h('div.card-head', h('b', t('permissions')), reset), capBox,
         h('div.card-head', h('b', t('stores'))), h('small.muted', t('stores_help')), storeBox, opsHead, opsBox, err,
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];

@@ -62,6 +62,7 @@ var Returns = {
     var name = (Repo.find('Parties', 'party_id', shop) || {}).name || shop;
     OrderNotify.send(Push.usersWith('returns.decide'), session, 'returns',
       ['مرتجع في الحجر', name + ' – ' + n + ' صنف للفحص'], ['Return in quarantine', name + ' – ' + n + ' item(s) to check']);
+    Branches.tell(shop, session, ['مرتجع من ' + name, n + ' صنف'], ['Return from ' + name, n + ' item(s)']);
   },
 
   /** Cashier: their shop's returns; the production manager: every shop's. p.status: quarantine | resolved. */

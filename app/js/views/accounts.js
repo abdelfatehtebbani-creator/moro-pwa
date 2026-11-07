@@ -222,6 +222,7 @@ export async function render(root) {
         h('summary.card-head', h('b', h('bdi', shopName(v.shop_party_id))),
           v.status ? h('span', { class: 'pill ' + (PILL[v.status] || '') }, t('sl_st_' + v.status)) : null, h('span', t('total'), ': ', total)),
         v.return_note ? h('p.err-text', t('sl_returned_why', { why: v.return_note })) : null,
+        v.mgr_note ? h('p.mgr-note', '📝 ', t('mgr_note'), ': ', v.mgr_note) : null,
         h('div.form-grid', field(t('sl_cash'), cash), ...inputs.map((i) => field(chName(i.c), i.x)), field(t('note'), note)),
         v.not_received ? h('small.muted', t('sl_not_received', { n: v.not_received })) : null,
         !fixed && Data.can('sales.save') ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: send(false) }, t('save_draft')),
@@ -243,7 +244,7 @@ export async function render(root) {
         const cell = (n) => h('td.num', n === undefined || n === '' ? '—' : money(n));
         decideBox.replaceChildren(h('div.table-wrap', h('table.sales-grid',
           h('thead', h('tr', h('th', t('date')), h('th', t('shop')), h('th', t('sl_cash')), ...used.map((c) => h('th', chName(c))), h('th', t('total')), h('th', ''))),
-          h('tbody', ...list.map((v) => h('tr', h('td.num', fmtDate(v.date)), h('td.wrap', h('bdi', shopName(v.shop_party_id)), v.note ? h('small.muted', h('br'), v.note) : ''),
+          h('tbody', ...list.map((v) => h('tr', h('td.num', fmtDate(v.date)), h('td.wrap', h('bdi', shopName(v.shop_party_id)), v.note ? h('small.muted', h('br'), v.note) : '', v.mgr_note ? h('small.mgr-note', h('br'), '📝 ' + v.mgr_note) : ''),
             cell(v.cash), ...used.map((c) => cell(v.channels[c.id])), h('td.num', h('b', money(v.total))),
             h('td', h('div.row-actions', h('button.btn.save-btn.small', { type: 'button', onclick: () => decide(v, true) }, t('sl_approve')),
               h('button.btn.danger.small', { type: 'button', onclick: () => decide(v, false) }, t('sl_return'))))))),

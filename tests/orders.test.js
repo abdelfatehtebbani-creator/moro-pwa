@@ -643,3 +643,22 @@ test('follow-up: every order on its way with its stage; late past the usual time
   assert.equal(f.orders[0].level, 'late');
   assert.equal(g.api('data.bootstrap', {}, tok.dist).data.follow_late, 1);
 });
+
+test('a branch manager: sees only their shops, adds a note to an order (distribution and the cashier see it), approves nothing', () => {
+  const { g, tok, user } = env();
+  user('mgr', 'branch_manager', { branches: ['P002', 'P001'] });   // a department is not a branch
+  assert.deepEqual(g.rows('Users').find((u) => u.username === 'mgr').branches, 'P002');
+  const a = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }], send: true }, tok.cashier).data.order;
+  user('cashb', 'cashier', { shop: 'P003' });
+  const b = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 2 }], send: true }, tok.cashb).data.order;
+  const s = g.api('branches.summary', {}, tok.mgr);
+  assert.equal(s.ok, true, JSON.stringify(s));
+  assert.deepEqual(s.data.orders.map((o) => o.order_no), [a.order_no]);
+  assert.deepEqual(s.data.per.map((x) => [x.shop_party_id, x.orders]), [['P002', 1]]);
+  assert.equal(g.api('branches.note', { kind: 'order', id: b.order_id, note: 'x' }, tok.mgr).error.code, 'forbidden');
+  assert.equal(g.api('branches.note', { kind: 'order', id: a.order_id, note: 'Please send it early' }, tok.mgr).ok, true);
+  assert.equal(g.api('orders.list', {}, tok.dist).data.find((o) => o.order_id === a.order_id).mgr_note, 'Please send it early');
+  assert.equal(g.api('orders.list', {}, tok.cashier).data.find((o) => o.order_id === a.order_id).mgr_note, 'Please send it early');
+  assert.equal(g.api('orders.approve', { order_id: a.order_id }, tok.mgr).error.code, 'forbidden');
+  assert.equal(g.api('branches.summary', {}, tok.cashier).error.code, 'forbidden');
+});

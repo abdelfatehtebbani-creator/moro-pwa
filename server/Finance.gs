@@ -300,6 +300,7 @@ var Takings = {
         var d = Util.round(a - (Number(s.amount) || 0));
         OrderNotify.send(Push.usersWith('sales.decide'), session, 'accounts', ['فرق في مقبوضات نوبة', shop + ': ' + d + ' QR – ' + action],
           ['Difference in shift takings', shop + ': ' + d + ' QR – ' + action]);
+        Branches.tell(s.shop_party_id, session, ['فرق في مقبوضات نوبة', shop + ': ' + d + ' QR – ' + action], ['Difference in shift takings', shop + ': ' + d + ' QR – ' + action]);
       }
       return { shift: Takings.view(res.after), version: Version.bump() };
     });
