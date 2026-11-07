@@ -106,7 +106,11 @@ export async function render(root) {
       const depts = new Set(u ? u.depts || [] : []);
       const deptBox = h('div.caps', Data.producingDepts().map((p) => {
           const cb = h('input', { type: 'checkbox', checked: depts.has(p.party_id) });
-          cb.addEventListener('change', () => { cb.checked ? depts.add(p.party_id) : depts.delete(p.party_id); });
+          cb.addEventListener('change', () => {
+            cb.checked ? depts.add(p.party_id) : depts.delete(p.party_id);
+            // a branch manager who heads a department in their branch: the department head's screens are ticked with it
+            if (cb.checked && role.value === 'branch_manager') { ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'].forEach((c) => chosen.add(c)); drawCaps(); }
+          });
           return h('label.check.cap', cb, h('span', h('bdi', p.name)));
         }));
       const deptField = h('div', h('div.card-head', h('b', t('head_of_depts'))), h('small.muted', t('head_of_depts_help')), deptBox);
@@ -119,7 +123,7 @@ export async function render(root) {
       const branchField = h('div', h('div.card-head', h('b', t('manager_of_branches'))), h('small.muted', t('manager_of_branches_help')), branchBox);
       const dev = h('input', { type: 'checkbox', checked: !!(u && u.developer) });
       const devField = h('div', h('label.check', dev, ' ', t('developer_account')), h('small.muted', t('developer_help')));
-      const showRoleFields = () => { shopField.hidden = role.value !== 'cashier'; deptField.hidden = role.value !== 'section_head'; branchField.hidden = role.value !== 'branch_manager'; devField.hidden = role.value !== 'admin'; };
+      const showRoleFields = () => { shopField.hidden = role.value !== 'cashier'; deptField.hidden = role.value !== 'section_head' && role.value !== 'branch_manager'; branchField.hidden = role.value !== 'branch_manager'; devField.hidden = role.value !== 'admin'; };
       role.addEventListener('change', showRoleFields);
       showRoleFields();
 
@@ -200,7 +204,7 @@ export async function render(root) {
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
         const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps(),
-          shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' ? [...depts] : [], branches: role.value === 'branch_manager' ? [...branches] : [], developer: dev.checked };
+          shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' || role.value === 'branch_manager' ? [...depts] : [], branches: role.value === 'branch_manager' ? [...branches] : [], developer: dev.checked };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
         if (pin.value) p.pin = pin.value;
         try {

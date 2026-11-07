@@ -673,3 +673,17 @@ test('a department that works in a shop (Salwa): set by the admin; never a depar
   assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: '' }, tok.admin).ok, true);
   assert.equal(g.rows('Parties').find((x) => x.party_id === 'P001').at_shop, '');
 });
+
+test('the Salwa branch manager also heads its production: records and hands its products only, never the stores lines', () => {
+  const { g, tok, user } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('najeeb', 'branch_manager', { branches: ['P003'], depts: ['P001'],
+    caps: ['branches.view', 'branches.note', 'shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'] });
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  assert.equal(g.api('orders.approve', { order_id: o.order_id }, tok.dist).ok, true);
+  const todo = g.api('shop.list', {}, tok.najeeb);
+  assert.equal(todo.ok, true, JSON.stringify(todo));
+  const items = JSON.stringify(todo.data);
+  assert.equal(items.includes('I0002'), true);
+  assert.equal(items.includes('I0001'), false, 'the stores line is not theirs');
+});

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.169', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) مدير الفرع يستطيع أيضًا أن يكون مسؤول قسم يعمل في فرعه (مثل إنتاج سلوى): يُختار له القسم في شاشة المستخدمين، فيستلم سطور الطلبيات ويسجّل إنتاجها ويسلّمها للسائق."] },
+    en: { news: ["(Development copy) A branch manager may also head a department working in their branch (like Salwa production): choose it in Users, and they get its order lines, record its production and hand it to the driver."] },
+  },
+  {
     v: '0.9.168', date: '2026-11-07',
     ar: { news: ["(نسخة التطوير) إنتاج سلوى: للقسم المنتج خانة \"مكان القسم\" (المصنع أو محل). قسم يعمل في محل، مثل إنتاج سلوى، تُربط به أصنافه، فيطلبها المحل في طلبيته العادية، ويجهّزها رئيس القسم في سلوى. وتظهر سطوره لـ م.التوزيع وفي حمولة السائق تحت \"يُستلم من سلوى\"."] },
     en: { news: ["(Development copy) Salwa production: a producing department has \"Where it works\" (the factory or a shop). A department working in a shop, like Salwa production, has its products; shops order them in their usual order, its head prepares them there, and its lines show to distribution and in the driver's load as \"Picked up at Salwa\"."] },

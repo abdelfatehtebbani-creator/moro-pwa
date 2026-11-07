@@ -59,7 +59,7 @@ var Shop = {
     }
     // a department head prepares their departments' products only, whatever stores their account has;
     // the production manager records for the departments only, the stores' lines are for the storekeepers
-    if (session.role === 'section_head' || session.role === 'production') return false;
+    if (session.role === 'section_head' || session.role === 'production' || session.role === 'branch_manager') return false;
     return Stores.allows(session, store, 'shop');
   },
 
