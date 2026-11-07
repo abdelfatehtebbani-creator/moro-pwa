@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.164', date: '2026-11-07',
+    ar: { news: ['(نسخة التطوير) الموردون والأقسام: خيار "إظهار غير النشطة" كما في المواد؛ غير النشطة مخفية حتى تختاره.'] },
+    en: { news: ['(Development copy) Suppliers & departments: a "Show inactive" option as in Materials; inactive ones are hidden until it is ticked.'] },
+  },
+  {
     v: '0.9.163', date: '2026-11-07',
     ar: { news: ['الأطراف: المدير يستطيع تحويل قسم إلى محل (أو العكس) من نافذة تعديله، فيبقى رقمه وكل صرفياته. المحلات تظهر في شاشة الصرف وفي تقارير استهلاك الأقسام.'] },
     en: { news: ['Parties: the admin can turn a department into a shop (or back) from its edit window; its ID and every issue stay. Shops appear in the issue screen and in the department consumption reports.'] },
