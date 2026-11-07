@@ -3,7 +3,9 @@
  * Names are display text only; every relation uses the stable ID, so a rename touches one cell.
  */
 var CATEGORIES = ['Food', 'Packaging'];
-var PARTY_KINDS = ['supplier', 'section', 'shop'];
+var PARTY_KINDS = ['supplier', 'section', 'shop', 'affiliate'];
+/** Kinds that take goods from the stores (issues and returns), and may be turned into one another. */
+var TAKER_KINDS = ['section', 'shop', 'affiliate'];
 /** A supplier's contact details, printed on its LPOs. */
 var PARTY_CONTACT = ['tel', 'fax', 'email', 'contact', 'contact_phone'];
 var DEFAULT_UNITS = ['BAG', 'BOX', 'PC', 'PK', 'KG', 'L', 'G'];
@@ -152,10 +154,10 @@ var Masters = {
       if (name !== cur.name) { Perm.require(session, 'rename.parties'); ch.name = name; }
       // a department that is really a shop becomes one (or back): same ID, so its issues and history stay
       if (p.kind !== undefined && p.kind !== cur.kind) {
-        Util.require((cur.kind === 'section' || cur.kind === 'shop') && (p.kind === 'section' || p.kind === 'shop'), 'kind_invalid');
+        Util.require(TAKER_KINDS.indexOf(cur.kind) >= 0 && TAKER_KINDS.indexOf(p.kind) >= 0, 'kind_invalid');
         Perm.require(session, 'rename.parties');
         ch.kind = p.kind;
-        if (p.kind === 'shop') ch.producing = false;
+        if (p.kind !== 'section') ch.producing = false;
       }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename.parties');

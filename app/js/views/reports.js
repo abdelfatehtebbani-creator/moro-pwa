@@ -63,7 +63,7 @@ function renderTables(root) {
 
   const itemOpts = (store) => () => Data.activeItems().filter((i) => !store || Data.storeOf(i) === store).sort((a, b) => a.name.localeCompare(b.name))
     .map((i) => ({ value: i.item_id, label: i.name }));
-  const sectionOpts = () => [...Data.parties.values()].filter((p) => p.kind === 'section' || p.kind === 'shop').sort((a, b) => a.name.localeCompare(b.name))
+  const sectionOpts = () => [...Data.parties.values()].filter((p) => ['section', 'shop', 'affiliate'].includes(p.kind)).sort((a, b) => a.name.localeCompare(b.name))
     .map((p) => ({ value: p.party_id, label: p.name }));
 
   function drawCards() {

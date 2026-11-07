@@ -273,9 +273,9 @@ function parties(body, isAdmin) {
   const tb = h('tbody');
   // search by name or ID, and by kind (suppliers / departments)
   const search = trackFilled(h('input.input#p-search', { type: 'search', placeholder: t('party_search_hint') }));
-  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+  const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')), h('option', { value: 'affiliate' }, t('party_affiliate')));
   const pInactive = h('input#p-inactive', { type: 'checkbox' });
-  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section' || p.kind === 'shop')
+  const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => ['supplier', 'section', 'shop', 'affiliate'].includes(p.kind))
     .filter((p) => (pInactive.checked || p.active === true) && (!kindSel.value || p.kind === kindSel.value) &&
       (!search.value.trim() || (p.name + ' ' + p.party_id).toLowerCase().includes(search.value.trim().toLowerCase())))
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
@@ -285,8 +285,8 @@ function parties(body, isAdmin) {
   const edit = (p) => dialog((close) => {
     const name = trackFilled(h('input.input#e-pname', { value: p ? p.name : '', disabled: p && !isAdmin }));
     // the admin may turn a department into a shop (or back): its ID and history stay
-    const swap = p && isAdmin && (p.kind === 'section' || p.kind === 'shop');
-    const kind = h('select.input#e-kind', { disabled: !!p && !swap }, swap ? null : h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+    const swap = p && isAdmin && ['section', 'shop', 'affiliate'].includes(p.kind);
+    const kind = h('select.input#e-kind', { disabled: !!p && !swap }, swap ? null : h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')), h('option', { value: 'affiliate' }, t('party_affiliate')));
     kind.value = p ? p.kind : 'supplier';
     const active = h('input#e-pactive', { type: 'checkbox', checked: !p || p.active === true, disabled: !isAdmin });
     // a supplier's contact details, printed on its LPOs

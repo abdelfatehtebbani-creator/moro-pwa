@@ -20,7 +20,7 @@ export async function render(root) {
   // "Disposal" (damaged / expired stock thrown away) is chosen like a department and needs a reason
   const DISPOSAL = '__DISPOSAL__';
   const deptOpts = () => (Data.can('kind.DISPOSAL') ? [{ value: DISPOSAL, label: '⚠ ' + t('disposal') }] : []).concat([...Data.parties.values()]
-    .filter((p) => (p.kind === 'section' || p.kind === 'shop') && p.active === true)
+    .filter((p) => ['section', 'shop', 'affiliate'].includes(p.kind) && p.active === true)
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name })));
   const reason = trackFilled(h('input.input#i-reason', { placeholder: t('disposal_reason') }));
   const reasonField = h('div.field.wide', { hidden: true }, h('label', { for: 'i-reason' }, t('disposal_reason')), reason);
