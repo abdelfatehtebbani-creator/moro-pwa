@@ -87,3 +87,17 @@ test('a price list: a department written another way is the existing one', () =>
   g.api('items.import', { rows, apply: true }, tok.admin);
   assert.equal(g.rows('Parties').filter((x) => x.kind === 'section').length, 3);
 });
+
+test('a price list: a product renamed in the list keeps its ID; a raw material is never renamed', () => {
+  const { g, tok } = env();
+  g.api('items.import', { rows: [{ dept: 'Kunafa', name: 'NUTELLA', unit: 'KG', price: 110 }], apply: true }, tok.admin);
+  const rows = [{ dept: 'Kunafa', name: 'KUNAFA NUTELLA', old_name: 'NUTELLA', unit: 'KG', price: 115 },
+                { dept: 'Kunafa', name: 'SUGAR (PREPARED)', old_name: 'SUGAR', unit: 'KG' }];
+  const pv = g.api('items.import', { rows }, tok.admin).data;
+  assert.deepEqual(pv.plan.map((l) => [l.action, l.renamed_from || '']), [['update', 'NUTELLA'], ['new', '']]);
+  g.api('items.import', { rows, apply: true }, tok.admin);
+  const it = (n) => g.rows('Items').find((x) => x.name === n);
+  assert.deepEqual([it('KUNAFA NUTELLA').final_price, it('KUNAFA NUTELLA').aliases, it('NUTELLA')], [115, 'NUTELLA', undefined]);
+  assert.equal(it('SUGAR').store, 'DRY');
+  assert.equal(it('SUGAR (PREPARED)').store, 'FINAL');
+});

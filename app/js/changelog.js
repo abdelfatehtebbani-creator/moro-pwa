@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.160', date: '2026-11-07',
+    ar: { news: ['استيراد المنتجات: عمود اختياري old_name لتغيير اسم منتج موجود دون إنشاء منتج مكرر (يبقى رقمه وتاريخه، والاسم القديم يُحفظ). ويقرأ أيضًا الملف المفصول بعلامات Tab من Excel.'] },
+    en: { news: ['Import products: an optional old_name column renames an existing product instead of making a duplicate (its ID and history stay, the old name is kept). Tab-separated files from Excel are read too.'] },
+  },
+  {
     v: '0.9.159', date: '2026-11-07',
     ar: { news: ['استيراد المنتجات والأسماء العربية: يقرأ ملف CSV المحفوظ من Excel بالعربية كما هو، فلا تظهر الحروف العربية مشوّهة.'] },
     en: { news: ['Importing products and Arabic names: a CSV file saved by Excel in Arabic is read as it is, so Arabic letters are no longer garbled.'] },
