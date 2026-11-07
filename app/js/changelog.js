@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.164', date: '2026-11-07',
-    ar: { news: ['(نسخة التطوير) الموردون والأقسام: خيار "إظهار غير النشطة" كما في المواد؛ غير النشطة مخفية حتى تختاره.'] },
-    en: { news: ['(Development copy) Suppliers & departments: a "Show inactive" option as in Materials; inactive ones are hidden until it is ticked.'] },
+    ar: { news: ['الموردون والأقسام: خيار "إظهار غير النشطة" كما في المواد؛ غير النشطة مخفية حتى تختاره.'] },
+    en: { news: ['Suppliers & departments: a "Show inactive" option as in Materials; inactive ones are hidden until it is ticked.'] },
   },
   {
     v: '0.9.163', date: '2026-11-07',
