@@ -100,9 +100,16 @@ export async function render(root) {
 
   // the load: what was handed for these orders, item by item, for the driver to check against the car
   const itemName = (x) => Data.nameOf(Data.items.get(x.item_id) || { name: x.name, name_ar: x.name_ar });
-  const loadTable = (rows) => h('table.table.trip-load', h('thead', h('tr', h('th', t('item')), h('th.num', t('qty')))),
+  const oneTable = (rows) => h('table.table.trip-load', h('thead', h('tr', h('th', t('item')), h('th.num', t('qty')))),
     h('tbody', rows.length ? rows.map((x) => h('tr', h('td.wrap', h('bdi', itemName(x))), h('td.num', fmtNum(x.qty) + ' ' + (x.unit || ''))))
       : [h('tr', h('td', { colspan: 2 }, h('p.empty', t('load_empty'))))]));
+  // what is picked up in a shop (a department working there) is listed apart, under the shop's name
+  const loadTable = (rows) => {
+    const places = [...new Set(rows.map((x) => x.pickup || ''))];
+    if (places.length < 2 && !places[0]) return oneTable(rows);
+    return h('div', places.sort().map((p) => [h('p.pickup', '📍 ', p ? t('pickup_at', { p: (Data.parties.get(p) || {}).name || p }) : t('pickup_factory')),
+      oneTable(rows.filter((x) => (x.pickup || '') === p))]));
+  };
   const toggle = (label, make) => {
     const box = h('div', { hidden: true });
     const btn = h('button.btn.secondary.small', { type: 'button', onclick: () => {
@@ -115,7 +122,7 @@ export async function render(root) {
   const tripLoad = (trip) => {
     const sum = new Map();
     trip.stops.forEach((s) => (s.load || []).forEach((x) => {
-      const k = x.item_id + '|' + x.unit;
+      const k = x.item_id + '|' + x.unit + '|' + (x.pickup || '');
       const cur = sum.get(k) || Object.assign({}, x, { qty: 0 });
       cur.qty += x.qty; sum.set(k, cur);
     }));

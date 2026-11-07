@@ -142,7 +142,8 @@ var Masters = {
         Util.require(PARTY_KINDS.indexOf(p.kind) >= 0, 'kind_invalid');
         var n = 0;
         Repo.column('Parties', 'party_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
-        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true, producing: p.kind === 'section' && p.producing === true };
+        var party = { party_id: 'P' + Util.pad(n + 1, 3), name: name, kind: p.kind, active: true, producing: p.kind === 'section' && p.producing === true,
+                      at_shop: p.kind === 'section' ? Masters.atShop(p.at_shop) : '' };
         PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined) party[c] = Util.clean(p[c]); });
         Repo.append('Parties', [party]);
         Audit.log(session.user_id, 'party_create', 'Parties', party.party_id, null, party);
@@ -167,6 +168,11 @@ var Masters = {
       if (p.producing !== undefined && cur.kind === 'section' && (p.producing === true) !== (cur.producing === true)) {
         Perm.require(session, 'rename.parties');
         ch.producing = p.producing === true;
+      }
+      // where a department works: the factory (''), or a shop (its products are picked up there)
+      if (p.at_shop !== undefined && cur.kind === 'section' && String(p.at_shop || '') !== String(cur.at_shop || '')) {
+        Perm.require(session, 'rename.parties');
+        ch.at_shop = Masters.atShop(p.at_shop);
       }
       // a supplier's contact details (printed on the LPO): whoever may add suppliers keeps them up to date
       PARTY_CONTACT.forEach(function (c) { if (p[c] !== undefined && Util.clean(p[c]) !== String(cur[c] || '')) ch[c] = Util.clean(p[c]); });
@@ -556,6 +562,15 @@ Masters.importItems = function (session, p) {
     return res;
   };
   return p.apply ? withLock(run) : run();
+};
+
+/** The shop a department works in, or '' (the factory). */
+Masters.atShop = function (id) {
+  id = String(id || '');
+  if (!id) return '';
+  var p = Repo.find('Parties', 'party_id', id);
+  Util.require(p && p.kind === 'shop', 'shop_invalid');
+  return id;
 };
 
 /** A department (a section party) for a final product, or '' (checked). */

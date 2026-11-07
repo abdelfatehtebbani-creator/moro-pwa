@@ -662,3 +662,14 @@ test('a branch manager: sees only their shops, adds a note to an order (distribu
   assert.equal(g.api('orders.approve', { order_id: a.order_id }, tok.mgr).error.code, 'forbidden');
   assert.equal(g.api('branches.summary', {}, tok.cashier).error.code, 'forbidden');
 });
+
+test('a department that works in a shop (Salwa): set by the admin; never a department, a supplier or a missing shop', () => {
+  const { g, tok } = env();
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin).ok, true);
+  assert.equal(g.rows('Parties').find((x) => x.party_id === 'P001').at_shop, 'P003');
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P001' }, tok.admin).error.code, 'shop_invalid');
+  const n = g.api('parties.save', { name: 'Salwa kitchen', kind: 'section', producing: true, at_shop: 'P003' }, tok.admin).data.party;
+  assert.equal(n.at_shop, 'P003');
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: '' }, tok.admin).ok, true);
+  assert.equal(g.rows('Parties').find((x) => x.party_id === 'P001').at_shop, '');
+});

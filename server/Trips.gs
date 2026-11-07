@@ -23,7 +23,10 @@ var Trips = {
         var load = (Repo.groupBy('ShopOrderLines', 'order_id')[s.order_id] || []).filter(function (l) { return Number(l.handed_qty) > 0 && l.direct !== true; })
           .map(function (l) {
             var it = Repo.find('Items', 'item_id', l.item_id) || {};
-            return { item_id: l.item_id, name: l.description || it.name || l.item_id, name_ar: l.description ? '' : it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit };
+            // a department that works in a shop: picked up there
+            var dept = Repo.find('Parties', 'party_id', it.dept || l.dept || '') || {};
+            return { item_id: l.item_id, name: l.description || it.name || l.item_id, name_ar: l.description ? '' : it.name_ar || '', qty: Number(l.handed_qty), unit: l.unit,
+                     pickup: dept.at_shop || '' };
           });
         return { order_id: s.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, seq: Number(s.seq), lines: n, load: load,
                  loaded_at: s.loaded_at, delivered_at: s.delivered_at, order_status: o.status, kind: o.kind || '', place: o.place || '',
