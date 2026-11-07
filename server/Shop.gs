@@ -56,16 +56,28 @@ var Shop = {
     var store = Stores.of(item);
     if (store === 'FINAL' && item && item.dept) {
       if ((session.depts || []).indexOf(String(item.dept)) >= 0 || Perm.has(session, 'shop.depts')) return true;
+      // the cashier on shift in the shop where the department works (Salwa)
+      if (session.role === 'cashier' && session.shop) {
+        var d = Repo.find('Parties', 'party_id', String(item.dept));
+        if (d && d.at_shop && d.at_shop === session.shop) return true;
+      }
     }
     // a department head prepares their departments' products only, whatever stores their account has;
     // the production manager records for the departments only, the stores' lines are for the storekeepers
     if (session.role === 'section_head' || session.role === 'production' || session.role === 'branch_manager') return false;
+    if (session.role === 'cashier') return false;
     return Stores.allows(session, store, 'shop');
   },
 
   /** What a user row may do, as a session (to tell who prepares which lines). */
   sessionOf: function (u) {
-    return { user_id: u.user_id, role: u.role, perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u), depts: Auth.deptsOf(u) };
+    return { user_id: u.user_id, role: u.role, perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u), depts: Auth.deptsOf(u), shop: String(u.shop || '') };
+  },
+
+  /** Does a department work in this shop (Salwa)? */
+  hostsDept: function (shop) {
+    shop = String(shop || '');
+    return !!shop && Repo.all('Parties').some(function (p) { return p.kind === 'section' && p.active === true && String(p.at_shop || '') === shop; });
   },
 
   /** Lines of orders made in MORO waiting to be prepared by this user (the badge of "Prepare orders"). */

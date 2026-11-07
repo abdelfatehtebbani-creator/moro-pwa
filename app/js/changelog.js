@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.170', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) إنتاج سلوى: كاشير المحل الذي يعمل فيه القسم يستطيع أيضًا تسليم سطوره للسائق من \"تجهيز الطلبيات\" (لا يرى غيرها)، إلى جانب مدير الفرع."] },
+    en: { news: ["(Development copy) Salwa production: the cashier of the shop where the department works can also hand its lines to the driver from \"Prepare orders\" (and sees no others), as well as the branch manager."] },
+  },
+  {
     v: '0.9.169', date: '2026-11-07',
     ar: { news: ["(نسخة التطوير) مدير الفرع يستطيع أيضًا أن يكون مسؤول قسم يعمل في فرعه (مثل إنتاج سلوى): يُختار له القسم في شاشة المستخدمين، فيستلم سطور الطلبيات ويسجّل إنتاجها ويسلّمها للسائق."] },
     en: { news: ["(Development copy) A branch manager may also head a department working in their branch (like Salwa production): choose it in Users, and they get its order lines, record its production and hand it to the driver."] },

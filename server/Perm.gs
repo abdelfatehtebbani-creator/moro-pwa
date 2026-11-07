@@ -244,6 +244,8 @@ var Perm = {
     var set = {};
     BASE_PERMS.forEach(function (p) { set[p] = true; });
     Perm.capsOf(u).forEach(function (c) { CAPS[c].forEach(function (p) { set[p] = true; }); });
+    // the cashier of a shop where a department works (Salwa): hands that department's lines to the driver
+    if (u.role === 'cashier' && Shop.hostsDept(u.shop)) CAPS['shop.hand'].forEach(function (p) { set[p] = true; });
     return Object.keys(set);
   },
 

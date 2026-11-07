@@ -687,3 +687,15 @@ test('the Salwa branch manager also heads its production: records and hands its 
   assert.equal(items.includes('I0002'), true);
   assert.equal(items.includes('I0001'), false, 'the stores line is not theirs');
 });
+
+test('the cashier of the shop where a department works (Salwa) hands its lines; another cashier does not', () => {
+  const { g, tok, user } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('salwa', 'cashier', { shop: 'P003' });
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const mine = JSON.stringify(g.api('shop.list', {}, tok.salwa).data);
+  assert.equal(mine.includes('I0002'), true);
+  assert.equal(mine.includes('I0001'), false);
+  assert.equal(g.api('shop.list', {}, tok.cashier).error.code, 'forbidden');
+});
