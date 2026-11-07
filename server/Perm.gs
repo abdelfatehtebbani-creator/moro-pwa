@@ -8,7 +8,7 @@
  * Lists saved before the tree (receive, issue, masters…) are read through OLD_CAPS.
  * Every server action is checked once in the router; the finer rules (own records, stores…) in the services.
  */
-var ALL_ROLES = ['admin', 'pdg', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
+var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
@@ -21,6 +21,7 @@ var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 /** Screens → tabs → buttons, in the order of the menu. A node with `leaf` is a tick box. */
 var PERM_TREE = [
   { key: 'exec', children: [{ leaf: 'exec.view' }] },
+  { key: 'branches', children: [{ leaf: 'branches.view' }, { leaf: 'branches.note' }] },
   { key: 'dashboard', children: [{ leaf: 'dash.view' }, { leaf: 'dash.min' }, { leaf: 'dash.takings' }] },
   { key: 'receive', children: [{ leaf: 'receive.view' }, { leaf: 'receive.save' }, { leaf: 'receive.return' },
     { leaf: 'receive.edit_own' }, { leaf: 'receive.edit_all' }, { leaf: 'receive.delete' }] },
@@ -65,6 +66,9 @@ var CAPS = (function () {
   var c = {
     // the general manager's screen: the business at a glance, read only
     'exec.view':         ['nav.exec', 'exec.summary', 'see_prices'],
+    // the branch manager: their shops' orders, shifts, sales, returns (read), and a note on an order or a sales sheet
+    'branches.view':     ['nav.branches', 'branches.summary'],
+    'branches.note':     ['branches.note'],
     'dash.view':         ['nav.dashboard'],
     'dash.min':          ['nav.dashboard', 'items.save', 'min_stock'],
     // today's takings of the shops (money: for the admin, not the stores)
@@ -217,6 +221,8 @@ var ROLE_CAPS = {
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],
+  // a manager of one or more branches (Users.branches): follows them, approves nothing
+  branch_manager: ['branches.view', 'branches.note'],
   accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'accounts.opening', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
 };
 

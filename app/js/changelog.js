@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.167', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) مدير الفروع: دور جديد يُربط بفرع أو أكثر في شاشة المستخدمين. شاشة \"فروعي\" تعرض لفروعه الطلبيات وتأخرها، ونوبات الكاشير وفروق المقبوضات، ويوميات المبيعات، والمرتجعات وما استُلم ناقصًا. لا يعتمد شيئًا، ويستطيع إضافة ملاحظة على طلبية (تظهر عند م.التوزيع والكاشير) أو على يومية مبيعات (تظهر عند المحاسب). وتصله تنبيهات فروعه: نقص الاستلام، والمرتجعات، ونوبة أُغلقت دون مبلغ، وفرق المقبوضات."] },
+    en: { news: ["(Development copy) Branch manager: a new role linked to one or more branches in Users. The \"My branches\" screen shows their orders and how late they are, the cashiers' shifts and takings differences, the daily sales sheets, returns and what was received short. They approve nothing and may add a note to an order (seen by distribution and the cashier) or to a daily sales sheet (seen by the accountant). They are told of their branches' short receipts, returns, shifts closed without an amount and takings differences."] },
+  },
+  {
     v: '0.9.166', date: '2026-11-07',
     ar: { news: ["الأطراف: نوع جديد \"خاص\" لصاحب المصنع ومصانعه الأخرى. يُصرف لها ويُرتجع منها كالأقسام، وتظهر في تقارير الاستهلاك، ولا تدخل في دورة الطلبيات ولا الكاشير ولا الحسابات. يحوّل المدير القسم إليها من نافذة تعديله."] },
     en: { news: ["Parties: a new kind \"Special\" for the factory owner and his other factories. Issued to and returned from like departments, shown in the consumption reports, outside the shop-order cycle, cashiers and accounts. The admin turns a department into one from its edit window."] },

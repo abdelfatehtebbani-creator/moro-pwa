@@ -62,7 +62,8 @@ var Sales = {
     var ch = {};
     try { ch = JSON.parse(r.channels || '{}'); } catch (e) { ch = {}; }
     return { day_id: r.day_id, date: r.date, shop_party_id: r.shop_party_id, cash: Number(r.cash) || 0, channels: ch, total: Number(r.total) || 0,
-      status: r.status, note: r.note || '', return_note: r.return_note || '', submitted_at: r.submitted_at || '', decided_at: r.decided_at || '' };
+      status: r.status, note: r.note || '', return_note: r.return_note || '', submitted_at: r.submitted_at || '', decided_at: r.decided_at || '',
+      mgr_note: r.mgr_note || '' };
   },
 
   /** p: {date} → every active shop that day: its sheet, or a new one with the cash of its shifts. p: {from, to, status} → the sheets. */

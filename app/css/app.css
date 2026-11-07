@@ -805,3 +805,9 @@ tr.send-group th { text-align: start; background: var(--teal-soft, #e6f4f1); pad
 .fu-row.late .fu-age { color: var(--warn); font-weight: 600; }
 .fu-row.very .fu-age { color: var(--danger); font-weight: 700; }
 @media (max-width: 720px) { .fu-row { grid-template-columns: 1fr; gap: 8px; } }
+
+/* the branch manager: their note, on the order and the sales sheet */
+.mgr-note { color: var(--orange, #b35c00); font-weight: 600; }
+.br-note { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.br-note p { margin: 0; color: var(--orange, #b35c00); font-weight: 600; }
+.br-card { margin-bottom: 10px; }

@@ -29,7 +29,7 @@ var SCHEMA = {
   SpecialRequests: ['request_id', 'ext_id', 'order_id', 'order_no', 'shop_party_id', 'description', 'qty', 'unit', 'image', 'status',
                  'decided_by', 'decided_at', 'comment', 'item_id', 'created_at', 'updated_at'],
   Users:        ['user_id', 'username', 'display_name', 'role', 'pin_hash', 'pin_salt', 'active', 'created_at', 'last_login',
-                 'pin_changed_ms', 'caps', 'stores', 'store_ops', 'shop', 'depts', 'developer'],
+                 'pin_changed_ms', 'caps', 'stores', 'store_ops', 'shop', 'depts', 'developer', 'branches'],
   Counts:       ['count_id', 'store', 'date', 'period', 'status', 'created_by', 'created_at', 'approved_by', 'approved_at', 'note'],
   CountLines:   ['count_id', 'item_id', 'theory_qty', 'counted_qty', 'counted_by', 'counted_at', 'adjust_movement_id', 'price',
                  'theory_expiry', 'counted_expiry'],
@@ -52,7 +52,7 @@ var SCHEMA = {
   Orders:       ['order_id', 'order_no', 'client_id', 'shop_party_id', 'status', 'order_date', 'delivery_date', 'note', 'created_by',
                  'created_at', 'sent_at', 'decided_by', 'decided_at', 'reason', 'updated_at', 'trip_id', 'loaded_at', 'delivered_at',
                  'received_at', 'received_by', 'diff_status', 'diff_by', 'diff_at', 'kind', 'customer_name', 'customer_phone',
-                 'delivery_time', 'place', 'address'],
+                 'delivery_time', 'place', 'address', 'mgr_note', 'mgr_note_by', 'mgr_note_at'],
   OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status', 'received_qty', 'short_reason', 'short_note',
                  'short_decision', 'description', 'price', 'dept', 'photos', 'purchase'],
   Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at', 'client_id'],
@@ -64,7 +64,7 @@ var SCHEMA = {
   Shifts:       ['shift_id', 'user_id', 'shop_party_id', 'opened_at', 'closed_at', 'amount', 'note', 'closed_by', 'client_id',
                  'received_amount', 'received_by', 'received_at', 'received_note', 'received_action'],
   DailySales:   ['day_id', 'date', 'shop_party_id', 'cash', 'channels', 'total', 'note', 'status', 'return_note', 'created_by', 'created_at',
-                 'submitted_at', 'decided_by', 'decided_at', 'updated_at', 'client_id'],
+                 'submitted_at', 'decided_by', 'decided_at', 'updated_at', 'client_id', 'mgr_note', 'mgr_note_by', 'mgr_note_at'],
   Openings:     ['party_id', 'amount', 'note', 'created_by', 'created_at'],
   Payments:     ['payment_id', 'date', 'party_id', 'amount', 'method', 'ref', 'note', 'status', 'created_by', 'created_at', 'voided_by', 'voided_at', 'client_id'],
   Returns:      ['return_id', 'date', 'shop_party_id', 'order_id', 'order_no', 'line_no', 'item_id', 'qty', 'unit', 'reason', 'note',
@@ -72,7 +72,7 @@ var SCHEMA = {
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',

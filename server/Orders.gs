@@ -316,6 +316,7 @@ var Orders = {
         Audit.log(session.user_id, 'shift_takeover', 'Users', taken.user_id, null, { shop: shop, shift: open ? open.shift_id : '' });
         OrderNotify.send([taken.user_id].concat(Push.usersWith('shifts.receive')), session, 'accounts',
           ['نوبة أُغلقت دون مبلغ', party.name + ': ' + taken.display_name + ' لم يُنهِ نوبته'], ['A shift closed without its amount', party.name + ': ' + taken.display_name + ' did not end the shift']);
+        Branches.tell(shop, session, ['نوبة أُغلقت دون مبلغ', party.name + ': ' + taken.display_name + ' لم يُنهِ نوبته'], ['A shift closed without its amount', party.name + ': ' + taken.display_name + ' did not end the shift']);
       }
       Repo.update('Users', 'user_id', session.user_id, { shop: shop });
       Repo.append('Shifts', [{ shift_id: 'SH' + Util.pad(Settings.next('seq_shift', 0), 5), user_id: session.user_id, shop_party_id: shop,
@@ -388,7 +389,7 @@ var Orders = {
       var hours = Math.max(0, Math.round((now - t0) / 36e5 * 10) / 10);
       var limit = limits[stage];
       out.push({ order_id: o.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, kind: o.kind || '', stage: stage, since: since,
-        hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending' });
+        hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending', mgr_note: o.mgr_note || '' });
     });
     var rank = { very: 0, late: 1, ok: 2 };
     return { hours: limits, orders: out.sort(function (a, b) { return rank[a.level] - rank[b.level] || b.hours - a.hours; }) };

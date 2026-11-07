@@ -27,6 +27,7 @@ import * as invoices from './views/invoices.js';
 import * as returns from './views/returns.js';
 import * as accounts from './views/accounts.js';
 import * as exec from './views/exec.js';
+import * as branches from './views/branches.js';
 import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
@@ -35,6 +36,7 @@ import * as coffee from './views/coffee.js';
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
   exec:      { view: exec, perm: 'nav.exec', group: 'nav_main' },
+  branches:  { view: branches, perm: 'nav.branches', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
   orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
   orderapprove: { view: orders, perm: 'nav.orderapprove', group: 'nav_ops' },
@@ -127,7 +129,11 @@ async function start() {
 
 function allowed(name) { return Data.can(ROUTES[name].perm); }
 // the first screen: home (every user may open it)
-function firstScreen() { return (Data.user && Data.user.role === 'pdg' && allowed('exec')) ? 'exec' : Object.keys(ROUTES).find(allowed) || 'home'; }
+function firstScreen() {
+  if (Data.user && Data.user.role === 'pdg' && allowed('exec')) return 'exec';
+  if (Data.user && Data.user.role === 'branch_manager' && allowed('branches')) return 'branches';
+  return Object.keys(ROUTES).find(allowed) || 'home';
+}
 
 // ---------- what's new: shown once after each update, with what the user needs to do
 const SEEN_KEY = 'moro.seen_version';
@@ -367,6 +373,9 @@ function updateBadges() {
   // orders waiting for distribution's approval, and orders late on their way (the follow-up tab)
   const o = allowed('orderapprove') ? (Number((Data.boot || {}).orders_pending) || 0) + (Number((Data.boot || {}).follow_late) || 0) : 0;
   document.querySelectorAll('a[data-route="orderapprove"] .badge').forEach((b) => { b.hidden = !o; b.textContent = String(o); });
+  // the branch manager: their shops' orders late on their way
+  const bl = allowed('branches') ? Number((Data.boot || {}).branch_late) || 0 : 0;
+  document.querySelectorAll('a[data-route="branches"] .badge').forEach((b) => { b.hidden = !bl; b.textContent = String(bl); });
   // orders whose lines this user prepares (their stores, their departments)
   const sp = allowed('shoporders') ? Number((Data.boot || {}).shop_todo) || 0 : 0;
   document.querySelectorAll('a[data-route="shoporders"] .badge').forEach((b) => { b.hidden = !sp; b.textContent = String(sp); });
@@ -380,7 +389,7 @@ function updateBadges() {
     document.querySelectorAll('a[data-route="' + route + '"] .badge').forEach((b) => { b.hidden = !c; b.textContent = String(c); });
     return c;
   }).reduce((a, b) => a + b, 0);
-  Push.badge(n + r + o + sp + pr + more);
+  Push.badge(n + r + o + bl + sp + pr + more);
   // the same numbers for "waiting for you" on the admin's home screen
   const ot2 = (Data.boot || {}).order_todo || {};
   Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, production: pr, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,

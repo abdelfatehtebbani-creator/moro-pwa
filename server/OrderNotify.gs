@@ -97,6 +97,7 @@ var OrderNotify = {
     var short = v.lines.filter(function (l) { return l.short_reason; }).length;
     if (short) OrderNotify.send(Push.usersWith('orders.acceptDiff'), session, 'orderapprove',
       ['فرق استلام للمراجعة ' + o.order_no, shop + ' – ' + short + ' سطر'], ['Receipt difference to review ' + o.order_no, shop + ' – ' + short + ' line(s)']);
+    if (short) Branches.tell(o.shop_party_id, session, ['نقص في استلام ' + o.order_no, shop + ' – ' + short + ' سطر'], ['Received short ' + o.order_no, shop + ' – ' + short + ' line(s)']);
   },
 
   invoiceReady: function (o, session) {
