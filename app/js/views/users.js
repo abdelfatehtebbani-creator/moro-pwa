@@ -99,7 +99,8 @@ export async function render(root) {
       const err = h('p.err-text', '');
       // a cashier works for one shop; a department head prepares the shop orders of their departments
       const shops = [...Data.parties.values()].filter((p) => p.kind === 'shop' && p.active === true).sort((a, b) => a.name.localeCompare(b.name));
-      const shopSel = h('select.input#u-shop', h('option', { value: '' }, '—'), shops.map((p) => h('option', { value: p.party_id }, p.name)));
+      // optional: a cashier chooses the shop when opening the shift
+      const shopSel = h('select.input#u-shop', h('option', { value: '' }, t('shop_at_shift')), shops.map((p) => h('option', { value: p.party_id }, p.name)));
       shopSel.value = u ? u.shop || '' : '';
       const shopField = field(t('cashier_shop'), shopSel);
       const depts = new Set(u ? u.depts || [] : []);
@@ -191,7 +192,6 @@ export async function render(root) {
         if (!name.value.trim()) return flash(name);
         if (!u && !user.value.trim()) return flash(user);
         if (!u && !pin.value) return flash(pin);
-        if (role.value === 'cashier' && !shopSel.value) return flash(shopSel);
         const p = { display_name: name.value, role: role.value, caps: [...chosen], stores: STORES.filter((s) => stores.has(s)), store_ops: storeOps(),
           shop: role.value === 'cashier' ? shopSel.value : '', depts: role.value === 'section_head' ? [...depts] : [], developer: dev.checked };
         if (u) { p.user_id = u.user_id; p.active = active.checked; } else p.username = user.value;
