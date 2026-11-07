@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.166', date: '2026-11-07',
-    ar: { news: ["(نسخة التطوير) الأطراف: نوع جديد \"خاص\" لصاحب المصنع ومصانعه الأخرى. يُصرف لها ويُرتجع منها كالأقسام، وتظهر في تقارير الاستهلاك، ولا تدخل في دورة الطلبيات ولا الكاشير ولا الحسابات. يحوّل المدير القسم إليها من نافذة تعديله."] },
-    en: { news: ["(Development copy) Parties: a new kind \"Special\" for the factory owner and his other factories. Issued to and returned from like departments, shown in the consumption reports, outside the shop-order cycle, cashiers and accounts. The admin turns a department into one from its edit window."] },
+    ar: { news: ["الأطراف: نوع جديد \"خاص\" لصاحب المصنع ومصانعه الأخرى. يُصرف لها ويُرتجع منها كالأقسام، وتظهر في تقارير الاستهلاك، ولا تدخل في دورة الطلبيات ولا الكاشير ولا الحسابات. يحوّل المدير القسم إليها من نافذة تعديله."] },
+    en: { news: ["Parties: a new kind \"Special\" for the factory owner and his other factories. Issued to and returned from like departments, shown in the consumption reports, outside the shop-order cycle, cashiers and accounts. The admin turns a department into one from its edit window."] },
   },
   {
     v: '0.9.164', date: '2026-11-07',
