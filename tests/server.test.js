@@ -533,3 +533,16 @@ test('a department that is a shop becomes a shop: same ID, issues still allowed;
   assert.deepEqual([row.kind, row.producing], ['shop', false]);
   assert.equal(g.api('parties.save', { party_id: s.party_id, name: 'Supplier X', kind: 'shop' }, tok).error.code, 'kind_invalid');
 });
+
+test("the owner and his factories: a party of their own kind, issued to like a department, outside shops and accounts", () => {
+  const g = createGas();
+  g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
+  const tok = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  const o = g.api('parties.save', { name: 'Owner', kind: 'section' }, tok).data.party;
+  assert.equal(g.api('parties.save', { party_id: o.party_id, name: 'Owner', kind: 'affiliate' }, tok).ok, true);
+  const f = g.api('parties.save', { name: 'Second factory', kind: 'affiliate' }, tok);
+  assert.equal(f.ok, true, JSON.stringify(f));
+  assert.equal(g.rows('Parties').find((x) => x.party_id === o.party_id).kind, 'affiliate');
+  const acc = g.api('accounts.openings', {}, tok).data.parties.map((x) => x.party_id);
+  assert.equal(acc.includes(o.party_id), false);
+});

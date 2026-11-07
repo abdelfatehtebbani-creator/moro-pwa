@@ -147,7 +147,7 @@ export async function render(root) {
     }
 
     // 5. consumption per month by department (the five largest, the rest together)
-    const isSection = (id) => ['section', 'shop'].includes((Data.parties.get(id) || {}).kind);
+    const isSection = (id) => ['section', 'shop', 'affiliate'].includes((Data.parties.get(id) || {}).kind);
     const issues = movs.filter((m) => m.kind === 'ISSUE' && isSection(m.party_id) && inP(m) && idx.has(ym(m.date)));
     const perDept = new Map();
     issues.forEach((m) => perDept.set(m.party_id, (perDept.get(m.party_id) || 0) + metric(m)));

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.165', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) الأطراف: نوع جديد \"جهة تابعة للمالك\" لصاحب المصنع ومصانعه الأخرى. يُصرف لها ويُرتجع منها كالأقسام، وتظهر في تقارير الاستهلاك، ولا تدخل في دورة الطلبيات ولا الكاشير ولا الحسابات. يحوّل المدير القسم إليها من نافذة تعديله."] },
+    en: { news: ["(Development copy) Parties: a new kind \"Owner's (affiliate)\" for the factory owner and his other factories. Issued to and returned from like departments, shown in the consumption reports, outside the shop-order cycle, cashiers and accounts. The admin turns a department into one from its edit window."] },
+  },
+  {
     v: '0.9.164', date: '2026-11-07',
     ar: { news: ['الموردون والأقسام: خيار "إظهار غير النشطة" كما في المواد؛ غير النشطة مخفية حتى تختاره.'] },
     en: { news: ['Suppliers & departments: a "Show inactive" option as in Materials; inactive ones are hidden until it is ticked.'] },
