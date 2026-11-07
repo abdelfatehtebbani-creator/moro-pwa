@@ -48,8 +48,11 @@ function items(body, isAdmin) {
   const canMin = Data.can('min_stock');
   const search = trackFilled(h('input.input#m-search', { type: 'search', placeholder: t('lookup_hint') }));
   const showInactive = h('input#m-inactive', { type: 'checkbox' });
+  // by department, or by store (the four material stores)
   const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
-    Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
+    h('optgroup', { label: t('departments') }, Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name))),
+    h('optgroup', { label: t('m_stores') }, ['CHILLED', 'DRY', 'PACK', 'CLEAN'].map((s) => h('option', { value: 'st:' + s }, t('store_' + s)))));
+  const byFilter = (i) => !deptFilter.value || (deptFilter.value.startsWith('st:') ? Data.storeOf(i) === deptFilter.value.slice(3) : String(i.dept || '') === deptFilter.value);
   const tb = h('tbody');
   // the fixed price of a final product (the price list); other materials have none here
   const showPrice = Data.can('see_prices') || Data.can('final_price');
@@ -71,8 +74,9 @@ function items(body, isAdmin) {
     printPrices(PRINT_COLS.filter((c) => cols.includes(c[0])));
   };
   const printPrices = (cols) => {
-    const depts = deptFilter.value ? [Data.parties.get(deptFilter.value)].filter(Boolean) : Data.producingDepts();
-    const groups = depts.map((d) => ({ d, rows: [...Data.items.values()].filter((i) => i.active === true && String(i.dept || '') === d.party_id)
+    const st = deptFilter.value.startsWith('st:') ? deptFilter.value.slice(3) : '';
+    const depts = st ? [{ party_id: '', name: t('store_' + st) }] : deptFilter.value ? [Data.parties.get(deptFilter.value)].filter(Boolean) : Data.producingDepts();
+    const groups = depts.map((d) => ({ d, rows: [...Data.items.values()].filter((i) => i.active === true && (st ? Data.storeOf(i) === st : String(i.dept || '') === d.party_id))
       .sort((a, b) => a.name.localeCompare(b.name)) })).filter((g) => g.rows.length);
     if (!groups.length) { toast(t('price_list_empty'), 'err'); return; }
     const area = h('div#print-area', { dir: 'ltr' }, h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', 'Inventory Management System'),
@@ -89,7 +93,7 @@ function items(body, isAdmin) {
   const fill = () => {
     const q = search.value.trim().toLowerCase();
     const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q))
-      && (!deptFilter.value || String(i.dept || '') === deptFilter.value))
+      && byFilter(i))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
       h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),

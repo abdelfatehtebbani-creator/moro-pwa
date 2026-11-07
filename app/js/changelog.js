@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.161', date: '2026-11-07',
+    ar: { news: ['(نسخة التطوير) المواد: خانة "كل الأقسام" فيها أيضًا المخازن الأربعة (المبرَّدة، الجافة، التغليف، التنظيف) لعرض موادها وطباعة قائمتها.'] },
+    en: { news: ['(Development copy) Materials: the "All departments" filter also lists the four stores (chilled, dry, packaging, cleaning), to show and print their materials.'] },
+  },
+  {
     v: '0.9.160', date: '2026-11-07',
     ar: { news: ['استيراد المنتجات: عمود اختياري old_name لتغيير اسم منتج موجود دون إنشاء منتج مكرر (يبقى رقمه وتاريخه، والاسم القديم يُحفظ). ويقرأ أيضًا الملف المفصول بعلامات Tab من Excel.'] },
     en: { news: ['Import products: an optional old_name column renames an existing product instead of making a duplicate (its ID and history stay, the old name is kept). Tab-separated files from Excel are read too.'] },
