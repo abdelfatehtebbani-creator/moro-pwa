@@ -274,8 +274,9 @@ function parties(body, isAdmin) {
   // search by name or ID, and by kind (suppliers / departments)
   const search = trackFilled(h('input.input#p-search', { type: 'search', placeholder: t('party_search_hint') }));
   const kindSel = h('select.input#p-kind', h('option', { value: '' }, t('all')), h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+  const pInactive = h('input#p-inactive', { type: 'checkbox' });
   const fill = () => tb.replaceChildren(...[...Data.parties.values()].filter((p) => p.kind === 'supplier' || p.kind === 'section' || p.kind === 'shop')
-    .filter((p) => (!kindSel.value || p.kind === kindSel.value) &&
+    .filter((p) => (pInactive.checked || p.active === true) && (!kindSel.value || p.kind === kindSel.value) &&
       (!search.value.trim() || (p.name + ' ' + p.party_id).toLowerCase().includes(search.value.trim().toLowerCase())))
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name))
     .map((p) => h('tr.click', { onclick: () => edit(p) }, h('td.num', p.party_id), h('td.wrap', h('bdi', p.name)),
@@ -315,7 +316,9 @@ function parties(body, isAdmin) {
   }).then((r) => { if (r) fill(); });
   search.addEventListener('input', fill);
   kindSel.addEventListener('change', fill);
+  pInactive.addEventListener('change', fill);
   body.replaceChildren(h('div.search', search, kindSel, Data.can('parties.save') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_party')) : null),
+    h('label.check', pInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('name')), h('th', t('kind')), h('th', ''))), tb)));
   fill();
 }
