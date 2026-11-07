@@ -283,7 +283,9 @@ function parties(body, isAdmin) {
   watch(fill);
   const edit = (p) => dialog((close) => {
     const name = trackFilled(h('input.input#e-pname', { value: p ? p.name : '', disabled: p && !isAdmin }));
-    const kind = h('select.input#e-kind', { disabled: !!p }, h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
+    // the admin may turn a department into a shop (or back): its ID and history stay
+    const swap = p && isAdmin && (p.kind === 'section' || p.kind === 'shop');
+    const kind = h('select.input#e-kind', { disabled: !!p && !swap }, swap ? null : h('option', { value: 'supplier' }, t('party_supplier')), h('option', { value: 'section' }, t('party_section')), h('option', { value: 'shop' }, t('party_shop')));
     kind.value = p ? p.kind : 'supplier';
     const active = h('input#e-pactive', { type: 'checkbox', checked: !p || p.active === true, disabled: !isAdmin });
     // a supplier's contact details, printed on its LPOs
