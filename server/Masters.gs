@@ -150,6 +150,13 @@ var Masters = {
       Util.require(cur, 'not_found');
       var ch = {};
       if (name !== cur.name) { Perm.require(session, 'rename.parties'); ch.name = name; }
+      // a department that is really a shop becomes one (or back): same ID, so its issues and history stay
+      if (p.kind !== undefined && p.kind !== cur.kind) {
+        Util.require((cur.kind === 'section' || cur.kind === 'shop') && (p.kind === 'section' || p.kind === 'shop'), 'kind_invalid');
+        Perm.require(session, 'rename.parties');
+        ch.kind = p.kind;
+        if (p.kind === 'shop') ch.producing = false;
+      }
       if (p.active !== undefined && (p.active === true) !== (cur.active === true)) {
         Perm.require(session, 'rename.parties');
         ch.active = p.active === true;

@@ -520,3 +520,16 @@ test('the storekeeper rejects what is left of a request with a reason; Arabic na
   const it = g.rows('Items').find((i) => i.item_id === 'I0001');
   assert.deepEqual([it.name_ar, it.name], ['طحين', 'FLOUR NO 1']);
 });
+
+test('a department that is a shop becomes a shop: same ID, issues still allowed; a supplier never changes kind', () => {
+  const g = createGas();
+  g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
+  const tok = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  const d = g.api('parties.save', { name: 'Al Zaeem', kind: 'section', producing: true }, tok).data.party;
+  const s = g.api('parties.save', { name: 'Supplier X', kind: 'supplier' }, tok).data.party;
+  const r = g.api('parties.save', { party_id: d.party_id, name: 'Al Zaeem', kind: 'shop' }, tok);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const row = g.rows('Parties').find((x) => x.party_id === d.party_id);
+  assert.deepEqual([row.kind, row.producing], ['shop', false]);
+  assert.equal(g.api('parties.save', { party_id: s.party_id, name: 'Supplier X', kind: 'shop' }, tok).error.code, 'kind_invalid');
+});

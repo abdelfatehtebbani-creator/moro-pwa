@@ -395,7 +395,7 @@ function changes(p, movs) {
 function consumption(p, movs, byItem) {
   // by department: the chosen departments; by item: the chosen items, issued to any department
   const sel = (byItem ? p.items : p.sections) || new Set();
-  const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
+  const isSection = (id) => ['section', 'shop'].includes((Data.parties.get(id) || {}).kind);
   const groups = new Map();
   for (const m of movs) {
     if (!inRange(m, p) || !sel.has(byItem ? m.item_id : m.party_id) || !isSection(m.party_id) || !inStores(p, m.item_id)) continue;
@@ -566,7 +566,7 @@ function batchesTaken(movs, itemIds) {
 }
 
 function trace(p, movs) {
-  const isSection = (id) => (Data.parties.get(id) || {}).kind === 'section';
+  const isSection = (id) => ['section', 'shop'].includes((Data.parties.get(id) || {}).kind);
   // what the chosen departments received in the period
   const out = movs.filter((m) => inRange(m, p) && Number(m.qty) < 0
     && m.kind === 'ISSUE' && isSection(m.party_id) && p.sections.has(m.party_id));
