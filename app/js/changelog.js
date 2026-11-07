@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.161', date: '2026-11-07',
-    ar: { news: ['(نسخة التطوير) المواد: خانة "كل الأقسام" فيها أيضًا المخازن الأربعة (المبرَّدة، الجافة، التغليف، التنظيف) لعرض موادها وطباعة قائمتها.'] },
-    en: { news: ['(Development copy) Materials: the "All departments" filter also lists the four stores (chilled, dry, packaging, cleaning), to show and print their materials.'] },
+    ar: { news: ['المواد: خانة "كل الأقسام" فيها أيضًا المخازن الأربعة (المبرَّدة، الجافة، التغليف، التنظيف) لعرض موادها وطباعة قائمتها.'] },
+    en: { news: ['Materials: the "All departments" filter also lists the four stores (chilled, dry, packaging, cleaning), to show and print their materials.'] },
   },
   {
     v: '0.9.160', date: '2026-11-07',
