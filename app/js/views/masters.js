@@ -208,7 +208,7 @@ function items(body, isAdmin) {
     file.addEventListener('change', async () => {
       const f = file.files[0];
       if (!f) return;
-      const rows = csvRows(await f.text());
+      const rows = csvRows(await fileText(f));
       const head = (rows.shift() || []).map((x) => x.trim().toLowerCase());
       const ci = head.indexOf('item_id'), ai = head.indexOf('name_ar');
       if (ci < 0 || ai < 0) { toast(t('names_ar_bad_file'), 'err'); return; }
@@ -225,12 +225,13 @@ function items(body, isAdmin) {
     file.addEventListener('change', async () => {
       const f = file.files[0];
       if (!f) return;
-      const all = csvRows(await f.text());
+      const all = csvRows(await fileText(f));
       const head = (all.shift() || []).map((x) => x.trim().toLowerCase());
       const col = (k) => head.indexOf(k);
       if (col('name') < 0 || col('dept') < 0) { toast(t('import_bad_file'), 'err'); return; }
       const rows = all.map((r) => ({ dept: r[col('dept')] || '', name: r[col('name')] || '', name_ar: col('name_ar') >= 0 ? r[col('name_ar')] || '' : '',
-        unit: col('unit') >= 0 ? r[col('unit')] || '' : '', price: col('price') >= 0 ? r[col('price')] || '' : '' }));
+        unit: col('unit') >= 0 ? r[col('unit')] || '' : '', price: col('price') >= 0 ? r[col('price')] || '' : '',
+        old_name: col('old_name') >= 0 ? r[col('old_name')] || '' : '' }));
       let pv;
       try { pv = await call('items.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
       const c = pv.counts || {};
@@ -240,7 +241,7 @@ function items(body, isAdmin) {
         pv.new_depts.length ? h('p', t('import_new_depts'), ' ', h('b', pv.new_depts.join('، '))) : null,
         pv.prices ? null : h('p.muted', t('import_no_prices')),
         h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('department')), h('th', t('unit')), h('th', t('final_price')), h('th', ''))),
-          h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : null),
+          h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : null, l.renamed_from ? h('small.muted', ' ← ', h('bdi', l.renamed_from)) : null),
             h('td', l.dept_name || l.dept, l.dept_id ? h('small.muted', ' ' + l.dept_id) : l.dept_name ? h('small.muted', ' ' + t('imp_new')) : null), h('td', l.unit, l.unit_differs ? h('small.muted', ' (' + l.unit_differs + ')') : null), h('td.num', l.price === '' ? '—' : fmtNum(l.price)),
             h('td', tag(l.action), l.action === 'conflict' ? h('small.muted', ' ' + t('imp_conflict_help', { s: l.why })) : l.action === 'dup' ? h('small.muted', ' #' + l.why) : null)))))),
         h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
@@ -453,14 +454,23 @@ function recipes(body) {
 }
 
 /** Rows of a CSV text (quotes, commas and new lines inside quotes). */
+// a CSV saved by Excel on an Arabic Windows is not UTF-8 but Windows-1256: read either
+async function fileText(f) {
+  const buf = await f.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { return new TextDecoder('windows-1256').decode(buf); }
+}
 function csvRows(text) {
   const rows = []; let row = []; let cell = ''; let q = false;
+  // Excel's "Unicode text" is separated by tabs
+  const first = text.split('\n')[0];
+  const sep = first.includes('\t') && !first.includes(',') ? '\t' : ',';
   text = text.replace(/^\ufeff/, '');
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; continue; }
     if (c === '"') q = true;
-    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === sep) { row.push(cell); cell = ''; }
     else if (c === '\n') { row.push(cell.replace(/\r$/, '')); rows.push(row); row = []; cell = ''; }
     else cell += c;
   }

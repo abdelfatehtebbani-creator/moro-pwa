@@ -458,7 +458,7 @@ Masters.importItems = function (session, p) {
       String(i.aliases || '').split(' | ').filter(String).forEach(function (a) { if (!byName[Util.key(a)]) byName[Util.key(a)] = i; });
     });
     rows.forEach(function (r, ix) {
-      var line = { line: ix + 1, name: Util.clean(r && r.name), name_ar: Util.clean(r && r.name_ar), dept: Util.clean(r && r.dept) };
+      var line = { line: ix + 1, name: Util.clean(r && r.name), name_ar: Util.clean(r && r.name_ar), dept: Util.clean(r && r.dept), old_name: Util.clean(r && r.old_name) };
       var u = Util.clean(r && r.unit).toUpperCase();
       line.unit = Masters.UNIT_ALIASES[u] || u;
       var price = r && r.price !== undefined && r.price !== null && String(r.price).trim() !== '' ? Util.num(r.price) : '';
@@ -475,6 +475,12 @@ Masters.importItems = function (session, p) {
       line.dept_id = depts[Util.key(line.dept)].party_id;
       line.dept_name = depts[Util.key(line.dept)].name;
       var cur = byName[k];
+      // renamed in the list: the product under its old name gets the new one (a raw material never does)
+      if (!cur && line.old_name && byName[Util.key(line.old_name)] && Stores.of(byName[Util.key(line.old_name)]) === 'FINAL' && !seen['old:' + Util.key(line.old_name)]) {
+        cur = byName[Util.key(line.old_name)];
+        seen['old:' + Util.key(line.old_name)] = line.line;
+        line.renamed_from = cur.name;
+      }
       if (!cur) {
         if (!line.unit) { line.action = 'bad'; line.why = 'unit_required'; return; }
         line.action = 'new';
@@ -482,7 +488,7 @@ Masters.importItems = function (session, p) {
       }
       line.item_id = cur.item_id;
       if (Stores.of(cur) !== 'FINAL') { line.action = 'conflict'; line.why = Stores.of(cur); return; }
-      var d = depts[Util.key(line.dept)], ch = [];
+      var d = depts[Util.key(line.dept)], ch = line.renamed_from ? ['name'] : [];
       if (String(cur.dept || '') !== String(d.party_id || '-')) ch.push('dept');
       if (line.name_ar && line.name_ar !== String(cur.name_ar || '')) ch.push('name_ar');
       if (prices && price !== '' && String(price) !== String(cur.final_price === undefined ? '' : cur.final_price)) ch.push('price');
@@ -517,6 +523,13 @@ Masters.importItems = function (session, p) {
         created.push(item.item_id);
       } else if (l.action === 'update') {
         var ch = { dept: d.party_id };
+        if (l.renamed_from) {
+          Perm.require(session, 'rename.items');
+          var cur0 = Repo.find('Items', 'item_id', l.item_id), aliases = String(cur0.aliases || '').split(' | ').filter(String);
+          if (aliases.indexOf(cur0.name) < 0) aliases.push(cur0.name);
+          ch.name = l.name;
+          ch.aliases = aliases.join(' | ');
+        }
         if (l.changes.indexOf('name_ar') >= 0) ch.name_ar = l.name_ar;
         if (l.changes.indexOf('price') >= 0) ch.final_price = Util.round(l.price);
         Repo.update('Items', 'item_id', l.item_id, ch);
