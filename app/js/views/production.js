@@ -96,7 +96,8 @@ export function render(root) {
     await Outbox.add('production.post', { product: product.value, qty: Number(qty.value), unit: unit.value.trim().toUpperCase() || 'KG',
       date: date.value, client_id: newId() }, product.value);
     toast(t('production_saved', { q: qty.value, u: unit.value, p: product.value }), 'ok');
-    qty.value = ''; qty.dispatchEvent(new Event('change')); preview();
+    // done: the form is empty again, ready for the next product
+    qty.value = ''; qty.dispatchEvent(new Event('change')); product.clear(); preview();
     product.input.focus();
   }
 

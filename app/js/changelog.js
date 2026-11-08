@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.173', date: '2026-11-08',
+    ar: { news: ['(نسخة التطوير) الإنتاج: بعد "تأكيد الإنتاج" تفرغ خانتا المنتج والكمية معًا، فيظهر أن التسجيل تم.'] },
+    en: { news: ['(Development copy) Production: after "Confirm production" both the product and the quantity are emptied, so it is clear it was recorded.'] },
+  },
+  {
     v: '0.9.172', date: '2026-11-08',
     ar: { news: ["(نسخة التطوير) \"لم تُرسل (مرتجع)\" في تجهيز الطلبيات يظهر فقط ما دامت البضاعة عند م.التوزيع، ويختفي بعد تحميلها مع السائق أو لطلبيات سلوى. وطلبية من أصناف سلوى فقط تأخذ هي أيضًا الرمز -S."] },
     en: { news: ["(Development copy) \"Not sent (return)\" in Prepare orders shows only while the goods are still with distribution; it goes once they are loaded with the driver, and for Salwa orders. An order of Salwa products only also takes the -S mark."] },
