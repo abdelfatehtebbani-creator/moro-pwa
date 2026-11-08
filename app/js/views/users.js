@@ -11,8 +11,13 @@ const ROLES = ['admin', 'pdg', 'branch_manager', 'storekeeper', 'purchasing', 'p
 
 export async function render(root) {
   const tb = h('tbody', h('tr', h('td.empty', { colspan: 6 }, '…')));
+  // by role (with how many of each), and by name
+  const roleSel = h('select.input#u-filter-role', h('option', { value: '' }, t('all_roles')));
+  const search = trackFilled(h('input.input#u-search', { type: 'search', placeholder: t('user_search_hint') }));
+  let all = [];
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('users')),
     h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_user'))),
+    h('div.search', roleSel, search),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('display_name')), h('th', t('username')), h('th', t('role')),
       h('th', t('permissions')), h('th', t('last_login')), h('th', ''))), tb)),
     h('small.muted', t('roles_help'))), settingsCard());
@@ -79,12 +84,24 @@ export async function render(root) {
 
   async function load() {
     try {
-      const users = await call('users.list');
-      tb.replaceChildren(...users.map((u) => h('tr.click', { onclick: () => edit(u) }, h('td', u.display_name), h('td.num', u.username),
-        h('td', t('role_' + u.role)), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults')),
-          ' ', ...(u.stores || []).map((s) => storePill(s))),
-        h('td.num', u.last_login ? fmtDate(u.last_login.slice(0, 10)) : ''), h('td', u.active ? '' : h('span.pill.out', t('inactive'))))));
+      all = await call('users.list');
+      const keep = roleSel.value;
+      roleSel.replaceChildren(h('option', { value: '' }, t('all_roles') + ' (' + all.length + ')'),
+        ...ROLES.filter((r) => all.some((u) => u.role === r)).map((r) => h('option', { value: r }, t('role_' + r) + ' (' + all.filter((u) => u.role === r).length + ')')));
+      roleSel.value = keep;
+      draw();
     } catch (e) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
+  }
+  roleSel.addEventListener('change', () => draw());
+  search.addEventListener('input', () => draw());
+  function draw() {
+    const q = search.value.trim().toLowerCase();
+    const users = all.filter((u) => (!roleSel.value || u.role === roleSel.value) && (!q || (u.display_name + ' ' + u.username).toLowerCase().includes(q)));
+    if (!users.length) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))); return; }
+    tb.replaceChildren(...users.map((u) => h('tr.click', { onclick: () => edit(u) }, h('td', u.display_name), h('td.num', u.username),
+      h('td', t('role_' + u.role)), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults')),
+        ' ', ...(u.stores || []).map((s) => storePill(s))),
+      h('td.num', u.last_login ? fmtDate(u.last_login.slice(0, 10)) : ''), h('td', u.active ? '' : h('span.pill.out', t('inactive'))))));
   }
 
   async function edit(u) {

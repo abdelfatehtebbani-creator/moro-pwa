@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.175', date: '2026-11-08',
+    ar: { news: ['(نسخة التطوير) المستخدمون: فلترة حسب الدور (مع عدد كل دور) وبحث بالاسم.'] },
+    en: { news: ['(Development copy) Users: filter by role (with how many in each) and search by name.'] },
+  },
+  {
     v: '0.9.174', date: '2026-11-08',
     ar: { news: ['طلبيات سلوى: الرمز في أول الرقم، مثل S-O00022.'] },
     en: { news: ['Salwa orders: the mark comes first, like S-O00022.'] },
