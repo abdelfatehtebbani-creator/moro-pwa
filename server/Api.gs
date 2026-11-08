@@ -29,6 +29,7 @@ var ROUTES = {
   'items.convertUnit': function (s, p) { return Packs.convert(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
+  'recipes.cost':     function (s, p) { return Masters.recipeCost(String(p.product || '')); },
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
   'production.post':  function (s, p) { return Production.post(s, p); },
   'requests.list':    function (s, p) { return Requests.list(s, p); },
@@ -164,7 +165,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '49';
+var SCHEMA_VERSION = '50';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

@@ -13,13 +13,14 @@ let lastNeed = {};
 
 export function render(root) {
   // products with a recipe, and the final products without one (a department's product: no ingredient is taken)
-  const withRecipe = new Set(Data.recipes.map((r) => norm(r.product)));
+  // a recipe that only prices the product: produced like a product without one (nothing taken from the stores)
+  const withRecipe = new Set(Data.recipes.filter((r) => r.cost_only !== true).map((r) => norm(r.product)));
   const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && !withRecipe.has(norm(i.name)));
   // a department head: only what their departments make
   const head = (Data.user || {}).role === 'section_head' || ((Data.user || {}).role === 'branch_manager' && ((Data.user || {}).depts || []).length > 0);
   const myDepts = new Set((Data.user || {}).depts || []);
   const mine = (name) => !head || Data.activeItems().some((i) => norm(i.name) === norm(name) && myDepts.has(String(i.dept || '')));
-  const base = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
+  const base = [...new Map(Data.recipes.filter((r) => r.cost_only !== true).map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
     .concat(finals.filter((i) => mine(i.name)).map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name, hint: t('no_recipe') })));
   // the products the shop orders wait for come first, with the quantity still to make
   let need = lastNeed;
@@ -70,7 +71,7 @@ export function render(root) {
   const noRecipe = () => product.value && !withRecipe.has(norm(product.value)) && finals.some((i) => i.name === product.value);
   function preview() {
     const q = Number(qty.value);
-    const recipe = Data.recipes.filter((r) => norm(r.product) === norm(product.value));
+    const recipe = Data.recipes.filter((r) => r.cost_only !== true && norm(r.product) === norm(product.value));
     lines = recipe.map((r) => {
       const it = Data.items.get(r.item_id) || { name: r.item_id, unit: '' };
       const need = Math.round(Number(r.qty_per_unit) * (q || 0) * 1e6) / 1e6;

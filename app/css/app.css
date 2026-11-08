@@ -815,3 +815,6 @@ tr.send-group th { text-align: start; background: var(--teal-soft, #e6f4f1); pad
 /* lines picked up in a shop (a department working there) */
 .pickup { color: var(--teal); font-weight: 600; }
 p.pickup { margin: 8px 0 2px; }
+
+/* a final product's cost from its recipe */
+.cost-box { display: grid; gap: 2px; margin: -4px 0 8px; font-size: 13px; }

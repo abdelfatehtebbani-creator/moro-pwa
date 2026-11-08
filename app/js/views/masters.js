@@ -161,7 +161,19 @@ function items(body, isAdmin) {
     // final products: a fixed price per stock unit, set by the admin, used by every receipt
     const canFinal = Data.can('final_price');
     const finalPrice = trackFilled(h('input.input.num#e-fprice', { type: 'number', min: 0, step: 'any', value: it && it.final_price !== undefined ? it.final_price : '', disabled: !canFinal }));
-    const finalField = h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice);
+    const costBox = h('div.cost-box');
+    const finalField = h('div', h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice), costBox);
+    if (it && canFinal && Data.recipes.some((r) => String(r.product).trim().toUpperCase() === String(it.name).trim().toUpperCase())) {
+      call('recipes.cost', { product: it.name }).then((c) => {
+        if (!c.lines.length) return;
+        const nm = (id) => Data.nameOf(Data.items.get(id) || { name: id });
+        costBox.replaceChildren(
+          h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit),
+            c.cost !== '' && finalPrice.value !== '' && c.cost > Number(finalPrice.value) ? h('span.pill.low', ' ' + t('cost_over_price')) : null),
+          h('small.muted', c.lines.map((l) => nm(l.item_id) + ' ' + fmtNum(l.qty) + ' × ' + (l.unit_cost === '' ? '?' : fmtNum(l.unit_cost)) + (l.date ? ' (' + l.date + ')' : '')).join(' · ')),
+          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null);
+      }).catch(() => {});
+    }
     const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };
     cat.addEventListener('change', showFinal);
     showFinal();
@@ -432,6 +444,8 @@ function recipes(body) {
   const dl = h('datalist#rc-products', products().map((p) => h('option', { value: p })));
   const item = combo({ id: 'rc-item', options: () => Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: i.name, hint: i.unit })) });
   const qty = trackFilled(h('input.input.num#rc-qty', { type: 'number', step: 'any', min: 0 }));
+  // a recipe that only prices the product: producing it takes nothing from the stores
+  const costOnly = h('input#rc-costonly', { type: 'checkbox' });
   const tb = h('tbody');
   const err = h('p.err-text', '');
   const draw = () => tb.replaceChildren(...(lines.length ? lines.map((l, i) => h('tr', h('td.wrap', h('bdi', (Data.items.get(l.item_id) || {}).name || l.item_id)),
@@ -439,7 +453,9 @@ function recipes(body) {
     h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))))
     : [h('tr', h('td.empty', { colspan: 3 }, t('no_lines')))]));
   product.addEventListener('change', () => {
-    lines = Data.recipes.filter((r) => norm(r.product) === norm(product.value)).map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }));
+    const mine = Data.recipes.filter((r) => norm(r.product) === norm(product.value));
+    lines = mine.map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }));
+    costOnly.checked = mine.some((r) => r.cost_only === true);
     draw();
   });
   const add = () => {
@@ -452,7 +468,7 @@ function recipes(body) {
   const saveRecipe = async () => {
     if (!product.value.trim()) return flash(product);
     try {
-      await call('recipes.save', { product: product.value.trim(), lines });
+      await call('recipes.save', { product: product.value.trim(), lines, cost_only: costOnly.checked });
       refreshSoon();
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
@@ -460,7 +476,8 @@ function recipes(body) {
   body.replaceChildren(h('small.muted', t('recipe_help')),
     h('div.form-grid', field(t('product'), product, { wide: true }), dl, field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
-    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)), err,
+    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
+    h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
     h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save'))));
   draw();
 }

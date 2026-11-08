@@ -18,7 +18,7 @@ var SCHEMA = {
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status'],
   Balances:     ['item_id', 'qty', 'unit', 'last_expiry', 'updated_at', 'expiry_reset', 'expiry_reset_on', 'expiry_reset_qty'],
-  Recipes:      ['product', 'item_id', 'qty_per_unit'],
+  Recipes:      ['product', 'item_id', 'qty_per_unit', 'cost_only'],
   Lists:        ['list', 'item_id', 'user_id'],
   Requests:     ['request_id', 'date', 'party_id', 'requested_by', 'status', 'note', 'created_at', 'fulfilled_by', 'fulfilled_at',
                  'client_id'],

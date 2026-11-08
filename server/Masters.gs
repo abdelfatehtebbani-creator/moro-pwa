@@ -277,7 +277,8 @@ var Masters = {
     });
   },
 
-  /** payload: {product, lines: [{item_id, qty_per_unit}]} – replaces that product's recipe. */
+  /** payload: {product, lines: [{item_id, qty_per_unit}], cost_only} – replaces that product's recipe.
+   *  cost_only: the recipe only prices the product; producing it takes nothing from the stores. */
   saveRecipe: function (session, p) {
     var product = Util.clean(p.product);
     Util.require(product, 'name_required');
@@ -286,9 +287,9 @@ var Masters = {
       lines.forEach(function (l) { Util.require(Repo.find('Items', 'item_id', l.item_id), 'item_unknown', l.item_id); });
       var keep = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) !== Util.key(product); });
       Repo.replaceAll('Recipes', keep.concat(lines.map(function (l) {
-        return { product: product, item_id: l.item_id, qty_per_unit: Util.num(l.qty_per_unit) };
+        return { product: product, item_id: l.item_id, qty_per_unit: Util.num(l.qty_per_unit), cost_only: p.cost_only === true };
       })));
-      Audit.log(session.user_id, 'recipe_save', 'Recipes', product, null, { lines: lines.length });
+      Audit.log(session.user_id, 'recipe_save', 'Recipes', product, null, { lines: lines.length, cost_only: p.cost_only === true });
       return { lines: lines.length, version: Version.bump() };
     });
   },
@@ -389,12 +390,54 @@ var Masters = {
  * The admin's own decisions: the approvals this user holds that no other active user (not an admin, not the
  * developer's account) holds too – those are the team's. [{key, route, count}], only those waiting.
  */
+/** The latest price paid for each item, per stock unit (its latest receipt with an amount). */
+Masters.lastCosts = function () {
+  var cost = {}, last = {};
+  Repo.all('Movements').forEach(function (m) {
+    if (m.kind !== 'RECEIPT' || m.status === 'deleted' || !(Number(m.qty) > 0)) return;
+    var amount = Number(m.final_amount !== '' && m.final_amount !== undefined ? m.final_amount : m.amount);
+    if (!(amount > 0)) return;
+    var k = String(m.date) + '|' + String(m.movement_id);
+    if (!last[m.item_id] || k > last[m.item_id]) { last[m.item_id] = k; cost[m.item_id] = { unit: amount / Number(m.qty), date: String(m.date) }; }
+  });
+  return cost;
+};
+
+/** A product's cost from its recipe, at the latest prices paid: {cost (per unit of the product), lines, missing}. */
+Masters.recipeCost = function (product, costs) {
+  costs = costs || Masters.lastCosts();
+  var k = Util.key(product), total = 0, missing = [];
+  var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k; }).map(function (r) {
+    var c = costs[r.item_id], q = Number(r.qty_per_unit) || 0;
+    if (!c) missing.push(r.item_id); else total += q * c.unit;
+    return { item_id: r.item_id, qty: q, unit_cost: c ? Util.round(c.unit * 1000) / 1000 : '', date: c ? c.date : '', amount: c ? Util.round(q * c.unit * 100) / 100 : '' };
+  });
+  return { product: product, lines: lines, cost: lines.length && !missing.length ? Util.round(total * 100) / 100 : '', missing: missing,
+    cost_only: Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only === true; }) };
+};
+
+/** Final products whose recipe now costs more than the price set (a purchase made dearer since). */
+Masters.costOverPrice = function () {
+  var costs = Masters.lastCosts(), seen = {}, n = 0;
+  Repo.all('Recipes').forEach(function (r) {
+    var k = Util.key(r.product);
+    if (seen[k]) return;
+    seen[k] = true;
+    var it = Repo.all('Items').filter(function (i) { return Util.key(i.name) === k && Stores.of(i) === 'FINAL' && i.active === true; })[0];
+    if (!it || it.final_price === '' || it.final_price === undefined) return;
+    var c = Masters.recipeCost(r.product, costs).cost;
+    if (c !== '' && c > Number(it.final_price)) n++;
+  });
+  return n;
+};
+
 var DECISIONS = [
   { key: 'lpo', route: 'lpo', perm: 'lpo.decide', count: function () { return Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length; } },
   { key: 'cash', route: 'lpo', perm: 'cash.decide', count: function () { return Repo.all('CashSheets').filter(function (s) { return s.status === 'submitted'; }).length; } },
   { key: 'counts', route: 'counts', perm: 'counts.approve', count: function () { return Repo.all('Counts').filter(function (c) { return c.status === 'open'; }).length; } },
   { key: 'special', route: 'orderapprove', perm: 'orders.route', count: function () { return Orders.pendingSpecial(); } },
-  { key: 'sales', route: 'accounts', perm: 'sales.decide', count: function () { return Repo.all('DailySales').filter(function (r) { return r.status === 'submitted'; }).length; } }
+  { key: 'sales', route: 'accounts', perm: 'sales.decide', count: function () { return Repo.all('DailySales').filter(function (r) { return r.status === 'submitted'; }).length; } },
+  { key: 'cost', route: 'masters', perm: 'final_price', count: function () { return Masters.costOverPrice(); } }
 ];
 
 Masters.decisions = function (session) {
