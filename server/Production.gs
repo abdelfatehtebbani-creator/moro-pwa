@@ -54,7 +54,7 @@ var Production = {
       Util.require(fin, 'recipe_missing', p.product);
       p.unit = fin.unit;
     }
-    if (session.role === 'section_head') {
+    if (session.role === 'section_head' || (session.role === 'branch_manager' && (session.depts || []).length)) {
       var mine = Repo.all('Items').filter(function (x) { return Util.key(x.name) === k; })[0];
       Util.require(mine && (session.depts || []).indexOf(String(mine.dept || '')) >= 0, 'not_your_product', p.product);
     }

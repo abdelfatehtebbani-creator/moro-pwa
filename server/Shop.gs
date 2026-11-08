@@ -56,16 +56,28 @@ var Shop = {
     var store = Stores.of(item);
     if (store === 'FINAL' && item && item.dept) {
       if ((session.depts || []).indexOf(String(item.dept)) >= 0 || Perm.has(session, 'shop.depts')) return true;
+      // the cashier on shift in the shop where the department works (Salwa)
+      if (session.role === 'cashier' && session.shop) {
+        var d = Repo.find('Parties', 'party_id', String(item.dept));
+        if (d && d.at_shop && d.at_shop === session.shop) return true;
+      }
     }
     // a department head prepares their departments' products only, whatever stores their account has;
     // the production manager records for the departments only, the stores' lines are for the storekeepers
-    if (session.role === 'section_head' || session.role === 'production') return false;
+    if (session.role === 'section_head' || session.role === 'production' || session.role === 'branch_manager') return false;
+    if (session.role === 'cashier') return false;
     return Stores.allows(session, store, 'shop');
   },
 
   /** What a user row may do, as a session (to tell who prepares which lines). */
   sessionOf: function (u) {
-    return { user_id: u.user_id, role: u.role, perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u), depts: Auth.deptsOf(u) };
+    return { user_id: u.user_id, role: u.role, perms: Perm.permsOf(u), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u), depts: Auth.deptsOf(u), shop: String(u.shop || '') };
+  },
+
+  /** Does a department work in this shop (Salwa)? */
+  hostsDept: function (shop) {
+    shop = String(shop || '');
+    return !!shop && Repo.all('Parties').some(function (p) { return p.kind === 'section' && p.active === true && String(p.at_shop || '') === shop; });
   },
 
   /** Lines of orders made in MORO waiting to be prepared by this user (the badge of "Prepare orders"). */
@@ -254,6 +266,8 @@ var Shop = {
       item_id: l.item_id, qty: Number(l.qty), unit: l.unit, reserved_qty: Number(l.reserved_qty) || 0, handed_qty: Number(l.handed_qty) || 0,
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
       handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
+      made_at: (Repo.find('Orders', 'order_id', l.order_id) || {}).made_at || '',
+      order_status: (Repo.find('Orders', 'order_id', l.order_id) || {}).status || '',
       dept: l.description ? String(l.dept || '') : String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || ''),
       description: l.description || '', deadline: l.deadline || '', special: !!l.description, direct: l.direct === true, photos: l.description ? Shop.photosOf(l) : [],
       // a special product sent to purchasing: what purchasing decided (store, buy, unavailable) and the price
@@ -438,6 +452,9 @@ var Shop = {
     var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
     Util.require(l, 'not_found');
     Util.require(!l.description && Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id), l), 'store_forbidden', l.item_id);
+    // only while the goods are still with distribution: once loaded (or sent by a branch) they have left
+    var ord = Repo.find('Orders', 'order_id', l.order_id);
+    Util.require(!ord || (!ord.made_at && (ord.status === 'approved' || ord.status === 'in_trip')), 'order_gone', ord ? ord.order_no : '');
     var q = Util.round(Util.num(p.qty) || 0);
     var can = Util.round((Number(l.handed_qty) || 0) - (Number(l.returned_qty) || 0));
     Util.require(q > 0 && q <= can, 'qty_too_much', l.line_id);

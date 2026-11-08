@@ -811,3 +811,7 @@ tr.send-group th { text-align: start; background: var(--teal-soft, #e6f4f1); pad
 .br-note { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
 .br-note p { margin: 0; color: var(--orange, #b35c00); font-weight: 600; }
 .br-card { margin-bottom: 10px; }
+
+/* lines picked up in a shop (a department working there) */
+.pickup { color: var(--teal); font-weight: 600; }
+p.pickup { margin: 8px 0 2px; }

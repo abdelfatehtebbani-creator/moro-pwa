@@ -110,6 +110,7 @@ var ROUTES = {
   'trips.list':       function (s, p) { return Trips.list(s, p); },
   'trips.drivers':    function () { return Trips.drivers(); },
   'trips.save':       function (s, p) { return Trips.save(s, p); },
+  'trips.direct':     function (s, p) { return Trips.direct(s, p); },
   'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
@@ -163,7 +164,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '47';
+var SCHEMA_VERSION = '49';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

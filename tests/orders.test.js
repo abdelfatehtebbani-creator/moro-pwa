@@ -662,3 +662,72 @@ test('a branch manager: sees only their shops, adds a note to an order (distribu
   assert.equal(g.api('orders.approve', { order_id: a.order_id }, tok.mgr).error.code, 'forbidden');
   assert.equal(g.api('branches.summary', {}, tok.cashier).error.code, 'forbidden');
 });
+
+test('a department that works in a shop (Salwa): set by the admin; never a department, a supplier or a missing shop', () => {
+  const { g, tok } = env();
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin).ok, true);
+  assert.equal(g.rows('Parties').find((x) => x.party_id === 'P001').at_shop, 'P003');
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P001' }, tok.admin).error.code, 'shop_invalid');
+  const n = g.api('parties.save', { name: 'Salwa kitchen', kind: 'section', producing: true, at_shop: 'P003' }, tok.admin).data.party;
+  assert.equal(n.at_shop, 'P003');
+  assert.equal(g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: '' }, tok.admin).ok, true);
+  assert.equal(g.rows('Parties').find((x) => x.party_id === 'P001').at_shop, '');
+});
+
+test('the Salwa branch manager also heads its production: records and hands its products only, never the stores lines', () => {
+  const { g, tok, user } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('najeeb', 'branch_manager', { branches: ['P003'], depts: ['P001'],
+    caps: ['branches.view', 'branches.note', 'shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'] });
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  assert.equal(g.api('orders.approve', { order_id: o.order_id }, tok.dist).ok, true);
+  const todo = g.api('shop.list', {}, tok.najeeb);
+  assert.equal(todo.ok, true, JSON.stringify(todo));
+  const items = JSON.stringify(todo.data);
+  assert.equal(items.includes('I0002'), true);
+  assert.equal(items.includes('I0001'), false, 'the stores line is not theirs');
+});
+
+test('the cashier of the shop where a department works (Salwa) hands its lines; another cashier does not', () => {
+  const { g, tok, user } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('salwa', 'cashier', { shop: 'P003' });
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  g.api('orders.approve', { order_id: o.order_id }, tok.dist);
+  const mine = JSON.stringify(g.api('shop.list', {}, tok.salwa).data);
+  assert.equal(mine.includes('I0002'), true);
+  assert.equal(mine.includes('I0001'), false);
+  assert.equal(g.api('shop.list', {}, tok.cashier).error.code, 'forbidden');
+});
+
+test('Salwa: its lines leave the order at once, approved, for Salwa; it hands them to a driver there; the shop receives them', () => {
+  const { g, tok, user, bal } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('salwa', 'cashier', { shop: 'P003' });
+  user('drv', 'driver');
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  assert.deepEqual(o.lines.map((l) => l.item_id), ['I0001'], 'the factory part stays');
+  assert.equal(o.status, 'sent');
+  const b = g.rows('Orders').find((x) => x.parent_id === o.order_id);
+  assert.deepEqual([b.order_no, b.made_at, b.status], ['S-' + o.order_no, 'P003', 'approved']);
+  // an order of Salwa products only is Salwa's own, numbered -S too
+  const only = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 1 }], send: true }, tok.cashier).data.order;
+  assert.deepEqual([only.order_no.startsWith('S-'), only.made_at, only.status], [true, 'P003', 'approved']);
+  assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 1, 'only the factory part waits for distribution');
+  // distribution may not put it in a trip; Salwa sends it with the driver who is there
+  const line = g.api('shop.list', {}, tok.salwa).data.find((l) => l.order_id === b.order_id);
+  assert.equal(line.made_at, 'P003');
+  const drv = g.rows('Users').find((u) => u.username === 'drv').user_id;
+  assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, lines: [{ line_id: line.line_id, qty: 1 }] }, tok.cashier).error.code, 'forbidden');
+  const r = g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [{ line_id: line.line_id, qty: 1 }] }, tok.salwa);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const after = g.rows('Orders').find((x) => x.order_id === b.order_id);
+  assert.equal(after.status, 'loaded');
+  assert.equal(bal('I0002'), 2, 'one of the three given');
+  // the driver delivers, the shop receives what was sent
+  assert.equal(g.api('trips.deliver', { trip_id: r.data.trip.trip_id, order_id: b.order_id }, g.api('auth.login', { username: 'drv', pin: '5678' }).data.token).ok, true);
+  const rec = g.api('orders.receive', { order_id: b.order_id, lines: [{ line_no: 1, qty: 1 }] }, tok.cashier);
+  assert.equal(rec.ok, true, JSON.stringify(rec));
+  // sent twice (no network): one trip
+  assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [] }, tok.salwa).data.duplicate, true);
+});

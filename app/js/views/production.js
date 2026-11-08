@@ -16,7 +16,7 @@ export function render(root) {
   const withRecipe = new Set(Data.recipes.map((r) => norm(r.product)));
   const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && !withRecipe.has(norm(i.name)));
   // a department head: only what their departments make
-  const head = (Data.user || {}).role === 'section_head';
+  const head = (Data.user || {}).role === 'section_head' || ((Data.user || {}).role === 'branch_manager' && ((Data.user || {}).depts || []).length > 0);
   const myDepts = new Set((Data.user || {}).depts || []);
   const mine = (name) => !head || Data.activeItems().some((i) => norm(i.name) === norm(name) && myDepts.has(String(i.dept || '')));
   const base = [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
@@ -96,7 +96,8 @@ export function render(root) {
     await Outbox.add('production.post', { product: product.value, qty: Number(qty.value), unit: unit.value.trim().toUpperCase() || 'KG',
       date: date.value, client_id: newId() }, product.value);
     toast(t('production_saved', { q: qty.value, u: unit.value, p: product.value }), 'ok');
-    qty.value = ''; qty.dispatchEvent(new Event('change')); preview();
+    // done: the form is empty again, ready for the next product
+    qty.value = ''; qty.dispatchEvent(new Event('change')); product.clear(); preview();
     product.input.focus();
   }
 

@@ -3,6 +3,41 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.174', date: '2026-11-08',
+    ar: { news: ['(نسخة التطوير) طلبيات سلوى: الرمز في أول الرقم، مثل S-O00022.'] },
+    en: { news: ['(Development copy) Salwa orders: the mark comes first, like S-O00022.'] },
+  },
+  {
+    v: '0.9.173', date: '2026-11-08',
+    ar: { news: ['(نسخة التطوير) الإنتاج: بعد "تأكيد الإنتاج" تفرغ خانتا المنتج والكمية معًا، فيظهر أن التسجيل تم.'] },
+    en: { news: ['(Development copy) Production: after "Confirm production" both the product and the quantity are emptied, so it is clear it was recorded.'] },
+  },
+  {
+    v: '0.9.172', date: '2026-11-08',
+    ar: { news: ["(نسخة التطوير) \"لم تُرسل (مرتجع)\" في تجهيز الطلبيات يظهر فقط ما دامت البضاعة عند م.التوزيع، ويختفي بعد تحميلها مع السائق أو لطلبيات سلوى. وطلبية من أصناف سلوى فقط تأخذ هي أيضًا الرمز -S."] },
+    en: { news: ["(Development copy) \"Not sent (return)\" in Prepare orders shows only while the goods are still with distribution; it goes once they are loaded with the driver, and for Salwa orders. An order of Salwa products only also takes the -S mark."] },
+  },
+  {
+    v: '0.9.171', date: '2026-11-08',
+    ar: { news: ["(نسخة التطوير) توصيل سلوى المباشر: عند إرسال الطلبية تنفصل سطور أصناف سلوى تلقائيًا في طلبية مرتبطة (رقمها مثل 1045-S)، معتمدة فورًا، تذهب مباشرة إلى سلوى. في \"تجهيز الطلبيات\" يكتب مدير سلوى أو كاشيرها الكميات (ويعدّلها إن لزم) ثم يضغط \"تسليم للسائق\" ويختار السائق الموجود: تُنشأ الرحلة محمَّلة دون م.التوزيع. ثم يوصلها السائق ويستلمها المحل كالعادة. م.التوزيع يراها في المتابعة فقط."] },
+    en: { news: ["(Development copy) Salwa direct delivery: when an order is sent, the lines of Salwa products leave it in a linked order (No. like 1045-S), approved at once, straight to Salwa. In \"Prepare orders\" Salwa's manager or cashier writes the quantities (changing them if needed) and presses \"Give to the driver\", choosing the driver who is there: the trip is made, loaded, without distribution. The driver delivers and the shop receives as usual. Distribution sees it in the follow-up only."] },
+  },
+  {
+    v: '0.9.170', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) إنتاج سلوى: كاشير المحل الذي يعمل فيه القسم يستطيع أيضًا تسليم سطوره للسائق من \"تجهيز الطلبيات\" (لا يرى غيرها)، إلى جانب مدير الفرع."] },
+    en: { news: ["(Development copy) Salwa production: the cashier of the shop where the department works can also hand its lines to the driver from \"Prepare orders\" (and sees no others), as well as the branch manager."] },
+  },
+  {
+    v: '0.9.169', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) مدير الفرع يستطيع أيضًا أن يكون مسؤول قسم يعمل في فرعه (مثل إنتاج سلوى): يُختار له القسم في شاشة المستخدمين، فيستلم سطور الطلبيات ويسجّل إنتاجها ويسلّمها للسائق."] },
+    en: { news: ["(Development copy) A branch manager may also head a department working in their branch (like Salwa production): choose it in Users, and they get its order lines, record its production and hand it to the driver."] },
+  },
+  {
+    v: '0.9.168', date: '2026-11-07',
+    ar: { news: ["(نسخة التطوير) إنتاج سلوى: للقسم المنتج خانة \"مكان القسم\" (المصنع أو محل). قسم يعمل في محل، مثل إنتاج سلوى، تُربط به أصنافه، فيطلبها المحل في طلبيته العادية، ويجهّزها رئيس القسم في سلوى. وتظهر سطوره لـ م.التوزيع وفي حمولة السائق تحت \"يُستلم من سلوى\"."] },
+    en: { news: ["(Development copy) Salwa production: a producing department has \"Where it works\" (the factory or a shop). A department working in a shop, like Salwa production, has its products; shops order them in their usual order, its head prepares them there, and its lines show to distribution and in the driver's load as \"Picked up at Salwa\"."] },
+  },
+  {
     v: '0.9.167', date: '2026-11-07',
     ar: { news: ["مدير الفروع: دور جديد يُربط بفرع أو أكثر في شاشة المستخدمين. شاشة \"فروعي\" تعرض لفروعه الطلبيات وتأخرها، ونوبات الكاشير وفروق المقبوضات، ويوميات المبيعات، والمرتجعات وما استُلم ناقصًا. لا يعتمد شيئًا، ويستطيع إضافة ملاحظة على طلبية (تظهر عند م.التوزيع والكاشير) أو على يومية مبيعات (تظهر عند المحاسب). وتصله تنبيهات فروعه: نقص الاستلام، والمرتجعات، ونوبة أُغلقت دون مبلغ، وفرق المقبوضات."] },
     en: { news: ["Branch manager: a new role linked to one or more branches in Users. The \"My branches\" screen shows their orders and how late they are, the cashiers' shifts and takings differences, the daily sales sheets, returns and what was received short. They approve nothing and may add a note to an order (seen by distribution and the cashier) or to a daily sales sheet (seen by the accountant). They are told of their branches' short receipts, returns, shifts closed without an amount and takings differences."] },

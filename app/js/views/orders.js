@@ -392,7 +392,8 @@ export async function render(root, name) {
         ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', removed: 'out' }[l.status] || 'soon') }, t('line_' + l.status))
         : approving ? (Data.qty(l.item_id) > 0 ? h('span.pill.in', t('ord_available')) : h('span.pill.low', t('ord_not_available'))) : '';
       const route = routes.find((x) => x.line_no === l.line_no);
-      const label = l.item_id ? h('bdi', Data.nameOf(it)) : h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ',
+      const atShop = l.item_id && it.dept ? (Data.parties.get(it.dept) || {}).at_shop : '';
+      const label = l.item_id ? h('span', h('bdi', Data.nameOf(it)), atShop ? h('small.pickup', ' · 📍 ' + t('pickup_at', { p: (Data.parties.get(atShop) || {}).name || atShop })) : '') : h('span', h('span.pill.soon', t('special')), ' ', h('bdi', l.description), ' ',
         h('small.muted', money(l.price) + ' QR' + (l.purchase === 'buy' ? ' (' + t('price_final') + ')' : l.dept === PURCHASE && !l.purchase ? ' (' + t('price_estimate') + ')' : '')), l.dept ? h('small.muted', ' · ' + (l.dept === PURCHASE ? t('route_purchase') : (Data.parties.get(l.dept) || {}).name || l.dept)) : '',
         ' ', photoButton(l.photos) || '', l.direct ? h('small.muted', ' · ' + t('direct_to_shop')) : '');
       return h('tr', h('td.wrap', label), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')),
@@ -495,6 +496,7 @@ export async function render(root, name) {
       h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
         h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date) + (o.delivery_time ? ' ' + o.delivery_time : ''))),
         o.kind === 'special' ? h('span.pill.soon', t('order_kind_special')) : null,
+        o.made_at ? h('span.pill.st-final', '📍 ', t('made_at', { p: shopName(o.made_at) })) : null,
         h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status)),
         o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null,
         going ? h('span.pill.soon', t('sending')) : null),

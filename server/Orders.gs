@@ -135,9 +135,58 @@ var Orders = {
         Repo.append('OrderItems', rows);
       }
       Audit.log(session.user_id, send ? 'order_send' : 'order_save', 'Orders', id, null, { lines: rows.length });
-      if (send) OrderNotify.sent(Repo.find('Orders', 'order_id', id), session);
+      // the lines a branch makes (Salwa) go straight to that branch, in an order of their own
+      if (send && !special) Orders.splitBranch(session, id);
+      var sentNow = Repo.find('Orders', 'order_id', id);
+      if (send && sentNow.status === 'sent') OrderNotify.sent(sentNow, session);
       return { order: Orders.view(Repo.find('Orders', 'order_id', id)), version: Version.bump() };
     });
+  },
+
+  /**
+   * A sent order (inside the lock): the lines of products made in a branch (a department working in a shop, Salwa)
+   * go to that branch in an order of their own (No. S-1045), approved at once – the branch prepares it and sends
+   * it with a driver, without distribution. An order made of such lines only is that branch's order itself.
+   */
+  splitBranch: function (session, id) {
+    var o = Repo.find('Orders', 'order_id', id);
+    var items = Repo.all('OrderItems').filter(function (x) { return x.order_id === id; });
+    var at = {}, places = [];
+    items.forEach(function (x) {
+      var it = x.item_id ? Repo.find('Items', 'item_id', x.item_id) : null;
+      var d = it && it.dept ? Repo.find('Parties', 'party_id', it.dept) : null;
+      var s = d && d.at_shop && d.active === true ? String(d.at_shop) : '';
+      if (!at[s]) { at[s] = []; if (s) places.push(s); }
+      at[s].push(x);
+    });
+    if (!places.length) return [];
+    var made = [], keep = at[''] || [], moved = [], now = Util.nowIso();
+    places.forEach(function (s, k) {
+      if (!keep.length && k === 0) {
+        // nothing of it is made at the factory: the order is the branch's own
+        Repo.update('Orders', 'order_id', id, { made_at: s, order_no: 'S-' + String(o.order_no), updated_at: now });
+        keep = at[s];
+        made.push(id);
+        return;
+      }
+      var cid = 'O' + Util.pad(Settings.next('seq_order', 0), 5);
+      var no = 'S' + (made.length && places.length > 1 ? String(k + 1) : '') + '-' + o.order_no;
+      Repo.append('Orders', [{ order_id: cid, order_no: no, client_id: '', shop_party_id: o.shop_party_id, status: 'sent', order_date: o.order_date,
+        delivery_date: o.delivery_date, note: o.note, created_by: o.created_by, created_at: o.created_at, sent_at: o.sent_at, decided_by: '', decided_at: '',
+        reason: '', updated_at: now, kind: '', made_at: s, parent_id: id }]);
+      at[s].forEach(function (x, i) { moved.push(Object.assign({}, x, { order_id: cid, line_no: i + 1 })); });
+      made.push(cid);
+    });
+    if (moved.length) {
+      var rest = keep.map(function (x, i) { return Object.assign({}, x, { line_no: i + 1 }); });
+      Repo.replaceAll('OrderItems', Repo.all('OrderItems').filter(function (x) { return x.order_id !== id; }).concat(rest).concat(moved));
+    }
+    made.forEach(function (bid) {
+      var b = Repo.find('Orders', 'order_id', bid);
+      Audit.log(session.user_id, 'order_branch', 'Orders', bid, null, { made_at: b.made_at, from: id });
+      Orders.decide(session, b, [], {});
+    });
+    return made;
   },
 
   /** Cashier: cancels a draft (a sent order is decided by distribution). */
@@ -389,7 +438,8 @@ var Orders = {
       var hours = Math.max(0, Math.round((now - t0) / 36e5 * 10) / 10);
       var limit = limits[stage];
       out.push({ order_id: o.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, kind: o.kind || '', stage: stage, since: since,
-        hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending', mgr_note: o.mgr_note || '' });
+        hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending', mgr_note: o.mgr_note || '',
+        made_at: o.made_at || '' });
     });
     var rank = { very: 0, late: 1, ok: 2 };
     return { hours: limits, orders: out.sort(function (a, b) { return rank[a.level] - rank[b.level] || b.hours - a.hours; }) };
@@ -407,6 +457,7 @@ var Orders = {
   pending: function () {
     return Repo.all('Orders').filter(function (o) {
       if (o.status === 'sent' && o.kind === 'special') return false;
+      if (o.made_at) return false;
       if (o.status === 'sent' || (o.status === 'received' && o.diff_status === 'pending')) return true;
       if (o.status !== 'approved') return false;
       var v = Orders.view(o);

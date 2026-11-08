@@ -297,7 +297,10 @@ function parties(body, isAdmin) {
       ...Object.entries(contact).map(([c, el]) => field(t('party_' + c), el)));
     // a department makes products, or not (cleaning, management…): only those that make products take shop orders
     const producing = h('input#e-pproducing', { type: 'checkbox', checked: !!(p && p.producing === true), disabled: p && !isAdmin });
-    const producingBox = h('label.check', producing, ' ', t('dept_producing'));
+    const atShop = h('select.input#e-patshop', { disabled: p && !isAdmin }, h('option', { value: '' }, t('dept_at_factory')),
+      [...Data.parties.values()].filter((x) => x.kind === 'shop' && x.active === true).sort((a, b) => a.name.localeCompare(b.name)).map((x) => h('option', { value: x.party_id }, x.name)));
+    atShop.value = p ? p.at_shop || '' : '';
+    const producingBox = h('div', h('label.check', producing, ' ', t('dept_producing')), field(t('dept_at'), atShop), h('small.muted', t('dept_at_help')));
     const showContact = () => { contactBox.hidden = kind.value !== 'supplier'; producingBox.hidden = kind.value !== 'section'; };
     kind.addEventListener('change', showContact);
     showContact();
@@ -307,7 +310,7 @@ function parties(body, isAdmin) {
       const pl = { name: name.value, kind: kind.value };
       if (p) { pl.party_id = p.party_id; pl.active = active.checked; }
       if (kind.value === 'supplier') Object.entries(contact).forEach(([c, el]) => { pl[c] = el.value; });
-      if (kind.value === 'section') pl.producing = producing.checked;
+      if (kind.value === 'section') { pl.producing = producing.checked; pl.at_shop = atShop.value; }
       save('parties.save', pl, close, err);
     };
     return [h('h3', p ? t('edit_party') : t('new_party')), field(t('name'), name), field(t('kind'), kind),
