@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.175', date: '2026-11-08',
-    ar: { news: ['(نسخة التطوير) المستخدمون: فلترة حسب الدور (مع عدد كل دور) وبحث بالاسم.'] },
-    en: { news: ['(Development copy) Users: filter by role (with how many in each) and search by name.'] },
+    ar: { news: ['المستخدمون: فلترة حسب الدور (مع عدد كل دور) وبحث بالاسم.'] },
+    en: { news: ['Users: filter by role (with how many in each) and search by name.'] },
   },
   {
     v: '0.9.174', date: '2026-11-08',
