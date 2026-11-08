@@ -119,7 +119,32 @@ export async function render(root) {
       actions.append(h('button.btn.save-btn', { type: 'button', disabled: true, title: t('awaiting_approval') }, t('hand_to_distribution')),
         h('small.muted', ' ' + t('awaiting_approval')));
     }
-    if (inputs.length) {
+    // a branch's order (made in Salwa): the branch gives it to the driver who is there – no trip from distribution
+    const mayDirect = first.made_at && ['cashier', 'branch_manager', 'admin'].includes((Data.user || {}).role) && tab === 'open';
+    if (mayDirect) {
+      actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+        const btn = e.currentTarget;
+        const bad = inputs.filter((x) => Number(x.inp.value) > x.left);
+        if (bad.length) { bad.forEach((x) => flash(x.inp)); return; }
+        const give = inputs.map((x) => ({ line_id: x.line.line_id, qty: Number(x.inp.value) || 0 })).filter((x) => x.qty > 0);
+        if (!give.length && !ls.some((l) => l.handed_qty > 0)) { inputs.forEach((x) => flash(x.inp)); return; }
+        let drivers = [];
+        try { drivers = await call('trips.drivers', {}); } catch (ex) { toast(errText(ex), 'err'); return; }
+        const sel = h('select.input', h('option', { value: '' }, '—'), drivers.map((d) => h('option', { value: d.user_id }, d.name)));
+        const left = inputs.some((x) => (Number(x.inp.value) || 0) < x.left);
+        const driver = await dialog((close) => [h('h3', t('direct_title'), ': ', first.order_no), h('p.muted', t('direct_help')),
+          left ? h('p.err-text', t('direct_short')) : null, field(t('driver'), sel),
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+            h('button.btn', { type: 'button', onclick: () => (sel.value ? close(sel.value) : flash(sel)) }, t('direct_go')))]);
+        if (!driver) return;
+        btn.disabled = true; btn.textContent = t('sending');
+        try {
+          await call('trips.direct', { order_id: first.order_id, driver_id: driver, lines: give, client_id: newId() });
+          toast(t('direct_done'), 'ok');
+          load();
+        } catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; btn.textContent = t('direct_btn'); }
+      } }, t('direct_btn')));
+    } else if (inputs.length) {
       actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
         const bad = inputs.filter((x) => Number(x.inp.value) > x.left || (x.dest && Number(x.inp.value) > 0 && !x.dest.value));
@@ -134,7 +159,8 @@ export async function render(root) {
     }
     return h('div.req-card',
       h('div.card-head', h('b', first.order_no || first.order_id), h('span', h('bdi', shopName(first.shop_party_id))),
-        h('span.muted.num', fmtDate(String(first.created_at).slice(0, 10)))),
+        h('span.muted.num', fmtDate(String(first.created_at).slice(0, 10))),
+        first.made_at ? h('span.pill.st-final', '📍 ', h('bdi', shopName(first.made_at))) : null),
       first.note ? h('p.muted', first.note) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')),
         h('th', t('reserved')), h('th', ''), h('th', tab === 'open' || tab === 'special' ? t('to_issue') : ''))), h('tbody', rows))),

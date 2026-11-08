@@ -110,7 +110,7 @@ var CAPS = (function () {
     'accounts.takings':  ['nav.accounts', 'shifts.list', 'shifts.receive', 'see_prices'],
     'accounts.pay':      ['nav.accounts', 'accounts.pay', 'accounts.void', 'see_prices'],
     'invoices.manage':   ['nav.invoices', 'invoices.list', 'invoices.get', 'invoices.create', 'orders.list'],
-    'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE'],
+    'shop.hand':         ['nav.shoporders', 'shop.list', 'shop.hand', 'kind.ISSUE', 'trips.direct', 'trips.drivers'],
     'shop.unavailable':  ['shop.unavailable'],
     'shop.return':       ['shop.return', 'kind.DEPT_RETURN'],
     'shop.shortage':     ['nav.shoporders', 'shop.list', 'shop.shortage'],

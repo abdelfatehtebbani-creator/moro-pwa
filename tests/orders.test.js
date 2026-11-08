@@ -699,3 +699,32 @@ test('the cashier of the shop where a department works (Salwa) hands its lines; 
   assert.equal(mine.includes('I0001'), false);
   assert.equal(g.api('shop.list', {}, tok.cashier).error.code, 'forbidden');
 });
+
+test('Salwa: its lines leave the order at once, approved, for Salwa; it hands them to a driver there; the shop receives them', () => {
+  const { g, tok, user, bal } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('salwa', 'cashier', { shop: 'P003' });
+  user('drv', 'driver');
+  const o = g.api('orders.save', { lines: [{ item_id: 'I0001', qty: 1 }, { item_id: 'I0002', qty: 2 }], send: true }, tok.cashier).data.order;
+  assert.deepEqual(o.lines.map((l) => l.item_id), ['I0001'], 'the factory part stays');
+  assert.equal(o.status, 'sent');
+  const b = g.rows('Orders').find((x) => x.parent_id === o.order_id);
+  assert.deepEqual([b.order_no, b.made_at, b.status], [o.order_no + '-S', 'P003', 'approved']);
+  assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 1, 'only the factory part waits for distribution');
+  // distribution may not put it in a trip; Salwa sends it with the driver who is there
+  const line = g.api('shop.list', {}, tok.salwa).data.find((l) => l.order_id === b.order_id);
+  assert.equal(line.made_at, 'P003');
+  const drv = g.rows('Users').find((u) => u.username === 'drv').user_id;
+  assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, lines: [{ line_id: line.line_id, qty: 1 }] }, tok.cashier).error.code, 'forbidden');
+  const r = g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [{ line_id: line.line_id, qty: 1 }] }, tok.salwa);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const after = g.rows('Orders').find((x) => x.order_id === b.order_id);
+  assert.equal(after.status, 'loaded');
+  assert.equal(bal('I0002'), 2, 'one of the three given');
+  // the driver delivers, the shop receives what was sent
+  assert.equal(g.api('trips.deliver', { trip_id: r.data.trip.trip_id, order_id: b.order_id }, g.api('auth.login', { username: 'drv', pin: '5678' }).data.token).ok, true);
+  const rec = g.api('orders.receive', { order_id: b.order_id, lines: [{ line_no: 1, qty: 1 }] }, tok.cashier);
+  assert.equal(rec.ok, true, JSON.stringify(rec));
+  // sent twice (no network): one trip
+  assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [] }, tok.salwa).data.duplicate, true);
+});

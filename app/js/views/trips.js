@@ -40,7 +40,8 @@ export async function render(root) {
   }
   function build(readyAll, drivers) {
     const going = inTrip();
-    const ready = readyAll.filter((o) => !going.has(o.order_id));
+    // a branch's order (made in Salwa) is sent by the branch itself
+    const ready = readyAll.filter((o) => !going.has(o.order_id) && !o.made_at);
     const chosen = [];           // order ids, in the order of the stops
     const list = h('div.trip-pick');
     const drawPick = () => list.replaceChildren(...(ready.length ? ready.map((o) => {

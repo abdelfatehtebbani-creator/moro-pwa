@@ -67,6 +67,7 @@ var Trips = {
       ids.forEach(function (id) {
         var o = Repo.find('Orders', 'order_id', id);
         Util.require(o && Orders.view(o).status === 'ready', 'order_not_ready', o ? o.order_no : id);
+        Util.require(!o.made_at, 'order_branch', o.order_no);
       });
       var now = Util.nowIso();
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
@@ -78,6 +79,51 @@ var Trips = {
       ids.forEach(function (id) { Repo.update('Orders', 'order_id', id, { status: 'in_trip', trip_id: trip.trip_id, updated_at: now }); });
       Audit.log(session.user_id, 'trip_create', 'Trips', trip.trip_id, null, { driver: driver.user_id, orders: ids });
       Notify.tripAssigned(trip, ids.length);
+      return { trip: Trips.view(trip), version: Version.bump() };
+    });
+  },
+
+  /**
+   * A branch's order (made in Salwa) sent by the branch with the driver who is there: what is given now is handed
+   * (p.lines [{line_id, qty}]), what is not made is closed, and a trip of that one order is made, already loaded.
+   * The branch's manager or its cashier on shift. p: {order_id, driver_id, lines, client_id}.
+   */
+  direct: function (session, p) {
+    var cid = Util.clean(p.client_id);
+    var again = cid ? Repo.find('Trips', 'client_id', cid) : null;
+    if (again) return { trip: Trips.view(again), duplicate: true, version: Version.get() };
+    var o = Repo.find('Orders', 'order_id', p.order_id);
+    Util.require(o && o.made_at, 'not_found');
+    var mine = session.role === 'admin' || (session.role === 'cashier' && session.shop === o.made_at)
+      || (session.role === 'branch_manager' && Branches.of(session).indexOf(o.made_at) >= 0);
+    Util.require(mine, 'forbidden');
+    var driver = Repo.find('Users', 'user_id', p.driver_id);
+    Util.require(driver && driver.active === true && driver.role === 'driver', 'driver_invalid');
+    var give = (p.lines || []).filter(function (x) { return Util.num(x.qty) > 0; });
+    if (give.length) Shop.hand(session, { lines: give, date: Util.today(), client_id: cid || Utilities.getUuid() });
+    return withLock(function () {
+      var cur = Repo.find('Orders', 'order_id', o.order_id);
+      Util.require(cur.status === 'approved', 'order_decided', cur.status);
+      var now = Util.nowIso(), touched = {}, handed = 0;
+      // what the branch did not make is closed: the shop receives what was sent
+      Repo.all('ShopOrderLines').forEach(function (l) {
+        if (l.order_id !== cur.order_id) return;
+        handed += Number(l.handed_qty) || 0;
+        if (l.status !== 'open' && l.status !== 'partial') return;
+        Repo.update('ShopOrderLines', 'line_id', l.line_id, { status: Number(l.handed_qty) > 0 ? 'handed' : 'unavailable', reserved_qty: 0,
+          reason: 'Not made by the branch', updated_at: now });
+        touched[l.item_id] = true;
+      });
+      Shop.rebalance(Object.keys(touched));
+      Util.require(handed > 0, 'nothing_handed');
+      var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
+                   note: '', created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
+      Repo.append('Trips', [trip]);
+      Repo.append('TripStops', [{ trip_id: trip.trip_id, order_id: cur.order_id, seq: 1, loaded_at: now, loaded_by: session.user_id, delivered_at: '', delivered_by: '' }]);
+      Repo.update('Orders', 'order_id', cur.order_id, { status: 'loaded', trip_id: trip.trip_id, loaded_at: now, updated_at: now });
+      Audit.log(session.user_id, 'trip_direct', 'Trips', trip.trip_id, null, { driver: driver.user_id, order: cur.order_id, from: cur.made_at });
+      Notify.tripAssigned(trip, 1);
+      OrderNotify.loaded(Repo.find('Orders', 'order_id', cur.order_id), session);
       return { trip: Trips.view(trip), version: Version.bump() };
     });
   },

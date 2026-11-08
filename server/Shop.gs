@@ -266,6 +266,7 @@ var Shop = {
       item_id: l.item_id, qty: Number(l.qty), unit: l.unit, reserved_qty: Number(l.reserved_qty) || 0, handed_qty: Number(l.handed_qty) || 0,
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
       handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
+      made_at: (Repo.find('Orders', 'order_id', l.order_id) || {}).made_at || '',
       dept: l.description ? String(l.dept || '') : String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || ''),
       description: l.description || '', deadline: l.deadline || '', special: !!l.description, direct: l.direct === true, photos: l.description ? Shop.photosOf(l) : [],
       // a special product sent to purchasing: what purchasing decided (store, buy, unavailable) and the price

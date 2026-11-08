@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.171', date: '2026-11-08',
+    ar: { news: ["(نسخة التطوير) توصيل سلوى المباشر: عند إرسال الطلبية تنفصل سطور أصناف سلوى تلقائيًا في طلبية مرتبطة (رقمها مثل 1045-S)، معتمدة فورًا، تذهب مباشرة إلى سلوى. في \"تجهيز الطلبيات\" يكتب مدير سلوى أو كاشيرها الكميات (ويعدّلها إن لزم) ثم يضغط \"تسليم للسائق\" ويختار السائق الموجود: تُنشأ الرحلة محمَّلة دون م.التوزيع. ثم يوصلها السائق ويستلمها المحل كالعادة. م.التوزيع يراها في المتابعة فقط."] },
+    en: { news: ["(Development copy) Salwa direct delivery: when an order is sent, the lines of Salwa products leave it in a linked order (No. like 1045-S), approved at once, straight to Salwa. In \"Prepare orders\" Salwa's manager or cashier writes the quantities (changing them if needed) and presses \"Give to the driver\", choosing the driver who is there: the trip is made, loaded, without distribution. The driver delivers and the shop receives as usual. Distribution sees it in the follow-up only."] },
+  },
+  {
     v: '0.9.170', date: '2026-11-07',
     ar: { news: ["(نسخة التطوير) إنتاج سلوى: كاشير المحل الذي يعمل فيه القسم يستطيع أيضًا تسليم سطوره للسائق من \"تجهيز الطلبيات\" (لا يرى غيرها)، إلى جانب مدير الفرع."] },
     en: { news: ["(Development copy) Salwa production: the cashier of the shop where the department works can also hand its lines to the driver from \"Prepare orders\" (and sees no others), as well as the branch manager."] },

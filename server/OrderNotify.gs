@@ -60,6 +60,7 @@ var OrderNotify = {
     Object.keys(byOrder).forEach(function (id) {
       var o = Repo.find('Orders', 'order_id', id);
       if (!o) return;                                   // a Masar order: not told here
+      if (o.made_at) return;                            // a branch's order: the branch sends it itself
       var v = Orders.view(o), shop = OrderNotify.shopName(o);
       if (v.status === 'ready') {
         var short = v.lines.some(function (l) { return l.status === 'unavailable' || (l.status === 'handed' && l.handed_qty < Number(l.approved_qty)); });
@@ -114,7 +115,7 @@ var OrderNotify = {
       out.orders = orders.filter(function (o) { return shop && o.shop_party_id === shop && o.status === 'delivered'; }).length;
     }
     if (Perm.has(session, 'trips.save')) {
-      out.trips = orders.filter(function (o) { return o.status === 'approved' && Orders.view(o).status === 'ready'; }).length;
+      out.trips = orders.filter(function (o) { return !o.made_at && o.status === 'approved' && Orders.view(o).status === 'ready'; }).length;
     } else if (Perm.has(session, 'trips.load')) {
       var mine = {};
       Repo.all('Trips').forEach(function (t) { if (t.driver_id === session.user_id && t.status !== 'cancelled') mine[t.trip_id] = true; });

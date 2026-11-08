@@ -496,6 +496,7 @@ export async function render(root, name) {
       h('div.card-head', h('b', o.order_no), h('span', h('bdi', shopName(o.shop_party_id))),
         h('span.muted', t('order_for'), ' ', h('span.num', fmtDate(o.delivery_date) + (o.delivery_time ? ' ' + o.delivery_time : ''))),
         o.kind === 'special' ? h('span.pill.soon', t('order_kind_special')) : null,
+        o.made_at ? h('span.pill.st-final', '📍 ', t('made_at', { p: shopName(o.made_at) })) : null,
         h('span', { class: 'pill ' + (PILL[o.status] || '') }, t('order_st_' + o.status)),
         o.diff_status === 'pending' ? h('span.pill.low', t('diff_pending')) : null,
         going ? h('span.pill.soon', t('sending')) : null),
