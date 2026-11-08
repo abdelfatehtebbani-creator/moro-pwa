@@ -145,7 +145,7 @@ var Orders = {
 
   /**
    * A sent order (inside the lock): the lines of products made in a branch (a department working in a shop, Salwa)
-   * go to that branch in an order of their own (No. 1045-S), approved at once – the branch prepares it and sends
+   * go to that branch in an order of their own (No. S-1045), approved at once – the branch prepares it and sends
    * it with a driver, without distribution. An order made of such lines only is that branch's order itself.
    */
   splitBranch: function (session, id) {
@@ -164,13 +164,13 @@ var Orders = {
     places.forEach(function (s, k) {
       if (!keep.length && k === 0) {
         // nothing of it is made at the factory: the order is the branch's own
-        Repo.update('Orders', 'order_id', id, { made_at: s, order_no: String(o.order_no) + '-S', updated_at: now });
+        Repo.update('Orders', 'order_id', id, { made_at: s, order_no: 'S-' + String(o.order_no), updated_at: now });
         keep = at[s];
         made.push(id);
         return;
       }
       var cid = 'O' + Util.pad(Settings.next('seq_order', 0), 5);
-      var no = o.order_no + '-S' + (made.length && places.length > 1 ? String(k + 1) : '');
+      var no = 'S' + (made.length && places.length > 1 ? String(k + 1) : '') + '-' + o.order_no;
       Repo.append('Orders', [{ order_id: cid, order_no: no, client_id: '', shop_party_id: o.shop_party_id, status: 'sent', order_date: o.order_date,
         delivery_date: o.delivery_date, note: o.note, created_by: o.created_by, created_at: o.created_at, sent_at: o.sent_at, decided_by: '', decided_at: '',
         reason: '', updated_at: now, kind: '', made_at: s, parent_id: id }]);

@@ -709,10 +709,10 @@ test('Salwa: its lines leave the order at once, approved, for Salwa; it hands th
   assert.deepEqual(o.lines.map((l) => l.item_id), ['I0001'], 'the factory part stays');
   assert.equal(o.status, 'sent');
   const b = g.rows('Orders').find((x) => x.parent_id === o.order_id);
-  assert.deepEqual([b.order_no, b.made_at, b.status], [o.order_no + '-S', 'P003', 'approved']);
+  assert.deepEqual([b.order_no, b.made_at, b.status], ['S-' + o.order_no, 'P003', 'approved']);
   // an order of Salwa products only is Salwa's own, numbered -S too
   const only = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 1 }], send: true }, tok.cashier).data.order;
-  assert.deepEqual([only.order_no.endsWith('-S'), only.made_at, only.status], [true, 'P003', 'approved']);
+  assert.deepEqual([only.order_no.startsWith('S-'), only.made_at, only.status], [true, 'P003', 'approved']);
   assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 1, 'only the factory part waits for distribution');
   // distribution may not put it in a trip; Salwa sends it with the driver who is there
   const line = g.api('shop.list', {}, tok.salwa).data.find((l) => l.order_id === b.order_id);
