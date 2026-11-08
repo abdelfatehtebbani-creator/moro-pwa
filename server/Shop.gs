@@ -267,6 +267,7 @@ var Shop = {
       shortage: Shop.shortage(l), status: l.status, approved: Shop.approved(l), reason: l.reason, note: l.note, created_at: l.created_at, updated_at: l.updated_at,
       handed_at: l.handed_at, returned_qty: Number(l.returned_qty) || 0, store: Stores.of(Repo.find('Items', 'item_id', l.item_id)),
       made_at: (Repo.find('Orders', 'order_id', l.order_id) || {}).made_at || '',
+      order_status: (Repo.find('Orders', 'order_id', l.order_id) || {}).status || '',
       dept: l.description ? String(l.dept || '') : String((Repo.find('Items', 'item_id', l.item_id) || {}).dept || ''),
       description: l.description || '', deadline: l.deadline || '', special: !!l.description, direct: l.direct === true, photos: l.description ? Shop.photosOf(l) : [],
       // a special product sent to purchasing: what purchasing decided (store, buy, unavailable) and the price
@@ -451,6 +452,9 @@ var Shop = {
     var l = Repo.find('ShopOrderLines', 'line_id', p.line_id);
     Util.require(l, 'not_found');
     Util.require(!l.description && Shop.mayWork(session, Repo.find('Items', 'item_id', l.item_id), l), 'store_forbidden', l.item_id);
+    // only while the goods are still with distribution: once loaded (or sent by a branch) they have left
+    var ord = Repo.find('Orders', 'order_id', l.order_id);
+    Util.require(!ord || (!ord.made_at && (ord.status === 'approved' || ord.status === 'in_trip')), 'order_gone', ord ? ord.order_no : '');
     var q = Util.round(Util.num(p.qty) || 0);
     var can = Util.round((Number(l.handed_qty) || 0) - (Number(l.returned_qty) || 0));
     Util.require(q > 0 && q <= can, 'qty_too_much', l.line_id);

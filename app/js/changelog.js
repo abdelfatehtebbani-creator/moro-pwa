@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.172', date: '2026-11-08',
+    ar: { news: ["(نسخة التطوير) \"لم تُرسل (مرتجع)\" في تجهيز الطلبيات يظهر فقط ما دامت البضاعة عند م.التوزيع، ويختفي بعد تحميلها مع السائق أو لطلبيات سلوى. وطلبية من أصناف سلوى فقط تأخذ هي أيضًا الرمز -S."] },
+    en: { news: ["(Development copy) \"Not sent (return)\" in Prepare orders shows only while the goods are still with distribution; it goes once they are loaded with the driver, and for Salwa orders. An order of Salwa products only also takes the -S mark."] },
+  },
+  {
     v: '0.9.171', date: '2026-11-08',
     ar: { news: ["(نسخة التطوير) توصيل سلوى المباشر: عند إرسال الطلبية تنفصل سطور أصناف سلوى تلقائيًا في طلبية مرتبطة (رقمها مثل 1045-S)، معتمدة فورًا، تذهب مباشرة إلى سلوى. في \"تجهيز الطلبيات\" يكتب مدير سلوى أو كاشيرها الكميات (ويعدّلها إن لزم) ثم يضغط \"تسليم للسائق\" ويختار السائق الموجود: تُنشأ الرحلة محمَّلة دون م.التوزيع. ثم يوصلها السائق ويستلمها المحل كالعادة. م.التوزيع يراها في المتابعة فقط."] },
     en: { news: ["(Development copy) Salwa direct delivery: when an order is sent, the lines of Salwa products leave it in a linked order (No. like 1045-S), approved at once, straight to Salwa. In \"Prepare orders\" Salwa's manager or cashier writes the quantities (changing them if needed) and presses \"Give to the driver\", choosing the driver who is there: the trip is made, loaded, without distribution. The driver delivers and the shop receives as usual. Distribution sees it in the follow-up only."] },

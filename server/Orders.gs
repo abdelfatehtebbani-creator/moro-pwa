@@ -164,7 +164,7 @@ var Orders = {
     places.forEach(function (s, k) {
       if (!keep.length && k === 0) {
         // nothing of it is made at the factory: the order is the branch's own
-        Repo.update('Orders', 'order_id', id, { made_at: s, updated_at: now });
+        Repo.update('Orders', 'order_id', id, { made_at: s, order_no: String(o.order_no) + '-S', updated_at: now });
         keep = at[s];
         made.push(id);
         return;

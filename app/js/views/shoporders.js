@@ -99,7 +99,8 @@ export async function render(root) {
       // bought by purchasing: to distribution, or straight to the shop
       const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: '' }, '—'), h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
       if (inp) inputs.push({ line: l, inp, left, dest });
-      const canBack = !l.special && l.handed_qty - (l.returned_qty || 0) > 0;
+      // "not sent" only while the goods are still with distribution (not loaded, not a branch's order)
+      const canBack = !l.special && !l.made_at && (!l.order_status || ['approved', 'in_trip'].includes(l.order_status)) && l.handed_qty - (l.returned_qty || 0) > 0;
       const no = h('span', open ? h('button.link', { type: 'button', onclick: () => cannot(l) }, t('cannot_supply')) : '',
         canBack && l.can ? h('button.link', { type: 'button', onclick: () => notSent(l) }, ' ' + t('not_sent')) : '');
       const state = tab === 'done' ? h('span', { class: 'pill ' + ({ handed: 'in', unavailable: 'low', cancelled: 'out' }[l.status] || 'soon') },
