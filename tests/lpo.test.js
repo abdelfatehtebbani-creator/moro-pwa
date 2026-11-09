@@ -69,3 +69,17 @@ test('LPO: terms and the starting number are set by the admin; supplier contact 
   assert.equal(p.ok, true, JSON.stringify(p));
   assert.deepEqual([p.data.party.tel, p.data.party.email, p.data.party.contact], ['4444 1111', 'a@farm.qa', 'Sami']);
 });
+
+test('receiving: the approved LPOs with what is left of each item; an LPO received in full is not offered', () => {
+  const { g, tok } = env();
+  const a = g.api('lpo.save', lpo({ lpo_no: 500, submit: true, lines: [{ item_id: 'I0001', qty: 10, unit: 'PC', price: 2 }] }), tok.buyer).data;
+  assert.equal(g.api('lpo.decide', { lpo_id: a.lpo_id, approve: true }, tok.admin).ok, true);
+  const open = () => g.api('data.bootstrap', {}, tok.admin).data.lpo_open;
+  assert.deepEqual(open().map((x) => [x[0], x[3]]), [['500', [['I0001', 10, 'PC', 10]]]]);
+  const rec = (qty) => g.api('movements.save', { movements: [{ kind: 'RECEIPT', date: '2026-10-27', party_id: 'P001', item_id: 'I0001', qty, unit: 'PC',
+    price: 2, per: 'PC', amount: 2 * qty, discount: 0, doc_no: 'INV' + qty, location: 'Shelf', expiry: '2027-01-01', lpo_no: '500' }] }, tok.admin);
+  assert.equal(rec(6).ok, true);
+  assert.deepEqual(open()[0][3][0][3], 4);
+  rec(4);
+  assert.deepEqual(open(), []);
+});

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.179', date: '2026-11-09',
+    ar: { news: ['(نسخة التطوير) استلام البضاعة: خانة أمر الشراء تعرض أولًا أوامر المورد التي فيها المادة المختارة، مع الكمية المطلوبة والمتبقي منها، ولا تعرض الأوامر التي استُلمت كل موادها.'] },
+    en: { news: ['(Development copy) Receiving: the purchase order field lists first the supplier orders that hold the chosen item, with the quantity ordered and what is left, and no longer offers orders received in full.'] },
+  },
+  {
     v: '0.9.178', date: '2026-11-09',
     ar: { news: ['الوصفات: خانة المنتج تقترح أسماء المنتجات النهائية، فتُربط الوصفة بمنتجها دون خطأ في الاسم.'] },
     en: { news: ['Recipes: the product field offers the names of the final products, so a recipe is linked to its product without a mistyped name.'] },

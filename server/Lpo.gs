@@ -195,3 +195,30 @@ var Notify = {
       page: 'lpo', badge: 1 });
   }
 };
+
+/**
+ * Approved LPOs not yet received in full, for the receiving screen: [lpo_no, party_id, date, lines], lines [[item_id, qty, unit, left]]
+ * (left in the LPO's unit, from the receipts that name the LPO). A line without an item (a description) keeps its LPO open.
+ */
+Lpo.openForReceipt = function () {
+  var got = {};
+  Repo.all('Movements').forEach(function (m) {
+    if (m.kind !== 'RECEIPT' || m.status === 'deleted' || !m.lpo_no) return;
+    var k = String(m.lpo_no) + '|' + m.item_id;
+    got[k] = (got[k] || 0) + (Number(m.qty) || 0);
+  });
+  var lines = Repo.groupBy('LPOLines', 'lpo_id');
+  return Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; }).map(function (l) {
+    var open = false;
+    var ls = (lines[l.lpo_id] || []).map(function (x) {
+      if (!x.item_id) { open = true; return null; }
+      var it = Repo.find('Items', 'item_id', x.item_id);
+      var f = Packs.factor(it, x.unit);
+      var q = Number(x.qty) || 0;
+      var left = f ? Util.round(Math.max(0, q - (got[String(l.lpo_no) + '|' + x.item_id] || 0) / f)) : q;
+      if (!f || left > 0) open = true;
+      return [x.item_id, q, String(x.unit || ''), left];
+    }).filter(Boolean);
+    return open ? [String(l.lpo_no), l.party_id, String(l.date), ls] : null;
+  }).filter(Boolean).slice(-300);
+};

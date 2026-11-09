@@ -31,15 +31,21 @@ export async function render(root) {
   };
   const locOpts = () => Data.locations.filter((l) => Data.storeOf(l) === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
-  const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
+  const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: (v, o) => { showItem(v, o); drawLpo(lpo.value); } });
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
   const date = trackFilled(h('input.input#r-date', { type: 'date', value: today }));
   const invoice = trackFilled(h('input.input#r-invoice', { autocomplete: 'off' }));
   // the purchase order this receipt answers: the approved LPOs of the chosen supplier (optional)
   const lpo = h('select.input#r-lpo');
   const drawLpo = (keep) => {
-    const mine = ((Data.boot || {}).lpo_open || []).filter((x) => x[1] === supplier.value).sort((a, b) => (a[2] < b[2] ? 1 : -1));
-    lpo.replaceChildren(h('option', { value: '' }, '—'), ...mine.map((x) => h('option', { value: x[0], selected: x[0] === keep }, 'LPO ' + x[0] + ' · ' + x[2])));
+    // the LPOs with the chosen item come first, with what is still to come of it; LPOs received in full are not offered
+    const lineOf = (x) => (x[3] || []).find((l) => l[0] === item.value);
+    const mine = ((Data.boot || {}).lpo_open || []).filter((x) => x[1] === supplier.value)
+      .sort((a, b) => (!!lineOf(b) - !!lineOf(a)) || (a[2] < b[2] ? 1 : -1));
+    lpo.replaceChildren(h('option', { value: '' }, '—'), ...mine.map((x) => {
+      const l = lineOf(x);
+      return h('option', { value: x[0], selected: x[0] === keep }, 'LPO ' + x[0] + ' · ' + x[2] + (l ? ' · ' + fmtNum(l[1]) + ' ' + l[2] + ' · ' + t('lpo_left', { n: fmtNum(l[3]) }) : ''));
+    }));
   };
   supplier.input.addEventListener('change', () => drawLpo(lpo.value));
   drawLpo('');
