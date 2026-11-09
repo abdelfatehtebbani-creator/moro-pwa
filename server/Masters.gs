@@ -368,8 +368,7 @@ var Masters = {
         return Object.keys(by).map(function (k) { return by[k]; }).filter(function (x) { return x.shifts || x.open || x.sheet; });
       })() : [],
       // approved purchase orders, for a receipt to name the one it answers
-      lpo_open: Perm.has(session, 'nav.receive') ? Repo.all('LPOs').filter(function (l) { return l.status === 'approved'; })
-        .map(function (l) { return [String(l.lpo_no), l.party_id, String(l.date)]; }).slice(-300) : [],
+      lpo_open: Perm.has(session, 'nav.receive') ? Lpo.openForReceipt() : [],
       lpo_pending: Perm.has(session, 'lpo.decide') ? Repo.all('LPOs').filter(function (l) { return l.status === 'submitted'; }).length : 0,
       // the writer's own LPOs that were approved or rejected: the app shows a mark until they are opened
       lpo_decided: Perm.has(session, 'lpo.save') ? Repo.all('LPOs').filter(function (l) {
