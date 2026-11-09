@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.177', date: '2026-11-09',
+    ar: { news: ['(نسخة التطوير) الوصفات: خانة المنتج تقترح أسماء المنتجات النهائية، فتُربط الوصفة بمنتجها دون خطأ في الاسم.'] },
+    en: { news: ['(Development copy) Recipes: the product field offers the final products' names, so a recipe is linked to its product without a mistyped name.'] },
+  },
+  {
     v: '0.9.176', date: '2026-11-08',
     ar: { news: ["(نسخة التطوير) الوصفات: خيار \"للتكلفة فقط\". الوصفة تحسب تكلفة المنتج (مثل سمنة العكر: نسبة الحيواني × سعره + نسبة النباتي × سعره) من آخر سعر شراء لكل مادة، ولا يُخصم شيء من المخزن عند الإنتاج. في نافذة المنتج يظهر \"التكلفة حسب الوصفة\" بتفصيلها وزر \"اعتمادها سعرًا\"، وفي الرئيسية يُنبَّه المدير إذا صارت التكلفة أعلى من السعر بعد شراء جديد."] },
     en: { news: ["(Development copy) Recipes: a \"For the cost only\" option. The recipe prices the product (like Al Aker ghee: animal share \u00d7 its price + vegetable share \u00d7 its price) from the latest purchase price of each material, and producing it takes nothing from the stores. The product window shows \"Cost from the recipe\" with its detail and a \"Use it as the price\" button; the admin's home tells when a new purchase makes the cost pass the price."] },

@@ -441,7 +441,9 @@ function recipes(body) {
   const products = () => [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort();
   let lines = [];
   const product = trackFilled(h('input.input#rc-product', { list: 'rc-products', placeholder: t('product') }));
-  const dl = h('datalist#rc-products', products().map((p) => h('option', { value: p })));
+  // the final products are offered by name (a recipe is linked to its product by the name)
+  const finalNames = () => Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL').map((i) => i.name);
+  const dl = h('datalist#rc-products', [...new Set(finalNames().concat(products()))].sort().map((p) => h('option', { value: p })));
   const item = combo({ id: 'rc-item', options: () => Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: i.name, hint: i.unit })) });
   const qty = trackFilled(h('input.input.num#rc-qty', { type: 'number', step: 'any', min: 0 }));
   // a recipe that only prices the product: producing it takes nothing from the stores
