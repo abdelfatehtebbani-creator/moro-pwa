@@ -4,18 +4,18 @@
 export const CHANGELOG = [
   {
     v: '0.9.183', date: '2026-11-09',
-    ar: { news: ['(نسخة التطوير) المرتجعات: بعد تثبيت القرار أو تأكيد الاستلام تتحدّث القائمة وحدها حالما يصل إلى الخادم، فلا يبقى "قيد الإرسال…" ظاهرًا.'] },
-    en: { news: ['(Development copy) Returns: after a decision or a confirmation the list refreshes by itself once the server has it, so "Sending…" no longer stays on.'] },
+    ar: { news: ['المرتجعات: بعد تثبيت القرار أو تأكيد الاستلام تتحدّث القائمة وحدها حالما يصل إلى الخادم، فلا يبقى "قيد الإرسال…" ظاهرًا.'] },
+    en: { news: ['Returns: after a decision or a confirmation the list refreshes by itself once the server has it, so "Sending…" no longer stays on.'] },
   },
   {
     v: '0.9.182', date: '2026-11-09',
-    ar: { news: ['(نسخة التطوير) على الهاتف: بطاقة الرحلة عند السائق لا تخرج عن الشاشة، وأزرار الفترة في "فروعي" صارت مقروءة.'] },
-    en: { news: ['(Development copy) On the phone: the trip card stays inside the screen for the driver, and the period buttons in "My branches" are readable.'] },
+    ar: { news: ['على الهاتف: بطاقة الرحلة عند السائق لا تخرج عن الشاشة، وأزرار الفترة في "فروعي" صارت مقروءة.'] },
+    en: { news: ['On the phone: the trip card stays inside the screen for the driver, and the period buttons in "My branches" are readable.'] },
   },
   {
     v: '0.9.181', date: '2026-11-09',
-    ar: { news: ['(نسخة التطوير) على الهاتف: التبويبات الكثيرة (مثل اعتماد الطلبيات) تنزل إلى سطر ثانٍ بدل أن تدفع الصفحة خارج الشاشة.'] },
-    en: { news: ['(Development copy) On the phone: many tabs (like Approve orders) go on to a second line instead of pushing the page off the screen.'] },
+    ar: { news: ['على الهاتف: التبويبات الكثيرة (مثل اعتماد الطلبيات) تنزل إلى سطر ثانٍ بدل أن تدفع الصفحة خارج الشاشة.'] },
+    en: { news: ['On the phone: many tabs (like Approve orders) go on to a second line instead of pushing the page off the screen.'] },
   },
   {
     v: '0.9.180', date: '2026-11-09',
