@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.186', date: '2026-11-09',
+    ar: { news: ['(نسخة التطوير) الدليل: شرح الشاشة التي فتحته منها يظهر أولًا في إطار مميز، ثم فصول دورك، والأساسيات ودورة الطلبية والتقارير والمصطلحات في الآخر.'] },
+    en: { news: ['(Development copy) The guide: the screen you opened it from comes first, in a framed box, then the chapters of your role, and the basics, the order cycle, reports and terms last.'] },
+  },
+  {
     v: '0.9.185', date: '2026-11-09',
     ar: { news: ['الدليل: زر "؟" يفتحه، وداخله يصير "✕" فيعيدك إلى الشاشة التي كنت فيها.'] },
     en: { news: ['The guide: "?" opens it, and inside it the button becomes "✕" and takes you back to the screen you were on.'] },
