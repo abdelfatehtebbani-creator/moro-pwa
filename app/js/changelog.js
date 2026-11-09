@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.180', date: '2026-11-09',
+    ar: { news: ["(نسخة التطوير) المرتجعات: الكاشير يختار وجهة المرتجع (المصنع أو سلوى). مرتجع سلوى يقرر فيه مدير فرعها، وما يصلح يعود إلى رصيدها فورًا. ومرتجع المصنع الذي يقرر مدير الإنتاج أنه يصلح لا يدخل الرصيد حتى يؤكد أمين المخزن ما وصل فعلًا (تبويب \"للاستلام في المخزن\")، والنقص يحتاج سببًا ويصل خبره لمن قرر."] },
+    en: { news: ["(Development copy) Returns: the cashier chooses where the return goes (the factory or Salwa). Salwa returns are decided by its branch manager, and what is fit is back in its stock at once. A factory return the production manager finds fit enters the stock only when the storekeeper confirms what came in (\"To take into the store\" tab); a shortfall needs a reason and is reported to whoever decided."] },
+  },
+  {
     v: '0.9.179', date: '2026-11-09',
     ar: { news: ['استلام البضاعة: خانة أمر الشراء تعرض أولًا أوامر المورد التي فيها المادة المختارة، مع الكمية المطلوبة والمتبقي منها، ولا تعرض الأوامر التي استُلمت كل موادها.'] },
     en: { news: ['Receiving: the purchase order field lists first the supplier orders that hold the chosen item, with the quantity ordered and what is left, and no longer offers orders received in full.'] },
