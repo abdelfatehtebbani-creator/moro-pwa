@@ -5,7 +5,7 @@ export const CHANGELOG = [
   {
     v: '0.9.177', date: '2026-11-09',
     ar: { news: ['الوصفات: خانة المنتج تقترح أسماء المنتجات النهائية، فتُربط الوصفة بمنتجها دون خطأ في الاسم.'] },
-    en: { news: ['Recipes: the product field offers the final products' names, so a recipe is linked to its product without a mistyped name.'] },
+    en: { news: ['Recipes: the product field offers the names of the final products, so a recipe is linked to its product without a mistyped name.'] },
   },
   {
     v: '0.9.176', date: '2026-11-08',
