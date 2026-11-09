@@ -155,7 +155,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .flash-ok { animation: flashOk .3s 2; }
 .err-text { color: var(--danger); font-size: 13.5px; min-height: 1.2em; margin: 0; }
 
-.tabs { display: inline-flex; background: #e7ebf0; border-radius: var(--radius); padding: 3px; gap: 2px; }
+.tabs { display: inline-flex; flex-wrap: wrap; max-width: 100%; background: #e7ebf0; border-radius: var(--radius); padding: 3px; gap: 2px; }
 .tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 13.5px; color: var(--muted); font-weight: 600; }
 .tabs button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 

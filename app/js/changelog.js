@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.181', date: '2026-11-09',
+    ar: { news: ['(نسخة التطوير) على الهاتف: التبويبات الكثيرة (مثل اعتماد الطلبيات) تنزل إلى سطر ثانٍ بدل أن تدفع الصفحة خارج الشاشة.'] },
+    en: { news: ['(Development copy) On the phone: many tabs (like Approve orders) go on to a second line instead of pushing the page off the screen.'] },
+  },
+  {
     v: '0.9.180', date: '2026-11-09',
     ar: { news: ["المرتجعات: الكاشير يختار وجهة المرتجع (المصنع أو سلوى). مرتجع سلوى يقرر فيه مدير فرعها، وما يصلح يعود إلى رصيدها فورًا. ومرتجع المصنع الذي يقرر مدير الإنتاج أنه يصلح لا يدخل الرصيد حتى يؤكد أمين المخزن ما وصل فعلًا (تبويب \"للاستلام في المخزن\")، والنقص يحتاج سببًا ويصل خبره لمن قرر."] },
     en: { news: ["Returns: the cashier chooses where the return goes (the factory or Salwa). Salwa returns are decided by its branch manager, and what is fit is back in its stock at once. A factory return the production manager finds fit enters the stock only when the storekeeper confirms what came in (\"To take into the store\" tab); a shortfall needs a reason and is reported to whoever decided."] },
