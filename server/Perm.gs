@@ -81,7 +81,8 @@ var CAPS = (function () {
     'receive.delete':    ['movements.delete', 'delete.receive'],
     'issue.view':        ['nav.issue'],
     'issue.post':        ['nav.issue', 'movements.save', 'kind.ISSUE'],
-    'issue.dept_return': ['nav.issue', 'movements.save', 'kind.DEPT_RETURN'],
+    // who takes returns back into a store also confirms the shops' returns sent back to it
+    'issue.dept_return': ['nav.issue', 'movements.save', 'kind.DEPT_RETURN', 'nav.returns', 'returns.list', 'returns.receive'],
     'issue.disposal':    ['nav.issue', 'movements.save', 'kind.DISPOSAL'],
     'shop.view':         ['nav.shoporders', 'shop.list'],
     // every department's lines (and the stores', to see): records for the departments (the production manager)
@@ -246,6 +247,8 @@ var Perm = {
     Perm.capsOf(u).forEach(function (c) { CAPS[c].forEach(function (p) { set[p] = true; }); });
     // the cashier of a shop where a department works (Salwa): hands that department's lines to the driver
     if (u.role === 'cashier' && Shop.hostsDept(u.shop)) CAPS['shop.hand'].forEach(function (p) { set[p] = true; });
+    // the manager of a branch where a department works (Salwa) decides the returns sent to that branch
+    if (u.role === 'branch_manager' && Branches.ofUser(u).some(Shop.hostsDept)) CAPS['returns.decide'].forEach(function (p) { set[p] = true; });
     return Object.keys(set);
   },
 

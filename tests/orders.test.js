@@ -264,7 +264,11 @@ test('a receipt short waits for distribution: back to the store or lost, then th
   const q = g.api('returns.list', { status: 'quarantine' }, tok.prod).data;
   assert.deepEqual(q.map((x) => [x.item_id, x.qty, x.source, x.reason]), [['I0001', 2, 'diff', 'loading_error']]);
   g.api('returns.decide', { lines: [{ return_id: q[0].return_id, decision: 'available' }] }, tok.prod);
-  assert.equal(bal('I0001'), 7, 'fit: back in the stock');
+  assert.equal(bal('I0001'), 5, 'fit: waits for the store to confirm');
+  const w = g.api('returns.list', { status: 'to_store' }, tok.store).data;
+  assert.deepEqual(w.map((x) => x.return_id), [q[0].return_id]);
+  assert.equal(g.api('returns.receive', { return_id: q[0].return_id, qty: 2 }, tok.store).ok, true);
+  assert.equal(bal('I0001'), 7, 'confirmed: back in the stock');
   assert.equal(bal('I0002'), 1, 'the damaged box does not');
   assert.equal(g.api('orders.acceptDiff', { order_id: o.order_id, lines: [] }, tok.dist).error.code, 'order_decided');
   assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 0);
@@ -298,7 +302,10 @@ test('returns: the cashier sends goods back, they wait in quarantine, the produc
   assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'available' }] }, tok.cashier).error.code, 'forbidden');
   assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id }] }, tok.prod).error.code, 'decision_required');
   g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'available' }, { return_id: made[1].return_id, decision: 'expired', note: 'old' }] }, tok.prod);
-  assert.equal(bal('I0002'), 5, 'the fit 2 are back, the expired one is not');
+  assert.equal(bal('I0002'), 3, 'the fit 2 wait for the store');
+  assert.equal(g.api('returns.receive', { return_id: made[0].return_id, qty: 1 }, tok.admin).error.code, 'reason_required');
+  assert.equal(g.api('returns.receive', { return_id: made[0].return_id, qty: 1, note: 'one box missing' }, tok.admin).ok, true);
+  assert.equal(bal('I0002'), 4, 'one came in, the expired one is not back');
   assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'damaged' }] }, tok.prod).error.code, 'return_decided');
   const mine = g.api('returns.list', {}, tok.cashier).data;
   assert.deepEqual(mine.map((r) => r.decision).sort(), ['available', 'expired']);
@@ -730,4 +737,18 @@ test('Salwa: its lines leave the order at once, approved, for Salwa; it hands th
   assert.equal(rec.ok, true, JSON.stringify(rec));
   // sent twice (no network): one trip
   assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [] }, tok.salwa).data.duplicate, true);
+});
+
+test('a return to Salwa: the shop chooses it, the Salwa manager decides, what is fit is back at once', () => {
+  const { g, tok, user, bal } = env();
+  g.api('parties.save', { party_id: 'P001', name: 'Baklava section', at_shop: 'P003' }, tok.admin);
+  user('najeeb', 'branch_manager', { branches: ['P003'] });
+  assert.equal(g.api('returns.create', { client_id: 'x1', dest: 'P002', lines: [{ item_id: 'I0002', qty: 1, reason: 'unsold' }] }, tok.cashier).error.code, 'return_dest_invalid');
+  const made = g.api('returns.create', { client_id: 'x2', dest: 'P003', lines: [{ item_id: 'I0002', qty: 1, reason: 'unsold' }] }, tok.cashier).data.returns;
+  assert.equal(made[0].dest, 'P003');
+  assert.deepEqual(g.api('returns.list', { status: 'quarantine' }, tok.prod).data, [], 'not the factory return');
+  assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'available' }] }, tok.prod).error.code, 'forbidden');
+  assert.equal(g.api('returns.list', { status: 'quarantine' }, tok.najeeb).data.length, 1);
+  assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'available' }] }, tok.najeeb).ok, true);
+  assert.equal(bal('I0002'), 4);
 });

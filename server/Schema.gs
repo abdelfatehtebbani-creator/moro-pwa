@@ -68,11 +68,12 @@ var SCHEMA = {
   Openings:     ['party_id', 'amount', 'note', 'created_by', 'created_at'],
   Payments:     ['payment_id', 'date', 'party_id', 'amount', 'method', 'ref', 'note', 'status', 'created_by', 'created_at', 'voided_by', 'voided_at', 'client_id'],
   Returns:      ['return_id', 'date', 'shop_party_id', 'order_id', 'order_no', 'line_no', 'item_id', 'qty', 'unit', 'reason', 'note',
-                 'source', 'status', 'decision', 'decision_note', 'decided_by', 'decided_at', 'movement_id', 'created_by', 'created_at', 'client_id']
+                 'source', 'status', 'decision', 'decision_note', 'decided_by', 'decided_at', 'movement_id', 'created_by', 'created_at', 'client_id',
+                 'dest', 'received_qty', 'received_by', 'received_at', 'store_note']
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
