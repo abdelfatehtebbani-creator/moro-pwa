@@ -13,6 +13,9 @@ const REASONS = ['expired', 'damaged', 'unsold', 'complaint', 'other'];
 const DECISIONS = ['available', 'damaged', 'expired'];
 const PILL = { quarantine: 'soon', to_store: 'soon', available: 'in', damaged: 'low', expired: 'low' };
 let tab = '';
+// a decision or a confirmation sent in the background: the list is read again once the server has it (or refused it)
+let sentHook = null;
+['moro:sent', 'moro:rejected'].forEach((ev) => window.addEventListener(ev, (e) => { if (sentHook) sentHook(e); }));
 
 export async function render(root) {
   const decider = Data.can('returns.decide');
@@ -131,8 +134,9 @@ export async function render(root) {
     } catch (e) { box.replaceChildren(h('p.empty', errText(e))); }
   }
   const show = () => load();
+  sentHook = (e) => { if (e.detail && /^returns\./.test(e.detail.action || '') && root.isConnected) load(); };
   root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('returns')), bar), decider ? h('small.muted', t('return_decide_help')) : null, box));
   show();
 }
 
-export function dispose() {}
+export function dispose() { sentHook = null; }
