@@ -28,6 +28,7 @@ import * as returns from './views/returns.js';
 import * as accounts from './views/accounts.js';
 import * as exec from './views/exec.js';
 import * as branches from './views/branches.js';
+import * as guide from './views/guide.js';
 import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
@@ -55,10 +56,14 @@ const ROUTES = {
   coffee:    { view: coffee, perm: 'nav.coffee', group: 'nav_tools' },
   masters:   { view: masters, perm: 'nav.masters', group: 'nav_admin' },
   users:     { view: users, perm: 'nav.users', group: 'nav_admin' },
+  // the user guide: everyone
+  guide:     { view: guide, perm: 'data.bootstrap', group: 'nav_admin' },
 };
 
 const root = document.getElementById('app');
-let content, title, syncEl, shellEl, homeLayer;
+let content, title, syncEl, shellEl, homeLayer, helpBtn;
+// the screen the guide was opened from: "✕" goes back to it
+let guideFrom = '';
 
 applyLang();
 // updates: the service worker file is never taken from the browser cache, and when a new version
@@ -195,7 +200,14 @@ function buildShell() {
   content = h('section.content');
   // the home screen shown over an idle screen (that screen stays as it is, behind it)
   homeLayer = h('section.content', { hidden: true });
-  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
+  // "?": the guide, at the chapter that explains this screen
+  // "?" opens the guide at this screen's chapter; in the guide it turns into "✕" and goes back to that screen
+  const help = helpBtn = h('button.help-btn', { type: 'button', title: t('guide'), 'aria-label': t('guide'), onclick: () => {
+    if (currentName === 'guide') { location.hash = '#/' + (guideFrom || firstScreen()); return; }
+    guideFrom = currentName || '';
+    location.hash = '#/guide?s=' + guideFrom;
+  } }, '?');
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, help, h('div.spacer'),
     // who is signed in, on every screen
     h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl,
     // the admin (and the developer's account): the version, the language and sign out always at hand
@@ -240,6 +252,7 @@ function route() {
   if (!ROUTES[name] || !allowed(name)) name = firstScreen();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
+  if (helpBtn) { helpBtn.textContent = name === 'guide' ? '✕' : '?'; helpBtn.title = name === 'guide' ? t('guide_close') : t('guide'); }
   current = ROUTES[name].view;
   currentName = name;
   // home shows the other screens this user may open, as the menu does, and takes the menu's place (wide screens)
