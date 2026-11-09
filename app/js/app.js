@@ -61,7 +61,9 @@ const ROUTES = {
 };
 
 const root = document.getElementById('app');
-let content, title, syncEl, shellEl, homeLayer;
+let content, title, syncEl, shellEl, homeLayer, helpBtn;
+// the screen the guide was opened from: "✕" goes back to it
+let guideFrom = '';
 
 applyLang();
 // updates: the service worker file is never taken from the browser cache, and when a new version
@@ -199,7 +201,12 @@ function buildShell() {
   // the home screen shown over an idle screen (that screen stays as it is, behind it)
   homeLayer = h('section.content', { hidden: true });
   // "?": the guide, at the chapter that explains this screen
-  const help = h('button.help-btn', { type: 'button', title: t('guide'), 'aria-label': t('guide'), onclick: () => { location.hash = '#/guide?s=' + (currentName || ''); } }, '?');
+  // "?" opens the guide at this screen's chapter; in the guide it turns into "✕" and goes back to that screen
+  const help = helpBtn = h('button.help-btn', { type: 'button', title: t('guide'), 'aria-label': t('guide'), onclick: () => {
+    if (currentName === 'guide') { location.hash = '#/' + (guideFrom || firstScreen()); return; }
+    guideFrom = currentName || '';
+    location.hash = '#/guide?s=' + guideFrom;
+  } }, '?');
   shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, help, h('div.spacer'),
     // who is signed in, on every screen
     h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl,
@@ -245,6 +252,7 @@ function route() {
   if (!ROUTES[name] || !allowed(name)) name = firstScreen();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   title.textContent = t(name);
+  if (helpBtn) { helpBtn.textContent = name === 'guide' ? '✕' : '?'; helpBtn.title = name === 'guide' ? t('guide_close') : t('guide'); }
   current = ROUTES[name].view;
   currentName = name;
   // home shows the other screens this user may open, as the menu does, and takes the menu's place (wide screens)
