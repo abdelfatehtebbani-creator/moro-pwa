@@ -28,11 +28,14 @@ export function render(root) {
     let list = GUIDE.filter(mine);
     // the "?" of a screen: the chapter that explains it (for this role when there is one) comes first
     const here = screen ? (list.find((c) => c.screens.includes(screen) && c.roles.includes(me)) || list.find((c) => c.screens.includes(screen))) : null;
-    if (here) list = [here].concat(list.filter((c) => c !== here));
+    // then the role's chapters, and the shared ones (basics, the order cycle, reports, terms) last
+    const shared = (c) => c.roles.includes('all');
+    list = (here ? [here] : []).concat(list.filter((c) => c !== here && !shared(c)), list.filter((c) => c !== here && shared(c)));
     if (q) list = list.filter((c) => (c.ar + ' ' + c.en).toLowerCase().includes(q));
     body.replaceChildren(...(list.length ? list.map((c) => {
       const box = h('section', { class: 'guide-ch' + (c === here ? ' here' : ''), dir: lang === 'en' && c.en ? 'ltr' : 'rtl' });
       box.innerHTML = html(c);           // the guide's own text, written with the app
+      if (c === here) box.prepend(h('div.guide-here', '📍 ', t('guide_this_screen'), ': ', h('b', t(screen))));
       if (lang === 'en' && !c.en) box.prepend(h('p.guide-note', t('guide_not_translated')));
       return box;
     }) : [h('p.empty', t('no_rows'))]));
