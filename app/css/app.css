@@ -93,9 +93,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .trip-pick { display: grid; gap: 6px; margin: 8px 0 12px; }
 .trip-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
 .trip-row b.num { min-width: 1.2em; color: var(--brand); }
-.trip-stop { display: flex; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line); }
+.trip-stop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line); }
 .trip-stop > b.num { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; flex: none; }
-.trip-stop-main { flex: 1; display: grid; gap: 2px; }
+.trip-stop-main { flex: 1 1 150px; min-width: 0; display: grid; gap: 2px; }
 .recv-short { display: inline-flex; gap: 4px; margin-inline-start: 6px; }
 .recv-short[hidden] { display: none; }
 .shop-groups { margin: 4px 0 12px; flex-wrap: wrap; }
@@ -818,3 +818,8 @@ p.pickup { margin: 8px 0 2px; }
 
 /* a final product's cost from its recipe */
 .cost-box { display: grid; gap: 2px; margin: -4px 0 8px; font-size: 13px; }
+
+/* the branch manager's period chips sit on a light card (the general manager's on a dark band) */
+.card.ex > .card-head .ex-periods { background: #e7ebf0; }
+.card.ex > .card-head .ex-periods button { color: var(--muted); }
+.card.ex > .card-head .ex-periods button.on { background: var(--teal); color: #fff; }

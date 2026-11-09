@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.182', date: '2026-11-09',
+    ar: { news: ['(نسخة التطوير) على الهاتف: بطاقة الرحلة عند السائق لا تخرج عن الشاشة، وأزرار الفترة في "فروعي" صارت مقروءة.'] },
+    en: { news: ['(Development copy) On the phone: the trip card stays inside the screen for the driver, and the period buttons in "My branches" are readable.'] },
+  },
+  {
     v: '0.9.181', date: '2026-11-09',
     ar: { news: ['(نسخة التطوير) على الهاتف: التبويبات الكثيرة (مثل اعتماد الطلبيات) تنزل إلى سطر ثانٍ بدل أن تدفع الصفحة خارج الشاشة.'] },
     en: { news: ['(Development copy) On the phone: many tabs (like Approve orders) go on to a second line instead of pushing the page off the screen.'] },
