@@ -101,3 +101,26 @@ test('a price list: a product renamed in the list keeps its ID; a raw material i
   assert.equal(it('SUGAR').store, 'DRY');
   assert.equal(it('SUGAR (PREPARED)').store, 'FINAL');
 });
+
+test('a recipe for the cost only: priced from the latest purchases, nothing taken when produced; the admin is told when the cost passes the price', () => {
+  const { g, tok } = env();
+  g.seed('Items', g.rows('Items').concat([{ item_id: 'I0003', name: 'GHEE ANIMAL', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' },
+    { item_id: 'I0004', name: 'GHEE VEG', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' }]));
+  g.seed('Parties', g.rows('Parties').concat([{ party_id: 'P009', name: 'Ghee supplier', kind: 'supplier', active: true }]));
+  const rec = (id, price) => g.api('movements.save', { movements: [{ kind: 'RECEIPT', date: TODAY, party_id: 'P009', item_id: id, qty: 10, unit: 'KG',
+    price, per: 'KG', amount: price * 10, discount: 0, doc_no: 'G' + id + price, location: 'Shelf', expiry: '2027-01-01' }] }, tok.admin);
+  assert.equal(rec('I0003', 40).ok, true);
+  rec('I0004', 20);
+  assert.equal(g.api('recipes.save', { product: 'BAKLAVA TRAY', lines: [{ item_id: 'I0003', qty_per_unit: 0.6 }, { item_id: 'I0004', qty_per_unit: 0.4 }], cost_only: true }, tok.admin).ok, true);
+  const c = g.api('recipes.cost', { product: 'BAKLAVA TRAY' }, tok.admin).data;
+  assert.deepEqual([c.cost, c.cost_only], [32, true]);                  // 0.6 x 40 + 0.4 x 20
+  assert.equal(g.api('recipes.cost', { product: 'BAKLAVA TRAY' }, tok.store).error.code, 'forbidden');
+  g.api('items.save', { item_id: 'I0001', name: 'BAKLAVA TRAY', final_price: 30 }, tok.admin);
+  const dec = (g.api('data.bootstrap', {}, tok.admin).data.decisions || []).find((d) => d.key === 'cost');
+  assert.equal(dec && dec.count, 1, 'the cost (32) passed the price (30)');
+  // produced: the product grows, the ghee stays
+  const p = g.api('production.post', { product: 'BAKLAVA TRAY', qty: 5, unit: 'PC', date: TODAY }, tok.admin);
+  assert.equal(p.ok, true, JSON.stringify(p));
+  const bal = (id) => Number((g.rows('Balances').find((b) => b.item_id === id) || {}).qty || 0);
+  assert.deepEqual([bal('I0003'), bal('I0004'), bal('I0001')], [10, 10, 5]);
+});
