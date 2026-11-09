@@ -3,7 +3,7 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
-    v: '0.9.177', date: '2026-11-09',
+    v: '0.9.178', date: '2026-11-09',
     ar: { news: ['الوصفات: خانة المنتج تقترح أسماء المنتجات النهائية، فتُربط الوصفة بمنتجها دون خطأ في الاسم.'] },
     en: { news: ['Recipes: the product field offers the names of the final products, so a recipe is linked to its product without a mistyped name.'] },
   },
