@@ -5,7 +5,7 @@ export const GROUPS = [
   ['grp_orders', ['orders', 'orderapprove', 'shoporders', 'trips', 'returns', 'invoices']],
   ['grp_finance', ['lpo', 'accounts']],
   ['grp_follow', ['exec', 'branches', 'dashboard', 'reports']],
-  ['grp_admin', ['masters', 'users']],
+  ['grp_admin', ['masters', 'users', 'guide']],
 ];
 
 export const Counts = { now: {} };

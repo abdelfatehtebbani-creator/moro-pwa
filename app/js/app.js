@@ -28,6 +28,7 @@ import * as returns from './views/returns.js';
 import * as accounts from './views/accounts.js';
 import * as exec from './views/exec.js';
 import * as branches from './views/branches.js';
+import * as guide from './views/guide.js';
 import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
@@ -55,6 +56,8 @@ const ROUTES = {
   coffee:    { view: coffee, perm: 'nav.coffee', group: 'nav_tools' },
   masters:   { view: masters, perm: 'nav.masters', group: 'nav_admin' },
   users:     { view: users, perm: 'nav.users', group: 'nav_admin' },
+  // the user guide: everyone
+  guide:     { view: guide, perm: 'data.bootstrap', group: 'nav_admin' },
 };
 
 const root = document.getElementById('app');
@@ -195,7 +198,9 @@ function buildShell() {
   content = h('section.content');
   // the home screen shown over an idle screen (that screen stays as it is, behind it)
   homeLayer = h('section.content', { hidden: true });
-  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, h('div.spacer'),
+  // "?": the guide, at the chapter that explains this screen
+  const help = h('button.help-btn', { type: 'button', title: t('guide'), 'aria-label': t('guide'), onclick: () => { location.hash = '#/guide?s=' + (currentName || ''); } }, '?');
+  shellEl = h('div.shell', side, h('div.main', h('header.topbar', title, help, h('div.spacer'),
     // who is signed in, on every screen
     h('div.top-user', { title: Data.user.display_name + ' · ' + t('role_' + Data.user.role) }, h('span.top-user-ico', '👤'), h('bdi', Data.user.display_name)), syncEl,
     // the admin (and the developer's account): the version, the language and sign out always at hand
