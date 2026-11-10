@@ -4,13 +4,13 @@
 export const CHANGELOG = [
   {
     v: '0.9.189', date: '2026-11-10',
-    ar: { news: ['(نسخة التطوير) الاستلام بلا خانة إضافية: سجل التشغيلات يستعمل رقم الفاتورة رقمًا لتشغيلة المورد.'] },
-    en: { news: ['(Development copy) Receiving without an extra field: the batch records use the invoice number as the supplier lot.'] },
+    ar: { news: ['الاستلام بلا خانة إضافية: سجل التشغيلات يستعمل رقم الفاتورة رقمًا لتشغيلة المورد.'] },
+    en: { news: ['Receiving without an extra field: the batch records use the invoice number as the supplier lot.'] },
   },
   {
     v: '0.9.188', date: '2026-11-10',
-    ar: { news: ["(نسخة التطوير) سلامة الغذاء: دور جديد \"سلامة الغذاء\" يتابع الإنتاج وصلاحية المواد ولا يعدّل المخزون. كل إنتاج يأخذ رقم تشغيلة (مثل B-2026-1110-01)، وشاشة \"سجل التشغيلات\" تعرض لكل تشغيلة المواد التي دخلتها (من وصفة المنتج، أو مما صُرف لقسمه يوم الإنتاج حتى تكتمل الوصفات) ودفعاتها: المورد ورقم التشغيلة وتاريخ الاستلام والصلاحية. يكمل المسؤول الوردية والأوقات والتحقق ويطبعه بتصميم سجل المصنع. وفي الاستلام خانة اختيارية \"رقم تشغيلة المورد\"."] },
-    en: { news: ["(Development copy) Food safety: a new \"Food safety\" role follows production and the expiry of materials, changing no stock. Every production gets a batch number (like B-2026-1110-01), and the \"Batch records\" screen shows for each batch the materials that went into it (from the product recipe, or what was issued to its department that day until the recipes are in) and their lots: supplier, lot number, date received and expiry. The officer completes the shift, the times and the checks and prints it in the factory form. Receiving has an optional \"Supplier lot No.\" field."] },
+    ar: { news: ["سلامة الغذاء: دور جديد \"سلامة الغذاء\" يتابع الإنتاج وصلاحية المواد ولا يعدّل المخزون. كل إنتاج يأخذ رقم تشغيلة (مثل B-2026-1110-01)، وشاشة \"سجل التشغيلات\" تعرض لكل تشغيلة المواد التي دخلتها (من وصفة المنتج، أو مما صُرف لقسمه يوم الإنتاج حتى تكتمل الوصفات) ودفعاتها: المورد ورقم التشغيلة وتاريخ الاستلام والصلاحية. يكمل المسؤول الوردية والأوقات والتحقق ويطبعه بتصميم سجل المصنع. وفي الاستلام خانة اختيارية \"رقم تشغيلة المورد\"."] },
+    en: { news: ["Food safety: a new \"Food safety\" role follows production and the expiry of materials, changing no stock. Every production gets a batch number (like B-2026-1110-01), and the \"Batch records\" screen shows for each batch the materials that went into it (from the product recipe, or what was issued to its department that day until the recipes are in) and their lots: supplier, lot number, date received and expiry. The officer completes the shift, the times and the checks and prints it in the factory form. Receiving has an optional \"Supplier lot No.\" field."] },
   },
   {
     v: '0.9.187', date: '2026-11-10',
