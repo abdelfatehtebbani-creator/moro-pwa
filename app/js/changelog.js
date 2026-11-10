@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.190', date: '2026-11-10',
-    ar: { news: ['(نسخة التطوير) المواد: خانة البحث تأخذ السطر كله بجانب فلتر القسم، والأزرار في سطر تحتها.'] },
-    en: { news: ['(Development copy) Materials: the search takes the whole line beside the department filter, with the buttons on the line under it.'] },
+    ar: { news: ['المواد: خانة البحث تأخذ السطر كله بجانب فلتر القسم، والأزرار في سطر تحتها.'] },
+    en: { news: ['Materials: the search takes the whole line beside the department filter, with the buttons on the line under it.'] },
   },
   {
     v: '0.9.189', date: '2026-11-10',
