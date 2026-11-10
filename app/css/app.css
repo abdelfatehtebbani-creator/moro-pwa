@@ -847,3 +847,15 @@ p.pickup { margin: 8px 0 2px; }
 .guide-ch table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .guide-ch th, .guide-ch td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: start; vertical-align: top; }
 .guide-note { background: #fff4dd; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+
+/* the batch record, printed in the layout of the company form */
+.card.batch h3 { margin: 16px 0 6px; color: var(--teal); }
+@media print {
+  #print-area.bt-print { direction: rtl; font: 10pt Tahoma, Arial, sans-serif; color: #000; }
+  .bt-print .bt-title { text-align: center; font-weight: 700; font-size: 13pt; margin-bottom: 8px; display: grid; gap: 2px; }
+  .bt-print .bt-en { font-size: 10pt; font-weight: 600; }
+  .bt-print h4 { margin: 10px 0 4px; font-size: 11pt; background: #e8f2f2; padding: 3px 6px; }
+  .bt-print table.bt-t { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  .bt-print table.bt-t th, .bt-print table.bt-t td { border: 1px solid #555; padding: 3px 5px; text-align: center; vertical-align: middle; }
+  .bt-print table.bt-t th { background: #f1f1f1; }
+}

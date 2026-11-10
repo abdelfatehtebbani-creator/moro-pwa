@@ -29,6 +29,7 @@ import * as accounts from './views/accounts.js';
 import * as exec from './views/exec.js';
 import * as branches from './views/branches.js';
 import * as guide from './views/guide.js';
+import * as batches from './views/batches.js';
 import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
@@ -49,6 +50,7 @@ const ROUTES = {
   lpo:       { view: lpo, perm: 'nav.lpo', group: 'nav_ops' },
   issue:     { view: issue, perm: 'nav.issue', group: 'nav_ops' },
   production:{ view: production, perm: 'nav.production', group: 'nav_ops' },
+  batches:   { view: batches, perm: 'nav.batches', group: 'nav_ops' },
   requests:  { view: requests, perm: 'nav.requests', group: 'nav_ops' },
   shoporders:{ view: shoporders, perm: 'nav.shoporders', group: 'nav_ops' },
   reports:   { view: reports, perm: 'nav.reports', group: 'nav_ops' },
@@ -137,6 +139,7 @@ function allowed(name) { return Data.can(ROUTES[name].perm); }
 function firstScreen() {
   if (Data.user && Data.user.role === 'pdg' && allowed('exec')) return 'exec';
   if (Data.user && Data.user.role === 'branch_manager' && allowed('branches')) return 'branches';
+  if (Data.user && Data.user.role === 'food_safety' && allowed('batches')) return 'batches';
   return Object.keys(ROUTES).find(allowed) || 'home';
 }
 

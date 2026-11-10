@@ -73,6 +73,8 @@ var Production = {
                 qty: qty, unit: setup.item.unit, doc_no: doc, purpose: Util.clean(p.product) });
     var saved = Movements.save(session, { movements: movs }, ['PROD_CONSUME', 'PROD_OUTPUT']);
     Shop.madeNotify(session, setup.item.item_id);
+    // the batch number of this production (its traceability record)
+    saved.batch_no = BatchRec.afterProduction(session, saved);
     return saved;
   }
 };

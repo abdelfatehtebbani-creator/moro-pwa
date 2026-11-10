@@ -13,7 +13,9 @@ var SCHEMA = {
   Movements:    ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status', 'client_id', 'updated_by', 'updated_at',
-                 'entry_qty', 'entry_unit', 'discount_kind', 'lpo_no'],
+                 'entry_qty', 'entry_unit', 'discount_kind', 'lpo_no', 'supplier_lot'],
+  BatchRecords: ['batch_no', 'movement_id', 'date', 'item_id', 'qty', 'unit', 'dept', 'created_by', 'created_at', 'shift', 'start_time', 'end_time',
+                 'checks', 'notes', 'status', 'prepared_by', 'prepared_at', 'updated_at'],
   Archive:      ['movement_id', 'date', 'kind', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount',
                  'final_amount', 'doc_no', 'category', 'location', 'expiry', 'expiry_text', 'image', 'purpose',
                  'created_by', 'created_at', 'legacy_ref', 'status'],
@@ -73,7 +75,7 @@ var SCHEMA = {
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['batch_no', 'supplier_lot', 'start_time', 'end_time', 'checks', 'prepared_at', 'dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
