@@ -35,6 +35,8 @@ export async function render(root) {
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
   const date = trackFilled(h('input.input#r-date', { type: 'date', value: today }));
   const invoice = trackFilled(h('input.input#r-invoice', { autocomplete: 'off' }));
+  // the supplier's own lot number (optional): a production batch is traced back to it
+  const lot = trackFilled(h('input.input#r-lot', { autocomplete: 'off', maxlength: 40 }));
   // the purchase order this receipt answers: the approved LPOs of the chosen supplier (optional)
   const lpo = h('select.input#r-lpo');
   const drawLpo = (keep) => {
@@ -183,7 +185,7 @@ export async function render(root) {
   function reset(full) {
     editing = null;
     item.clear(); lockPrice(false); parcels.value = ''; retail.value = '1'; qty.value = ''; unit.clear(); price.value = '';
-    per.clear(); amount.value = ''; discount.value = '0'; dkind.value = ''; net.value = ''; expiry.value = ''; isReturn.checked = false;
+    per.clear(); amount.value = ''; discount.value = '0'; dkind.value = ''; net.value = ''; expiry.value = ''; lot.value = ''; isReturn.checked = false;
     if (full) { supplier.clear(); invoice.value = ''; location.clear(); date.value = Data.todayIso(); }
     [parcels, retail, qty, price, amount, discount, net, expiry, invoice, date].forEach((x) => x.dispatchEvent(new Event('change')));
     info.textContent = '';
@@ -199,6 +201,7 @@ export async function render(root) {
       price: price.value, per: per.input.value.trim().toUpperCase(), amount: amount.value, discount: discount.value || 0, discount_kind: dkind.value,
       doc_no: invoice.value.trim(), location: location.input.value.trim(), expiry: expiry.value,
       lpo_no: isRet() ? '' : lpo.value,
+      supplier_lot: isRet() ? '' : lot.value.trim(),
     };
   }
 
@@ -250,7 +253,7 @@ export async function render(root) {
     unit.set(m.entry_unit || m.unit); per.set(m.per); price.value = m.price; discount.value = m.discount || 0; dkind.value = m.discount_kind === 'value' ? 'value' : '';
     // an edited final-product receipt keeps its own price, locked
     lockPrice(fixedOf(Data.items.get(m.item_id)) !== null || (Data.storeOf(Data.items.get(m.item_id)) === 'FINAL' && m.price !== ''));
-    amount.value = m.amount; net.value = m.final_amount; expiry.value = m.expiry || '';
+    amount.value = m.amount; net.value = m.final_amount; expiry.value = m.expiry || ''; lot.value = m.supplier_lot || '';
     location.set(m.location); isReturn.checked = m.kind === 'SUPPLIER_RETURN';
     if (!location.value && m.location) location.input.value = m.location;
     [date, invoice, parcels, retail, qty, price, discount, amount, net, expiry].forEach((x) => x.dispatchEvent(new Event('change')));
@@ -306,7 +309,7 @@ export async function render(root) {
         field(t('qty'), qty), field(t('unit'), unit), conv,
         field(t('price'), price), field(t('per'), per),
         field(t('amount'), amount), field(t('discount'), h('div.unit-pair', discount, dkind)),
-        field(t('net'), net), field(t('expiry'), expiry),
+        field(t('net'), net), field(t('expiry'), expiry), field(t('supplier_lot'), lot),
         field(t('location'), location, { wide: true }),
         h('label.check.wide', isReturn, ' ', t('supplier_return'))),
       h('div.form-actions', saveBtn, newBtn, delBtn), status,

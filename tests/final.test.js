@@ -124,3 +124,27 @@ test('a recipe for the cost only: priced from the latest purchases, nothing take
   const bal = (id) => Number((g.rows('Balances').find((b) => b.item_id === id) || {}).qty || 0);
   assert.deepEqual([bal('I0003'), bal('I0004'), bal('I0001')], [10, 10, 5]);
 });
+
+test('a batch record: every production gets a batch number; its materials come from the recipe, with the receipts they came from', () => {
+  const { g, tok } = env();
+  g.seed('Items', g.rows('Items').concat([{ item_id: 'I0003', name: 'SUGAR B', category: 'Food', unit: 'KG', min_stock: 0, active: true, store: 'DRY' }]));
+  g.seed('Parties', g.rows('Parties').concat([{ party_id: 'P009', name: 'Unit Star', kind: 'supplier', active: true }]));
+  const rec = (date, q, lot, exp) => g.api('movements.save', { movements: [{ kind: 'RECEIPT', date, party_id: 'P009', item_id: 'I0003', qty: q, unit: 'KG',
+    price: 2, per: 'KG', amount: 2 * q, discount: 0, doc_no: 'INV-' + lot, location: 'Shelf', expiry: exp, supplier_lot: lot }] }, tok.admin);
+  assert.equal(rec('2026-09-01', 20, 'SUG-1', '2028-09-01').ok, true);
+  rec('2026-09-10', 30, 'SUG-2', '2028-10-01');
+  g.api('recipes.save', { product: 'BAKLAVA TRAY', lines: [{ item_id: 'I0003', qty_per_unit: 5 }], cost_only: true }, tok.admin);
+  g.api('items.save', { item_id: 'I0001', name: 'BAKLAVA TRAY', final_price: 30 }, tok.admin);
+  const p = g.api('production.post', { product: 'BAKLAVA TRAY', qty: 6, unit: 'PC', date: TODAY }, tok.admin);
+  assert.equal(p.ok, true, JSON.stringify(p));
+  assert.match(p.data.batch_no, /^B-\d{4}-\d{4}-01$/);
+  const list = g.api('batches.list', { from: TODAY, to: TODAY }, tok.admin).data;
+  assert.deepEqual(list.map((x) => x.batch_no), [p.data.batch_no]);
+  const r = g.api('batches.get', { batch_no: p.data.batch_no }, tok.admin).data;
+  assert.equal(r.source, 'recipe');
+  assert.deepEqual(r.raw.map((l) => [l.item_id, l.qty]), [['I0003', 30]]);
+  assert.deepEqual(r.raw[0].lots.map((l) => [l.lot, l.qty, l.supplier]), [['SUG-1', 20, 'Unit Star'], ['SUG-2', 10, 'Unit Star']], 'the oldest stock first');
+  assert.equal(g.api('batches.save', { batch_no: r.batch_no, shift: 'morning', start_time: '08:00', end_time: '12:30', checks: { fefo: { ok: true } }, notes: 'ok' }, tok.admin).ok, true);
+  assert.deepEqual(g.api('batches.get', { batch_no: r.batch_no }, tok.admin).data.checks.fefo, { ok: true, note: '' });
+  assert.equal(g.api('batches.list', {}, tok.store).error.code, 'forbidden');
+});

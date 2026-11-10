@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.188', date: '2026-11-10',
+    ar: { news: ["(نسخة التطوير) سلامة الغذاء: دور جديد \"سلامة الغذاء\" يتابع الإنتاج وصلاحية المواد ولا يعدّل المخزون. كل إنتاج يأخذ رقم تشغيلة (مثل B-2026-1110-01)، وشاشة \"سجل التشغيلات\" تعرض لكل تشغيلة المواد التي دخلتها (من وصفة المنتج، أو مما صُرف لقسمه يوم الإنتاج حتى تكتمل الوصفات) ودفعاتها: المورد ورقم التشغيلة وتاريخ الاستلام والصلاحية. يكمل المسؤول الوردية والأوقات والتحقق ويطبعه بتصميم سجل المصنع. وفي الاستلام خانة اختيارية \"رقم تشغيلة المورد\"."] },
+    en: { news: ["(Development copy) Food safety: a new \"Food safety\" role follows production and the expiry of materials, changing no stock. Every production gets a batch number (like B-2026-1110-01), and the \"Batch records\" screen shows for each batch the materials that went into it (from the product recipe, or what was issued to its department that day until the recipes are in) and their lots: supplier, lot number, date received and expiry. The officer completes the shift, the times and the checks and prints it in the factory form. Receiving has an optional \"Supplier lot No.\" field."] },
+  },
+  {
     v: '0.9.187', date: '2026-11-10',
     ar: { news: ['الدليل كله بالإنجليزية أيضًا: الكاشير، وم.التوزيع، وأمين المخزن، ومدير الفروع، والمدير العام، والمدير، والتقارير، والمصطلحات، إلى جانب ما تُرجم من قبل.'] },
     en: { news: ['The whole guide is in English too: cashier, distribution, storekeeper, branch manager, general manager, admin, reports and terms, with the chapters translated before.'] },

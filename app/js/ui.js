@@ -112,6 +112,7 @@ const ICONS = {
   coffee: 'M2 21h18v-2H2v2zM20 8h-2V5h2v3zm0-5H4v10a4 4 0 004 4h6a4 4 0 004-4v-3h2a2 2 0 002-2V5a2 2 0 00-2-2z',
   more: 'M6 10a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4zm-6 0a2 2 0 100 4 2 2 0 000-4z',
   guide: 'M18 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zM8 6h8v2H8V6zm0 4h8v2H8v-2zm0 4h5v2H8v-2z',
+  batches: 'M9 2h6v2h-1v4.3l5.6 9.7A2 2 0 0117.9 21H6.1a2 2 0 01-1.7-3l5.6-9.7V4H9V2zm1.6 12h2.8l-1.4-2.4L10.6 14z',
 };
 export function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

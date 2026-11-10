@@ -11,7 +11,7 @@
 var SIGN = { RECEIPT: 1, SUPPLIER_RETURN: -1, ISSUE: -1, DEPT_RETURN: 1, PROD_CONSUME: -1, PROD_OUTPUT: 1, DISPOSAL: -1 };
 var SAVE_KINDS = ['RECEIPT', 'SUPPLIER_RETURN', 'ISSUE', 'DEPT_RETURN', 'DISPOSAL'];
 var EDITABLE = ['date', 'party_id', 'item_id', 'qty', 'unit', 'price', 'per', 'amount', 'discount', 'discount_kind', 'final_amount',
-                'doc_no', 'location', 'expiry', 'purpose', 'image', 'lpo_no'];
+                'doc_no', 'location', 'expiry', 'purpose', 'image', 'lpo_no', 'supplier_lot'];
 
 var Movements = {
   checkLpo: function (m) {
@@ -75,6 +75,8 @@ var Movements = {
       doc_no: Util.clean(src.doc_no),
       // a receipt may name the purchase order it answers (an approved LPO of the same supplier)
       lpo_no: src.kind === 'RECEIPT' ? Util.clean(src.lpo_no) : '',
+      // the supplier's own lot number of a receipt (for tracing a batch back to it)
+      supplier_lot: src.kind === 'RECEIPT' ? Util.clean(src.supplier_lot) : '',
       location: Util.clean(src.location),
       expiry: String(src.expiry || ''),
       purpose: Util.clean(src.purpose),
