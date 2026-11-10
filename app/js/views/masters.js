@@ -271,7 +271,8 @@ function items(body, isAdmin) {
     });
     file.click();
   };
-  body.replaceChildren(h('div.search', search, deptFilter, Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
+  // the search and the filter on one line (the search takes the room), the buttons on the next
+  body.replaceChildren(h('div.search', search, deptFilter), h('div.tool-row', Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
       Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
       showPrice ? h('button.btn.secondary', { type: 'button', onclick: choosePrint }, t('price_list_print')) : null),
