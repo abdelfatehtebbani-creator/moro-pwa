@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.190', date: '2026-11-10',
+    ar: { news: ['(نسخة التطوير) المواد: خانة البحث تأخذ السطر كله بجانب فلتر القسم، والأزرار في سطر تحتها.'] },
+    en: { news: ['(Development copy) Materials: the search takes the whole line beside the department filter, with the buttons on the line under it.'] },
+  },
+  {
     v: '0.9.189', date: '2026-11-10',
     ar: { news: ['الاستلام بلا خانة إضافية: سجل التشغيلات يستعمل رقم الفاتورة رقمًا لتشغيلة المورد.'] },
     en: { news: ['Receiving without an extra field: the batch records use the invoice number as the supplier lot.'] },

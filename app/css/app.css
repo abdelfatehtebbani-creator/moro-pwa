@@ -859,3 +859,7 @@ p.pickup { margin: 8px 0 2px; }
   .bt-print table.bt-t th, .bt-print table.bt-t td { border: 1px solid #555; padding: 3px 5px; text-align: center; vertical-align: middle; }
   .bt-print table.bt-t th { background: #f1f1f1; }
 }
+
+/* a row of buttons under a search line */
+.tool-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.tool-row .btn { white-space: nowrap; }
