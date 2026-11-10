@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.187', date: '2026-11-10',
-    ar: { news: ['(نسخة التطوير) الدليل كله بالإنجليزية أيضًا: الكاشير، وم.التوزيع، وأمين المخزن، ومدير الفروع، والمدير العام، والمدير، والتقارير، والمصطلحات، إلى جانب ما تُرجم من قبل.'] },
-    en: { news: ['(Development copy) The whole guide is in English too: cashier, distribution, storekeeper, branch manager, general manager, admin, reports and terms, with the chapters translated before.'] },
+    ar: { news: ['الدليل كله بالإنجليزية أيضًا: الكاشير، وم.التوزيع، وأمين المخزن، ومدير الفروع، والمدير العام، والمدير، والتقارير، والمصطلحات، إلى جانب ما تُرجم من قبل.'] },
+    en: { news: ['The whole guide is in English too: cashier, distribution, storekeeper, branch manager, general manager, admin, reports and terms, with the chapters translated before.'] },
   },
   {
     v: '0.9.186', date: '2026-11-09',
