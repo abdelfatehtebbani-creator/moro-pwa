@@ -119,6 +119,9 @@ var ROUTES = {
   'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
+  'trips.depart':     function (s, p) { return Trips.depart(s, p); },
+  'report.dispatch':  function (s, p) { return Dispatch.report(s, p); },
+  'dispatch.review':  function (s, p) { return Dispatch.review(s, p); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
   'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
   'shop.purchase':    function (s, p) { return Shop.purchase(s, p); },
@@ -169,7 +172,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '52';
+var SCHEMA_VERSION = '53';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

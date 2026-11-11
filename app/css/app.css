@@ -93,6 +93,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .trip-pick { display: grid; gap: 6px; margin: 8px 0 12px; }
 .trip-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
 .trip-row b.num { min-width: 1.2em; color: var(--brand); }
+.trip-depart { margin: 8px 10px; }
+.trip-left { display: block; padding: 4px 10px; }
+.rep-foot p { margin: 4px 0; font-size: .92em; }
+.dr-review { margin-top: 10px; }
+.dr-day { display: grid; grid-template-columns: auto 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 8px; }
+@media (max-width: 560px) { .dr-day { grid-template-columns: auto 1fr; } .dr-day input { grid-column: 1 / -1; } }
 .trip-stop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line); }
 .trip-stop > b.num { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; flex: none; }
 .trip-stop-main { flex: 1 1 150px; min-width: 0; display: grid; gap: 2px; }
@@ -343,6 +349,7 @@ input[type="date"].input { min-width: 0; }
   .pr-table td.num { text-align: right; } .pr-table td.ctr { text-align: center; }
   .pr-table tr { page-break-inside: avoid; }
   .pr-count { margin-top: 10pt; font-weight: 700; }
+  .pr-foot p { margin: 4pt 0; }
   .pr-note { font-size: 8pt; color: #6e757d; font-style: italic; }
 }
 .combo .input { padding-inline-end: 34px; }

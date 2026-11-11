@@ -62,7 +62,7 @@ var BatchRec = {
     for (var j = 0; j < cover.length && want > 0; j++) {
       var take = Math.min(want, cover[j].qty);
       var r = cover[j].m;
-      out.push({ qty: Util.round(take), party_id: r.party_id, lot: r.supplier_lot || r.doc_no || '', received: String(r.date), expiry: String(r.expiry || ''), kind: r.kind });
+      out.push({ movement_id: r.movement_id, qty: Util.round(take), party_id: r.party_id, lot: r.supplier_lot || r.doc_no || '', received: String(r.date), expiry: String(r.expiry || ''), kind: r.kind });
       want = Util.round(want - take);
     }
     return out;

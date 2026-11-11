@@ -103,6 +103,8 @@ export function reportToXlsx(report) {
   });
   const endRow = H + report.rows.length;
   line(endRow + 2, [cell('A' + (endRow + 2), (L.records || 'Number of records: ') + report.rows.length, 4, 't')]);
+  // lines under the table (a review, a signature)
+  (report.foot || []).forEach((text, k) => line(endRow + 3 + k, [cell('A' + (endRow + 3 + k), text, 4, 't')]));
   // column widths from content
   const widths = cols.map((c, i) => {
     const longest = Math.max(String(c.label).length, ...report.rows.slice(0, 500).map((r) => String(r[i] ?? '').length));

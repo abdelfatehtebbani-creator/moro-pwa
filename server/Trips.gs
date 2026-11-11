@@ -36,10 +36,12 @@ var Trips = {
     var out = {};
     Object.keys(t).forEach(function (k) { out[k] = t[k]; });
     out.stops = stops;
+    // the driver's vehicle, offered when leaving
+    if (!t.vehicle) out.vehicle_hint = String((Repo.find('Users', 'user_id', t.driver_id) || {}).vehicle || '');
     // preparing → loaded (all loaded) → in_transit (one delivered) → completed (all delivered)
     var loaded = stops.filter(function (s) { return s.loaded_at; }).length, delivered = stops.filter(function (s) { return s.delivered_at; }).length;
     if (t.status !== 'cancelled') {
-      out.status = !stops.length ? 'preparing' : delivered === stops.length ? 'completed' : delivered ? 'in_transit' : loaded === stops.length ? 'loaded' : 'preparing';
+      out.status = !stops.length ? 'preparing' : delivered === stops.length ? 'completed' : delivered || t.departed_at ? 'in_transit' : loaded === stops.length ? 'loaded' : 'preparing';
     }
     return out;
   },
@@ -157,8 +159,10 @@ var Trips = {
         ch = { loaded_at: now, loaded_by: session.user_id };
       } else {
         Util.require(s.loaded_at, 'stop_not_loaded');
-        // the car leaves with the whole trip: no delivery before every order of it is loaded
+        // the car leaves with the whole trip: no delivery before every order of it is loaded, and the driver said it left
         Util.require(Repo.all('TripStops').every(function (x) { return x.trip_id !== t.trip_id || x.loaded_at; }), 'trip_not_all_loaded');
+        // (a trip already on its way when leaving was added has no departure: it goes on)
+        Util.require(t.departed_at || Repo.all('TripStops').some(function (x) { return x.trip_id === t.trip_id && x.delivered_at; }), 'trip_not_departed');
         if (s.delivered_at) return { trip: Trips.view(t), version: Version.get() };
         ch = { delivered_at: now, delivered_by: session.user_id };
       }
@@ -181,6 +185,31 @@ var Trips = {
       } else if (step === 'deliver') Notify.orderDelivered(after);
       else OrderNotify.loaded(after, session);
       return { trip: Trips.view(t), version: Version.bump() };
+    });
+  },
+
+  /**
+   * The driver leaves with the whole trip loaded: the time, the vehicle and the temperature of the products (°C), for
+   * the dispatching record. p: {trip_id, vehicle, temp}.
+   */
+  depart: function (session, p) {
+    var temp = Util.num(p.temp);
+    Util.require(temp !== null && temp >= -40 && temp <= 90, 'temp_invalid');
+    var vehicle = Util.clean(p.vehicle).slice(0, 30);
+    Util.require(vehicle, 'vehicle_required');
+    return withLock(function () {
+      var t = Repo.find('Trips', 'trip_id', p.trip_id);
+      Util.require(t && t.status !== 'cancelled' && t.driver_id === session.user_id, 'not_found');
+      if (t.departed_at) return { trip: Trips.view(t), version: Version.get() };
+      var stops = Repo.all('TripStops').filter(function (x) { return x.trip_id === t.trip_id; });
+      Util.require(stops.length && stops.every(function (x) { return x.loaded_at; }), 'trip_not_all_loaded');
+      var now = Util.nowIso();
+      Repo.update('Trips', 'trip_id', t.trip_id, { vehicle: vehicle, temp: Util.round(temp), departed_at: now, departed_by: session.user_id, updated_at: now });
+      // the vehicle is kept for the driver's next trips
+      var me = Repo.find('Users', 'user_id', session.user_id);
+      if (me && String(me.vehicle || '') !== vehicle) Repo.update('Users', 'user_id', me.user_id, { vehicle: vehicle });
+      Audit.log(session.user_id, 'trip_departed', 'Trips', t.trip_id, null, { vehicle: vehicle, temp: temp });
+      return { trip: Trips.view(Repo.find('Trips', 'trip_id', t.trip_id)), version: Version.bump() };
     });
   },
 

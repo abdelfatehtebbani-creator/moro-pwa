@@ -37,6 +37,10 @@ const W = {
   'Final products (QR)': 'المنتج النهائي (ر.ق)', 'Expiry': 'الصلاحية', 'Direction': 'الاتجاه', 'Department / store': 'القسم / المخزن', 'Delivered': 'التسليم',
   'Days without issue': 'أيام بلا صرف', 'Days of cover': 'أيام التغطية', 'Days left': 'الأيام المتبقية', 'Date issued': 'تاريخ الصرف', 'Daily average': 'المعدل اليومي',
   'Current balance': 'الرصيد الحالي', 'Cost (QR)': 'التكلفة (ر.ق)', 'Batch source': 'مصدر الدفعة', 'Balance': 'الرصيد', 'Available': 'المتاح', 'Approved': 'الاعتماد',
+  'Dispatching and delivery record': 'سجل صرف وتسليم المنتجات', 'Loading time': 'وقت التحميل', 'Batch No.': 'رقم التشغيلة',
+  'Production date': 'تاريخ الإنتاج', 'Quantity and unit': 'الكمية ووحدتها', 'Branch / recipient': 'الفرع / الجهة المستلمة',
+  'Destination address': 'عنوان الوجهة', 'Vehicle no.': 'رقم المركبة', 'Driver': 'اسم السائق', 'Product / vehicle temperature (°C)': 'درجة حرارة المنتج/المركبة (°م)',
+  'Departure time': 'وقت المغادرة', 'Recipient (confirmed)': 'المستلم (تأكيد الاستلام)', 'Handed over by': 'مسؤول التسليم', '#': 'م',
   // cells
   'Food': 'غذائي', 'Packaging': 'تغليف', 'Chilled foods': 'مواد مبرّدة', 'Dry foods': 'مواد جافة', 'Final products': 'المنتج النهائي', 'Cleaning': 'مواد تنظيف',
   'No expiry': 'بلا صلاحية', 'Expired': 'منتهي الصلاحية', 'Expires Today': 'ينتهي اليوم', 'Never issued': 'لم يُصرف قط', 'Incoming': 'وارد', 'Outgoing': 'صادر',

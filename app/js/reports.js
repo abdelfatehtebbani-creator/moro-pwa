@@ -46,7 +46,26 @@ export const REPORTS = [
   { id: 'receiptShort', group: 'orders', opts: ['dates'], needs: 'orders', build: receiptShort },
   { id: 'unavailable', group: 'orders', opts: ['dates'], needs: 'orders', build: unavailable },
   { id: 'shopSales', group: 'orders', opts: ['dates'], needs: 'orders', prices: true, build: shopSales },
+  { id: 'dispatch', group: 'orders', opts: ['dates'], needs: 'dispatch', build: dispatch },
 ];
+
+// ---------- the dispatching and delivery record (food safety; data from report.dispatch)
+const dmy = (s) => (s ? String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) : '');
+function dispatch(p, movs, data) {
+  const join = (r, f) => [...new Set(r.batches.map(f).filter(Boolean))].join(' · ');
+  const rows = data.rows.map((r, i) => {
+    const it = Data.items.get(r.item_id);
+    return [i + 1, r.date, r.loaded, r.description || (it ? Data.nameOf(it) : r.item_id), join(r, (b) => b.batch), join(r, (b) => dmy(b.made)), join(r, (b) => dmy(b.expiry)),
+      r.qty + ' ' + (r.unit || ''), partyName(r.shop_party_id), r.address, r.vehicle, r.driver, r.temp, r.departed,
+      r.received_by ? r.received_by + ' ' + stamp(r.received_at).slice(11) : '', r.handed_by];
+  });
+  const days = [...new Set(data.rows.map((r) => r.date))];
+  return { title: 'Dispatching and delivery record', subtitle: periodText(p),
+    columns: cols(['#', 'n'], ['Date', 'd'], ['Loading time', 't'], ['Product', 't'], ['Batch No.', 't'], ['Production date', 't'], ['Expiry date', 't'],
+      ['Quantity and unit', 't'], ['Branch / recipient', 't'], ['Destination address', 't'], ['Vehicle no.', 't'], ['Driver', 't'],
+      ['Product / vehicle temperature (°C)', 'n'], ['Departure time', 't'], ['Recipient (confirmed)', 't'], ['Handed over by', 't']),
+    rows, review: { days, reviews: data.reviews } };
+}
 
 // ---------- shop orders (data from orders.report: the orders of the period and their invoices)
 const stamp = (iso) => (iso ? String(iso).replace('T', ' ').slice(0, 16) : '');
@@ -603,5 +622,6 @@ export function reportText(rep, fmtNum, fmtDate) {
     }).filter(Boolean).join(' | '));
   });
   if (!rep.rows.length) lines.push((rep.labels || {}).none || 'No data.');
+  (rep.foot || []).forEach((x) => lines.push(x));
   return lines.join('\n');
 }
