@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.193', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) مدة صلاحية المنتج النهائي: خانة جديدة بجانب سعره. عند كل إنتاج يُحسب تاريخ الانتهاء تلقائيًا من يوم الإنتاج وهذه المدة، ويظهر في سجل الصرف والتسليم وفي تقارير الصلاحية."], "admin": "اكتب مدة الصلاحية بالأيام لكل منتج نهائي في شاشة المواد. من يعدّل السعر يعدّل المدة."},
+    en: {"news": ["(Development copy) Final product shelf life: a new field beside its price. At each production the expiry is worked out from the production day and this shelf life, and shows in the dispatching record and the expiry reports."], "admin": "Write the shelf life in days for each final product in the materials screen. Whoever sets the price sets it."},
+  },
+  {
     v: '0.9.192', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) الرحلات: يختار مسؤول التوزيع المركبة عند تجهيز الرحلة. تظهر مركبة السائق تلقائيًا ويمكن تغييرها."]},
     en: {"news": ["(Development copy) Trips: distribution chooses the vehicle when making the trip. The driver’s vehicle is filled in and can be changed."]},
