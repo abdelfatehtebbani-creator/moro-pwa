@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.195', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: مربع «مراجعة مسؤول الجودة» يظهر الآن لمستخدمي سلامة الغذاء ذوي الصلاحيات المخصصة، واختفت كلمة null التي كانت تظهر تحت الجدول."]},
+    en: {"news": ["(Development copy) Dispatching record: the \"Quality officer review\" box now shows for food safety users with custom permissions, and the stray \"null\" under the table is gone."]},
+  },
+  {
     v: '0.9.194', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) استلام الطلبية: يكتب الكاشير درجة حرارة المنتجات عند الوصول مع الكميات، وتظهر في سجل الصرف والتسليم بجانب حرارة المغادرة."], "todo": "الكاشير: عند تأكيد استلام الطلبية اكتب درجة حرارة المنتجات عند الوصول."},
     en: {"news": ["(Development copy) Receiving an order: the cashier writes the temperature of the products on arrival with the quantities, shown in the dispatching record beside the temperature when leaving."], "todo": "Cashiers: when confirming an order received, write the temperature of the products on arrival."},
