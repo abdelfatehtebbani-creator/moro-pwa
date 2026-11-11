@@ -196,7 +196,7 @@ function menu() {
   const tiles = [];
   if (caps.has('production.post')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: production }, h('span.k-ico', '🧁'), h('b', k('production'))));
   if (caps.has('shop.hand')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: shopLines }, h('span.k-ico', '📦'), h('b', k('shop'))));
-  if (caps.has('requests.create')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: request }, h('span.k-ico', '🧺'), h('b', k('request'))));
+  if (caps.has('requests.create')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: request }, h('span.k-ico', '🛒'), h('b', k('request'))));
   frame(k('home'), h('div.k-grid.k-actions', { style: 'grid-template-columns: repeat(' + Math.max(1, tiles.length) + ', minmax(0, 340px)); justify-content: center;' }, tiles));
 }
 

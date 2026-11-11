@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.202', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: أيقونة «طلب مواد» صارت عربة تسوق بعجلات."]},
+    en: {"news": ["(Development copy) Shared device: the \"Ask the store\" icon is now a shopping cart on wheels."]},
+  },
+  {
     v: '0.9.201', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) طلبات الأقسام: السطر الذي رصيده في المخزن صفر يظهر بخلفية حمراء وعلامة «نفد» بجانب الرصيد."]},
     en: {"news": ["(Development copy) Department requests: a line with nothing in stock shows with a red background and an \"Out of stock\" mark beside the balance."]},
