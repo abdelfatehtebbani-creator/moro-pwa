@@ -217,8 +217,17 @@ function renderTables(root) {
   function reviewFoot(rv) {
     return rv.days.map((d) => {
       const v = rv.reviews.find((x) => x.date === d);
-      return t('dr_line', { d: fmtDate(d) }) + ' ' + (!v ? t('dr_not_yet')
-        : (v.ok ? t('yes') : t('no')) + (v.note ? ' · ' + t('note') + ': ' + v.note : '') + ' · ' + t('dr_by', { u: v.by, d: fmtDate(String(v.at).slice(0, 10)) }));
+      // short parts, each kept whole (a date or a Latin name inside Arabic text otherwise jumps around)
+      const iso = (x) => '⁨' + x + '⁩';
+      const day = (s) => '⁦' + String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) + '⁩';
+      const parts = [t('dr_title'), t('dr_day', { d: day(d) })];
+      if (!v) parts.push(t('dr_not_yet'));
+      else {
+        parts.push(t('dr_ok', { v: v.ok ? t('yes') : t('no') }));
+        if (v.note) parts.push(t('dr_note', { n: iso(v.note) }));
+        parts.push(t('dr_who', { u: iso(v.by) }), t('dr_when', { d: day(String(v.at).slice(0, 10)) }));
+      }
+      return parts.map(iso).join('  |  ');
     });
   }
 
@@ -269,7 +278,8 @@ function renderTables(root) {
   const fileName = (ext) => current.title.replace(/[\\/:*?"<>|]/g, '-') + '_' + Data.todayIso() + '.' + ext;
 
   function excel() {
-    const blob = reportToXlsx({ ...current, company: 'ALAKER SWEETS' });
+    // Excel: the right-to-left sheet orders the parts itself; the direction marks are left out
+    const blob = reportToXlsx({ ...current, company: 'ALAKER SWEETS', foot: (current.foot || []).map((x) => x.replace(/[⁦-⁩]/g, '')) });
     const a = h('a', { href: URL.createObjectURL(blob), download: fileName('xlsx') });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
