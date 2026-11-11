@@ -19,6 +19,14 @@ var Masters = {
     return Util.round(n);
   },
 
+  /** A shelf life in whole days (1 to 3650), or none. */
+  shelfDays: function (v) {
+    if (v === '' || v === null || v === undefined) return '';
+    var n = Util.num(v);
+    Util.require(n !== null && n >= 1 && n <= 3650 && Math.round(n) === n, 'shelf_invalid');
+    return n;
+  },
+
   /** payload: {item_id?, name, store (or category from older apps), unit, min_stock, image, active} */
   saveItem: function (session, p) {
     return withLock(function () {
@@ -41,7 +49,8 @@ var Masters = {
                      sale_price: Util.num(p.sale_price) === null ? '' : Util.num(p.sale_price), shop_orderable: p.shop_orderable === true,
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '',
-                     name_ar: Util.clean(p.name_ar), dept: store === 'FINAL' ? Masters.deptOf(p.dept) : '' };
+                     name_ar: Util.clean(p.name_ar), dept: store === 'FINAL' ? Masters.deptOf(p.dept) : '',
+                     shelf_days: p.shelf_days !== undefined && store === 'FINAL' && Perm.has(session, 'final_price') ? Masters.shelfDays(p.shelf_days) : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -92,6 +101,11 @@ var Masters = {
       if (p.final_price !== undefined && String(p.final_price) !== String(cur.final_price === undefined ? '' : cur.final_price)) {
         Perm.require(session, 'final_price');
         ch.final_price = Masters.finalPrice(p.final_price);
+      }
+      // a final product's shelf life in days: its expiry is worked out when it is produced (set with its price)
+      if (p.shelf_days !== undefined && String(p.shelf_days) !== String(cur.shelf_days === undefined ? '' : cur.shelf_days)) {
+        Perm.require(session, 'final_price');
+        ch.shelf_days = Masters.shelfDays(p.shelf_days);
       }
       if (p.pack_units !== undefined || p.report_unit !== undefined || p.store_unit !== undefined) {
         Perm.require(session, 'packaging');

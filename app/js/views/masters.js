@@ -162,7 +162,10 @@ function items(body, isAdmin) {
     const canFinal = Data.can('final_price');
     const finalPrice = trackFilled(h('input.input.num#e-fprice', { type: 'number', min: 0, step: 'any', value: it && it.final_price !== undefined ? it.final_price : '', disabled: !canFinal }));
     const costBox = h('div.cost-box');
-    const finalField = h('div', h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice), costBox);
+    // its shelf life in days: the expiry of each production is worked out from it
+    const shelf = trackFilled(h('input.input.num#e-shelf', { type: 'number', min: 1, max: 3650, step: 1, inputmode: 'numeric', value: it && it.shelf_days !== undefined ? it.shelf_days : '', disabled: !canFinal }));
+    const finalField = h('div', h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice), costBox,
+      h('div.field', h('label', { for: 'e-shelf' }, t('shelf_days')), shelf, h('small.muted', t('shelf_days_help'))));
     if (it && canFinal && Data.recipes.some((r) => String(r.product).trim().toUpperCase() === String(it.name).trim().toUpperCase())) {
       call('recipes.cost', { product: it.name }).then((c) => {
         if (!c.lines.length) return;
@@ -203,6 +206,9 @@ function items(body, isAdmin) {
       if (canFinal && cat.value === 'FINAL') {
         if (finalPrice.value !== '' && !(Number(finalPrice.value) >= 0)) return flash(finalPrice);
         p.final_price = finalPrice.value;
+        const sd = shelf.value.trim();
+        if (sd !== '' && !(Number(sd) >= 1 && Number.isInteger(Number(sd)))) return flash(shelf);
+        p.shelf_days = sd;
       }
       save('items.save', p, close, err, typeof after === 'function' ? after : null);
     };

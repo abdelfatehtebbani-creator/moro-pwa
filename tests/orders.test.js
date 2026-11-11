@@ -89,6 +89,22 @@ test('orders: distribution rejects with a reason; the cashier cancels only a dra
   assert.equal(g.api('orders.cancel', { order_id: d.order_id }, tok.cashier).ok, true);
 });
 
+test('a final product’s shelf life: set with its price, its expiry worked out at each production', () => {
+  const { g, tok } = env();
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 2.5 }, tok.admin).error.code, 'shelf_invalid');
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 3 }, tok.cashier).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 3 }, tok.admin).ok, true);
+  const r = g.api('production.post', { product: 'BAKLAVA BOX', qty: 4, date: '2026-11-30', client_id: 'p1' }, tok.baklava);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const out = g.rows('Movements').find((m) => m.kind === 'PROD_OUTPUT');
+  assert.equal(String(out.expiry), '2026-12-03');
+  assert.equal(String(g.rows('Balances').find((b) => b.item_id === 'I0002').last_expiry), '2026-12-03');
+  // no shelf life: no expiry
+  g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: '' }, tok.admin);
+  g.api('production.post', { product: 'BAKLAVA BOX', qty: 1, date: '2026-11-30', client_id: 'p2' }, tok.baklava);
+  assert.equal(String(g.rows('Movements').filter((m) => m.kind === 'PROD_OUTPUT')[1].expiry || ''), '');
+});
+
 test('production without a recipe: a final product’s stock goes up, nothing is taken', () => {
   const { g, tok, bal } = env();
   const r = g.api('production.post', { product: 'BAKLAVA BOX', qty: 4, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
