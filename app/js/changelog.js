@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.197', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: سطر مراجعة الجودة مقسّم إلى أجزاء قصيرة بتواريخ رقمية، فيُقرأ بالعربية بترتيبه الصحيح."]},
+    en: {"news": ["(Development copy) Dispatching record: the quality review line is in short parts with numeric dates, so it reads in order in Arabic."]},
+  },
+  {
     v: '0.9.196', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: الجدول كاملًا في PDF (صفحة بالعرض)، ومراجعة مسؤول الجودة ظاهرة في Excel على عرض الجدول، والفرع وعنوان الوجهة في عمود واحد، وزر حفظ المراجعة داخل الشاشة."]},
     en: {"news": ["(Development copy) Dispatching record: the whole table in the PDF (landscape page), the quality review visible in Excel across the table, the branch and the destination address in one column, and the review save button within the screen."]},
