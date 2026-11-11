@@ -412,8 +412,11 @@ export async function render(root, name) {
       } }, t('diff_accept')));
     }
     if (receiving && got.length) {
-      actions.append(h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+      // the temperature of the products on arrival (the driver wrote it when leaving)
+      const temp = trackFilled(h('input.input.num.arrival-temp', { type: 'number', step: '0.1', inputmode: 'decimal' }));
+      actions.append(h('label.arrival', t('arrival_temp'), ' ', temp), h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
         const btn = e.currentTarget;
+        if (temp.value === '' || !isFinite(Number(temp.value))) { flash(temp); toast(t('err.temp_invalid'), 'err'); return; }
         for (const x of got) {
           const v = Number(x.q.value);
           if (x.q.value === '' || v < 0 || v > x.line.handed_qty) return flash(x.q);
@@ -421,7 +424,7 @@ export async function render(root, name) {
         }
         btn.disabled = true;
         try {
-          await act('orders.receive', { order_id: o.order_id, lines: got.map((x) => ({ line_no: x.line.line_no, qty: Number(x.q.value), reason: x.why.value, note: x.note.value })) });
+          await act('orders.receive', { order_id: o.order_id, temp: Number(temp.value), lines: got.map((x) => ({ line_no: x.line.line_no, qty: Number(x.q.value), reason: x.why.value, note: x.note.value })) });
           toast(t('order_received'), 'ok'); loadList();
         } catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       } }, t('order_receive')));

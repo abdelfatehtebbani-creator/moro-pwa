@@ -65,7 +65,7 @@ var Auth = {
   publicUser: function (u) {
     return { user_id: u.user_id, username: u.username, display_name: u.display_name, role: u.role, caps: Perm.capsOf(u),
              custom_caps: !!String(u.caps || '').trim(), stores: Stores.ofUser(u), store_ops: Stores.opsOf(u),
-             shop: String(u.shop || ''), depts: Auth.deptsOf(u), branches: Branches.ofUser(u), developer: u.developer === true };
+             shop: String(u.shop || ''), depts: Auth.deptsOf(u), branches: Branches.ofUser(u), developer: u.developer === true, vehicle: String(u.vehicle || '') };
   },
 
   /** First run only: creates the admin account when the Users sheet is empty. */
@@ -172,6 +172,8 @@ var Auth = {
       changes.shop = shop;
     }
     if (p.developer !== undefined) changes.developer = p.developer === true;
+    // a driver's vehicle (its plate): offered on each of their trips
+    if (p.vehicle !== undefined) changes.vehicle = Util.clean(p.vehicle).slice(0, 30);
     // a branch manager's shops
     if (p.branches !== undefined) {
       changes.branches = (p.branches || []).filter(function (d, i, a) {

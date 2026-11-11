@@ -89,6 +89,22 @@ test('orders: distribution rejects with a reason; the cashier cancels only a dra
   assert.equal(g.api('orders.cancel', { order_id: d.order_id }, tok.cashier).ok, true);
 });
 
+test('a final product’s shelf life: set with its price, its expiry worked out at each production', () => {
+  const { g, tok } = env();
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 2.5 }, tok.admin).error.code, 'shelf_invalid');
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 3 }, tok.cashier).error.code, 'forbidden');
+  assert.equal(g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: 3 }, tok.admin).ok, true);
+  const r = g.api('production.post', { product: 'BAKLAVA BOX', qty: 4, date: '2026-11-30', client_id: 'p1' }, tok.baklava);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const out = g.rows('Movements').find((m) => m.kind === 'PROD_OUTPUT');
+  assert.equal(String(out.expiry), '2026-12-03');
+  assert.equal(String(g.rows('Balances').find((b) => b.item_id === 'I0002').last_expiry), '2026-12-03');
+  // no shelf life: no expiry
+  g.api('items.save', { item_id: 'I0002', name: 'BAKLAVA BOX', store: 'FINAL', unit: 'BOX', shelf_days: '' }, tok.admin);
+  g.api('production.post', { product: 'BAKLAVA BOX', qty: 1, date: '2026-11-30', client_id: 'p2' }, tok.baklava);
+  assert.equal(String(g.rows('Movements').filter((m) => m.kind === 'PROD_OUTPUT')[1].expiry || ''), '');
+});
+
 test('production without a recipe: a final product’s stock goes up, nothing is taken', () => {
   const { g, tok, bal } = env();
   const r = g.api('production.post', { product: 'BAKLAVA BOX', qty: 4, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
@@ -109,19 +125,48 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: line.line_id, qty: 4 }] }, tok.store);
   assert.deepEqual(g.api('orders.list', { status: 'ready' }, tok.dist).data.map((x) => x.order_id), [o.order_id]);
   assert.equal(g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id] }, tok.cashier).error.code, 'forbidden');
-  const trip = g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id] }, tok.dist).data.trip;
+  const trip = g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id], vehicle: 'Q 999' }, tok.dist).data.trip;
   assert.equal(trip.stops.length, 1);
+  assert.equal(trip.vehicle, 'Q 999', 'distribution chose the vehicle');
   assert.equal(g.api('trips.list', {}, tok.driver).data.length, 1);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).error.code, 'stop_not_loaded');
   assert.equal(g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).ok, true);
   assert.equal(g.api('trips.cancel', { trip_id: trip.trip_id }, tok.dist).error.code, 'trip_loaded');
   assert.equal(g.api('orders.receive', { order_id: o.order_id }, tok.cashier).error.code, 'not_found', 'not delivered yet');
+  // no delivery before the driver leaves; leaving needs the vehicle and the temperature
+  assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).error.code, 'trip_not_departed');
+  assert.equal(g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '' }, tok.driver).error.code, 'temp_invalid');
+  assert.equal(g.api('trips.depart', { trip_id: trip.trip_id, vehicle: '', temp: 4 }, tok.driver).error.code, 'vehicle_required');
+  const dep = g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '4.5' }, tok.driver).data.trip;
+  assert.deepEqual([dep.vehicle, Number(dep.temp), !!dep.departed_at], ['Q 123', 4.5, true]);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).data.trip.status, 'completed');
-  assert.equal(g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 3 }] }, tok.cashier).error.code, 'reason_required');
-  assert.equal(g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 5, reason: 'other' }] }, tok.cashier).error.code, 'qty_too_much');
-  const r = g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 3, reason: 'damaged', note: 'one bag torn' }] }, tok.cashier).data.order;
+  assert.equal(g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 3 }] }, tok.cashier).error.code, 'reason_required');
+  assert.equal(g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 5, reason: 'other' }] }, tok.cashier).error.code, 'qty_too_much');
+  assert.equal(g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 4 }] }, tok.cashier).error.code, 'temp_invalid', 'the arrival temperature is needed');
+  const r = g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 3, reason: 'damaged', note: 'one bag torn' }] }, tok.cashier).data.order;
   assert.equal(r.status, 'received');
   assert.deepEqual([r.lines[0].received_qty, r.lines[0].short_reason], [3, 'damaged']);
+  // the dispatching record (food safety): one row per product loaded, with the trip's vehicle, temperature and times
+  user('fsafe', 'food_safety');
+  const disp = g.api('report.dispatch', { from: '2000-01-01', to: '2099-12-31' }, tok.fsafe).data;
+  assert.equal(disp.rows.length, 1);
+  const row = disp.rows[0];
+  assert.deepEqual([row.item_id, row.qty, row.shop_party_id, row.vehicle, row.temp, row.driver, row.received_by, row.handed_by],
+    ['I0001', 4, 'P002', 'Q 123', 4.5, 'driver', 'cashier', 'dist']);
+  assert.equal(row.arrival_temp, 5);
+  assert.ok(row.loaded && row.departed && Array.isArray(row.batches));
+  assert.equal(g.api('report.dispatch', {}, tok.cashier).error.code, 'forbidden');
+  // the quality officer's review of the day
+  assert.equal(g.api('dispatch.review', { date: row.date, ok: 'yes' }, tok.fsafe).error.code, 'nothing_to_save');
+  assert.equal(g.api('dispatch.review', { date: row.date, ok: false, note: 'temp missing' }, tok.fsafe).ok, true);
+  assert.equal(g.api('dispatch.review', { date: row.date, ok: true, note: 'ok' }, tok.fsafe).ok, true);
+  assert.deepEqual(g.api('report.dispatch', { from: row.date, to: row.date }, tok.fsafe).data.reviews.map((v) => [v.ok, v.note, v.by]), [[true, 'ok', 'fsafe']]);
+  assert.equal(g.api('dispatch.review', { date: row.date, ok: true }, tok.dist).error.code, 'forbidden');
+  // an officer with their own ticks, from before the record: the upgrade adds it
+  const id = user('fsold', 'food_safety', { caps: ['batches.view', 'report.trace'] });
+  assert.equal(g.api('report.dispatch', {}, tok.fsold).error.code, 'forbidden');
+  g.run('Perm.addRoleLeaves({ food_safety: ["report.dispatch", "dispatch.review"] }); Repo.reset();');
+  assert.deepEqual(String(g.rows('Users').find((u) => u.user_id === id).caps).split(',').sort(), ['batches.view', 'dispatch.review', 'report.dispatch', 'report.trace']);
   // the invoice: from what was received, at the item's price, frozen; an item without a price stops it
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'diff_not_accepted');
@@ -196,10 +241,11 @@ test('notifications: each step of an order tells whoever acts next, and the menu
   assert.deepEqual(mine.stops[0].load.map((x) => [x.item_id, x.qty]), [['I0001', 1], ['I0002', 2]]);
   g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
   assert.deepEqual(sent().map((x) => [x.page, x.to.join()]), [['orders', 'cashier']]);
+  g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'V1', temp: 5 }, tok.drv);
   g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
   assert.deepEqual(sent().map((x) => [x.page, x.to.join()]), [['orders', 'cashier']]);
   assert.deepEqual([todo('cashier').order_todo.orders, todo('drv').order_todo.trips], [1, 0]);
-  g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 0, reason: 'damaged' }] }, tok.cashier);
+  g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 0, reason: 'damaged' }] }, tok.cashier);
   // received short: distribution reviews the difference first, then the invoicing is told
   assert.deepEqual(sent().map((x) => [x.page, x.to.includes('dist')]), [['orderapprove', true]]);
   assert.equal(todo('acc').order_todo.invoices, 0);
@@ -235,6 +281,7 @@ test('trips: no delivery before every order of the trip is loaded', () => {
   g.api('trips.load', { trip_id: trip.trip_id, order_id: a }, tok.drv);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).error.code, 'trip_not_all_loaded');
   g.api('trips.load', { trip_id: trip.trip_id, order_id: b }, tok.drv);
+  g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'V1', temp: 5 }, tok.drv);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: a }, tok.drv).ok, true);
 });
 
@@ -248,8 +295,9 @@ test('a receipt short waits for distribution: back to the store or lost, then th
   g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: ls.find((l) => l.item_id === 'I0002').line_id, qty: 2 }] }, tok.baklava);
   const trip = g.api('trips.save', { driver_id: driver, order_ids: [o.order_id] }, tok.dist).data.trip;
   g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'V1', temp: 5 }, tok.drv);
   g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
-  g.api('orders.receive', { order_id: o.order_id, lines: [{ line_no: 1, qty: 3, reason: 'loading_error' }, { line_no: 2, qty: 1, reason: 'damaged' }] }, tok.cashier);
+  g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 3, reason: 'loading_error' }, { line_no: 2, qty: 1, reason: 'damaged' }] }, tok.cashier);
   assert.equal(bal('I0001'), 5);
   assert.equal(g.api('data.bootstrap', {}, tok.dist).data.orders_pending, 1, 'a difference to review');
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'diff_not_accepted');
@@ -345,6 +393,7 @@ test('a special order: described by the cashier, routed by the production manage
   const stop = g.api('trips.list', { open: true }, tok.drv).data[0].stops[0];
   assert.deepEqual([stop.place, stop.address, stop.customer_phone, stop.delivery_time], ['customer', 'Villa 3, map link', '5555', '16:30']);
   g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
+  g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'V1', temp: 5 }, tok.drv);
   g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.drv);
   const got = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === o.order_id);
   assert.equal(got.status, 'received');
@@ -412,7 +461,7 @@ test('a bought special product can go straight to the shop: an order of only tha
   g.api('trips.save', { driver_id: driver, order_ids: [mixed.order_id] }, tok.dist);
   const load = g.api('trips.list', { open: true }, tok.drv).data[0].stops[0].load;
   assert.deepEqual(load.map((x) => x.item_id), ['I0001'], 'the driver does not load the balloons');
-  assert.equal(g.api('orders.receive', { order_id: only.order_id, lines: [] }, tok.cashier).ok, true);
+  assert.equal(g.api('orders.receive', { order_id: only.order_id, temp: 5, lines: [] }, tok.cashier).ok, true);
 });
 
 test('the period closed: no movement saved, changed or deleted on or before it; returns and lost goods in the losses data', () => {
@@ -731,9 +780,11 @@ test('Salwa: its lines leave the order at once, approved, for Salwa; it hands th
   const after = g.rows('Orders').find((x) => x.order_id === b.order_id);
   assert.equal(after.status, 'loaded');
   assert.equal(bal('I0002'), 2, 'one of the three given');
-  // the driver delivers, the shop receives what was sent
-  assert.equal(g.api('trips.deliver', { trip_id: r.data.trip.trip_id, order_id: b.order_id }, g.api('auth.login', { username: 'drv', pin: '5678' }).data.token).ok, true);
-  const rec = g.api('orders.receive', { order_id: b.order_id, lines: [{ line_no: 1, qty: 1 }] }, tok.cashier);
+  // the driver leaves and delivers, the shop receives what was sent
+  const drvTok = g.api('auth.login', { username: 'drv', pin: '5678' }).data.token;
+  assert.equal(g.api('trips.depart', { trip_id: r.data.trip.trip_id, vehicle: 'V1', temp: 5 }, drvTok).ok, true);
+  assert.equal(g.api('trips.deliver', { trip_id: r.data.trip.trip_id, order_id: b.order_id }, drvTok).ok, true);
+  const rec = g.api('orders.receive', { order_id: b.order_id, temp: 5, lines: [{ line_no: 1, qty: 1 }] }, tok.cashier);
   assert.equal(rec.ok, true, JSON.stringify(rec));
   // sent twice (no network): one trip
   assert.equal(g.api('trips.direct', { order_id: b.order_id, driver_id: drv, client_id: 'd1', lines: [] }, tok.salwa).data.duplicate, true);

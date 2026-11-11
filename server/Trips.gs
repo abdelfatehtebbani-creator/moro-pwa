@@ -36,10 +36,12 @@ var Trips = {
     var out = {};
     Object.keys(t).forEach(function (k) { out[k] = t[k]; });
     out.stops = stops;
+    // the driver's vehicle, offered when leaving
+    if (!t.vehicle) out.vehicle_hint = String((Repo.find('Users', 'user_id', t.driver_id) || {}).vehicle || '');
     // preparing → loaded (all loaded) → in_transit (one delivered) → completed (all delivered)
     var loaded = stops.filter(function (s) { return s.loaded_at; }).length, delivered = stops.filter(function (s) { return s.delivered_at; }).length;
     if (t.status !== 'cancelled') {
-      out.status = !stops.length ? 'preparing' : delivered === stops.length ? 'completed' : delivered ? 'in_transit' : loaded === stops.length ? 'loaded' : 'preparing';
+      out.status = !stops.length ? 'preparing' : delivered === stops.length ? 'completed' : delivered || t.departed_at ? 'in_transit' : loaded === stops.length ? 'loaded' : 'preparing';
     }
     return out;
   },
@@ -54,7 +56,7 @@ var Trips = {
       .slice(0, Number(p.limit) || 100);
   },
 
-  /** Distribution: a new trip. p: {driver_id, order_ids: [in the order of the stops], note}. */
+  /** Distribution: a new trip. p: {driver_id, order_ids: [in the order of the stops], note, vehicle (else the driver's)}. */
   save: function (session, p) {
     var ids = (p.order_ids || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     Util.require(ids.length, 'nothing_to_save');
@@ -71,7 +73,8 @@ var Trips = {
       });
       var now = Util.nowIso();
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
-                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
+                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now, client_id: cid,
+                   vehicle: Util.clean(p.vehicle).slice(0, 30) || String(driver.vehicle || ''), temp: '', departed_at: '', departed_by: '' };
       Repo.append('Trips', [trip]);
       Repo.append('TripStops', ids.map(function (id, i) {
         return { trip_id: trip.trip_id, order_id: id, seq: i + 1, loaded_at: '', loaded_by: '', delivered_at: '', delivered_by: '' };
@@ -117,7 +120,8 @@ var Trips = {
       Shop.rebalance(Object.keys(touched));
       Util.require(handed > 0, 'nothing_handed');
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
-                   note: '', created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
+                   note: '', created_by: session.user_id, created_at: now, updated_at: now, client_id: cid,
+                   vehicle: String(driver.vehicle || ''), temp: '', departed_at: '', departed_by: '' };
       Repo.append('Trips', [trip]);
       Repo.append('TripStops', [{ trip_id: trip.trip_id, order_id: cur.order_id, seq: 1, loaded_at: now, loaded_by: session.user_id, delivered_at: '', delivered_by: '' }]);
       Repo.update('Orders', 'order_id', cur.order_id, { status: 'loaded', trip_id: trip.trip_id, loaded_at: now, updated_at: now });
@@ -157,8 +161,10 @@ var Trips = {
         ch = { loaded_at: now, loaded_by: session.user_id };
       } else {
         Util.require(s.loaded_at, 'stop_not_loaded');
-        // the car leaves with the whole trip: no delivery before every order of it is loaded
+        // the car leaves with the whole trip: no delivery before every order of it is loaded, and the driver said it left
         Util.require(Repo.all('TripStops').every(function (x) { return x.trip_id !== t.trip_id || x.loaded_at; }), 'trip_not_all_loaded');
+        // (a trip already on its way when leaving was added has no departure: it goes on)
+        Util.require(t.departed_at || Repo.all('TripStops').some(function (x) { return x.trip_id === t.trip_id && x.delivered_at; }), 'trip_not_departed');
         if (s.delivered_at) return { trip: Trips.view(t), version: Version.get() };
         ch = { delivered_at: now, delivered_by: session.user_id };
       }
@@ -185,13 +191,41 @@ var Trips = {
   },
 
   /**
-   * The cashier receives a delivered order. p: {order_id, lines: [{line_no, qty, reason, note}]}.
+   * The driver leaves with the whole trip loaded: the time, the vehicle and the temperature of the products (°C), for
+   * the dispatching record. p: {trip_id, vehicle, temp}.
+   */
+  depart: function (session, p) {
+    var temp = Util.num(p.temp);
+    Util.require(temp !== null && temp >= -40 && temp <= 90, 'temp_invalid');
+    var vehicle = Util.clean(p.vehicle).slice(0, 30);
+    Util.require(vehicle, 'vehicle_required');
+    return withLock(function () {
+      var t = Repo.find('Trips', 'trip_id', p.trip_id);
+      Util.require(t && t.status !== 'cancelled' && t.driver_id === session.user_id, 'not_found');
+      if (t.departed_at) return { trip: Trips.view(t), version: Version.get() };
+      var stops = Repo.all('TripStops').filter(function (x) { return x.trip_id === t.trip_id; });
+      Util.require(stops.length && stops.every(function (x) { return x.loaded_at; }), 'trip_not_all_loaded');
+      var now = Util.nowIso();
+      Repo.update('Trips', 'trip_id', t.trip_id, { vehicle: vehicle, temp: Util.round(temp), departed_at: now, departed_by: session.user_id, updated_at: now });
+      // the vehicle is kept for the driver's next trips (not one distribution chose for this trip only)
+      var me = Repo.find('Users', 'user_id', session.user_id);
+      if (me && !t.vehicle && String(me.vehicle || '') !== vehicle) Repo.update('Users', 'user_id', me.user_id, { vehicle: vehicle });
+      Audit.log(session.user_id, 'trip_departed', 'Trips', t.trip_id, null, { vehicle: vehicle, temp: temp });
+      return { trip: Trips.view(Repo.find('Trips', 'trip_id', t.trip_id)), version: Version.bump() };
+    });
+  },
+
+  /**
+   * The cashier receives a delivered order. p: {order_id, lines: [{line_no, qty, reason, note}], temp (°C on arrival)}.
    * Received ≤ handed; less needs a reason from the list. A line not given: all of what was handed.
    */
   receive: function (session, p) {
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
       Util.require(o && o.status === 'delivered' && o.shop_party_id === Orders.shopOf(session), 'not_found');
+      // the temperature of the products on arrival, for the dispatching record (the driver wrote it when leaving)
+      var temp = Util.num(p.temp);
+      Util.require(p.temp !== '' && p.temp !== undefined && p.temp !== null && temp !== null && temp >= -40 && temp <= 90, 'temp_invalid');
       var given = {};
       (p.lines || []).forEach(function (x) { given[Number(x.line_no)] = x; });
       var view = Orders.view(o), short = false;
@@ -211,7 +245,7 @@ var Trips = {
       var now = Util.nowIso();
       // received less than handed: distribution reviews the difference before the invoice
       Repo.update('Orders', 'order_id', o.order_id, { status: 'received', received_at: now, received_by: session.user_id, updated_at: now,
-        diff_status: short ? 'pending' : '' });
+        diff_status: short ? 'pending' : '', arrival_temp: Util.round(temp) });
       Audit.log(session.user_id, 'order_receive', 'Orders', o.order_id, null, { lines: view.lines.length });
       var after = Repo.find('Orders', 'order_id', o.order_id);
       OrderNotify.received(after, Orders.view(after), session);
@@ -222,7 +256,7 @@ var Trips = {
   /** Active drivers, for the trip form. */
   drivers: function () {
     return Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; })
-      .map(function (u) { return { user_id: u.user_id, name: u.display_name }; });
+      .map(function (u) { return { user_id: u.user_id, name: u.display_name, vehicle: String(u.vehicle || '') }; });
   }
 };
 

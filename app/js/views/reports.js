@@ -208,8 +208,44 @@ function renderTables(root) {
     current = rep.build(p, movs.filter((m) => m.status !== 'deleted'), extra);
     // on an Arabic screen the report is in Arabic: preview, print, Excel and WhatsApp
     if (document.documentElement.lang === 'ar') current = localize(current);
+    // the dispatching record: the quality officer's review of each day, under the table
+    if (current.review) current.foot = reviewFoot(current.review);
     status.textContent = t('report_rows', { n: current.rows.length }) + note; status.className = 'form-status ' + (note ? 'warn' : 'ok');
     drawPreview();
+  }
+
+  function reviewFoot(rv) {
+    return rv.days.map((d) => {
+      const v = rv.reviews.find((x) => x.date === d);
+      // short parts, each kept whole (a date or a Latin name inside Arabic text otherwise jumps around)
+      const iso = (x) => '⁨' + x + '⁩';
+      const day = (s) => '⁦' + String(s).slice(8, 10) + '/' + String(s).slice(5, 7) + '/' + String(s).slice(0, 4) + '⁩';
+      const parts = [t('dr_title'), t('dr_day', { d: day(d) })];
+      if (!v) parts.push(t('dr_not_yet'));
+      else {
+        parts.push(t('dr_ok', { v: v.ok ? t('yes') : t('no') }));
+        if (v.note) parts.push(t('dr_note', { n: iso(v.note) }));
+        parts.push(t('dr_who', { u: iso(v.by) }), t('dr_when', { d: day(String(v.at).slice(0, 10)) }));
+      }
+      return parts.map(iso).join('  |  ');
+    });
+  }
+
+  // the quality officer reviews each day of the record: complete and matching, yes or no, and a note
+  function reviewBox(c) {
+    if (!c.review || !c.review.days.length || !Data.can('dispatch.review')) return null;
+    return h('div.form-card.dr-review', h('div', h('b', t('dr_title'))), h('small.muted', t('dr_help')), ...c.review.days.map((d) => {
+      const v = c.review.reviews.find((x) => x.date === d) || {};
+      const ok = h('select.input', h('option', { value: '' }, '—'), h('option', { value: 'yes' }, t('yes')), h('option', { value: 'no' }, t('no')));
+      ok.value = v.date ? (v.ok ? 'yes' : 'no') : '';
+      const note = h('input.input', { type: 'text', maxlength: 500, value: v.note || '', placeholder: t('note') });
+      return h('div.dr-day', h('b.num', fmtDate(d)), ok, note, h('button.btn.secondary.small', { type: 'button', onclick: async (e) => {
+        if (!ok.value) { flash(ok); return; }
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await call('dispatch.review', { date: d, ok: ok.value === 'yes', note: note.value.trim() }); toast(t('saved'), 'ok'); run(); }
+        catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+      } }, t('save')));
+    }));
   }
 
   function cellText(v, type) {
@@ -229,6 +265,8 @@ function renderTables(root) {
       h('div.table-wrap.tall', h('table.rep-table', { dir: c.rtl ? 'rtl' : 'ltr' }, h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
         h('tbody', c.rows.length ? c.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: ['n', 'm', 'p'].includes(c.columns[i].type) ? 'num' : '' }, cellText(v, c.columns[i].type))))) :
           h('tr', h('td.empty', { colspan: c.columns.length }, (c.labels || {}).none || 'No data'))))),
+      (c.foot || []).length ? h('div.rep-foot', c.foot.map((x) => h('p', x))) : null,
+      reviewBox(c) || '',
       h('div.form-actions',
         h('button.btn', { type: 'button', onclick: pdf }, t('save_pdf')),
         h('button.btn', { type: 'button', onclick: excel }, t('save_excel')),
@@ -240,7 +278,8 @@ function renderTables(root) {
   const fileName = (ext) => current.title.replace(/[\\/:*?"<>|]/g, '-') + '_' + Data.todayIso() + '.' + ext;
 
   function excel() {
-    const blob = reportToXlsx({ ...current, company: 'ALAKER SWEETS' });
+    // Excel: the right-to-left sheet orders the parts itself; the direction marks are left out
+    const blob = reportToXlsx({ ...current, company: 'ALAKER SWEETS', foot: (current.foot || []).map((x) => x.replace(/[⁦-⁩]/g, '')) });
     const a = h('a', { href: URL.createObjectURL(blob), download: fileName('xlsx') });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -251,13 +290,14 @@ function renderTables(root) {
   function pdf() {
     const c = current;
     const L = c.labels || {};
-    const area = h('div#print-area', { dir: c.rtl ? 'rtl' : 'ltr' },
+    const area = h('div#print-area', { dir: c.rtl ? 'rtl' : 'ltr', class: c.wide ? 'pr-wide' : '' },
       h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', L.system || 'Inventory Management System'),
       h('div.pr-title', c.title),
       h('div.pr-meta', h('b', c.subtitle), h('span', (L.printed || 'Printed: ') + new Date().toLocaleString('en-GB'))),
       h('table.pr-table', h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
         h('tbody', c.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: ['n', 'm', 'p'].includes(c.columns[i].type) ? 'num' : c.columns[i].type === 'd' ? 'ctr' : '' }, cellText(v, c.columns[i].type))))))),
       h('div.pr-count', (L.records || 'Number of records: ') + c.rows.length),
+      (c.foot || []).length ? h('div.pr-foot', c.foot.map((x) => h('p', x))) : null,
       h('div.pr-note', L.note || 'This report was generated by MORO. To keep it as a file choose "Save as PDF" in the print window.'));
     document.body.append(area);
     document.title = fileName('pdf').replace(/\.pdf$/, '');

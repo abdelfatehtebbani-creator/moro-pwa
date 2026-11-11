@@ -3,6 +3,66 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.202', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: أيقونة «طلب مواد» صارت عربة تسوق بعجلات."]},
+    en: {"news": ["(Development copy) Shared device: the \"Ask the store\" icon is now a shopping cart on wheels."]},
+  },
+  {
+    v: '0.9.201', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) طلبات الأقسام: السطر الذي رصيده في المخزن صفر يظهر بخلفية حمراء وعلامة «نفد» بجانب الرصيد."]},
+    en: {"news": ["(Development copy) Department requests: a line with nothing in stock shows with a red background and an \"Out of stock\" mark beside the balance."]},
+  },
+  {
+    v: '0.9.200', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: أمين المخزن لم يعد في قائمة الأسماء، وشريط الأقسام في الأعلى يُظهر كل الأقسام في سطرين عند الحاجة.", "(نسخة التطوير) طلبات الأقسام: مسؤول القسم يطلب لقسمه فقط؛ إن كان له قسم واحد يظهر اسمه بدل خانة الاختيار."]},
+    en: {"news": ["(Development copy) Shared device: the storekeeper is no longer in the names list, and the departments bar at the top shows every department, on two lines when needed.", "(Development copy) Department requests: a section head asks for their own departments only; with one department, its name shows instead of the choice."]},
+  },
+  {
+    v: '0.9.199', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك في المصنع: شاشة لمسية واحدة لكل الأقسام المنتجة (صفحة kiosk.html). يضغط الموظف على اسمه، ثم يكتب رمزه على لوحة الأرقام، ثم يسجّل إنتاجًا أو يسلّم أسطر طلبيات المحلات أو يطلب مواد من المخزن. كل عملية تُحفظ باسمه، ويخرج الجهاز تلقائيًا بعدها وبعد دقيقة بلا لمس. لا تمرير في أي اتجاه، والقوائم الطويلة صفحات."], "admin": "لتفعيل الجهاز: شغّل عليه ملف MORO-kiosk.bat (يفتح Chrome بملء الشاشة)، وادخل باسمك ورمزك مرة واحدة. للإغلاق: Alt+F4."},
+    en: {"news": ["(Development copy) The shared device in the factory: one touch screen for every producing department (kiosk.html). A person presses their name, types their PIN on the keypad, then records a production, hands shop-order lines or asks the store for materials. Every entry is theirs, and the device signs out after it and after a minute without a touch. Nothing scrolls; long lists are pages."], "admin": "To set up the device: run MORO-kiosk.bat on it (Chrome full screen) and sign in once with your name and PIN. To close it: Alt+F4."},
+  },
+  {
+    v: '0.9.198', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: عنوان عمود الفرع والعنوان صار «الجهة المستلمة»."]},
+    en: {"news": ["(Development copy) Dispatching record: the branch and address column is now headed \"Destination\"."]},
+  },
+  {
+    v: '0.9.197', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: سطر مراجعة الجودة مقسّم إلى أجزاء قصيرة بتواريخ رقمية، فيُقرأ بالعربية بترتيبه الصحيح."]},
+    en: {"news": ["(Development copy) Dispatching record: the quality review line is in short parts with numeric dates, so it reads in order in Arabic."]},
+  },
+  {
+    v: '0.9.196', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: الجدول كاملًا في PDF (صفحة بالعرض)، ومراجعة مسؤول الجودة ظاهرة في Excel على عرض الجدول، والفرع وعنوان الوجهة في عمود واحد، وزر حفظ المراجعة داخل الشاشة."]},
+    en: {"news": ["(Development copy) Dispatching record: the whole table in the PDF (landscape page), the quality review visible in Excel across the table, the branch and the destination address in one column, and the review save button within the screen."]},
+  },
+  {
+    v: '0.9.195', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: مربع «مراجعة مسؤول الجودة» يظهر الآن لمستخدمي سلامة الغذاء ذوي الصلاحيات المخصصة، واختفت كلمة null التي كانت تظهر تحت الجدول."]},
+    en: {"news": ["(Development copy) Dispatching record: the \"Quality officer review\" box now shows for food safety users with custom permissions, and the stray \"null\" under the table is gone."]},
+  },
+  {
+    v: '0.9.194', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) استلام الطلبية: يكتب الكاشير درجة حرارة المنتجات عند الوصول مع الكميات، وتظهر في سجل الصرف والتسليم بجانب حرارة المغادرة."], "todo": "الكاشير: عند تأكيد استلام الطلبية اكتب درجة حرارة المنتجات عند الوصول."},
+    en: {"news": ["(Development copy) Receiving an order: the cashier writes the temperature of the products on arrival with the quantities, shown in the dispatching record beside the temperature when leaving."], "todo": "Cashiers: when confirming an order received, write the temperature of the products on arrival."},
+  },
+  {
+    v: '0.9.193', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) مدة صلاحية المنتج النهائي: خانة جديدة بجانب سعره. عند كل إنتاج يُحسب تاريخ الانتهاء تلقائيًا من يوم الإنتاج وهذه المدة، ويظهر في سجل الصرف والتسليم وفي تقارير الصلاحية."], "admin": "اكتب مدة الصلاحية بالأيام لكل منتج نهائي في شاشة المواد. من يعدّل السعر يعدّل المدة."},
+    en: {"news": ["(Development copy) Final product shelf life: a new field beside its price. At each production the expiry is worked out from the production day and this shelf life, and shows in the dispatching record and the expiry reports."], "admin": "Write the shelf life in days for each final product in the materials screen. Whoever sets the price sets it."},
+  },
+  {
+    v: '0.9.192', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الرحلات: يختار مسؤول التوزيع المركبة عند تجهيز الرحلة. تظهر مركبة السائق تلقائيًا ويمكن تغييرها."]},
+    en: {"news": ["(Development copy) Trips: distribution chooses the vehicle when making the trip. The driver’s vehicle is filled in and can be changed."]},
+  },
+  {
+    v: '0.9.191', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات لسلامة الغذاء، في التقارير: لكل منتج حُمّل في رحلة التاريخ ووقت التحميل ورقم التشغيلة وتاريخ الإنتاج والكمية والفرع والمركبة والسائق ودرجة الحرارة ووقت المغادرة والمستلم ومسؤول التسليم، ويُصدَّر PDF أو Excel. ويراجع مسؤول الجودة كل يوم: نعم أو لا مع ملاحظة."], "todo": "السائق: بعد تحميل كل طلبيات الرحلة اكتب رقم المركبة ودرجة حرارة المنتجات واضغط «انطلقت»، ثم سلّم. رقم المركبة يُحفظ للرحلات التالية.", "admin": "يمكن كتابة رقم مركبة كل سائق في شاشة المستخدمين. المستخدمون بصلاحيات مخصصة يحتاجون تفعيل «سجل صرف وتسليم المنتجات» في التقارير، و«مراجعة سجل صرف وتسليم المنتجات» تحت سجل التشغيلات."},
+    en: {"news": ["(Development copy) The dispatching and delivery record for food safety, in the reports: for each product loaded on a trip, the date and loading time, batch number, production date, quantity, branch, vehicle, driver, temperature, departure time, recipient and who handed it over, saved as PDF or Excel. The quality officer reviews each day: yes or no, with a note."], "todo": "Drivers: once every order of the trip is loaded, write the vehicle number and the temperature of the products and press \"Leaving\", then deliver. The vehicle number is kept for the next trips.", "admin": "Each driver’s vehicle number can be written in the users screen. Users with custom permissions need \"Dispatching and delivery record\" ticked under reports, and \"Review the dispatching and delivery record\" under batch records."},
+  },
+  {
     v: '0.9.190', date: '2026-11-10',
     ar: { news: ['المواد: خانة البحث تأخذ السطر كله بجانب فلتر القسم، والأزرار في سطر تحتها.'] },
     en: { news: ['Materials: the search takes the whole line beside the department filter, with the buttons on the line under it.'] },

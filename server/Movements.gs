@@ -201,7 +201,7 @@ var Movements = {
         rows.push(m);
         if (src.client_id) known[src.client_id] = m;
         deltas[m.item_id] = (deltas[m.item_id] || 0) + m.qty;
-        if (m.kind === 'RECEIPT' && m.expiry) expiries[m.item_id] = m.expiry;
+        if ((m.kind === 'RECEIPT' || m.kind === 'PROD_OUTPUT') && m.expiry) expiries[m.item_id] = m.expiry;
         out.push({ client_id: m.client_id, movement_id: m.movement_id, doc_no: m.doc_no, duplicate: false });
       });
       Repo.append('Movements', rows);

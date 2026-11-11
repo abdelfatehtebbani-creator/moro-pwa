@@ -60,19 +60,22 @@ export async function render(root) {
     }) : [h('p.empty', t('no_ready_orders'))]));
     const driver = h('select.input#t-driver', h('option', { value: '' }, '—'), drivers.map((d) => h('option', { value: d.user_id }, d.name)));
     const note = trackFilled(h('input.input#t-note'));
+    // the vehicle: the driver's own, changed here when the trip goes in another one
+    const vehicle = trackFilled(h('input.input#t-vehicle', { type: 'text', maxlength: 30 }));
+    driver.addEventListener('change', () => { vehicle.value = (drivers.find((d) => d.user_id === driver.value) || {}).vehicle || ''; vehicle.dispatchEvent(new Event('input')); });
     const create = async (e) => {
       if (!chosen.length) { flash(list); return; }
       if (!driver.value) { flash(driver); return; }
       const btn = e.currentTarget; btn.disabled = true;
       // queued and sent in the background (the client id makes a resend the same trip)
-      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
+      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, vehicle: vehicle.value.trim(), client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
         build(lastNew ? lastNew.ready : readyAll, drivers); }
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };
     drawPick();
     newBox.replaceChildren(h('div.form-card', h('h3', t('trip_new')), h('small.muted', t('trip_new_help')),
       ready.some((o) => o.kind === 'special' && o.place === 'customer') ? h('small.muted', t('trip_special_help')) : null, list,
-      h('div.form-grid', field(t('driver'), driver), field(t('note'), note, { wide: true })),
+      h('div.form-grid', field(t('driver'), driver), field(t('vehicle_no'), vehicle), field(t('note'), note, { wide: true })),
       drivers.length ? null : h('p.err-text', t('no_drivers')),
       going.size ? h('p.pill.soon', t('trips_sending', { n: Outbox.queued('trips.save').length })) : null,
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: create }, t('trip_create')))));
@@ -133,7 +136,7 @@ export async function render(root) {
   // a step (loaded, delivered, trip cancelled) is queued and sent in the background; until then the stop says so
   let busy = 0;
   const act = async (action, payload) => { await Outbox.add(action, payload, payload.trip_id); setTimeout(() => loadList(true), 0); };
-  const stepGoing = (tripId, orderId) => ['trips.load', 'trips.deliver', 'trips.cancel'].some((a) => Outbox.queued(a).some((j) => j.payload.trip_id === tripId && (!orderId || !j.payload.order_id || j.payload.order_id === orderId)));
+  const stepGoing = (tripId, orderId) => ['trips.load', 'trips.depart', 'trips.deliver', 'trips.cancel'].some((a) => Outbox.queued(a).some((j) => j.payload.trip_id === tripId && (!orderId || !j.payload.order_id || j.payload.order_id === orderId)));
 
   // the customer's address: a map link in it opens the map
   function mapText(text) {
@@ -144,6 +147,8 @@ export async function render(root) {
 
   function card(trip) {
     const driverName = (Data.userNames || {})[trip.driver_id] || trip.driver_id;
+    // the trip left: the driver said so (a trip already on its way before this step existed: one stop delivered)
+    const left = !!trip.departed_at || trip.stops.some((x) => x.delivered_at);
     const stops = trip.stops.map((s) => {
       const doStep = (step) => async (e) => {
         const btn = e.currentTarget;
@@ -161,8 +166,9 @@ export async function render(root) {
       };
       const button = stepGoing(trip.trip_id, s.order_id) ? h('span.pill.soon', t('sending')) : drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
         ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: doStep('load') }, t('stop_load'))
-          : !s.delivered_at ? (trip.stops.every((x) => x.loaded_at) ? h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver'))
-            : h('small.muted', t('deliver_after_all_loaded'))) : null) : null;
+          : !s.delivered_at ? (!trip.stops.every((x) => x.loaded_at) ? h('small.muted', t('deliver_after_all_loaded'))
+            : !left ? h('small.muted', t('deliver_after_depart'))
+            : h('button.btn.save-btn', { type: 'button', onclick: doStep('deliver') }, t('stop_deliver'))) : null) : null;
       const [showBtn, loadBox] = toggle(t('load_show'), () => loadTable(s.load || []));
       return h('div', h('div.trip-stop', h('b.num', String(s.seq)), h('div.trip-stop-main', h('b', h('bdi', shopName(s.shop_party_id))),
         h('small.muted', s.order_no + ' · ' + t('lines_n', { n: s.lines })),
@@ -172,6 +178,27 @@ export async function render(root) {
         s.loaded_at ? h('small', '✓ ' + t('stop_loaded') + ' ' + time(s.loaded_at)) : null,
         s.delivered_at ? h('small', '✓ ' + t('stop_delivered') + ' ' + time(s.delivered_at)) : null), showBtn, button), loadBox);
     });
+    // leaving: the whole trip loaded, the driver writes the vehicle and the temperature of the products (the dispatching record)
+    let departBox = null;
+    const mine = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id;
+    if (mine && !left && trip.stops.length && trip.stops.every((x) => x.loaded_at)) {
+      if (stepGoing(trip.trip_id)) departBox = h('p', h('span.pill.soon', t('sending')));
+      else {
+        const vehicle = trackFilled(h('input.input', { type: 'text', maxlength: 30, value: trip.vehicle || trip.vehicle_hint || '', autocapitalize: 'characters' }));
+        const temp = trackFilled(h('input.input.num', { type: 'number', step: '0.1', inputmode: 'decimal' }));
+        departBox = h('div.form-card.trip-depart', h('div', h('b', t('trip_depart_title'))), h('small.muted', t('trip_depart_help')),
+          h('div.form-grid', field(t('vehicle_no'), vehicle), field(t('temp_c'), temp)),
+          h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: async (e) => {
+            if (!vehicle.value.trim()) { flash(vehicle); return; }
+            if (temp.value === '' || !isFinite(Number(temp.value))) { flash(temp); return; }
+            const btn = e.currentTarget; btn.disabled = true;
+            try { await act('trips.depart', { trip_id: trip.trip_id, vehicle: vehicle.value.trim(), temp: Number(temp.value) }); toast(t('trip_departed'), 'ok'); loadList(true); }
+            catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
+          } }, t('trip_depart'))));
+      }
+    }
+    const leftLine = trip.departed_at ? h('small.trip-left', '🚚 ' + t('trip_departed_at', { t: time(trip.departed_at) }),
+      trip.vehicle ? ' · ' + t('vehicle_no') + ': ' : '', trip.vehicle ? h('bdi', trip.vehicle) : '', trip.temp !== '' && trip.temp !== undefined ? ' · 🌡 ' + fmtNum(trip.temp) + '°' : '') : null;
     const actions = h('div.form-actions');
     const [allBtn, allBox] = toggle(t('load_all'), () => tripLoad(trip));
     if (trip.stops.length > 1) actions.append(allBtn);
@@ -181,7 +208,7 @@ export async function render(root) {
       } }, t('trip_cancel')));
     }
     return h('div.req-card', h('div.card-head', h('b', trip.trip_id), h('span', '🚚 ', h('bdi', driverName)), h('span.muted.num', fmtDate(String(trip.created_at).slice(0, 10))),
-      h('span', { class: 'pill ' + (PILL[trip.status] || '') }, t('trip_st_' + trip.status))), trip.note ? h('p.muted', trip.note) : null, ...stops, actions, allBox);
+      h('span', { class: 'pill ' + (PILL[trip.status] || '') }, t('trip_st_' + trip.status))), trip.note ? h('p.muted', trip.note) : null, leftLine, ...stops, departBox, actions, allBox);
   }
 
   root.replaceChildren(...parts);

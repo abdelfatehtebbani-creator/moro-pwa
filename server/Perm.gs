@@ -14,7 +14,7 @@ var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper',
 var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
-                  'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels'];
+                  'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels', 'dispatch'];
 /** Reports built from the shop orders (they read orders.report). */
 var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 
@@ -22,7 +22,7 @@ var ORDER_REPORTS = ['orderTimes', 'receiptShort', 'unavailable', 'shopSales'];
 var PERM_TREE = [
   { key: 'exec', children: [{ leaf: 'exec.view' }] },
   { key: 'branches', children: [{ leaf: 'branches.view' }, { leaf: 'branches.note' }] },
-  { key: 'batches', children: [{ leaf: 'batches.view' }, { leaf: 'batches.edit' }] },
+  { key: 'batches', children: [{ leaf: 'batches.view' }, { leaf: 'batches.edit' }, { leaf: 'dispatch.review' }] },
   { key: 'dashboard', children: [{ leaf: 'dash.view' }, { leaf: 'dash.min' }, { leaf: 'dash.takings' }] },
   { key: 'receive', children: [{ leaf: 'receive.view' }, { leaf: 'receive.save' }, { leaf: 'receive.return' },
     { leaf: 'receive.edit_own' }, { leaf: 'receive.edit_all' }, { leaf: 'receive.delete' }] },
@@ -73,6 +73,8 @@ var CAPS = (function () {
     // the production batch records (traceability): read, and the food safety officer's part
     'batches.view':      ['nav.batches', 'batches.list', 'batches.get'],
     'batches.edit':      ['batches.save'],
+    // the quality officer's review of the day's dispatching record (the report is read with report.dispatch)
+    'dispatch.review':   ['dispatch.review'],
     'dash.view':         ['nav.dashboard'],
     'dash.min':          ['nav.dashboard', 'items.save', 'min_stock'],
     // today's takings of the shops (money: for the admin, not the stores)
@@ -97,7 +99,7 @@ var CAPS = (function () {
     // special orders: the production manager reads them and sends each special line to a department (or purchasing)
     'orders.route':      ['nav.orderapprove', 'orders.list', 'orders.route', 'orders.reject'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
-    'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.deliver'],
+    'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.depart', 'trips.deliver'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
     // the accounts of the suppliers and shops: money, so prices are seen
@@ -164,7 +166,7 @@ var CAPS = (function () {
     'recipes.edit':      ['recipes.save'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'settings.idle', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it
@@ -221,7 +223,7 @@ var ROLE_CAPS = {
   // the lines of their department (Users.depts) and records what they make
   cashier:     ['orders.create', 'orders.receive', 'returns.create'],
   distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
-                 'report.unavailable', 'report.shopSales', 'prices.see'],
+                 'report.unavailable', 'report.shopSales', 'report.dispatch', 'prices.see'],
   driver:      ['trips.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   // the general manager: their screen only, nothing to change
@@ -230,7 +232,7 @@ var ROLE_CAPS = {
   branch_manager: ['branches.view', 'branches.note'],
   // the food safety officer: follows production and the expiry of the materials, changes nothing in the stock
   food_safety: ['batches.view', 'batches.edit', 'dash.view', 'production.view', 'receive.view', 'issue.view', 'reports.view',
-                'report.expiry', 'report.near', 'report.trace', 'report.production', 'report.changes', 'report.losses'],
+                'report.expiry', 'report.near', 'report.trace', 'report.production', 'report.changes', 'report.losses', 'report.dispatch', 'dispatch.review'],
   accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'accounts.opening', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
 };
 
@@ -281,6 +283,17 @@ var Perm = {
    * Schema 26: the dashboard got its own tick (dash.view). Users with their own list of ticks who saw it
    * before (they worked with stock) get the tick, so nobody loses it; the others never had it.
    */
+  /** New leaves for a role's users with their own ticks (the role template gets them anyway). leaves: {role: [leaf]}. */
+  addRoleLeaves: function (leaves) {
+    Repo.setColumn('Users', 'caps', function (u) {
+      var own = String(u.caps || '').trim();
+      if (!own || !leaves[u.role]) return own;
+      var caps = Perm.capsOf(u);
+      leaves[u.role].forEach(function (l) { if (caps.indexOf(l) < 0) caps.push(l); });
+      return caps.join(',');
+    });
+  },
+
   addDashView: function () {
     var before = ['nav.receive', 'nav.issue', 'nav.production', 'nav.requests', 'nav.shoporders', 'nav.reports', 'nav.counts', 'nav.masters', 'min_stock'];
     Repo.setColumn('Users', 'caps', function (u) {

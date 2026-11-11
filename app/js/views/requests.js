@@ -32,8 +32,12 @@ export async function render(root) {
       before.replaceChildren(h('small.muted', t('req_asked_before')), h('div.req-chips', ids.map((id) => h('button.chip', { type: 'button',
         onclick: () => { item.set(id); qty.focus(); } }, h('bdi', Data.nameOf(Data.items.get(id))), h('small', ' ' + fmtNum(Data.qty(id)))))));
     };
-    const dept = combo({ id: 'q-dept', options: () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true)
+    // a section head asks for their own departments only; with one department, it is chosen and the field is not shown
+    const own = (p) => Data.user.role !== 'section_head' || !(Data.user.depts || []).length || Data.user.depts.includes(p.party_id);
+    const dept = combo({ id: 'q-dept', options: () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true && own(p))
       .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name })), onPick: (v) => showBefore(v) });
+    const mineList = [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true && own(p));
+    const onlyDept = Data.user.role === 'section_head' && mineList.length === 1 ? mineList[0] : null;
     const item = combo({ id: 'q-item', options: () => Data.activeItems().sort((a, b) => a.name.localeCompare(b.name))
       .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit })) });
     const qty = trackFilled(h('input.input.num#q-qty', { type: 'number', step: 'any', min: 0 }));
@@ -64,15 +68,16 @@ export async function render(root) {
       await Outbox.add('requests.create', { date: Data.todayIso(), party_id: dept.value, note: note.value, client_id: newId(), lines },
         Data.parties.get(dept.value).name);
       toast(t('request_sent'), 'ok');
-      lines = []; draw(); note.value = ''; dept.clear(); dept.input.focus();
+      lines = []; draw(); note.value = ''; if (onlyDept) item.input.focus(); else { dept.clear(); dept.input.focus(); }
       setTimeout(loadList, 1500);
     };
     parts.push(h('div.card.form-card', h('h2', t('new_request')),
-      h('div.form-grid', field(t('department'), dept, { wide: true }), h('div.field.wide', before), field(t('item'), item, { wide: true }), field(t('qty'), qty),
+      h('div.form-grid', onlyDept ? h('div.field.wide', h('b', h('bdi', onlyDept.name))) : field(t('department'), dept, { wide: true }), h('div.field.wide', before), field(t('item'), item, { wide: true }), field(t('qty'), qty),
         h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line'))), field(t('note'), note, { wide: true })),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', ''))), body)),
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: send }, t('send_request')))));
     draw();
+    if (onlyDept) { dept.set(onlyDept.party_id); showBefore(onlyDept.party_id); }
   }
 
   // ---------- list
@@ -137,8 +142,10 @@ export async function render(root) {
       if (ans) ans.addEventListener('change', () => { if (Number(ans.value) > can) { ans.value = can; flash(ans); } });
       if (ans) answers.push({ line_no: l.line_no, inp: ans });
       const other = canFulfil && live && left > 0 && !inp && !waits;
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
-        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))),
+      // nothing in the store for a line still to give: the row stands out
+      const none = live && left > 0 && stock <= 0;
+      return h('tr', { class: none ? 'req-none' : '' }, h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
+        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id)), none ? h('span.pill.low', t('req_no_stock')) : ''),
         h('td', inp || ans || (l.reason ? h('small.err-text', t('req_rejected_why', { why: l.reason })) : other ? h('small.muted', t('other_store')) : '')));
     });
     const actions = h('div.form-actions');

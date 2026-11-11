@@ -69,8 +69,11 @@ var Production = {
       return { client_id: cid + '-c' + i, kind: 'PROD_CONSUME', date: p.date, party_id: setup.consume, item_id: l.item_id,
                qty: l.need, unit: l.unit, doc_no: doc, purpose: Util.clean(p.product) };
     });
+    // the product's expiry: the production day plus its shelf life (set with its price), when it has one
+    var shelf = Number(setup.item.shelf_days) || 0, expiry = '';
+    if (shelf > 0) { var d = new Date(p.date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + shelf); expiry = d.toISOString().slice(0, 10); }
     movs.push({ client_id: cid + '-o', kind: 'PROD_OUTPUT', date: p.date, party_id: setup.output, item_id: setup.item.item_id,
-                qty: qty, unit: setup.item.unit, doc_no: doc, purpose: Util.clean(p.product) });
+                qty: qty, unit: setup.item.unit, doc_no: doc, purpose: Util.clean(p.product), expiry: expiry });
     var saved = Movements.save(session, { movements: movs }, ['PROD_CONSUME', 'PROD_OUTPUT']);
     Shop.madeNotify(session, setup.item.item_id);
     // the batch number of this production (its traceability record)

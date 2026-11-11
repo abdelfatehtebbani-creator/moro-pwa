@@ -103,6 +103,9 @@ export function reportToXlsx(report) {
   });
   const endRow = H + report.rows.length;
   line(endRow + 2, [cell('A' + (endRow + 2), (L.records || 'Number of records: ') + report.rows.length, 4, 't')]);
+  // lines under the table (a review, a signature)
+  const foot = report.foot || [];
+  foot.forEach((text, k) => line(endRow + 3 + k, span(endRow + 3 + k, text, 4), 30));
   // column widths from content
   const widths = cols.map((c, i) => {
     const longest = Math.max(String(c.label).length, ...report.rows.slice(0, 500).map((r) => String(r[i] ?? '').length));
@@ -115,6 +118,7 @@ export function reportToXlsx(report) {
 <cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>
 <sheetData>${rows.join('')}</sheetData>
 ${report.rows.length ? `<autoFilter ref="A${H}:${last}${endRow}"/>` : ''}
+${foot.length ? `<mergeCells count="${foot.length}">${foot.map((_, k) => `<mergeCell ref="A${endRow + 3 + k}:${last}${endRow + 3 + k}"/>`).join('')}</mergeCells>` : ''}
 <pageMargins left="0.5" right="0.5" top="0.6" bottom="0.7" header="0.3" footer="0.3"/>
 <pageSetup paperSize="9" orientation="${widths.reduce((a, b) => a + b, 0) > 110 ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="0"/>
 <headerFooter><oddFooter>&amp;L&amp;8ALAKER SWEETS - ${esc(report.title)}&amp;C&amp;8Page &amp;P of &amp;N&amp;R&amp;8&amp;D &amp;T</oddFooter></headerFooter>

@@ -119,6 +119,11 @@ var ROUTES = {
   'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
+  'trips.depart':     function (s, p) { return Trips.depart(s, p); },
+  'kiosk.enable':     function (s, p) { return Kiosk.enable(s, p); },
+  'kiosk.reset':      function (s, p) { return Kiosk.reset(s, p); },
+  'report.dispatch':  function (s, p) { return Dispatch.report(s, p); },
+  'dispatch.review':  function (s, p) { return Dispatch.review(s, p); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
   'shop.unavailable': function (s, p) { return Shop.unavailable(s, p); },
   'shop.purchase':    function (s, p) { return Shop.purchase(s, p); },
@@ -131,7 +136,9 @@ var ROUTES = {
 var PUBLIC = {
   'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today(), no_pin: Auth.noPin() }; },
   'auth.login':  function (p) { return Auth.login(p); },
-  'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); }
+  'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); },
+  // the shared device in the factory: its people (the device key, no session)
+  'kiosk.users': function (p) { return Kiosk.users(p); }
 };
 
 function handle(body) {
@@ -169,7 +176,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '52';
+var SCHEMA_VERSION = '56';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -181,6 +188,8 @@ function ensureSchema() {
     Masters.seedUnits();
     if (Number(Settings.get('schema_version', '0')) < 5) Stores.seed();
     if (Number(Settings.get('schema_version', '0')) < 26) Perm.addDashView();
+    // the dispatching record: food safety officers and distribution with their own ticks get it too
+    if (Number(Settings.get('schema_version', '0')) < 56) Perm.addRoleLeaves({ food_safety: ['report.dispatch', 'dispatch.review'], distribution: ['report.dispatch'] });
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
