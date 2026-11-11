@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.200', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: أمين المخزن لم يعد في قائمة الأسماء، وشريط الأقسام في الأعلى يُظهر كل الأقسام في سطرين عند الحاجة.", "(نسخة التطوير) طلبات الأقسام: مسؤول القسم يطلب لقسمه فقط؛ إن كان له قسم واحد يظهر اسمه بدل خانة الاختيار."]},
+    en: {"news": ["(Development copy) Shared device: the storekeeper is no longer in the names list, and the departments bar at the top shows every department, on two lines when needed.", "(Development copy) Department requests: a section head asks for their own departments only; with one department, its name shows instead of the choice."]},
+  },
+  {
     v: '0.9.199', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) الجهاز المشترك في المصنع: شاشة لمسية واحدة لكل الأقسام المنتجة (صفحة kiosk.html). يضغط الموظف على اسمه، ثم يكتب رمزه على لوحة الأرقام، ثم يسجّل إنتاجًا أو يسلّم أسطر طلبيات المحلات أو يطلب مواد من المخزن. كل عملية تُحفظ باسمه، ويخرج الجهاز تلقائيًا بعدها وبعد دقيقة بلا لمس. لا تمرير في أي اتجاه، والقوائم الطويلة صفحات."], "admin": "لتفعيل الجهاز: شغّل عليه ملف MORO-kiosk.bat (يفتح Chrome بملء الشاشة)، وادخل باسمك ورمزك مرة واحدة. للإغلاق: Alt+F4."},
     en: {"news": ["(Development copy) The shared device in the factory: one touch screen for every producing department (kiosk.html). A person presses their name, types their PIN on the keypad, then records a production, hands shop-order lines or asks the store for materials. Every entry is theirs, and the device signs out after it and after a minute without a touch. Nothing scrolls; long lists are pages."], "admin": "To set up the device: run MORO-kiosk.bat on it (Chrome full screen) and sign in once with your name and PIN. To close it: Alt+F4."},

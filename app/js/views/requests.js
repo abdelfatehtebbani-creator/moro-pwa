@@ -32,8 +32,12 @@ export async function render(root) {
       before.replaceChildren(h('small.muted', t('req_asked_before')), h('div.req-chips', ids.map((id) => h('button.chip', { type: 'button',
         onclick: () => { item.set(id); qty.focus(); } }, h('bdi', Data.nameOf(Data.items.get(id))), h('small', ' ' + fmtNum(Data.qty(id)))))));
     };
-    const dept = combo({ id: 'q-dept', options: () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true)
+    // a section head asks for their own departments only; with one department, it is chosen and the field is not shown
+    const own = (p) => Data.user.role !== 'section_head' || !(Data.user.depts || []).length || Data.user.depts.includes(p.party_id);
+    const dept = combo({ id: 'q-dept', options: () => [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true && own(p))
       .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name })), onPick: (v) => showBefore(v) });
+    const mineList = [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true && own(p));
+    const onlyDept = Data.user.role === 'section_head' && mineList.length === 1 ? mineList[0] : null;
     const item = combo({ id: 'q-item', options: () => Data.activeItems().sort((a, b) => a.name.localeCompare(b.name))
       .map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit })) });
     const qty = trackFilled(h('input.input.num#q-qty', { type: 'number', step: 'any', min: 0 }));
@@ -64,15 +68,16 @@ export async function render(root) {
       await Outbox.add('requests.create', { date: Data.todayIso(), party_id: dept.value, note: note.value, client_id: newId(), lines },
         Data.parties.get(dept.value).name);
       toast(t('request_sent'), 'ok');
-      lines = []; draw(); note.value = ''; dept.clear(); dept.input.focus();
+      lines = []; draw(); note.value = ''; if (onlyDept) item.input.focus(); else { dept.clear(); dept.input.focus(); }
       setTimeout(loadList, 1500);
     };
     parts.push(h('div.card.form-card', h('h2', t('new_request')),
-      h('div.form-grid', field(t('department'), dept, { wide: true }), h('div.field.wide', before), field(t('item'), item, { wide: true }), field(t('qty'), qty),
+      h('div.form-grid', onlyDept ? h('div.field.wide', h('b', h('bdi', onlyDept.name))) : field(t('department'), dept, { wide: true }), h('div.field.wide', before), field(t('item'), item, { wide: true }), field(t('qty'), qty),
         h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line'))), field(t('note'), note, { wide: true })),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', ''))), body)),
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: send }, t('send_request')))));
     draw();
+    if (onlyDept) { dept.set(onlyDept.party_id); showBefore(onlyDept.party_id); }
   }
 
   // ---------- list

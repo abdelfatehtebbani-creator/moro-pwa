@@ -48,7 +48,7 @@ body { background: var(--bg); color: var(--text); font: 18px 'IBM Plex Sans Arab
 .k-actions .k-tile { border-color: var(--teal); }
 .k-actions .k-ico { font-size: 64px; color: inherit; }
 .k-actions b { font-size: 28px; }
-.k-chips { display: flex; gap: 10px; flex-wrap: nowrap; overflow: hidden; flex: 0 0 auto; }
+.k-chips { display: flex; gap: 8px 10px; flex-wrap: wrap; justify-content: center; flex: 0 0 auto; }
 .k-chip { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 18px; font: inherit; font-weight: 600; white-space: nowrap; }
 .k-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 .k-pager { display: flex; align-items: center; gap: 24px; }

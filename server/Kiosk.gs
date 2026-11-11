@@ -43,12 +43,12 @@ var Kiosk = {
     return dev;
   },
 
-  /** The people of the shared device: active, allowed to record production, hand shop orders or ask the store. p: {key}. */
+  /** The people of the shared device (not the admin nor the storekeeper): active, allowed to record production, hand shop orders or ask the store. p: {key}. */
   users: function (p) {
     var dev = Kiosk.check(p.key);
     var parties = {};
     Repo.all('Parties').forEach(function (x) { parties[x.party_id] = x.name; });
-    var people = Repo.all('Users').filter(function (u) { return u.active === true && u.role !== 'admin'; }).map(function (u) {
+    var people = Repo.all('Users').filter(function (u) { return u.active === true && u.role !== 'admin' && u.role !== 'storekeeper'; }).map(function (u) {
       var caps = Perm.capsOf(u).filter(function (c) { return KIOSK_LEAVES.indexOf(c) >= 0; });
       if (!caps.length) return null;
       var depts = Auth.deptsOf(u).map(function (d) { return parties[d] || ''; }).filter(String);

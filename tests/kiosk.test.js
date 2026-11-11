@@ -6,7 +6,7 @@ const { createGas } = require('./helpers/gas');
 
 test('shared device: enabled by the admin, lists the people who record production, hand orders or ask the store', () => {
   const g = createGas();
-  g.seed('Parties', [{ party_id: 'P001', name: 'Baklava section', kind: 'section', active: true }]);
+  g.seed('Parties', [{ party_id: 'P001', name: 'Baklava section', kind: 'section', active: true }, { party_id: 'P002', name: 'Bread section', kind: 'section', active: true }]);
   g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
   const admin = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
   const add = (username, role, extra) => {
@@ -19,6 +19,7 @@ test('shared device: enabled by the admin, lists the people who record productio
   const head = add('baklava', 'section_head', { depts: ['P001'] });
   add('cash1', 'cashier');
   add('prod1', 'production');
+  add('store1', 'storekeeper');
   add('gone', 'section_head', { active: false });
 
   assert.equal(g.api('kiosk.users', { key: 'nope' }).error.code, 'kiosk_unknown');
@@ -29,6 +30,8 @@ test('shared device: enabled by the admin, lists the people who record productio
   const list = g.api('kiosk.users', { key: dev.key }).data;
   assert.equal(list.device, 'Factory');
   assert.deepEqual(list.users.map((u) => [u.username, u.depts.join()]), [['baklava', 'Baklava section'], ['prod1', '']]);
+  // a section head asks the store for their own departments only
+  assert.equal(g.api('requests.create', { date: list.today, party_id: 'P002', lines: [{ item_id: 'I1', qty: 1 }] }, head).error.code, 'forbidden');
   // the person signs in as themselves with their PIN
   assert.equal(g.api('auth.login', { username: 'baklava', pin: '5678' }).ok, true);
   // switched off: the device must be set up again
