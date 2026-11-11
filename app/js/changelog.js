@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.199', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك في المصنع: شاشة لمسية واحدة لكل الأقسام المنتجة (صفحة kiosk.html). يضغط الموظف على اسمه، ثم يكتب رمزه على لوحة الأرقام، ثم يسجّل إنتاجًا أو يسلّم أسطر طلبيات المحلات أو يطلب مواد من المخزن. كل عملية تُحفظ باسمه، ويخرج الجهاز تلقائيًا بعدها وبعد دقيقة بلا لمس. لا تمرير في أي اتجاه، والقوائم الطويلة صفحات."], "admin": "لتفعيل الجهاز: شغّل عليه ملف MORO-kiosk.bat (يفتح Chrome بملء الشاشة)، وادخل باسمك ورمزك مرة واحدة. للإغلاق: Alt+F4."},
+    en: {"news": ["(Development copy) The shared device in the factory: one touch screen for every producing department (kiosk.html). A person presses their name, types their PIN on the keypad, then records a production, hands shop-order lines or asks the store for materials. Every entry is theirs, and the device signs out after it and after a minute without a touch. Nothing scrolls; long lists are pages."], "admin": "To set up the device: run MORO-kiosk.bat on it (Chrome full screen) and sign in once with your name and PIN. To close it: Alt+F4."},
+  },
+  {
     v: '0.9.198', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: عنوان عمود الفرع والعنوان صار «الجهة المستلمة»."]},
     en: {"news": ["(Development copy) Dispatching record: the branch and address column is now headed \"Destination\"."]},
