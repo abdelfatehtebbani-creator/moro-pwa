@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.196', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: الجدول كاملًا في PDF (صفحة بالعرض)، ومراجعة مسؤول الجودة ظاهرة في Excel على عرض الجدول، والفرع وعنوان الوجهة في عمود واحد، وزر حفظ المراجعة داخل الشاشة."]},
+    en: {"news": ["(Development copy) Dispatching record: the whole table in the PDF (landscape page), the quality review visible in Excel across the table, the branch and the destination address in one column, and the review save button within the screen."]},
+  },
+  {
     v: '0.9.195', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: مربع «مراجعة مسؤول الجودة» يظهر الآن لمستخدمي سلامة الغذاء ذوي الصلاحيات المخصصة، واختفت كلمة null التي كانت تظهر تحت الجدول."]},
     en: {"news": ["(Development copy) Dispatching record: the \"Quality officer review\" box now shows for food safety users with custom permissions, and the stray \"null\" under the table is gone."]},
