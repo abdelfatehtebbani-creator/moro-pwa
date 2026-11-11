@@ -62,7 +62,7 @@ function dispatch(p, movs, data) {
   const days = [...new Set(data.rows.map((r) => r.date))];
   return { title: 'Dispatching and delivery record', subtitle: periodText(p),
     columns: cols(['#', 'n'], ['Date', 'd'], ['Loading time', 't'], ['Product', 't'], ['Batch No.', 't'], ['Production date', 't'], ['Expiry date', 't'],
-      ['Quantity and unit', 't'], ['Branch / recipient – address', 't'], ['Vehicle no.', 't'], ['Driver', 't'],
+      ['Quantity and unit', 't'], ['Destination', 't'], ['Vehicle no.', 't'], ['Driver', 't'],
       ['Temperature when leaving (°C)', 'n'], ['Departure time', 't'], ['Recipient (confirmed)', 't'], ['Temperature on arrival (°C)', 'n'], ['Handed over by', 't']),
     rows, review: { days, reviews: data.reviews }, wide: true };
 }

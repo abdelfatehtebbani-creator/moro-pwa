@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.198', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: عنوان عمود الفرع والعنوان صار «الجهة المستلمة»."]},
+    en: {"news": ["(Development copy) Dispatching record: the branch and address column is now headed \"Destination\"."]},
+  },
+  {
     v: '0.9.197', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات: سطر مراجعة الجودة مقسّم إلى أجزاء قصيرة بتواريخ رقمية، فيُقرأ بالعربية بترتيبه الصحيح."]},
     en: {"news": ["(Development copy) Dispatching record: the quality review line is in short parts with numeric dates, so it reads in order in Arabic."]},
