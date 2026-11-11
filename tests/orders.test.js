@@ -152,7 +152,7 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(disp.rows.length, 1);
   const row = disp.rows[0];
   assert.deepEqual([row.item_id, row.qty, row.shop_party_id, row.vehicle, row.temp, row.driver, row.received_by, row.handed_by],
-    ['I0001', 4, 'P002', 'Q 123', 4.5, 'driver', 'cashier', 'store']);
+    ['I0001', 4, 'P002', 'Q 123', 4.5, 'driver', 'cashier', 'dist']);
   assert.equal(row.arrival_temp, 5);
   assert.ok(row.loaded && row.departed && Array.isArray(row.batches));
   assert.equal(g.api('report.dispatch', {}, tok.cashier).error.code, 'forbidden');
