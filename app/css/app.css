@@ -99,7 +99,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .trip-left { display: block; padding: 4px 10px; }
 .rep-foot p { margin: 4px 0; font-size: .92em; }
 .dr-review { margin-top: 10px; }
-.dr-day { display: grid; grid-template-columns: auto 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 8px; }
+.dr-day { display: grid; grid-template-columns: auto 90px minmax(0, 360px) auto; justify-content: start; gap: 8px; align-items: center; margin-top: 8px; }
+.rep-out, .rep-preview { min-width: 0; }
 @media (max-width: 560px) { .dr-day { grid-template-columns: auto 1fr; } .dr-day input { grid-column: 1 / -1; } }
 .trip-stop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line); }
 .trip-stop > b.num { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; flex: none; }
@@ -502,6 +503,10 @@ tr.count-diff td:first-child { border-inline-start: 4px solid #e67e22; font-weig
   .lpo-print .lp-sign span { display: block; border-top: 1.5pt solid #000; margin-bottom: 14pt; }
 }
 /* the LPO page carries no app footer, like the paper form */
+/* a wide report (many columns): landscape, smaller type, so the whole table fits */
+@page wide { size: A4 landscape; margin: 10mm 8mm 14mm; }
+@media print { #print-area.pr-wide { page: wide; font-size: 7.5pt; } #print-area.pr-wide .pr-table { table-layout: auto; width: 100%; }
+  #print-area.pr-wide .pr-table th, #print-area.pr-wide .pr-table td { padding: 2pt 3pt; font-size: 7.5pt; white-space: normal; overflow-wrap: anywhere; } }
 @page lpo { margin: 14mm 10mm 12mm; @bottom-center { content: none; } @bottom-left { content: none; } }
 .recent-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .recent-head h2 { margin: 0; }

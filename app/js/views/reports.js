@@ -280,7 +280,7 @@ function renderTables(root) {
   function pdf() {
     const c = current;
     const L = c.labels || {};
-    const area = h('div#print-area', { dir: c.rtl ? 'rtl' : 'ltr' },
+    const area = h('div#print-area', { dir: c.rtl ? 'rtl' : 'ltr', class: c.wide ? 'pr-wide' : '' },
       h('div.pr-company', 'ALAKER SWEETS'), h('div.pr-sub', L.system || 'Inventory Management System'),
       h('div.pr-title', c.title),
       h('div.pr-meta', h('b', c.subtitle), h('span', (L.printed || 'Printed: ') + new Date().toLocaleString('en-GB'))),
