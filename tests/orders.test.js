@@ -162,6 +162,11 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(g.api('dispatch.review', { date: row.date, ok: true, note: 'ok' }, tok.fsafe).ok, true);
   assert.deepEqual(g.api('report.dispatch', { from: row.date, to: row.date }, tok.fsafe).data.reviews.map((v) => [v.ok, v.note, v.by]), [[true, 'ok', 'fsafe']]);
   assert.equal(g.api('dispatch.review', { date: row.date, ok: true }, tok.dist).error.code, 'forbidden');
+  // an officer with their own ticks, from before the record: the upgrade adds it
+  const id = user('fsold', 'food_safety', { caps: ['batches.view', 'report.trace'] });
+  assert.equal(g.api('report.dispatch', {}, tok.fsold).error.code, 'forbidden');
+  g.run('Perm.addRoleLeaves({ food_safety: ["report.dispatch", "dispatch.review"] }); Repo.reset();');
+  assert.deepEqual(String(g.rows('Users').find((u) => u.user_id === id).caps).split(',').sort(), ['batches.view', 'dispatch.review', 'report.dispatch', 'report.trace']);
   // the invoice: from what was received, at the item's price, frozen; an item without a price stops it
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.cashier).error.code, 'forbidden');
   assert.equal(g.api('invoices.create', { order_id: o.order_id }, tok.dist).error.code, 'diff_not_accepted');

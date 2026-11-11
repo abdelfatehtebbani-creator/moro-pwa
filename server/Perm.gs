@@ -283,6 +283,17 @@ var Perm = {
    * Schema 26: the dashboard got its own tick (dash.view). Users with their own list of ticks who saw it
    * before (they worked with stock) get the tick, so nobody loses it; the others never had it.
    */
+  /** New leaves for a role's users with their own ticks (the role template gets them anyway). leaves: {role: [leaf]}. */
+  addRoleLeaves: function (leaves) {
+    Repo.setColumn('Users', 'caps', function (u) {
+      var own = String(u.caps || '').trim();
+      if (!own || !leaves[u.role]) return own;
+      var caps = Perm.capsOf(u);
+      leaves[u.role].forEach(function (l) { if (caps.indexOf(l) < 0) caps.push(l); });
+      return caps.join(',');
+    });
+  },
+
   addDashView: function () {
     var before = ['nav.receive', 'nav.issue', 'nav.production', 'nav.requests', 'nav.shoporders', 'nav.reports', 'nav.counts', 'nav.masters', 'min_stock'];
     Repo.setColumn('Users', 'caps', function (u) {
