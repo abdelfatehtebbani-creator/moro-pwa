@@ -57,13 +57,13 @@ function dispatch(p, movs, data) {
     const it = Data.items.get(r.item_id);
     return [i + 1, r.date, r.loaded, r.description || (it ? Data.nameOf(it) : r.item_id), join(r, (b) => b.batch), join(r, (b) => dmy(b.made)), join(r, (b) => dmy(b.expiry)),
       r.qty + ' ' + (r.unit || ''), partyName(r.shop_party_id), r.address, r.vehicle, r.driver, r.temp, r.departed,
-      r.received_by ? r.received_by + ' ' + stamp(r.received_at).slice(11) : '', r.handed_by];
+      r.received_by ? r.received_by + ' ' + stamp(r.received_at).slice(11) : '', r.arrival_temp, r.handed_by];
   });
   const days = [...new Set(data.rows.map((r) => r.date))];
   return { title: 'Dispatching and delivery record', subtitle: periodText(p),
     columns: cols(['#', 'n'], ['Date', 'd'], ['Loading time', 't'], ['Product', 't'], ['Batch No.', 't'], ['Production date', 't'], ['Expiry date', 't'],
       ['Quantity and unit', 't'], ['Branch / recipient', 't'], ['Destination address', 't'], ['Vehicle no.', 't'], ['Driver', 't'],
-      ['Product / vehicle temperature (°C)', 'n'], ['Departure time', 't'], ['Recipient (confirmed)', 't'], ['Handed over by', 't']),
+      ['Temperature when leaving (°C)', 'n'], ['Departure time', 't'], ['Recipient (confirmed)', 't'], ['Temperature on arrival (°C)', 'n'], ['Handed over by', 't']),
     rows, review: { days, reviews: data.reviews } };
 }
 

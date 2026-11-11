@@ -94,6 +94,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .trip-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
 .trip-row b.num { min-width: 1.2em; color: var(--brand); }
 .trip-depart { margin: 8px 10px; }
+.arrival { display: inline-flex; align-items: center; gap: 8px; }
+.arrival-temp { width: 100px; }
 .trip-left { display: block; padding: 4px 10px; }
 .rep-foot p { margin: 4px 0; font-size: .92em; }
 .dr-review { margin-top: 10px; }

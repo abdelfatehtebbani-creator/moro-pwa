@@ -54,7 +54,7 @@ var SCHEMA = {
   Orders:       ['order_id', 'order_no', 'client_id', 'shop_party_id', 'status', 'order_date', 'delivery_date', 'note', 'created_by',
                  'created_at', 'sent_at', 'decided_by', 'decided_at', 'reason', 'updated_at', 'trip_id', 'loaded_at', 'delivered_at',
                  'received_at', 'received_by', 'diff_status', 'diff_by', 'diff_at', 'kind', 'customer_name', 'customer_phone',
-                 'delivery_time', 'place', 'address', 'mgr_note', 'mgr_note_by', 'mgr_note_at', 'made_at', 'parent_id'],
+                 'delivery_time', 'place', 'address', 'mgr_note', 'mgr_note_by', 'mgr_note_at', 'made_at', 'parent_id', 'arrival_temp'],
   OrderItems:   ['order_id', 'line_no', 'item_id', 'qty', 'unit', 'approved_qty', 'status', 'received_qty', 'short_reason', 'short_note',
                  'short_decision', 'description', 'price', 'dept', 'photos', 'purchase'],
   Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at', 'client_id', 'vehicle', 'temp', 'departed_at',

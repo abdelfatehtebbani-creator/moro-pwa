@@ -39,7 +39,7 @@ const W = {
   'Current balance': 'الرصيد الحالي', 'Cost (QR)': 'التكلفة (ر.ق)', 'Batch source': 'مصدر الدفعة', 'Balance': 'الرصيد', 'Available': 'المتاح', 'Approved': 'الاعتماد',
   'Dispatching and delivery record': 'سجل صرف وتسليم المنتجات', 'Loading time': 'وقت التحميل', 'Batch No.': 'رقم التشغيلة',
   'Production date': 'تاريخ الإنتاج', 'Quantity and unit': 'الكمية ووحدتها', 'Branch / recipient': 'الفرع / الجهة المستلمة',
-  'Destination address': 'عنوان الوجهة', 'Vehicle no.': 'رقم المركبة', 'Driver': 'اسم السائق', 'Product / vehicle temperature (°C)': 'درجة حرارة المنتج/المركبة (°م)',
+  'Destination address': 'عنوان الوجهة', 'Vehicle no.': 'رقم المركبة', 'Driver': 'اسم السائق', 'Temperature when leaving (°C)': 'درجة الحرارة عند المغادرة (°م)', 'Temperature on arrival (°C)': 'درجة الحرارة عند الوصول (°م)',
   'Departure time': 'وقت المغادرة', 'Recipient (confirmed)': 'المستلم (تأكيد الاستلام)', 'Handed over by': 'مسؤول التسليم', '#': 'م',
   // cells
   'Food': 'غذائي', 'Packaging': 'تغليف', 'Chilled foods': 'مواد مبرّدة', 'Dry foods': 'مواد جافة', 'Final products': 'المنتج النهائي', 'Cleaning': 'مواد تنظيف',

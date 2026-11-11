@@ -216,13 +216,16 @@ var Trips = {
   },
 
   /**
-   * The cashier receives a delivered order. p: {order_id, lines: [{line_no, qty, reason, note}]}.
+   * The cashier receives a delivered order. p: {order_id, lines: [{line_no, qty, reason, note}], temp (°C on arrival)}.
    * Received ≤ handed; less needs a reason from the list. A line not given: all of what was handed.
    */
   receive: function (session, p) {
     return withLock(function () {
       var o = Repo.find('Orders', 'order_id', p.order_id);
       Util.require(o && o.status === 'delivered' && o.shop_party_id === Orders.shopOf(session), 'not_found');
+      // the temperature of the products on arrival, for the dispatching record (the driver wrote it when leaving)
+      var temp = Util.num(p.temp);
+      Util.require(p.temp !== '' && p.temp !== undefined && p.temp !== null && temp !== null && temp >= -40 && temp <= 90, 'temp_invalid');
       var given = {};
       (p.lines || []).forEach(function (x) { given[Number(x.line_no)] = x; });
       var view = Orders.view(o), short = false;
@@ -242,7 +245,7 @@ var Trips = {
       var now = Util.nowIso();
       // received less than handed: distribution reviews the difference before the invoice
       Repo.update('Orders', 'order_id', o.order_id, { status: 'received', received_at: now, received_by: session.user_id, updated_at: now,
-        diff_status: short ? 'pending' : '' });
+        diff_status: short ? 'pending' : '', arrival_temp: Util.round(temp) });
       Audit.log(session.user_id, 'order_receive', 'Orders', o.order_id, null, { lines: view.lines.length });
       var after = Repo.find('Orders', 'order_id', o.order_id);
       OrderNotify.received(after, Orders.view(after), session);

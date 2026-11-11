@@ -37,7 +37,7 @@ var Dispatch = {
         rows.push({ trip_id: t.trip_id, date: day(s.loaded_at), loaded: clock(s.loaded_at), item_id: l.item_id, description: l.description || '', qty: qty, unit: l.unit,
           lots: lots, shop_party_id: o.shop_party_id || '', address: o.place === 'customer' ? (o.customer_name || '') + ' ' + String(o.address || '').replace(/https?:\/\/\S+/, '').trim() : '',
           vehicle: t.vehicle || '', driver: users[t.driver_id] || t.driver_id, temp: t.temp === '' || t.temp === undefined ? '' : Number(t.temp), departed: clock(t.departed_at),
-          departed_day: day(t.departed_at), received_by: users[o.received_by] || '', received_at: o.received_at || '', handed_by: users[l.handed_by] || l.handed_by || '',
+          departed_day: day(t.departed_at), received_by: users[o.received_by] || '', received_at: o.received_at || '', arrival_temp: o.arrival_temp === '' || o.arrival_temp === undefined ? '' : Number(o.arrival_temp), handed_by: users[l.handed_by] || l.handed_by || '',
           seq: Number(s.seq), order_no: o.order_no || '' });
       });
     });
