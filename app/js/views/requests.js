@@ -142,8 +142,10 @@ export async function render(root) {
       if (ans) ans.addEventListener('change', () => { if (Number(ans.value) > can) { ans.value = can; flash(ans); } });
       if (ans) answers.push({ line_no: l.line_no, inp: ans });
       const other = canFulfil && live && left > 0 && !inp && !waits;
-      return h('tr', h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
-        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id))),
+      // nothing in the store for a line still to give: the row stands out
+      const none = live && left > 0 && stock <= 0;
+      return h('tr', { class: none ? 'req-none' : '' }, h('td.wrap', h('bdi', Data.nameOf(it))), h('td', storePill(store)), h('td.num', fmtNum(l.qty) + ' ' + (it.unit || '')), h('td.num', fmtNum(l.issued_qty || 0)),
+        h('td.num', { class: Data.qty(l.item_id) < left ? 'qty-neg' : '' }, fmtNum(Data.qty(l.item_id)), none ? h('span.pill.low', t('req_no_stock')) : ''),
         h('td', inp || ans || (l.reason ? h('small.err-text', t('req_rejected_why', { why: l.reason })) : other ? h('small.muted', t('other_store')) : '')));
     });
     const actions = h('div.form-actions');

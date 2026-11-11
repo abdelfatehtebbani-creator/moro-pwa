@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.201', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) طلبات الأقسام: السطر الذي رصيده في المخزن صفر يظهر بخلفية حمراء وعلامة «نفد» بجانب الرصيد."]},
+    en: {"news": ["(Development copy) Department requests: a line with nothing in stock shows with a red background and an \"Out of stock\" mark beside the balance."]},
+  },
+  {
     v: '0.9.200', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) الجهاز المشترك: أمين المخزن لم يعد في قائمة الأسماء، وشريط الأقسام في الأعلى يُظهر كل الأقسام في سطرين عند الحاجة.", "(نسخة التطوير) طلبات الأقسام: مسؤول القسم يطلب لقسمه فقط؛ إن كان له قسم واحد يظهر اسمه بدل خانة الاختيار."]},
     en: {"news": ["(Development copy) Shared device: the storekeeper is no longer in the names list, and the departments bar at the top shows every department, on two lines when needed.", "(Development copy) Department requests: a section head asks for their own departments only; with one department, its name shows instead of the choice."]},
