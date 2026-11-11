@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.194', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) استلام الطلبية: يكتب الكاشير درجة حرارة المنتجات عند الوصول مع الكميات، وتظهر في سجل الصرف والتسليم بجانب حرارة المغادرة."], "todo": "الكاشير: عند تأكيد استلام الطلبية اكتب درجة حرارة المنتجات عند الوصول."},
+    en: {"news": ["(Development copy) Receiving an order: the cashier writes the temperature of the products on arrival with the quantities, shown in the dispatching record beside the temperature when leaving."], "todo": "Cashiers: when confirming an order received, write the temperature of the products on arrival."},
+  },
+  {
     v: '0.9.193', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) مدة صلاحية المنتج النهائي: خانة جديدة بجانب سعره. عند كل إنتاج يُحسب تاريخ الانتهاء تلقائيًا من يوم الإنتاج وهذه المدة، ويظهر في سجل الصرف والتسليم وفي تقارير الصلاحية."], "admin": "اكتب مدة الصلاحية بالأيام لكل منتج نهائي في شاشة المواد. من يعدّل السعر يعدّل المدة."},
     en: {"news": ["(Development copy) Final product shelf life: a new field beside its price. At each production the expiry is worked out from the production day and this shelf life, and shows in the dispatching record and the expiry reports."], "admin": "Write the shelf life in days for each final product in the materials screen. Whoever sets the price sets it."},
