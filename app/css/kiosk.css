@@ -93,3 +93,21 @@ body { background: var(--bg); color: var(--text); font: 18px 'IBM Plex Sans Arab
   .k-split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) 260px; }
   .k-head h1 { font-size: 20px; }
 }
+
+/* the on-screen keyboard: over the bottom of the screen, the list stays visible above it */
+.k-kb { position: fixed; inset-inline: 0; bottom: 0; z-index: 20; background: #dfe4ea; border-top: 2px solid var(--line); padding: 10px 12px 14px;
+  display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -6px 18px rgba(0, 0, 0, .12); height: var(--kbh); }
+:root { --kbh: 296px; }
+/* while it is open the screen takes what is left above it, so nothing is hidden behind it */
+body.k-kbopen .k-app { height: calc(100dvh - var(--kbh)); }
+body.k-kbopen .k-g3 { grid-auto-rows: minmax(0, 1fr); }
+body.k-kbopen .k-tile b { font-size: 17px; -webkit-line-clamp: 1; }
+body.k-kbopen .k-tile small { font-size: 13px; }
+.k-kbrow { display: flex; gap: 8px; justify-content: center; }
+.k-kbkey { flex: 1 1 0; max-width: 96px; height: 48px; border: 0; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 2px var(--line);
+  font: inherit; font-size: 26px; font-weight: 600; color: var(--text); cursor: pointer; }
+.k-kbkey:active { transform: scale(.95); background: #eef2f6; }
+.k-kbwide { max-width: 150px; font-size: 20px; }
+.k-kbspace { flex-grow: 4; max-width: 420px; font-size: 20px; }
+.k-kbdone { background: var(--teal); color: #fff; box-shadow: none; }
+.k-input.k-typing { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14, 124, 116, .2); }
