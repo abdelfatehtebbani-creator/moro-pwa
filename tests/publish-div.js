@@ -24,7 +24,7 @@ edit('js/config.js', (s) => {
   return out;
 });
 const TAG = '<div style="position:fixed;bottom:0;left:0;z-index:99999;background:#b71c1c;color:#fff;padding:3px 10px;font:600 12px sans-serif;pointer-events:none">MORO DIV · test copy</div>';
-for (const page of ['index.html', 'install.html']) {
+for (const page of ['index.html', 'install.html', 'kiosk.html']) {
   edit(page, (s) => s.replace('</body>', TAG + '</body>').replace(/<title>([^<]*)<\/title>/, '<title>[DIV] $1</title>'));
 }
 edit('manifest.webmanifest', (s) => {

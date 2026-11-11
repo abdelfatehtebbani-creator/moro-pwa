@@ -166,7 +166,7 @@ var CAPS = (function () {
     'recipes.edit':      ['recipes.save'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'settings.idle', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'settings.idle', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it

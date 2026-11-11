@@ -120,6 +120,8 @@ var ROUTES = {
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'trips.depart':     function (s, p) { return Trips.depart(s, p); },
+  'kiosk.enable':     function (s, p) { return Kiosk.enable(s, p); },
+  'kiosk.reset':      function (s, p) { return Kiosk.reset(s, p); },
   'report.dispatch':  function (s, p) { return Dispatch.report(s, p); },
   'dispatch.review':  function (s, p) { return Dispatch.review(s, p); },
   'shop.hand':        function (s, p) { return Shop.hand(s, p); },
@@ -134,7 +136,9 @@ var ROUTES = {
 var PUBLIC = {
   'ping':        function () { return { api: API_VERSION, setup_needed: Repo.all('Users').length === 0, today: Util.today(), no_pin: Auth.noPin() }; },
   'auth.login':  function (p) { return Auth.login(p); },
-  'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); }
+  'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); },
+  // the shared device in the factory: its people (the device key, no session)
+  'kiosk.users': function (p) { return Kiosk.users(p); }
 };
 
 function handle(body) {
