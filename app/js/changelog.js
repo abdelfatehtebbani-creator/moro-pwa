@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.204', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) طلبات الأقسام: في السطر الذي رصيده صفر تبدأ خانة «للصرف الآن» بصفر بدل الكمية المطلوبة."]},
+    en: {"news": ["(Development copy) Department requests: on a line with nothing in stock, \"Issue now\" starts at 0 instead of the quantity asked for."]},
+  },
+  {
     v: '0.9.203', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) الجهاز المشترك: لوحة مفاتيح على الشاشة تظهر عند لمس خانة البحث في «طلب مواد»، بالعربية أو الإنجليزية، والقائمة تصغر فوقها فلا يختفي شيء خلفها. والبحث لا يفرّق بين أ وإ وا، ولا بين ى وي، ولا بين ة وه."]},
     en: {"news": ["(Development copy) Shared device: an on-screen keyboard opens when the search field in \"Ask the store\" is touched, in Arabic or English; the list shrinks above it so nothing is hidden. The search treats the forms of alef, yaa and taa marbuta alike."]},

@@ -134,7 +134,7 @@ export async function render(root) {
       const waits = live && left > 0 && l.wait === 'yes';
       const stock = Math.max(0, Data.qty(l.item_id));
       const inp = canFulfil && live && left > 0 && !waits && Data.canStore(store, 'requests')
-        ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, disabled: busy, 'data-key': r.request_id + ':' + l.line_no, value: Math.min(left, Math.max(Data.qty(l.item_id), 0)) || left })) : null;
+        ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, disabled: busy, 'data-key': r.request_id + ':' + l.line_no, value: stock <= 0 ? 0 : Math.min(left, stock) })) : null;   // nothing in the store: 0 is offered
       if (inp) inputs.push({ line_no: l.line_no, inp });
       // the rest can be asked for only when the stock now allows it
       const can = Math.min(left, stock);
