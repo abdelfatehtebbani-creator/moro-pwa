@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.192', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الرحلات: يختار مسؤول التوزيع المركبة عند تجهيز الرحلة. تظهر مركبة السائق تلقائيًا ويمكن تغييرها."]},
+    en: {"news": ["(Development copy) Trips: distribution chooses the vehicle when making the trip. The driver’s vehicle is filled in and can be changed."]},
+  },
+  {
     v: '0.9.191', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) سجل صرف وتسليم المنتجات لسلامة الغذاء، في التقارير: لكل منتج حُمّل في رحلة التاريخ ووقت التحميل ورقم التشغيلة وتاريخ الإنتاج والكمية والفرع والمركبة والسائق ودرجة الحرارة ووقت المغادرة والمستلم ومسؤول التسليم، ويُصدَّر PDF أو Excel. ويراجع مسؤول الجودة كل يوم: نعم أو لا مع ملاحظة."], "todo": "السائق: بعد تحميل كل طلبيات الرحلة اكتب رقم المركبة ودرجة حرارة المنتجات واضغط «انطلقت»، ثم سلّم. رقم المركبة يُحفظ للرحلات التالية.", "admin": "يمكن كتابة رقم مركبة كل سائق في شاشة المستخدمين. المستخدمون بصلاحيات مخصصة يحتاجون تفعيل «سجل صرف وتسليم المنتجات» في التقارير، و«مراجعة سجل صرف وتسليم المنتجات» تحت سجل التشغيلات."},
     en: {"news": ["(Development copy) The dispatching and delivery record for food safety, in the reports: for each product loaded on a trip, the date and loading time, batch number, production date, quantity, branch, vehicle, driver, temperature, departure time, recipient and who handed it over, saved as PDF or Excel. The quality officer reviews each day: yes or no, with a note."], "todo": "Drivers: once every order of the trip is loaded, write the vehicle number and the temperature of the products and press \"Leaving\", then deliver. The vehicle number is kept for the next trips.", "admin": "Each driver’s vehicle number can be written in the users screen. Users with custom permissions need \"Dispatching and delivery record\" ticked under reports, and \"Review the dispatching and delivery record\" under batch records."},
