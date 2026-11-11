@@ -109,8 +109,9 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: line.line_id, qty: 4 }] }, tok.store);
   assert.deepEqual(g.api('orders.list', { status: 'ready' }, tok.dist).data.map((x) => x.order_id), [o.order_id]);
   assert.equal(g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id] }, tok.cashier).error.code, 'forbidden');
-  const trip = g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id] }, tok.dist).data.trip;
+  const trip = g.api('trips.save', { driver_id: driverId, order_ids: [o.order_id], vehicle: 'Q 999' }, tok.dist).data.trip;
   assert.equal(trip.stops.length, 1);
+  assert.equal(trip.vehicle, 'Q 999', 'distribution chose the vehicle');
   assert.equal(g.api('trips.list', {}, tok.driver).data.length, 1);
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).error.code, 'stop_not_loaded');
   assert.equal(g.api('trips.load', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).ok, true);

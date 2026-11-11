@@ -60,19 +60,22 @@ export async function render(root) {
     }) : [h('p.empty', t('no_ready_orders'))]));
     const driver = h('select.input#t-driver', h('option', { value: '' }, '—'), drivers.map((d) => h('option', { value: d.user_id }, d.name)));
     const note = trackFilled(h('input.input#t-note'));
+    // the vehicle: the driver's own, changed here when the trip goes in another one
+    const vehicle = trackFilled(h('input.input#t-vehicle', { type: 'text', maxlength: 30 }));
+    driver.addEventListener('change', () => { vehicle.value = (drivers.find((d) => d.user_id === driver.value) || {}).vehicle || ''; vehicle.dispatchEvent(new Event('input')); });
     const create = async (e) => {
       if (!chosen.length) { flash(list); return; }
       if (!driver.value) { flash(driver); return; }
       const btn = e.currentTarget; btn.disabled = true;
       // queued and sent in the background (the client id makes a resend the same trip)
-      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
+      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, vehicle: vehicle.value.trim(), client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
         build(lastNew ? lastNew.ready : readyAll, drivers); }
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };
     drawPick();
     newBox.replaceChildren(h('div.form-card', h('h3', t('trip_new')), h('small.muted', t('trip_new_help')),
       ready.some((o) => o.kind === 'special' && o.place === 'customer') ? h('small.muted', t('trip_special_help')) : null, list,
-      h('div.form-grid', field(t('driver'), driver), field(t('note'), note, { wide: true })),
+      h('div.form-grid', field(t('driver'), driver), field(t('vehicle_no'), vehicle), field(t('note'), note, { wide: true })),
       drivers.length ? null : h('p.err-text', t('no_drivers')),
       going.size ? h('p.pill.soon', t('trips_sending', { n: Outbox.queued('trips.save').length })) : null,
       h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: create }, t('trip_create')))));

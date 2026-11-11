@@ -56,7 +56,7 @@ var Trips = {
       .slice(0, Number(p.limit) || 100);
   },
 
-  /** Distribution: a new trip. p: {driver_id, order_ids: [in the order of the stops], note}. */
+  /** Distribution: a new trip. p: {driver_id, order_ids: [in the order of the stops], note, vehicle (else the driver's)}. */
   save: function (session, p) {
     var ids = (p.order_ids || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     Util.require(ids.length, 'nothing_to_save');
@@ -73,7 +73,8 @@ var Trips = {
       });
       var now = Util.nowIso();
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
-                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
+                   note: Util.clean(p.note), created_by: session.user_id, created_at: now, updated_at: now, client_id: cid,
+                   vehicle: Util.clean(p.vehicle).slice(0, 30) || String(driver.vehicle || ''), temp: '', departed_at: '', departed_by: '' };
       Repo.append('Trips', [trip]);
       Repo.append('TripStops', ids.map(function (id, i) {
         return { trip_id: trip.trip_id, order_id: id, seq: i + 1, loaded_at: '', loaded_by: '', delivered_at: '', delivered_by: '' };
@@ -119,7 +120,8 @@ var Trips = {
       Shop.rebalance(Object.keys(touched));
       Util.require(handed > 0, 'nothing_handed');
       var trip = { trip_id: 'T' + Util.pad(Settings.next('seq_trip', 0), 5), driver_id: driver.user_id, status: 'open',
-                   note: '', created_by: session.user_id, created_at: now, updated_at: now, client_id: cid };
+                   note: '', created_by: session.user_id, created_at: now, updated_at: now, client_id: cid,
+                   vehicle: String(driver.vehicle || ''), temp: '', departed_at: '', departed_by: '' };
       Repo.append('Trips', [trip]);
       Repo.append('TripStops', [{ trip_id: trip.trip_id, order_id: cur.order_id, seq: 1, loaded_at: now, loaded_by: session.user_id, delivered_at: '', delivered_by: '' }]);
       Repo.update('Orders', 'order_id', cur.order_id, { status: 'loaded', trip_id: trip.trip_id, loaded_at: now, updated_at: now });
@@ -205,9 +207,9 @@ var Trips = {
       Util.require(stops.length && stops.every(function (x) { return x.loaded_at; }), 'trip_not_all_loaded');
       var now = Util.nowIso();
       Repo.update('Trips', 'trip_id', t.trip_id, { vehicle: vehicle, temp: Util.round(temp), departed_at: now, departed_by: session.user_id, updated_at: now });
-      // the vehicle is kept for the driver's next trips
+      // the vehicle is kept for the driver's next trips (not one distribution chose for this trip only)
       var me = Repo.find('Users', 'user_id', session.user_id);
-      if (me && String(me.vehicle || '') !== vehicle) Repo.update('Users', 'user_id', me.user_id, { vehicle: vehicle });
+      if (me && !t.vehicle && String(me.vehicle || '') !== vehicle) Repo.update('Users', 'user_id', me.user_id, { vehicle: vehicle });
       Audit.log(session.user_id, 'trip_departed', 'Trips', t.trip_id, null, { vehicle: vehicle, temp: temp });
       return { trip: Trips.view(Repo.find('Trips', 'trip_id', t.trip_id)), version: Version.bump() };
     });
@@ -251,7 +253,7 @@ var Trips = {
   /** Active drivers, for the trip form. */
   drivers: function () {
     return Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; })
-      .map(function (u) { return { user_id: u.user_id, name: u.display_name }; });
+      .map(function (u) { return { user_id: u.user_id, name: u.display_name, vehicle: String(u.vehicle || '') }; });
   }
 };
 
