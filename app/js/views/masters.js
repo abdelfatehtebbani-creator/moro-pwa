@@ -66,7 +66,7 @@ function items(body, isAdmin) {
     try { saved = JSON.parse(localStorage.getItem('moro.priceCols') || 'null'); } catch (e) { /* none */ }
     const boxes = PRINT_COLS.map(([k]) => h('input', { type: 'checkbox', checked: !saved || saved.includes(k) }));
     const cols = await dialog((close) => [h('h3', t('price_list_print')), h('p', t('price_list_cols')),
-      PRINT_COLS.map(([k, label], ix) => h('label.check', boxes[ix], ' ', t('pcol_' + k))),
+      h('div.pcols', PRINT_COLS.map(([k, label], ix) => h('label.check', boxes[ix], ' ', t('pcol_' + k)))),
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
         h('button.btn', { type: 'button', onclick: () => { const on = PRINT_COLS.filter((c, ix) => boxes[ix].checked).map((c) => c[0]); if (on.length) close(on); else flash(boxes[0]); } }, t('print')))]);
     if (!cols) return;

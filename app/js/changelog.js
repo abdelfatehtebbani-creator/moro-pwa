@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.208', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) طباعة قائمة الأسعار: نافذة اختيار الأعمدة تعرض مربعات الأعمدة بدل نص غريب."]},
+    en: {"news": ["(Development copy) Price list printing: the column choice shows the column boxes again instead of odd text."]},
+  },
+  {
     v: '0.9.207', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) الإنتاج لا يخصم مكونات الوصفات من المخزن حاليًا: يزيد رصيد المنتج النهائي فقط، والوصفة تظهر للعرض وتُستعمل للتكلفة وسجل التشغيلة. يفعّل المدير الخصم من «المستخدمون» ← «إعدادات عامة» ← «الإنتاج يخصم مكونات الوصفة من المخزن» عندما تكتمل الوصفات."]},
     en: {"news": ["(Development copy) Producing no longer takes the recipe's ingredients from the stores for now: it only raises the final product's stock; the recipe is shown and used for the cost and the batch record. The admin switches taking on in Users → General settings when the recipes are complete."]},
