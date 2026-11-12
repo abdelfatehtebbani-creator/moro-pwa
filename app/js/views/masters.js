@@ -198,15 +198,18 @@ function items(body, isAdmin) {
       call('recipes.cost', { product: it.name }).then((c) => {
         if (!c.lines.length) return;
         const nm = (id) => Data.recipePart(id).name;
-        costBox.replaceChildren(...[
+        // folded under one line: the full cost (or the materials' when there are no running costs), opened for the detail
+        const over = c.cost !== '' && finalPrice.value !== '' && (c.total || c.cost) > Number(finalPrice.value);
+        costBox.replaceChildren(h('details.cost-fold', h('summary', h('b', t('cost_fold')), ' ',
+          c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.total !== '' && c.total !== undefined ? c.total : c.cost) + ' QR / ' + it.unit),
+          over ? h('span.pill.low', ' ' + t('cost_over_price')) : ''), ...[
           h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit)),
           // the running costs (electricity, salaries…) as a share of the materials, and the full cost
           c.cost !== '' && (c.overhead_rate || c.overhead_own) ? h('div', c.overhead_own ? t('overhead_own_line', { v: fmtNum(c.overhead) }) : t('overhead_line', { p: fmtNum(Math.round(c.overhead_rate * 1000) / 10), v: fmtNum(c.overhead) }), ' · ',
             h('b', t('overhead_total')), ' ', h('b.num', fmtNum(c.total) + ' QR / ' + it.unit)) : null,
           Data.can('overhead.product') ? h('button.link', { type: 'button', onclick: () => editProductOverhead(it, c.overhead_own, close) }, c.overhead_own ? t('overhead_own_edit') : t('overhead_own_new')) : null,
-          c.cost !== '' && finalPrice.value !== '' && (c.total || c.cost) > Number(finalPrice.value) ? h('span.pill.low', t('cost_over_price')) : null,
           h('small.muted', c.lines.map((l) => nm(l.item_id) + ' ' + fmtNum(l.qty) + ' × ' + (l.unit_cost === '' ? '?' : fmtNum(l.unit_cost)) + (l.date ? ' (' + l.date + ')' : '')).join(' · ')),
-          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.total || c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null].filter(Boolean));
+          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.total || c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null].filter(Boolean)));
       }).catch(() => {});
     }
     const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };

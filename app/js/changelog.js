@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.218', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) نافذة المنتج النهائي: تفاصيل التكلفة صارت مطوية تحت سطر واحد «تكلفة المنتج: … QR». يُفتح لرؤية المواد والتشغيل وزر التكلفة المخصصة و«اعتمادها سعرًا»."]},
+    en: {"news": ["(Development copy) Final product window: the cost detail folds under one line \"Product cost: … QR\"; open it for the materials, running costs, the own-costs button and \"Use as price\"."]},
+  },
+  {
     v: '0.9.217', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) «تصحيح وحدة الأساس» صار أسرع بكثير: الخادم يعيد كتابة سطور المادة نفسها فقط بدل كل السجل. ووزن الوحدة في المادة العامة يتعدل مع الوحدة الجديدة."]},
     en: {"news": ["(Development copy) \"Change the stock unit\" is much faster: the server rewrites only the item's own rows instead of the whole record. What one unit holds of its generic material follows the new unit."]},
