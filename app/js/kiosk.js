@@ -20,7 +20,7 @@ const W = {
     pick_product: 'اختر المنتج', qty_of: 'الكمية', save: 'حفظ', saved_prod: 'تم تسجيل الإنتاج', batch: 'رقم التشغيلة', again: 'عملية أخرى', home: 'القائمة',
     wanted: 'مطلوب للمحلات', no_products: 'لا منتجات لقسمك', no_lines: 'لا أسطر بانتظارك', hand: 'سلّم', cannot: 'غير متوفر', handed: 'تم التسليم',
     reason: 'السبب', r_none: 'لم يُنتج', r_stock: 'نفد المخزون', r_quality: 'مشكلة في الجودة', r_other: 'سبب آخر', saved: 'تم الحفظ', left: 'المتبقي',
-    pick_dept: 'لأي قسم؟', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
+    pick_dept: 'لأي قسم؟', nothing_here: 'لا عمليات متاحة لك على هذا الجهاز.', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
     available: 'المتوفر', remove: 'حذف', bye: 'سيُغلق خلال {n} ث', loading: 'جارٍ التحميل…', unknown: 'الجهاز لم يعد مفعّلًا. يفعّله المدير من جديد.',
     lang: 'English', none_users: 'لا مستخدمين لهذا الجهاز بعد' },
   en: { setup: 'Set up the shared device', setup_help: 'This device is not a shared device yet. The admin signs in to set it up.', device_name: 'Device name',
@@ -29,7 +29,7 @@ const W = {
     pick_product: 'Choose the product', qty_of: 'Quantity', save: 'Save', saved_prod: 'Production recorded', batch: 'Batch No.', again: 'Another one', home: 'Menu',
     wanted: 'Wanted by the shops', no_products: 'No products for your department', no_lines: 'No lines waiting for you', hand: 'Hand over', cannot: 'Not available', handed: 'Handed over',
     reason: 'Reason', r_none: 'Not made', r_stock: 'Out of stock', r_quality: 'Quality problem', r_other: 'Other reason', saved: 'Saved', left: 'Left',
-    pick_dept: 'For which department?', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
+    pick_dept: 'For which department?', nothing_here: 'Nothing for you to do on this device.', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
     available: 'Available', remove: 'Remove', bye: 'Closing in {n} s', loading: 'Loading…', unknown: 'This device is no longer set up. The admin sets it up again.',
     lang: 'العربية', none_users: 'No users for this device yet' },
 };
@@ -230,9 +230,12 @@ async function signIn(u, pin) {
 function menu() {
   startIdle();
   const tiles = [];
-  if (caps.has('production.post')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: production }, h('span.k-ico', '🧁'), h('b', k('production'))));
-  if (caps.has('shop.hand')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: shopLines }, h('span.k-ico', '📦'), h('b', k('shop'))));
-  if (caps.has('requests.create')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: request }, h('span.k-ico', '🛒'), h('b', k('request'))));
+  // a card the admin switched off is not shown
+  const off = new Set((people && people.tiles_off) || []);
+  if (caps.has('production.post') && !off.has('production')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: production }, h('span.k-ico', '🧁'), h('b', k('production'))));
+  if (caps.has('shop.hand') && !off.has('shop')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: shopLines }, h('span.k-ico', '📦'), h('b', k('shop'))));
+  if (caps.has('requests.create') && !off.has('request')) tiles.push(h('button.k-tile.k-action', { type: 'button', onclick: request }, h('span.k-ico', '🛒'), h('b', k('request'))));
+  if (!tiles.length) { frame(k('home'), h('p.k-empty', k('nothing_here')), h('button.k-btn.k-big.k-sec', { type: 'button', onclick: signOut }, k('logout'))); return; }
   frame(k('home'), h('div.k-grid.k-actions', { style: 'grid-template-columns: repeat(' + Math.max(1, tiles.length) + ', minmax(0, 340px)); justify-content: center;' }, tiles));
 }
 
@@ -330,7 +333,8 @@ async function request() {
   startIdle();
   frame(k('request'), h('p.k-empty', k('loading')), '', { back: menu });
   try { await dataReady; } catch (e) { frame(k('request'), h('p.k-empty', errText(e)), '', { back: menu }); return; }
-  const sections = [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true);
+  const hidden = new Set((people && people.hidden_depts) || []);
+  const sections = [...Data.parties.values()].filter((p) => p.kind === 'section' && p.active === true && !hidden.has(p.party_id));
   const mineD = sections.filter((p) => (me.depts || []).includes(p.party_id));
   const choices = mineD.length ? mineD : sections;
   if (choices.length === 1) return cart(choices[0]);

@@ -119,6 +119,34 @@ function items(body, isAdmin) {
     cat.addEventListener('change', showDept);
     showDept();
     const unit = combo({ id: 'e-unit', options: () => Data.unitOptions(it && it.unit) });
+    // a raw material is classed in a generic material (family), with what one of its units holds; a new one can be made here
+    const RAW = ['DRY', 'CHILLED'];
+    const canFam = Data.can('add_items') || Data.can('rename.items') || Data.can('families.save');
+    const famSel = h('select.input#e-fam', { disabled: !canFam }, h('option', { value: '' }, '—'),
+      [...Data.families.values()].filter((f) => f.active === true || (it && f.family_id === it.family_id)).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+        .map((f) => h('option', { value: f.family_id }, Data.nameOf(f) + ' (' + f.unit + ')')),
+      h('option', { value: 'new' }, '+ ' + t('fam_new')));
+    famSel.value = it ? String(it.family_id || '') : '';
+    const nfName = trackFilled(h('input.input#e-nf-name', { placeholder: 'Vegetable ghee', dir: 'ltr' }));
+    const nfAr = trackFilled(h('input.input#e-nf-ar', { placeholder: 'سمنة نباتية', dir: 'rtl' }));
+    const nfUnit = trackFilled(h('input.input#e-nf-unit', { value: 'KG', dir: 'ltr' }));
+    const newBox = h('div.form-grid', field(t('fam_name'), nfName, { wide: true }), field(t('fam_name_ar'), nfAr, { wide: true }), field(t('fam_unit'), nfUnit));
+    const famFactor = trackFilled(h('input.input.num#e-fam-factor', { type: 'number', min: 0, step: 'any', disabled: !canFam,
+      value: it && it.family_factor !== undefined && it.family_factor !== '' ? it.family_factor : '' }));
+    const factorLbl = h('label', { for: 'e-fam-factor' });
+    const famUnit = () => famSel.value === 'new' ? (nfUnit.value.trim().toUpperCase() || 'KG') : ((Data.families.get(famSel.value) || {}).unit || '…');
+    const drawFam = () => {
+      newBox.hidden = famSel.value !== 'new';
+      factorLbl.textContent = t('fam_factor', { f: famUnit(), u: (unit.input.value.trim().toUpperCase() || '…') });
+    };
+    const famField = h('div.fam-field', field(t('fam_word_title'), famSel), newBox, h('div.field', factorLbl, famFactor), h('small.muted', t('fam_item_help')));
+    const showFam = () => { famField.hidden = !RAW.includes(cat.value) && !(it && it.family_id); };
+    [famSel, nfUnit].forEach((x) => x.addEventListener('input', drawFam));
+    famSel.addEventListener('change', drawFam);
+    unit.input.addEventListener('input', drawFam);
+    unit.input.addEventListener('change', drawFam);
+    cat.addEventListener('change', showFam);
+    drawFam(); showFam();
     if (it) { unit.set(it.unit); unit.input.readOnly = true; unit.input.classList.add('locked'); }
     const convertBtn = it && Data.can('items.convertUnit') ? h('button.link', { type: 'button', onclick: () => ok(() => convertUnit(Data.items.get(it.item_id) || it)) }, t('change_stock_unit')) : null;
     // an item kept in its larger unit (TIN while KG exists): the admin moves it to the smallest unit once
@@ -203,6 +231,18 @@ function items(body, isAdmin) {
         if (!buyShow.disabled) p.report_unit = buyShow.value === unit.input.value.trim().toUpperCase() ? '' : buyShow.value;
         if (!storeShow.disabled) p.store_unit = storeShow.value === unit.input.value.trim().toUpperCase() ? '' : storeShow.value;
       }
+      // the generic material: required for a new raw material; sent when it was chosen or changed
+      if (!famField.hidden && canFam) {
+        const was = it ? String(it.family_id || '') : '', wasF = it && it.family_factor !== undefined ? String(it.family_factor) : '';
+        if (!it && RAW.includes(cat.value) && !famSel.value) return flash(famSel);
+        if (famSel.value && !(Number(famFactor.value) > 0)) return flash(famFactor);
+        if (famSel.value === 'new' && !nfName.value.trim()) return flash(nfName);
+        if (famSel.value !== was || (famSel.value && String(Number(famFactor.value)) !== wasF)) {
+          if (famSel.value === 'new') p.new_family = { name: nfName.value.trim(), name_ar: nfAr.value.trim(), unit: nfUnit.value.trim() || 'KG' };
+          else p.family_id = famSel.value;
+          p.family_factor = famSel.value ? Number(famFactor.value) : '';
+        }
+      }
       if (canFinal && cat.value === 'FINAL') {
         if (finalPrice.value !== '' && !(Number(finalPrice.value) >= 0)) return flash(finalPrice);
         p.final_price = finalPrice.value;
@@ -219,6 +259,7 @@ function items(body, isAdmin) {
           h('div.buy-line', { dir: 'ltr' }, h('span', '1'), buyUnit, h('span', '='), buyQty, stockLbl)),
         h('div.show-units', field(t('show_purchasing'), buyShow), field(t('show_store'), storeShow)),
         h('small.muted', t('item_units_help')), convertBtn),
+      famField,
       field(t('min_stock_in', { u: it ? it.unit : '' }), min),
       field(t('picture_link'), image), h('label.check', active, ' ', t('active')), it && !isAdmin ? h('small.muted', t('rename_admin_only')) : null, err,
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: ok }, t('save')))];

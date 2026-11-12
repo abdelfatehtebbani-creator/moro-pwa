@@ -45,9 +45,28 @@ export async function render(root) {
       h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
       h('small.muted', t('idle_minutes_help')),
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
+      Data.can('kiosk.off') ? kioskBox() : null,
       Data.can('sales.setChannels') ? channelsBox() : null,
       Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // the shared device in the factory: departments shown on it, and the cards of its menu (ticked = shown)
+  function kioskBox() {
+    let off = { depts: [], tiles: [] };
+    try { off = Object.assign(off, JSON.parse((Data.settings || {}).kiosk_off || '{}')); } catch (e) { /* none yet */ }
+    const depts = Data.producingDepts().map((d) => ({ d, box: h('input', { type: 'checkbox', checked: !(off.depts || []).includes(d.party_id) }) }));
+    const tiles = ['production', 'shop', 'request'].map((k) => ({ k, box: h('input', { type: 'checkbox', checked: !(off.tiles || []).includes(k) }) }));
+    const save = async () => {
+      try {
+        await call('kiosk.off', { depts: depts.filter((x) => !x.box.checked).map((x) => x.d.party_id), tiles: tiles.filter((x) => !x.box.checked).map((x) => x.k) });
+        toast(t('saved'), 'ok'); Data.refresh().catch(() => {});
+      } catch (e) { toast(errText(e), 'err'); }
+    };
+    return h('div.kiosk-box', h('h3', t('kiosk_settings')), h('small.muted', t('kiosk_settings_help')),
+      h('b', t('kiosk_depts')), h('div.check-grid', depts.map((x) => h('label.check', x.box, ' ', h('bdi', x.d.name)))),
+      h('b', t('kiosk_tiles')), h('div.check-grid', tiles.map((x) => h('label.check', x.box, ' ', t('kiosk_tile_' + x.k)))),
+      h('div.form-actions', h('button.btn', { type: 'button', onclick: save }, t('save'))));
   }
 
   // producing takes the recipes' ingredients from the stores, or not (off until the recipes are complete)

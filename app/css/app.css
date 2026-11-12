@@ -192,6 +192,10 @@ tr.click { cursor: pointer; }
 tr.req-none td { background: var(--danger-soft); }
 .fam-box { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .fam-box summary { cursor: pointer; }
+.kiosk-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #d9dee5); }
+.kiosk-box h3 { margin: 0; }
+.check-grid { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.fam-field { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .fam-brand { display: inline-block; border: 1px solid var(--line, #d9dee5); border-radius: 10px; padding: 1px 8px; margin: 2px; font-size: 13px; white-space: nowrap; }
 tr.req-none td:first-child { box-shadow: inset 4px 0 0 var(--danger); }
 [dir=rtl] tr.req-none td:first-child { box-shadow: inset -4px 0 0 var(--danger); }
