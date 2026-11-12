@@ -103,3 +103,14 @@ test('running costs of one product: its own estimate for a quantity replaces the
   g.api('overhead.product', { item_id: 'I0009', lines: [] }, admin);
   assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 13.5);
 });
+
+test('changing the base unit of a brand keeps what it holds of its family right; only its own rows are rewritten', () => {
+  const { g, admin } = env();
+  g.api('families.save', { name: 'Vegetable ghee', unit: 'KG', members: [{ item_id: 'I0001', factor: 16 }] }, admin);
+  const before = g.rows('Movements').filter((m) => m.item_id !== 'I0001').map((m) => JSON.stringify(m));
+  const r = g.api('items.convertUnit', { item_id: 'I0001', new_unit: 'KG', factor: 16 }, admin);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const it = g.rows('Items').find((i) => i.item_id === 'I0001');
+  assert.deepEqual([it.unit, it.family_factor], ['KG', 1]);
+  assert.deepEqual(g.rows('Movements').filter((m) => m.item_id !== 'I0001').map((m) => JSON.stringify(m)), before);
+});

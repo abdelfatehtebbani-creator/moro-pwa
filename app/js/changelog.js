@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.217', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) «تصحيح وحدة الأساس» صار أسرع بكثير: الخادم يعيد كتابة سطور المادة نفسها فقط بدل كل السجل. ووزن الوحدة في المادة العامة يتعدل مع الوحدة الجديدة."]},
+    en: {"news": ["(Development copy) \"Change the stock unit\" is much faster: the server rewrites only the item's own rows instead of the whole record. What one unit holds of its generic material follows the new unit."]},
+  },
+  {
     v: '0.9.216', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) الوصفات: عند اختيار منتج له وصفة تظهر تحته تكلفته (المواد، التشغيل، الكاملة) وزر «تكلفة تشغيل مخصصة لهذا المنتج»."]},
     en: {"news": ["(Development copy) Recipes: picking a product with a recipe shows its cost under it (materials, running costs, full) and the \"This product's own running costs\" button."]},
