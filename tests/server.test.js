@@ -234,7 +234,14 @@ test('department request: created by production, issued in two parts by the stor
 test('items: duplicates by name, renames and deactivation are admin-only, min stock by purchasing', () => {
   const { g, tok } = env();
   assert.equal(g.api('items.save', { name: ' flour  no 1 ', category: 'Food', unit: 'BAG' }, tok.storekeeper).error.code, 'name_taken');
-  const n = g.api('items.save', { name: 'Sugar 50kg', category: 'Food', unit: 'bag' }, tok.storekeeper);
+  // a new raw material is classed in a generic material (family) with what one unit holds; a new family can be made with it
+  assert.equal(g.api('items.save', { name: 'Sugar 50kg', category: 'Food', unit: 'bag' }, tok.storekeeper).error.code, 'family_required');
+  assert.equal(g.api('items.save', { name: 'Sugar 50kg', category: 'Food', unit: 'bag', new_family: { name: 'Sugar', unit: 'kg' } }, tok.storekeeper).error.code, 'family_factor');
+  const n = g.api('items.save', { name: 'Sugar 50kg', category: 'Food', unit: 'bag', new_family: { name: 'Sugar', name_ar: 'سكر', unit: 'kg' }, family_factor: 50 }, tok.storekeeper);
+  assert.equal(n.data.item.family_factor, 50);
+  assert.equal(g.rows('Families')[0].unit, 'KG');
+  // packaging is not a raw material: no family needed
+  assert.equal(g.api('items.save', { name: 'CUPS 8 OZ', store: 'PACK', unit: 'box' }, tok.admin).ok, true);
   assert.equal(n.data.item.item_id, 'I0004');
   assert.equal(n.data.item.unit, 'BAG');
   assert.equal(g.api('items.save', { item_id: 'I0001', name: 'FLOUR No.1' }, tok.purchasing).error.code, 'forbidden');
@@ -287,7 +294,7 @@ test('stores: proposed on first run, and each storekeeper works only in their ow
   const store = (id) => g.rows('Items').find((i) => i.item_id === id).store;
   assert.equal(store('I0001'), 'DRY');
   assert.equal(store('I0002'), 'PACK');
-  assert.ok(g.rows('Users').every((u) => u.stores === 'CHILLED,DRY,PACK,FINAL,CLEAN'));
+  assert.ok(g.rows('Users').every((u) => u.stores === 'CHILLED,DRY,PACK,FINAL,CLEAN,EQUIP'));
   // the admin gives the storekeeper the packaging store only
   const sk = g.rows('Users').find((u) => u.username === 'storekeeper');
   assert.equal(g.api('users.save', { user_id: sk.user_id, stores: ['PACK', 'BAD', 'PACK'] }, tok.admin).ok, true);

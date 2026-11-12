@@ -39,6 +39,9 @@ var Masters = {
         Perm.require(session, 'add_items');
         Util.require(Stores.valid(store), 'store_invalid');
         Util.require(Util.clean(p.unit), 'unit_required');
+        // a new raw material is classed in a generic material (family) with what one of its units holds
+        var fam = store !== 'FINAL' ? Families.ofItem(session, p) : null;
+        Util.require(fam || Families.RAW_STORES.indexOf(store) < 0, 'family_required');
         var n = 0;
         Repo.column('Items', 'item_id').forEach(function (id) { n = Math.max(n, Number(String(id).slice(1)) || 0); });
         var item = { item_id: 'I' + Util.pad(n + 1, 4), name: name, category: Stores.categoryOf(store), unit: Util.clean(p.unit).toUpperCase(),
@@ -50,7 +53,8 @@ var Masters = {
                      store_unit: p.store_unit !== undefined && Perm.has(session, 'packaging') ? Util.clean(p.store_unit).toUpperCase() : '',
                      final_price: p.final_price !== undefined && Perm.has(session, 'final_price') ? Masters.finalPrice(p.final_price) : '',
                      name_ar: Util.clean(p.name_ar), dept: store === 'FINAL' ? Masters.deptOf(p.dept) : '',
-                     shelf_days: p.shelf_days !== undefined && store === 'FINAL' && Perm.has(session, 'final_price') ? Masters.shelfDays(p.shelf_days) : '' };
+                     shelf_days: p.shelf_days !== undefined && store === 'FINAL' && Perm.has(session, 'final_price') ? Masters.shelfDays(p.shelf_days) : '',
+                     family_id: fam ? fam.family_id : '', family_factor: fam ? fam.factor : '' };
         Repo.append('Items', [item]);
         Audit.log(session.user_id, 'item_create', 'Items', item.item_id, null, item);
         return { item: item, version: Version.bump() };
@@ -88,6 +92,14 @@ var Masters = {
         ch.min_stock = mn;
       }
       if (p.image !== undefined) ch.image = Util.clean(p.image);
+      // its generic material (family) and what one of its units holds
+      if ((p.family_id !== undefined || p.new_family) && (String(p.family_id || '') !== String(cur.family_id || '') || p.new_family
+          || String(p.family_factor) !== String(cur.family_factor === undefined ? '' : cur.family_factor))) {
+        Util.require(Perm.has(session, 'add_items') || Perm.has(session, 'rename.items') || Perm.has(session, 'families.save'), 'forbidden');
+        var fm = Families.ofItem(session, Object.assign({ name: cur.name }, p));
+        ch.family_id = fm ? fm.family_id : '';
+        ch.family_factor = fm ? fm.factor : '';
+      }
       // a final product: the department that makes it (its shop-order lines go to that department)
       if (p.dept !== undefined && String(p.dept || '') !== String(cur.dept || '')) {
         Perm.require(session, 'rename.items');

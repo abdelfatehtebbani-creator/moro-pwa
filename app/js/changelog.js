@@ -3,6 +3,16 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.211', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) مخزن جديد «العُدّة والأدوات» للعتاد الذي لا يُستهلك: السكاكين والصواني والماكنات وغيرها. يُستلم ويُصرف ويُجرد مثل باقي المخازن، دون تاريخ صلاحية ودون مادة عامة. يعطيه المدير لمن يعمل فيه من «المستخدمون»، وينشئ له مكان تخزين من «أماكن التخزين»."]},
+    en: {"news": ["(Development copy) A new store \"Equipment and tools\" for what is not used up: knives, trays, machines and the like. Received, issued and counted like the other stores, with no expiry date and no generic material. The admin gives it to the people who work in it (Users) and creates a storage location for it (Storage locations)."]},
+  },
+  {
+    v: '0.9.210', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) المادة الأولية الجديدة (المواد الجافة والمبردة) لا تُحفظ دون مادتها العامة وكم تحوي وحدتها. تختار المادة العامة من القائمة، أو تنشئ واحدة جديدة من نفس النافذة. المواد الحالية تُربط من نفس النافذة عند تعديلها.", "(نسخة التطوير) الجهاز المشترك: من «المستخدمون» ← «إعدادات عامة» ← «الجهاز المشترك في المصنع» يخفي المدير أقسامًا (فلا تظهر ولا يظهر موظفوها) ويوقف أي بطاقة من القائمة: تسجيل إنتاج، طلبيات المحلات، طلب مواد."]},
+    en: {"news": ["(Development copy) A new raw material (dry and chilled stores) is not saved without its generic material and what one of its units holds. Pick the generic material from the list, or create a new one in the same window. Current items are linked from the same window when edited.", "(Development copy) Shared device: in Users → General settings → The shared device in the factory, the admin hides departments (they and their people do not show) and switches off any menu card: record production, shop orders, ask the store."]},
+  },
+  {
     v: '0.9.209', date: '2026-11-12',
     ar: {"news": ["طباعة قائمة الأسعار: الصفحة المطبوعة تعرض جداول الأقسام بالأعمدة المختارة بدل نص غريب."]},
     en: {"news": ["Price list printing: the printed page shows each department's table with the chosen columns instead of odd text."]},

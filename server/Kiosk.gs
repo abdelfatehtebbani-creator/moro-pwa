@@ -6,6 +6,8 @@
  *   is typed, and they sign in as themselves (auth.login), so every entry is theirs. Only the key's hash is stored.
  */
 var KIOSK_LEAVES = ['production.post', 'shop.hand', 'requests.create'];
+// the cards of the shared device's menu, by the permission each needs
+var KIOSK_TILES = { production: 'production.post', shop: 'shop.hand', request: 'requests.create' };
 
 var Kiosk = {
   keys: function () {
@@ -36,6 +38,26 @@ var Kiosk = {
     });
   },
 
+  /** What the admin switched off on the shared devices: {depts: [party_id], tiles: [production|shop|request]}. */
+  off: function () {
+    var o = {};
+    try { o = JSON.parse(Settings.get('kiosk_off', '{}')) || {}; } catch (e) { o = {}; }
+    return { depts: (o.depts || []).map(String), tiles: (o.tiles || []).filter(function (t) { return KIOSK_TILES[t]; }) };
+  },
+
+  /** The admin: departments hidden from the shared devices, and menu cards switched off. p: {depts, tiles} */
+  saveOff: function (session, p) {
+    var depts = (p.depts || []).map(String).filter(function (d) { var x = Repo.find('Parties', 'party_id', d); return x && x.kind === 'section'; });
+    var tiles = (p.tiles || []).filter(function (t) { return KIOSK_TILES[t]; });
+    return withLock(function () {
+      var before = Settings.get('kiosk_off', '');
+      var now = JSON.stringify({ depts: depts, tiles: tiles });
+      Settings.set('kiosk_off', now);
+      Audit.log(session.user_id, 'kiosk_off', 'Settings', 'kiosk_off', before, now);
+      return { depts: depts, tiles: tiles, version: Version.bump() };
+    });
+  },
+
   check: function (key) {
     var hash = Auth.hashPin(String(key || ''), 'kiosk');
     var dev = Kiosk.keys().filter(function (k) { return k.hash === hash; })[0];
@@ -48,12 +70,18 @@ var Kiosk = {
     var dev = Kiosk.check(p.key);
     var parties = {};
     Repo.all('Parties').forEach(function (x) { parties[x.party_id] = x.name; });
+    var off = Kiosk.off();
+    var leaves = KIOSK_LEAVES.filter(function (c) { return !off.tiles.some(function (t) { return KIOSK_TILES[t] === c; }); });
     var people = Repo.all('Users').filter(function (u) { return u.active === true && u.role !== 'admin' && u.role !== 'storekeeper'; }).map(function (u) {
-      var caps = Perm.capsOf(u).filter(function (c) { return KIOSK_LEAVES.indexOf(c) >= 0; });
+      var caps = Perm.capsOf(u).filter(function (c) { return leaves.indexOf(c) >= 0; });
       if (!caps.length) return null;
-      var depts = Auth.deptsOf(u).map(function (d) { return parties[d] || ''; }).filter(String);
+      // a person of hidden departments only is not listed; the hidden ones are not shown with the others
+      var own = Auth.deptsOf(u);
+      var shown = own.filter(function (d) { return off.depts.indexOf(d) < 0; });
+      if (own.length && !shown.length) return null;
+      var depts = shown.map(function (d) { return parties[d] || ''; }).filter(String);
       return { username: u.username, name: u.display_name, depts: depts, role: u.role };
     }).filter(Boolean).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
-    return { device: dev.name, users: people, no_pin: Auth.noPin(), today: Util.today() };
+    return { device: dev.name, users: people, no_pin: Auth.noPin(), today: Util.today(), hidden_depts: off.depts, tiles_off: off.tiles };
   }
 };

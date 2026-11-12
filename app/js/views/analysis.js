@@ -11,7 +11,7 @@ import { h, fmtDate, trackFilled } from '../ui.js';
 import { unitCosts } from '../reports.js';
 import { barChart, hbarChart, lineChart, donut, short } from '../charts.js';
 
-const STORE_COLOR = { CHILLED: 'var(--chilled)', DRY: 'var(--food)', PACK: 'var(--pack)', FINAL: 'var(--final)', CLEAN: 'var(--clean)' };
+const STORE_COLOR = { CHILLED: 'var(--chilled)', DRY: 'var(--food)', PACK: 'var(--pack)', FINAL: 'var(--final)', CLEAN: 'var(--clean)', EQUIP: 'var(--equip)' };
 const PALETTE = ['var(--teal)', 'var(--brand)', 'var(--chilled)', 'var(--final)', 'var(--food)', 'var(--muted)'];
 const qr = (v) => Math.round(v).toLocaleString('en-US') + ' QR';
 const num = (v) => (Math.round(v * 10) / 10).toLocaleString('en-US');

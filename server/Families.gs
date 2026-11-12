@@ -76,6 +76,35 @@ var Families = {
     return latest;
   },
 
+  /** The raw materials (food stores): a new one is classed in a family with what one of its units holds. */
+  RAW_STORES: ['DRY', 'CHILLED'],
+
+  /**
+   * The family of an item being saved (inside the lock): p.family_id (an existing one) or p.new_family {name, name_ar, unit}.
+   * Returns {family_id, factor}, or null when neither is given.
+   */
+  ofItem: function (session, p) {
+    if (!p.family_id && !p.new_family) return null;
+    var factor = Util.num(p.family_factor);
+    Util.require(factor > 0, 'family_factor', Util.clean(p.name));
+    if (p.family_id) {
+      var f = Repo.find('Families', 'family_id', p.family_id);
+      Util.require(f && f.active === true, 'family_unknown');
+      return { family_id: f.family_id, factor: factor };
+    }
+    var nf = p.new_family || {};
+    var name = Util.clean(nf.name);
+    Util.require(name, 'family_name_required');
+    var same = Repo.all('Families').filter(function (x) { return Util.key(x.name) === Util.key(name); })[0];
+    Util.require(!same, 'family_exists', name);
+    var n = 0;
+    Repo.column('Families', 'family_id').forEach(function (x) { n = Math.max(n, Number(String(x).slice(1)) || 0); });
+    var id = 'F' + Util.pad(n + 1, 3);
+    Repo.append('Families', [{ family_id: id, name: name, name_ar: Util.clean(nf.name_ar), unit: Util.clean(nf.unit).toUpperCase() || 'KG', active: true, created_at: Util.nowIso() }]);
+    Audit.log(session.user_id, 'family_save', 'Families', id, null, { name: name, from_item: true });
+    return { family_id: id, factor: factor };
+  },
+
   /** p: {family_id?, name, name_ar, unit, active, members: [{item_id, factor}]}. Creates or changes a family and its brands. */
   save: function (session, p) {
     var name = Util.clean(p.name);

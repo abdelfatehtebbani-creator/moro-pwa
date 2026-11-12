@@ -30,6 +30,13 @@ test('shared device: enabled by the admin, lists the people who record productio
   const list = g.api('kiosk.users', { key: dev.key }).data;
   assert.equal(list.device, 'Factory');
   assert.deepEqual(list.users.map((u) => [u.username, u.depts.join()]), [['baklava', 'Baklava section'], ['prod1', '']]);
+  // the admin hides a department and switches the request card off
+  assert.equal(g.api('kiosk.off', { depts: ['P001'] }, head).error.code, 'forbidden');
+  g.api('kiosk.off', { depts: ['P001'], tiles: ['request'] }, admin);
+  const off = g.api('kiosk.users', { key: dev.key }).data;
+  assert.deepEqual(off.users.map((u) => u.username), ['prod1']);
+  assert.deepEqual(off.tiles_off, ['request']);
+  g.api('kiosk.off', { depts: [], tiles: [] }, admin);
   // a section head asks the store for their own departments only
   assert.equal(g.api('requests.create', { date: list.today, party_id: 'P002', lines: [{ item_id: 'I1', qty: 1 }] }, head).error.code, 'forbidden');
   // the person signs in as themselves with their PIN

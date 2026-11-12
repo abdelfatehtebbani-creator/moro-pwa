@@ -57,6 +57,7 @@ var ROUTES = {
   'lpo.settings':     function (s, p) { return Lpo.settings(s, p); },
   'settings.idle':    function (s, p) { return Masters.saveIdle(s, p); },
   'settings.recipeStock': function (s, p) { return Masters.saveRecipeStock(s, p); },
+  'kiosk.off':        function (s, p) { return Kiosk.saveOff(s, p); },
   'requests.create':  function (s, p) { return Requests.create(s, p); },
   'requests.fulfil':  function (s, p) { return Requests.fulfil(s, p); },
   'requests.cancel':  function (s, p) { return Requests.cancel(s, p); },
