@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.215', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الوصفات: جزء «وصفة المنتج» ينطوي مثل «تكاليف التشغيل» و«المواد العامة»."]},
+    en: {"news": ["(Development copy) Recipes: the \"Product recipe\" part folds like \"Running costs\" and \"Generic materials\"."]},
+  },
+  {
     v: '0.9.214', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) تكلفة تشغيل مخصصة لمنتج واحد: في نافذة المنتج النهائي زر «تكلفة تشغيل مخصصة لهذا المنتج». تكتب تقديرات تكاليفه (كهرباء، عمالة…) لكمية منه، فتُقسم عليها وتحل محل النسبة العامة لهذا المنتج وحده، ووصفته كما هي. وزر «الرجوع إلى النسبة العامة» يلغيها."]},
     en: {"news": ["(Development copy) One product's own running costs: the final product window has \"This product's own running costs\". Write its estimated costs (electricity, labour…) for a quantity of it; divided by that quantity they replace the factory's rate for this product only, its recipe unchanged. \"Back to the factory's rate\" removes it."]},

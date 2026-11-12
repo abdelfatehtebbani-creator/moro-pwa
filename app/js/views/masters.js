@@ -544,12 +544,14 @@ function recipes(body) {
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
   };
-  body.replaceChildren(Data.can('overhead.save') ? overheadBox(body) : '', familiesBox(body), h('small.muted', t('recipe_help')),
+  // the recipe folds like the boxes above it (open at first)
+  body.replaceChildren(Data.can('overhead.save') ? overheadBox(body) : '', familiesBox(body), h('details.fam-box', { open: true }, h('summary', h('b', t('recipe_box'))),
+    h('small.muted', t('recipe_help')),
     h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
-    h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save'))));
+    h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save')))));
   draw();
 }
 
