@@ -51,7 +51,7 @@ function items(body, isAdmin) {
   // by department, or by store (the four material stores)
   const deptFilter = h('select.input#m-dept', h('option', { value: '' }, t('all_depts')),
     h('optgroup', { label: t('departments') }, Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name))),
-    h('optgroup', { label: t('m_stores') }, ['CHILLED', 'DRY', 'PACK', 'CLEAN'].map((s) => h('option', { value: 'st:' + s }, t('store_' + s)))));
+    h('optgroup', { label: t('m_stores') }, ['CHILLED', 'DRY', 'PACK', 'CLEAN', 'EQUIP'].map((s) => h('option', { value: 'st:' + s }, t('store_' + s)))));
   const byFilter = (i) => !deptFilter.value || (deptFilter.value.startsWith('st:') ? Data.storeOf(i) === deptFilter.value.slice(3) : String(i.dept || '') === deptFilter.value);
   const tb = h('tbody');
   // the fixed price of a final product (the price list); other materials have none here

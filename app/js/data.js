@@ -8,7 +8,7 @@ import { APP_VERSION } from './config.js';
 const objects = (raw) => (raw && raw.rows ? raw.rows.map((r) => Object.fromEntries(raw.columns.map((c, i) => [c, r[i]]))) : []);
 
 /** The four stores, in the order the buttons show them. */
-export const STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN'];
+export const STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN', 'EQUIP'];
 /** Operations the admin can allow store by store (the server checks them: Stores.gs). */
 export const STORE_OPS = ['receive', 'issue', 'requests', 'shop', 'counts', 'items'];
 

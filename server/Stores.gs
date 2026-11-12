@@ -1,5 +1,5 @@
 /**
- * Stores.gs – the stores (Chilled foods, Dry foods, Packaging, Final products, Cleaning materials).
+ * Stores.gs – the stores (Chilled foods, Dry foods, Packaging, Final products, Cleaning materials, Equipment and tools).
  *
  * Every item and every storage location belongs to one store. A user may receive, issue and
  * fulfil requests only in the stores ticked for them (Users.stores, comma separated); the admin
@@ -9,14 +9,15 @@
  * The old Food / Packaging category follows the store (Packaging → Packaging, the others → Food),
  * so the expiry rule and the history keep working unchanged.
  */
-var STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN'];
+// EQUIP: equipment and tools that are not used up (knives, trays, machines…)
+var STORES = ['CHILLED', 'DRY', 'PACK', 'FINAL', 'CLEAN', 'EQUIP'];
 var COLD_LOCATION = /freezer|chiller/i;
 /** Operations that can be allowed store by store (each also needs its permission in the tree). */
 var STORE_OPS = ['receive', 'issue', 'requests', 'shop', 'counts', 'items'];
 
 var Stores = {
   // cleaning materials are not food: no expiry date is required, as for packaging
-  categoryOf: function (store) { return store === 'PACK' || store === 'CLEAN' ? 'Packaging' : 'Food'; },
+  categoryOf: function (store) { return store === 'PACK' || store === 'CLEAN' || store === 'EQUIP' ? 'Packaging' : 'Food'; },
 
   valid: function (store) { return STORES.indexOf(store) >= 0; },
 
