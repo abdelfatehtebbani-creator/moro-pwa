@@ -72,3 +72,18 @@ test('a family: brands linked with their factor, a recipe written with it, produ
   g.api('families.save', { family_id: fid, name: 'Vegetable ghee', unit: 'KG', members: [{ item_id: 'I0001', factor: 16 }] }, admin);
   assert.equal(g.rows('Items').find((i) => i.item_id === 'I0002').family_id, '');
 });
+
+test('running costs: a period of costs over the material cost of its production gives the rate added to each product', () => {
+  const { g, admin } = env();
+  g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }] }, admin);   // 0.1 tin x 90 = 9 QR per KG
+  g.api('production.post', { product: 'BASBOUSA', qty: 100, unit: 'KG', date: TODAY, client_id: 'oh1' }, admin);   // 900 QR of materials
+  assert.equal(g.api('overhead.save', { from: '2020-01-01', to: '2020-01-31', lines: [{ label: 'Electricity', amount: 100 }] }, admin).error.code, 'overhead_no_production');
+  const r = g.api('overhead.save', { from: TODAY, to: TODAY, lines: [{ label: 'Electricity', amount: 180 }, { label: 'Salaries', amount: 270 }] }, admin).data;
+  assert.equal(r.material, 900);
+  assert.equal(r.rate, 0.5);   // 450 / 900
+  const c = g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data;
+  assert.deepEqual([c.cost, c.overhead_rate, c.overhead, c.total], [9, 0.5, 4.5, 13.5]);
+  assert.equal(g.api('overhead.list', {}, admin).data.periods.length, 1);
+  g.api('overhead.delete', { period_id: r.period_id }, admin);
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 9);
+});

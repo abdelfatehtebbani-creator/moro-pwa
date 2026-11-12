@@ -31,6 +31,9 @@ var ROUTES = {
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
   'recipes.cost':     function (s, p) { return Masters.recipeCost(String(p.product || '')); },
   'families.save':    function (s, p) { return Families.save(s, p); },
+  'overhead.list':    function (s, p) { return Overhead.list(); },
+  'overhead.save':    function (s, p) { return Overhead.save(s, p); },
+  'overhead.delete':  function (s, p) { return Overhead.remove(s, p); },
   'production.preview': function (s, p) { return Production.preview(p.product, Util.num(p.qty) || 1); },
   'production.post':  function (s, p) { return Production.post(s, p); },
   'requests.list':    function (s, p) { return Requests.list(s, p); },
@@ -179,7 +182,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '57';
+var SCHEMA_VERSION = '58';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

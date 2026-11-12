@@ -439,7 +439,11 @@ Masters.recipeCost = function (product, costs) {
     if (!c) missing.push(r.item_id); else total += q * c.unit;
     return { item_id: r.item_id, qty: q, unit_cost: c ? Util.round(c.unit * 1000) / 1000 : '', date: c ? c.date : '', amount: c ? Util.round(q * c.unit * 100) / 100 : '' };
   });
-  return { product: product, lines: lines, cost: lines.length && !missing.length ? Util.round(total * 100) / 100 : '', missing: missing,
+  var cost = lines.length && !missing.length ? Util.round(total * 100) / 100 : '';
+  // the running costs (electricity, salaries…) as a share of the materials, from the latest period entered
+  var rate = Overhead.rate();
+  return { product: product, lines: lines, cost: cost, missing: missing, overhead_rate: rate,
+    overhead: cost === '' ? '' : Util.round(cost * rate * 100) / 100, total: cost === '' ? '' : Util.round(cost * (1 + rate) * 100) / 100,
     cost_only: Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only === true; }) };
 };
 
@@ -452,7 +456,7 @@ Masters.costOverPrice = function () {
     seen[k] = true;
     var it = Repo.all('Items').filter(function (i) { return Util.key(i.name) === k && Stores.of(i) === 'FINAL' && i.active === true; })[0];
     if (!it || it.final_price === '' || it.final_price === undefined) return;
-    var c = Masters.recipeCost(r.product, costs).cost;
+    var c = Masters.recipeCost(r.product, costs).total;
     if (c !== '' && c > Number(it.final_price)) n++;
   });
   return n;

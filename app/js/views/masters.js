@@ -3,7 +3,7 @@
 import { call } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
-import { h, toast, flash, fmtNum, trackFilled, dialog } from '../ui.js';
+import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, storePill } from '../components.js';
 import { STORES } from '../data.js';
 
@@ -199,10 +199,13 @@ function items(body, isAdmin) {
         if (!c.lines.length) return;
         const nm = (id) => Data.nameOf(Data.items.get(id) || { name: id });
         costBox.replaceChildren(
-          h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit),
-            c.cost !== '' && finalPrice.value !== '' && c.cost > Number(finalPrice.value) ? h('span.pill.low', ' ' + t('cost_over_price')) : null),
+          h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit)),
+          // the running costs (electricity, salaries…) as a share of the materials, and the full cost
+          c.cost !== '' && c.overhead_rate ? h('div', t('overhead_line', { p: fmtNum(Math.round(c.overhead_rate * 1000) / 10), v: fmtNum(c.overhead) }), ' · ',
+            h('b', t('overhead_total')), ' ', h('b.num', fmtNum(c.total) + ' QR / ' + it.unit)) : null,
+          c.cost !== '' && finalPrice.value !== '' && (c.total || c.cost) > Number(finalPrice.value) ? h('span.pill.low', t('cost_over_price')) : null,
           h('small.muted', c.lines.map((l) => nm(l.item_id) + ' ' + fmtNum(l.qty) + ' × ' + (l.unit_cost === '' ? '?' : fmtNum(l.unit_cost)) + (l.date ? ' (' + l.date + ')' : '')).join(' · ')),
-          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null);
+          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.total || c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null);
       }).catch(() => {});
     }
     const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };
@@ -540,13 +543,71 @@ function recipes(body) {
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
   };
-  body.replaceChildren(familiesBox(body), h('small.muted', t('recipe_help')),
+  body.replaceChildren(Data.can('overhead.save') ? overheadBox(body) : '', familiesBox(body), h('small.muted', t('recipe_help')),
     h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
     h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save'))));
   draw();
+}
+
+// ---------- running costs of the factory: electricity, salaries… of a period, as a share of the materials produced in it
+function overheadBox(body) {
+  const box = h('details.fam-box', h('summary', h('b', t('overhead_title')), ' ', h('small.muted', '…')));
+  call('overhead.list', {}).then((r) => {
+    const ps = r.periods || [];
+    const cur = ps[0];
+    const pct = (x) => fmtNum(Math.round(x * 1000) / 10) + '%';
+    box.replaceChildren(h('summary', h('b', t('overhead_title')), ' ', h('small.muted', cur ? '(' + pct(cur.rate) + ')' : '(' + t('overhead_none') + ')')),
+      h('small.muted', t('overhead_help')),
+      ps.length ? h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('overhead_period')), h('th', t('overhead_costs')), h('th', t('overhead_material')), h('th', t('overhead_rate')), h('th', ''))),
+        h('tbody', ps.map((p, i) => h('tr', { class: i ? 'muted' : '' }, h('td', fmtDate(p.from) + ' – ' + fmtDate(p.to)),
+          h('td.wrap', h('b.num', fmtNum(p.total)), h('small.muted', ' ' + p.lines.map((l) => l.label + ' ' + fmtNum(l.amount)).join(' · '))),
+          h('td.num', fmtNum(p.material), p.missing ? h('small.err-text', ' ' + t('overhead_missing', { n: p.missing })) : ''),
+          h('td.num', h('b', pct(p.rate)), i === 0 ? h('small.muted', ' ' + t('overhead_in_use')) : ''),
+          h('td', h('button.link', { type: 'button', onclick: () => editOverhead(p, body) }, t('fam_edit')),
+            ' ', h('button.link', { type: 'button', onclick: async () => { if (!confirm(t('overhead_delete_q'))) return;
+              try { await call('overhead.delete', { period_id: p.period_id }); toast(t('saved'), 'ok'); recipes(body); } catch (e) { toast(errText(e), 'err'); } } }, t('delete')))))))) : '',
+      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => editOverhead(null, body) }, '+ ' + t('overhead_new'))));
+    if (!ps.length) box.open = true;
+  }).catch(() => box.replaceChildren(h('summary', h('b', t('overhead_title'))), h('small.err-text', t('err.server_error'))));
+  return box;
+}
+
+function editOverhead(p, body) {
+  const today = Data.todayIso();
+  const from = trackFilled(h('input.input#oh-from', { type: 'date', value: p ? p.from : today.slice(0, 8) + '01' }));
+  const to = trackFilled(h('input.input#oh-to', { type: 'date', value: p ? p.to : today }));
+  const lines = (p ? p.lines : [{ label: t('overhead_electricity'), amount: '' }, { label: t('overhead_salaries'), amount: '' }]).map((l) => ({ ...l }));
+  const tb = h('tbody');
+  const sum = h('b.num');
+  const err = h('p.err-text', '');
+  const total = () => lines.reduce((a, l) => a + (Number(l.amount) || 0), 0);
+  const draw = () => {
+    tb.replaceChildren(...lines.map((l, i) => {
+      const label = trackFilled(h('input.input', { value: l.label, oninput: (e) => { l.label = e.target.value; } }));
+      const amount = trackFilled(h('input.input.num', { type: 'number', min: 0, step: 'any', value: l.amount, oninput: (e) => { l.amount = e.target.value; sum.textContent = fmtNum(total()); } }));
+      return h('tr', h('td', label), h('td', amount), h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete'))));
+    }));
+    sum.textContent = fmtNum(total());
+  };
+  draw();
+  return dialog((close) => [h('h3', p ? t('overhead_edit') : t('overhead_new')), h('small.muted', t('overhead_help')),
+    h('div.form-grid', field(t('from'), from), field(t('to'), to)),
+    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('overhead_item')), h('th', t('amount_oh')), h('th', ''))), tb)),
+    h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => { lines.push({ label: '', amount: '' }); draw(); } }, '+ ' + t('overhead_add_line')),
+      h('span', t('overhead_costs'), ': ', sum)),
+    err,
+    h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+      h('button.btn', { type: 'button', onclick: async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true; err.textContent = '';
+        try {
+          const r = await call('overhead.save', { period_id: p ? p.period_id : '', from: from.value, to: to.value, lines });
+          toast(t('overhead_saved', { p: fmtNum(Math.round(r.rate * 1000) / 10) }), 'ok'); close(true); recipes(body);
+        } catch (ex) { err.textContent = errText(ex); btn.disabled = false; }
+      } }, t('save')))]);
 }
 
 // ---------- generic materials (families): one name for the recipes, the brands linked to it with how much each holds
