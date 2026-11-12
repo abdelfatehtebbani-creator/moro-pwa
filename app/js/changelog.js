@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.219', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) نافذة المنتج النهائي: «تكلفة المنتج» صارت خانة مثل باقي الخانات، تظهر لكل منتج نهائي. ومن لا وصفة له تقول له الخانة ذلك."]},
+    en: {"news": ["(Development copy) Final product window: \"Product cost\" is a field like the others, shown for every final product; for one with no recipe it says so."]},
+  },
+  {
     v: '0.9.218', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) نافذة المنتج النهائي: تفاصيل التكلفة صارت مطوية تحت سطر واحد «تكلفة المنتج: … QR». يُفتح لرؤية المواد والتشغيل وزر التكلفة المخصصة و«اعتمادها سعرًا»."]},
     en: {"news": ["(Development copy) Final product window: the cost detail folds under one line \"Product cost: … QR\"; open it for the materials, running costs, the own-costs button and \"Use as price\"."]},

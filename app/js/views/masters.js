@@ -192,15 +192,19 @@ function items(body, isAdmin) {
     const costBox = h('div.cost-box');
     // its shelf life in days: the expiry of each production is worked out from it
     const shelf = trackFilled(h('input.input.num#e-shelf', { type: 'number', min: 1, max: 3650, step: 1, inputmode: 'numeric', value: it && it.shelf_days !== undefined ? it.shelf_days : '', disabled: !canFinal }));
-    const finalField = h('div', h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice), costBox,
+    // the product's cost, a field like the others, for every final product (worked out from its recipe)
+    costBox.append(h('span.muted', it ? '…' : t('cost_after_save')));
+    const finalField = h('div', h('div.field', h('label', { for: 'e-fprice' }, t('final_price')), finalPrice), h('div.field', h('label', t('cost_fold')), costBox),
       h('div.field', h('label', { for: 'e-shelf' }, t('shelf_days')), shelf, h('small.muted', t('shelf_days_help'))));
-    if (it && canFinal && Data.recipes.some((r) => String(r.product).trim().toUpperCase() === String(it.name).trim().toUpperCase())) {
+    const hasRecipe = it && Data.recipes.some((r) => String(r.product).trim().toUpperCase() === String(it.name).trim().toUpperCase());
+    if (it && (!hasRecipe || !Data.can('recipes.cost'))) costBox.replaceChildren(h('span.muted', hasRecipe ? '—' : t('cost_no_recipe')));
+    if (hasRecipe && Data.can('recipes.cost')) {
       call('recipes.cost', { product: it.name }).then((c) => {
-        if (!c.lines.length) return;
+        if (!c.lines.length) { costBox.replaceChildren(h('span.muted', t('cost_no_recipe'))); return; }
         const nm = (id) => Data.recipePart(id).name;
         // folded under one line: the full cost (or the materials' when there are no running costs), opened for the detail
         const over = c.cost !== '' && finalPrice.value !== '' && (c.total || c.cost) > Number(finalPrice.value);
-        costBox.replaceChildren(h('details.cost-fold', h('summary', h('b', t('cost_fold')), ' ',
+        costBox.replaceChildren(h('details.cost-fold', h('summary',
           c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.total !== '' && c.total !== undefined ? c.total : c.cost) + ' QR / ' + it.unit),
           over ? h('span.pill.low', ' ' + t('cost_over_price')) : ''), ...[
           h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit)),
