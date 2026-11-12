@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.209', date: '2026-11-12',
-    ar: {"news": ["(نسخة التطوير) طباعة قائمة الأسعار: الصفحة المطبوعة تعرض جداول الأقسام بالأعمدة المختارة بدل نص غريب."]},
-    en: {"news": ["(Development copy) Price list printing: the printed page shows each department's table with the chosen columns instead of odd text."]},
+    ar: {"news": ["طباعة قائمة الأسعار: الصفحة المطبوعة تعرض جداول الأقسام بالأعمدة المختارة بدل نص غريب."]},
+    en: {"news": ["Price list printing: the printed page shows each department's table with the chosen columns instead of odd text."]},
   },
   {
     v: '0.9.208', date: '2026-11-12',
