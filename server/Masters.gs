@@ -465,6 +465,16 @@ Masters.decisions = function (session) {
 };
 
 /** Minutes without activity before the app goes back to the home screen (0 = never). Read by every device from the bootstrap settings. */
+/** The admin: producing takes the recipes' ingredients from the stores, or not (until the recipes are complete). p: {on} */
+Masters.saveRecipeStock = function (session, p) {
+  return withLock(function () {
+    var before = Settings.get('recipes_take_stock', '');
+    Settings.set('recipes_take_stock', p.on === true ? '1' : '');
+    Audit.log(session.user_id, 'settings_recipe_stock', 'Settings', 'recipes_take_stock', before, p.on === true ? '1' : '');
+    return { on: p.on === true, version: Version.bump() };
+  });
+};
+
 Masters.saveIdle = function (session, p) {
   var m = Util.num(p.minutes);
   Util.require(m !== null && m >= 0 && m <= 240 && Math.round(m) === m, 'idle_minutes_invalid');

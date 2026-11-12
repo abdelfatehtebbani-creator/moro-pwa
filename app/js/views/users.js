@@ -44,9 +44,20 @@ export async function render(root) {
     return h('div.card', h('h2', t('settings_general')),
       h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
       h('small.muted', t('idle_minutes_help')),
+      Data.can('settings.recipeStock') ? recipeStockBox() : null,
       Data.can('sales.setChannels') ? channelsBox() : null,
       Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // producing takes the recipes' ingredients from the stores, or not (off until the recipes are complete)
+  function recipeStockBox() {
+    const on = h('input#set-recipe-stock', { type: 'checkbox', checked: (Data.settings || {}).recipes_take_stock === '1' });
+    on.addEventListener('change', async () => {
+      try { await call('settings.recipeStock', { on: on.checked }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { on.checked = !on.checked; toast(errText(e), 'err'); }
+    });
+    return h('div', h('label.check', on, ' ', h('b', t('recipe_stock_on'))), h('small.muted', t('recipe_stock_help')));
   }
 
   // the sales channels of the daily sales sheet: names, the shops of each (none = all), stopped or not

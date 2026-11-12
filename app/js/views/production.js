@@ -81,10 +81,12 @@ export function render(root) {
       return { part, fam, need, have, ok: have >= need };
     });
     body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', l.fam ? h('b', '◆ ', h('bdi', l.part.name)) : h('bdi', l.part.name)), h('td.num', fmtNum(l.need)),
-      h('td.num', fmtNum(l.have)), h('td', l.part.unit), h('td', h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')))))
+      h('td.num', fmtNum(l.have)), h('td', l.part.unit), h('td', (Data.settings || {}).recipes_take_stock === '1' ? h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')) : '')))
       : [h('tr', h('td.empty', { colspan: 5 }, !product.value ? t('choose_product') : noRecipe() ? t('no_recipe_help') : t('recipe_missing')))]));
-    const short = lines.filter((l) => !l.ok).length;
-    summary.textContent = lines.length ? t('ingredients_summary', { n: lines.length, s: short }) : '';
+    // taking from the stores switched off: the recipe is shown only, nothing is taken, a shortage does not matter
+    const takes = (Data.settings || {}).recipes_take_stock === '1';
+    const short = takes ? lines.filter((l) => !l.ok).length : 0;
+    summary.textContent = lines.length ? (takes ? t('ingredients_summary', { n: lines.length, s: short }) : t('recipe_stock_off_note')) : '';
     summary.className = 'form-status ' + (short ? 'warn' : '');
   }
   qty.addEventListener('input', preview);
@@ -95,7 +97,7 @@ export function render(root) {
     if (!product.value) { flash(product.input); product.input.focus(); return; }
     if (!(Number(qty.value) > 0)) { flash(qty); qty.focus(); return; }
     if (!lines.length && !noRecipe()) { flash(product.input); return; }
-    if (lines.some((l) => !l.ok) && !doublePress('prod')) { flash(btn); summary.textContent = t('short_press_again'); summary.className = 'form-status warn'; return; }
+    if ((Data.settings || {}).recipes_take_stock === '1' && lines.some((l) => !l.ok) && !doublePress('prod')) { flash(btn); summary.textContent = t('short_press_again'); summary.className = 'form-status warn'; return; }
     await Outbox.add('production.post', { product: product.value, qty: Number(qty.value), unit: unit.value.trim().toUpperCase() || 'KG',
       date: date.value, client_id: newId() }, product.value);
     toast(t('production_saved', { q: qty.value, u: unit.value, p: product.value }), 'ok');

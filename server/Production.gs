@@ -4,6 +4,9 @@
  * the product. Shortages do not block production (v13 asked and allowed it); the app shows them first.
  */
 var Production = {
+  /** Does producing take the recipe's ingredients from the stores? (a setting of the admin; off by default) */
+  takesStock: function () { return Settings.get('recipes_take_stock', '') === '1'; },
+
   /** Ingredients needed for qty of product, with what is available. */
   preview: function (product, qty) {
     var k = Util.key(product);
@@ -57,11 +60,13 @@ var Production = {
     Util.require(Util.isDate(p.date || ''), 'date_invalid');
     // a final product without a recipe (a department's product): its stock goes up, no ingredient is taken
     var k = Util.key(p.product);
-    var hasRecipe = Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only !== true; });
+    var recipe = Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only !== true; });
+    // taking the ingredients from the stores is switched on by the admin (off until the recipes are complete)
+    var hasRecipe = recipe && Production.takesStock();
     if (!hasRecipe) {
       var fin = Repo.all('Items').filter(function (x) { return Util.key(x.name) === k && Stores.of(x) === 'FINAL' && x.active === true; })[0];
-      Util.require(fin, 'recipe_missing', p.product);
-      p.unit = fin.unit;
+      Util.require(fin || recipe, 'recipe_missing', p.product);
+      if (fin) p.unit = fin.unit;
     }
     if (session.role === 'section_head' || (session.role === 'branch_manager' && (session.depts || []).length)) {
       var mine = Repo.all('Items').filter(function (x) { return Util.key(x.name) === k; })[0];

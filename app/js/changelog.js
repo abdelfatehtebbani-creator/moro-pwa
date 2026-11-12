@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.207', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الإنتاج لا يخصم مكونات الوصفات من المخزن حاليًا: يزيد رصيد المنتج النهائي فقط، والوصفة تظهر للعرض وتُستعمل للتكلفة وسجل التشغيلة. يفعّل المدير الخصم من «المستخدمون» ← «إعدادات عامة» ← «الإنتاج يخصم مكونات الوصفة من المخزن» عندما تكتمل الوصفات."]},
+    en: {"news": ["(Development copy) Producing no longer takes the recipe's ingredients from the stores for now: it only raises the final product's stock; the recipe is shown and used for the cost and the batch record. The admin switches taking on in Users → General settings when the recipes are complete."]},
+  },
+  {
     v: '0.9.206', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) المواد العامة للوصفات: في صفحة «الوصفات» قسم جديد «المواد العامة». أنشئ مادة عامة مثل «سمنة نباتية» بوحدة الكيلو، واربط بها البراندات مع ما تحويه وحدة كل براند (مثل 4*4 كغ = 16 كغ). تُكتب الوصفة بالمادة العامة (تظهر بعلامة ◆)، وعند الإنتاج يُخصم من البراند المتوفر، الأقدم استلامًا أولًا. شاشة الإنتاج تعرض المتاح من كل البراندات بالكيلو، وسجل التشغيلة يذكر البراند الذي استُعمل فعلًا. التكلفة تُحسب من أسعار البراندات المتوفرة، وإن نفدت كلها فمن آخر براند اشتُري."]},
     en: {"news": ["(Development copy) Generic materials for recipes: the Recipes tab has a new \"Generic materials\" section. Create one like \"Vegetable ghee\" in KG and link the brands with how much one unit of each holds (4*4 kg = 16 KG). A recipe is written with the generic material (marked ◆); producing takes the brand in the store, the oldest received first. The production screen shows what all the brands hold in KG, and the batch record names the brand really used. The cost comes from the prices of the brands in the store, or the brand bought last when none is left."]},

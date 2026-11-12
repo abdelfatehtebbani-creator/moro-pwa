@@ -42,6 +42,11 @@ test('a family: brands linked with their factor, a recipe written with it, produ
   assert.ok(g.api('data.bootstrap', {}, admin).data.families.rows.length === 1);
 
   assert.equal(g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: fid, qty_per_unit: 0.5 }, { item_id: 'I0003', qty_per_unit: 0.02 }] }, admin).ok, true);
+  // switched off (the default): nothing is taken; the batch record still names the brand that was in the store first
+  const p0 = g.api('production.post', { product: 'BASBOUSA', qty: 2, unit: 'KG', date: TODAY, client_id: 'pp0' }, admin);
+  assert.equal(bal('I0002'), 1);
+  assert.ok(g.api('batches.get', { batch_no: p0.data.batch_no }, admin).data.raw.some((l) => l.item_id === 'I0002'));
+  g.api('settings.recipeStock', { on: true }, admin);
   // cost: the brands in the store by their latest prices (Fresh 10 QR/kg x 9 kg, QBB 20 QR/kg x 32 kg) = 17.80 per kg
   const c = g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data;
   assert.deepEqual(c.missing, ['I0003']);

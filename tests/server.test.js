@@ -377,6 +377,12 @@ test('a busy lock is reported, not a crash; bad JSON is a clean error', () => {
 
 test('production: consumes the recipe, adds the product, shortage does not block', () => {
   const { g, tok, bal } = env();
+  // switched off, producing takes nothing from the stores (the recipe is for the cost); the admin switches it on
+  g.api('recipes.save', { product: 'maamoul tamr', lines: [{ item_id: 'I0001', qty_per_unit: 0.08 }] }, tok.admin);
+  g.api('production.post', { product: 'maamoul tamr', qty: 10, unit: 'PC', date: TODAY }, tok.admin);
+  assert.equal(bal('I0001'), 5);
+  assert.equal(g.api('settings.recipeStock', { on: true }, tok.storekeeper).error.code, 'forbidden');
+  assert.equal(g.api('settings.recipeStock', { on: true }, tok.admin).ok, true);
   g.api('recipes.save', { product: 'maamoul tamr', lines: [{ item_id: 'I0001', qty_per_unit: 0.08 }, { item_id: 'I0002', qty_per_unit: 0.5 }] }, tok.admin);
   const pv = g.api('production.preview', { product: 'maamoul tamr', qty: 10 }, tok.storekeeper).data;
   assert.deepEqual(pv.map((l) => [l.item_id, l.need, l.enough]), [['I0001', 0.8, true], ['I0002', 5, false]]);
@@ -385,7 +391,7 @@ test('production: consumes the recipe, adds the product, shortage does not block
   assert.equal(bal('I0001'), 4.2);
   assert.equal(bal('I0002'), -5);
   const prod = g.rows('Items').find((i) => i.name === 'maamoul tamr');
-  assert.equal(bal(prod.item_id), 10);
+  assert.equal(bal(prod.item_id), 20);   // 10 made while switched off, 10 now
   assert.equal(g.api('production.post', { product: 'maamoul tamr', qty: 10, date: TODAY, client_id: 'p1' }, tok.storekeeper).data.saved[0].duplicate, true);
   assert.equal(g.api('production.post', { product: 'x', qty: 1, date: TODAY }, tok.storekeeper).error.code, 'recipe_missing');
   assert.equal(g.api('production.post', { product: 'maamoul tamr', qty: 1, date: TODAY }, tok.purchasing).error.code, 'forbidden');
