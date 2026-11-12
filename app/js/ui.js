@@ -17,7 +17,7 @@ export function h(tag, attrs, ...kids) {
     else if (k === 'class') el.className += ' ' + v;
     else el.setAttribute(k, v === true ? '' : v);
   }
-  for (const kid of kids.flat()) {
+  for (const kid of kids.flat(Infinity)) {   // lists inside lists too (a group of rows per department)
     if (kid === null || kid === undefined || kid === false) continue;
     el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
   }
