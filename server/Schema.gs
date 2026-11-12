@@ -62,6 +62,7 @@ var SCHEMA = {
   DispatchReviews: ['date', 'ok', 'note', 'by', 'at'],
   Families:     ['family_id', 'name', 'name_ar', 'unit', 'active', 'created_at'],
   Overheads:    ['period_id', 'from', 'to', 'lines', 'total', 'material', 'rate', 'missing', 'by', 'at', 'status'],
+  ProductOverheads: ['item_id', 'lines', 'qty', 'per_unit', 'by', 'at'],
   TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by'],
   Invoices:     ['invoice_id', 'invoice_no', 'order_id', 'order_no', 'shop_party_id', 'date', 'total_final', 'total_store', 'total',
                  'created_by', 'created_at'],

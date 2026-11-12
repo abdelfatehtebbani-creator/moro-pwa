@@ -24,6 +24,43 @@ var Overhead = {
 
   list: function () { return { periods: Overhead.rows() }; },
 
+  /** A product's own running costs (estimated by hand), or null: {lines, qty, per_unit}. */
+  ofProduct: function (itemId) {
+    var r = Repo.find('ProductOverheads', 'item_id', itemId);
+    if (!r || !(Number(r.per_unit) >= 0) || r.per_unit === '') return null;
+    var lines = [];
+    try { lines = JSON.parse(r.lines || '[]'); } catch (e) { lines = []; }
+    return { lines: lines, qty: Number(r.qty) || 0, per_unit: Number(r.per_unit) };
+  },
+  /** {item_id: running cost per unit} of the products with their own estimate. */
+  products: function () {
+    var o = {};
+    Repo.all('ProductOverheads').forEach(function (r) { if (r.per_unit !== '' && Number(r.per_unit) >= 0) o[r.item_id] = Number(r.per_unit); });
+    return o;
+  },
+
+  /**
+   * One product's own running costs, in place of the factory's rate: the costs estimated for a quantity of it.
+   * p: {item_id, lines: [{label, amount}], qty} – no lines: back to the factory's rate.
+   */
+  saveProduct: function (session, p) {
+    var it = Repo.find('Items', 'item_id', p.item_id);
+    Util.require(it && Stores.of(it) === 'FINAL', 'not_found');
+    var lines = (p.lines || []).map(function (l) { return { label: Util.clean(l.label), amount: Util.num(l.amount) }; })
+      .filter(function (l) { return l.label || l.amount; });
+    lines.forEach(function (l) { Util.require(l.label && l.amount !== null && l.amount >= 0, 'overhead_line_invalid', l.label); });
+    var qty = Util.num(p.qty);
+    if (lines.length) Util.require(qty > 0, 'qty_invalid');
+    var total = lines.reduce(function (a, l) { return a + l.amount; }, 0);
+    var per = lines.length ? Math.round(total / qty * 10000) / 10000 : '';
+    return withLock(function () {
+      var row = { item_id: it.item_id, lines: lines.length ? JSON.stringify(lines) : '', qty: lines.length ? qty : '', per_unit: per, by: session.user_id, at: Util.nowIso() };
+      if (!Repo.update('ProductOverheads', 'item_id', it.item_id, row)) Repo.append('ProductOverheads', [row]);
+      Audit.log(session.user_id, 'overhead_product', 'ProductOverheads', it.item_id, null, { total: total, qty: qty, per_unit: per });
+      return { per_unit: per, version: Version.bump() };
+    });
+  },
+
   /** The material cost of what was produced from..to: {material, missing (products with no cost known)}. */
   material: function (from, to) {
     var qty = {};

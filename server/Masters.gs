@@ -441,9 +441,13 @@ Masters.recipeCost = function (product, costs) {
   });
   var cost = lines.length && !missing.length ? Util.round(total * 100) / 100 : '';
   // the running costs (electricity, salaries…) as a share of the materials, from the latest period entered
+  // ...or the product's own estimate (per unit), when one was written for it
   var rate = Overhead.rate();
-  return { product: product, lines: lines, cost: cost, missing: missing, overhead_rate: rate,
-    overhead: cost === '' ? '' : Util.round(cost * rate * 100) / 100, total: cost === '' ? '' : Util.round(cost * (1 + rate) * 100) / 100,
+  var fin = Repo.all('Items').filter(function (i) { return Util.key(i.name) === k && Stores.of(i) === 'FINAL'; })[0];
+  var own = fin ? Overhead.ofProduct(fin.item_id) : null;
+  var oh = cost === '' ? '' : own ? own.per_unit : Util.round(cost * rate * 100) / 100;
+  return { product: product, lines: lines, cost: cost, missing: missing, overhead_rate: own ? '' : rate, overhead_own: own,
+    overhead: oh, total: cost === '' ? '' : Util.round((cost + oh) * 100) / 100,
     cost_only: Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only === true; }) };
 };
 

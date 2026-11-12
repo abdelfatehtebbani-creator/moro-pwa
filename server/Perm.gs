@@ -165,7 +165,7 @@ var CAPS = (function () {
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     'recipes.edit':      ['recipes.save', 'families.save'],
     // the running costs of the factory (electricity, salaries…) spread over the products' cost
-    'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete'],
+    'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'settings.idle', 'settings.recipeStock', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],

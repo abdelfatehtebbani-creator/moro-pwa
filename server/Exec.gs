@@ -57,7 +57,7 @@ var Exec = {
     });
     var recipes = {};
     Repo.all('Recipes').forEach(function (r) { var k = Util.key(r.product); (recipes[k] = recipes[k] || []).push(r); });
-    var famCost = {}, ohRate = Overhead.rate();
+    var famCost = {}, ohRate = Overhead.rate(), ohOwn = Overhead.products();
     var costOf = function (id) {
       var it = items[id];
       if (!it) return null;
@@ -71,7 +71,7 @@ var Exec = {
         if (Families.isId(lid)) { if (!(lid in famCost)) { var fc = Families.cost(lid, Masters.lastCosts()); famCost[lid] = fc ? fc.unit : null; } if (famCost[lid] === null) return null; c += Number(lines[i].qty_per_unit) * famCost[lid]; continue; }
         if (!(lid in cost)) return null; c += Number(lines[i].qty_per_unit) * cost[lid];
       }
-      return c * (1 + ohRate);   // with the running costs of the factory
+      return id in ohOwn ? c + ohOwn[id] : c * (1 + ohRate);   // with the running costs (the product's own estimate, else the factory's rate)
     };
 
     // ---- sales: approved daily sheets, else the cash of the shifts of that day

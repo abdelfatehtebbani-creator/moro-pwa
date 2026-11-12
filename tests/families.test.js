@@ -87,3 +87,19 @@ test('running costs: a period of costs over the material cost of its production 
   g.api('overhead.delete', { period_id: r.period_id }, admin);
   assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 9);
 });
+
+test('running costs of one product: its own estimate for a quantity replaces the factory rate for it only', () => {
+  const { g, admin } = env();
+  g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }] }, admin);   // 9 QR of materials per KG
+  g.api('production.post', { product: 'BASBOUSA', qty: 100, unit: 'KG', date: TODAY, client_id: 'oh2' }, admin);
+  g.api('overhead.save', { from: TODAY, to: TODAY, lines: [{ label: 'Electricity', amount: 450 }] }, admin);   // 50%
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 13.5);
+  // 200 QR of electricity and labour for 50 KG: 4 QR per KG in place of the 50%
+  assert.equal(g.api('overhead.product', { item_id: 'I0009', lines: [{ label: 'Electricity', amount: 80 }, { label: 'Labour', amount: 120 }] }, admin).error.code, 'qty_invalid');
+  assert.equal(g.api('overhead.product', { item_id: 'I0009', lines: [{ label: 'Electricity', amount: 80 }, { label: 'Labour', amount: 120 }], qty: 50 }, admin).data.per_unit, 4);
+  const c = g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data;
+  assert.deepEqual([c.overhead, c.total, c.overhead_rate], [4, 13, '']);
+  // back to the factory's rate
+  g.api('overhead.product', { item_id: 'I0009', lines: [] }, admin);
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 13.5);
+});

@@ -67,6 +67,7 @@ var Finance = {
       recipes: Repo.all('Recipes').map(function (r) { return { product: r.product, item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }; }),
       // a family line of a recipe costs what one family unit of its brands costs
       overhead_rate: Overhead.rate(),
+      overhead_products: Overhead.products(),
       family_costs: (function () { var o = {}, costs = Masters.lastCosts(); Repo.all('Families').forEach(function (f) { var c = Families.cost(f.family_id, costs); if (c) o[f.family_id] = c.unit; }); return o; })() };
   }
 };

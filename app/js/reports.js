@@ -231,7 +231,8 @@ function margin(p, movs, data) {
     // a generic material (family) costs what one of its units costs from its brands (worked out by the server)
     const fc = data.family_costs || {};
     for (const l of lines) { const u = Data.isFamily(l.item_id) ? fc[l.item_id] : cost.get(l.item_id); if (u === undefined) return undefined; c += l.qty_per_unit * u; }
-    return c * (1 + (Number(data.overhead_rate) || 0));   // with the running costs of the factory
+    const own = (data.overhead_products || {})[id];
+    return own !== undefined ? c + own : c * (1 + (Number(data.overhead_rate) || 0));   // with the running costs (the product's own estimate, else the factory's)
   };
   const by = new Map(), shops = new Map();
   data.lines.forEach((x) => {

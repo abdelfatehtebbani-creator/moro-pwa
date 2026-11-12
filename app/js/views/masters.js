@@ -197,15 +197,16 @@ function items(body, isAdmin) {
     if (it && canFinal && Data.recipes.some((r) => String(r.product).trim().toUpperCase() === String(it.name).trim().toUpperCase())) {
       call('recipes.cost', { product: it.name }).then((c) => {
         if (!c.lines.length) return;
-        const nm = (id) => Data.nameOf(Data.items.get(id) || { name: id });
-        costBox.replaceChildren(
+        const nm = (id) => Data.recipePart(id).name;
+        costBox.replaceChildren(...[
           h('div', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + it.unit)),
           // the running costs (electricity, salaries…) as a share of the materials, and the full cost
-          c.cost !== '' && c.overhead_rate ? h('div', t('overhead_line', { p: fmtNum(Math.round(c.overhead_rate * 1000) / 10), v: fmtNum(c.overhead) }), ' · ',
+          c.cost !== '' && (c.overhead_rate || c.overhead_own) ? h('div', c.overhead_own ? t('overhead_own_line', { v: fmtNum(c.overhead) }) : t('overhead_line', { p: fmtNum(Math.round(c.overhead_rate * 1000) / 10), v: fmtNum(c.overhead) }), ' · ',
             h('b', t('overhead_total')), ' ', h('b.num', fmtNum(c.total) + ' QR / ' + it.unit)) : null,
+          Data.can('overhead.product') ? h('button.link', { type: 'button', onclick: () => editProductOverhead(it, c.overhead_own, close) }, c.overhead_own ? t('overhead_own_edit') : t('overhead_own_new')) : null,
           c.cost !== '' && finalPrice.value !== '' && (c.total || c.cost) > Number(finalPrice.value) ? h('span.pill.low', t('cost_over_price')) : null,
           h('small.muted', c.lines.map((l) => nm(l.item_id) + ' ' + fmtNum(l.qty) + ' × ' + (l.unit_cost === '' ? '?' : fmtNum(l.unit_cost)) + (l.date ? ' (' + l.date + ')' : '')).join(' · ')),
-          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.total || c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null);
+          c.cost !== '' ? h('button.link', { type: 'button', onclick: () => { finalPrice.value = String(c.total || c.cost); finalPrice.dispatchEvent(new Event('input')); } }, t('recipe_cost_use')) : null].filter(Boolean));
       }).catch(() => {});
     }
     const showFinal = () => { finalField.hidden = cat.value !== 'FINAL'; };
@@ -573,6 +574,42 @@ function overheadBox(body) {
     if (!ps.length) box.open = true;
   }).catch(() => box.replaceChildren(h('summary', h('b', t('overhead_title'))), h('small.err-text', t('err.server_error'))));
   return box;
+}
+
+// one product's own running costs, estimated by hand for a quantity of it (in place of the factory's rate)
+function editProductOverhead(it, own, closeItem) {
+  const lines = (own ? own.lines : [{ label: t('overhead_electricity'), amount: '' }, { label: t('overhead_salaries'), amount: '' }]).map((l) => ({ ...l }));
+  const qty = trackFilled(h('input.input.num#poh-qty', { type: 'number', min: 0, step: 'any', value: own ? own.qty : '' }));
+  const tb = h('tbody');
+  const per = h('b.num');
+  const err = h('p.err-text', '');
+  const total = () => lines.reduce((a, l) => a + (Number(l.amount) || 0), 0);
+  const calc = () => { per.textContent = Number(qty.value) > 0 ? fmtNum(Math.round(total() / Number(qty.value) * 100) / 100) + ' QR / ' + it.unit : '—'; };
+  const draw = () => {
+    tb.replaceChildren(...lines.map((l, i) => h('tr',
+      h('td', trackFilled(h('input.input', { value: l.label, oninput: (e) => { l.label = e.target.value; } }))),
+      h('td', trackFilled(h('input.input.num', { type: 'number', min: 0, step: 'any', value: l.amount, oninput: (e) => { l.amount = e.target.value; calc(); } }))),
+      h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete'))))));
+    calc();
+  };
+  qty.addEventListener('input', calc);
+  draw();
+  const send = async (e, clear) => {
+    const btn = e.currentTarget; btn.disabled = true; err.textContent = '';
+    try {
+      await call('overhead.product', { item_id: it.item_id, lines: clear ? [] : lines, qty: clear ? '' : qty.value });
+      toast(t('saved'), 'ok'); closeEl(); if (closeItem) closeItem();
+    } catch (ex) { err.textContent = errText(ex); btn.disabled = false; }
+  };
+  let closeEl = () => {};
+  return dialog((close) => { closeEl = close; return [h('h3', t('overhead_own_title', { p: Data.nameOf(it) })), h('small.muted', t('overhead_own_help')),
+    h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('overhead_item')), h('th', t('amount_oh')), h('th', ''))), tb)),
+    h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => { lines.push({ label: '', amount: '' }); draw(); } }, '+ ' + t('overhead_add_line'))),
+    h('div.field', h('label', { for: 'poh-qty' }, t('overhead_own_qty', { u: it.unit })), qty),
+    h('p', t('overhead_own_per'), ' ', per), err,
+    h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+      own ? h('button.btn.secondary', { type: 'button', onclick: (e) => send(e, true) }, t('overhead_own_clear')) : null,
+      h('button.btn', { type: 'button', onclick: (e) => send(e, false) }, t('save')))]; });
 }
 
 function editOverhead(p, body) {
