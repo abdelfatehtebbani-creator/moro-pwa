@@ -56,7 +56,7 @@ var PERM_TREE = [
     { key: 'tab_parties', children: [{ leaf: 'parties.view' }, { leaf: 'parties.add' }, { leaf: 'parties.rename' }] },
     { key: 'tab_locations', children: [{ leaf: 'locations.view' }, { leaf: 'locations.add' }, { leaf: 'locations.rename' }] },
     { key: 'tab_units', children: [{ leaf: 'units.view' }, { leaf: 'units.add' }, { leaf: 'units.rename' }] },
-    { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }] }] },
+    { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }, { leaf: 'recipes.overhead' }] }] },
   { key: 'coffee', children: [{ leaf: 'coffee.view' }, { leaf: 'coffee.pack' }] },
   { key: 'users', children: [{ leaf: 'users.manage' }] },
   { key: 'general', children: [{ leaf: 'prices.see' }] }
@@ -152,7 +152,7 @@ var CAPS = (function () {
     'items.min':         ['items.save', 'min_stock'],
     'items.packaging':   ['items.save', 'packaging'],
     'items.convert':     ['items.convertUnit'],
-    'items.final_price': ['items.save', 'final_price', 'items.import', 'recipes.cost'],
+    'items.final_price': ['items.save', 'final_price', 'items.import', 'recipes.cost', 'overhead.list'],
     'parties.view':      ['nav.masters', 'tab.parties'],
     'parties.add':       ['parties.save'],
     'parties.rename':    ['parties.save', 'rename.parties'],
@@ -164,6 +164,8 @@ var CAPS = (function () {
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     'recipes.edit':      ['recipes.save', 'families.save'],
+    // the running costs of the factory (electricity, salaries…) spread over the products' cost
+    'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'settings.idle', 'settings.recipeStock', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],

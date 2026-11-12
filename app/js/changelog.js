@@ -3,6 +3,46 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.219', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) نافذة المنتج النهائي: «تكلفة المنتج» صارت خانة مثل باقي الخانات، تظهر لكل منتج نهائي. ومن لا وصفة له تقول له الخانة ذلك."]},
+    en: {"news": ["(Development copy) Final product window: \"Product cost\" is a field like the others, shown for every final product; for one with no recipe it says so."]},
+  },
+  {
+    v: '0.9.218', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) نافذة المنتج النهائي: تفاصيل التكلفة صارت مطوية تحت سطر واحد «تكلفة المنتج: … QR». يُفتح لرؤية المواد والتشغيل وزر التكلفة المخصصة و«اعتمادها سعرًا»."]},
+    en: {"news": ["(Development copy) Final product window: the cost detail folds under one line \"Product cost: … QR\"; open it for the materials, running costs, the own-costs button and \"Use as price\"."]},
+  },
+  {
+    v: '0.9.217', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) «تصحيح وحدة الأساس» صار أسرع بكثير: الخادم يعيد كتابة سطور المادة نفسها فقط بدل كل السجل. ووزن الوحدة في المادة العامة يتعدل مع الوحدة الجديدة."]},
+    en: {"news": ["(Development copy) \"Change the stock unit\" is much faster: the server rewrites only the item's own rows instead of the whole record. What one unit holds of its generic material follows the new unit."]},
+  },
+  {
+    v: '0.9.216', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الوصفات: عند اختيار منتج له وصفة تظهر تحته تكلفته (المواد، التشغيل، الكاملة) وزر «تكلفة تشغيل مخصصة لهذا المنتج»."]},
+    en: {"news": ["(Development copy) Recipes: picking a product with a recipe shows its cost under it (materials, running costs, full) and the \"This product's own running costs\" button."]},
+  },
+  {
+    v: '0.9.215', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الوصفات: جزء «وصفة المنتج» ينطوي مثل «تكاليف التشغيل» و«المواد العامة»."]},
+    en: {"news": ["(Development copy) Recipes: the \"Product recipe\" part folds like \"Running costs\" and \"Generic materials\"."]},
+  },
+  {
+    v: '0.9.214', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) تكلفة تشغيل مخصصة لمنتج واحد: في نافذة المنتج النهائي زر «تكلفة تشغيل مخصصة لهذا المنتج». تكتب تقديرات تكاليفه (كهرباء، عمالة…) لكمية منه، فتُقسم عليها وتحل محل النسبة العامة لهذا المنتج وحده، ووصفته كما هي. وزر «الرجوع إلى النسبة العامة» يلغيها."]},
+    en: {"news": ["(Development copy) One product's own running costs: the final product window has \"This product's own running costs\". Write its estimated costs (electricity, labour…) for a quantity of it; divided by that quantity they replace the factory's rate for this product only, its recipe unchanged. \"Back to the factory's rate\" removes it."]},
+  },
+  {
+    v: '0.9.213', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) تكاليف التشغيل: المدير الذي له صلاحيات مخصصة يأخذ صلاحية «تكاليف التشغيل» تلقائيًا، فيظهر له القسم في «الوصفات»."]},
+    en: {"news": ["(Development copy) Running costs: an admin with their own set of ticks gets the \"Running costs\" tick automatically, so the section shows in Recipes."]},
+  },
+  {
+    v: '0.9.212', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) تكاليف التشغيل: في «الوصفات» قسم جديد يكتب فيه المدير تكاليف فترة (كهرباء، رواتب، غاز، إيجار…). النظام يقسمها على تكلفة مواد ما أُنتج في الفترة، فتخرج نسبة (مثل 25%) تُضاف فوق تكلفة مواد كل منتج. نافذة المنتج تعرض: المواد، التشغيل، التكلفة الكاملة. ويدخل ذلك في تقرير الهامش وتنبيه «التكلفة فوق السعر»."]},
+    en: {"news": ["(Development copy) Running costs: the Recipes tab has a new section where the admin writes the costs of a period (electricity, salaries, gas, rent…). They are divided by the material cost of what was produced in the period, giving a rate (like 25%) added on top of each product's material cost. The product window shows materials, running costs and the full cost; the margin report and the cost-over-price alert use it."]},
+  },
+  {
     v: '0.9.211', date: '2026-11-12',
     ar: {"news": ["مخزن جديد «العُدّة والأدوات» للعتاد الذي لا يُستهلك: السكاكين والصواني والماكنات وغيرها. يُستلم ويُصرف ويُجرد مثل باقي المخازن، دون تاريخ صلاحية ودون مادة عامة. يعطيه المدير لمن يعمل فيه من «المستخدمون»، وينشئ له مكان تخزين من «أماكن التخزين»."]},
     en: {"news": ["A new store \"Equipment and tools\" for what is not used up: knives, trays, machines and the like. Received, issued and counted like the other stores, with no expiry date and no generic material. The admin gives it to the people who work in it (Users) and creates a storage location for it (Storage locations)."]},

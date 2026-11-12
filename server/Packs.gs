@@ -135,7 +135,9 @@ var Packs = {
         .filter(function (q) { return q.unit !== newUnit; });
       if (!rename && !packs.some(function (q) { return q.unit === oldUnit; })) packs.push({ unit: oldUnit, factor: factor });
       var ru = String(item.report_unit || '').toUpperCase();
-      Repo.update('Items', 'item_id', item.item_id, { unit: newUnit, min_stock: x(item.min_stock) || 0,
+      // what one unit holds of its generic material follows the new unit (1 BAG = 50 KG of sugar → 1 KG = 1 KG)
+      var famF = Number(item.family_factor) > 0 ? Math.round(Number(item.family_factor) / factor * 1e6) / 1e6 : item.family_factor;
+      Repo.update('Items', 'item_id', item.item_id, { unit: newUnit, min_stock: x(item.min_stock) || 0, family_factor: famF === undefined ? '' : famF,
         pack_units: Packs.pack(newUnit, packs),
         report_unit: rename ? (ru === oldUnit || ru === newUnit ? '' : ru) : (ru || oldUnit) });
       Audit.log(session.user_id, 'item_unit_convert', 'Items', item.item_id, null, preview);

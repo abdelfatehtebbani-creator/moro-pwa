@@ -195,6 +195,10 @@ tr.click { cursor: pointer; }
 tr.req-none td { background: var(--danger-soft); }
 .fam-box { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .fam-box summary { cursor: pointer; }
+.cost-fold summary { cursor: pointer; }
+.cost-fold > div, .cost-fold > small, .cost-fold > button { margin-top: 4px; }
+.recipe-cost { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.recipe-cost:empty { display: none; }
 .kiosk-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #d9dee5); }
 .kiosk-box h3 { margin: 0; }
 .check-grid { display: flex; flex-wrap: wrap; gap: 6px 18px; }
@@ -848,7 +852,9 @@ tr.send-group th { text-align: start; background: var(--teal-soft, #e6f4f1); pad
 p.pickup { margin: 8px 0 2px; }
 
 /* a final product's cost from its recipe */
-.cost-box { display: grid; gap: 2px; margin: -4px 0 8px; font-size: 13px; }
+.cost-box { display: grid; gap: 2px; font-size: 14px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line, #d9dee5); border-radius: 10px; background: var(--card, #fff); align-content: center; }
+.cost-box .cost-fold > * { font-size: 13px; }
+.cost-box .cost-fold > summary { font-size: 15px; }
 
 /* the branch manager's period chips sit on a light card (the general manager's on a dark band) */
 .card.ex > .card-head .ex-periods { background: #e7ebf0; }

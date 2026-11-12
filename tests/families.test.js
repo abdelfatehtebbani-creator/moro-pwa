@@ -72,3 +72,45 @@ test('a family: brands linked with their factor, a recipe written with it, produ
   g.api('families.save', { family_id: fid, name: 'Vegetable ghee', unit: 'KG', members: [{ item_id: 'I0001', factor: 16 }] }, admin);
   assert.equal(g.rows('Items').find((i) => i.item_id === 'I0002').family_id, '');
 });
+
+test('running costs: a period of costs over the material cost of its production gives the rate added to each product', () => {
+  const { g, admin } = env();
+  g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }] }, admin);   // 0.1 tin x 90 = 9 QR per KG
+  g.api('production.post', { product: 'BASBOUSA', qty: 100, unit: 'KG', date: TODAY, client_id: 'oh1' }, admin);   // 900 QR of materials
+  assert.equal(g.api('overhead.save', { from: '2020-01-01', to: '2020-01-31', lines: [{ label: 'Electricity', amount: 100 }] }, admin).error.code, 'overhead_no_production');
+  const r = g.api('overhead.save', { from: TODAY, to: TODAY, lines: [{ label: 'Electricity', amount: 180 }, { label: 'Salaries', amount: 270 }] }, admin).data;
+  assert.equal(r.material, 900);
+  assert.equal(r.rate, 0.5);   // 450 / 900
+  const c = g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data;
+  assert.deepEqual([c.cost, c.overhead_rate, c.overhead, c.total], [9, 0.5, 4.5, 13.5]);
+  assert.equal(g.api('overhead.list', {}, admin).data.periods.length, 1);
+  g.api('overhead.delete', { period_id: r.period_id }, admin);
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 9);
+});
+
+test('running costs of one product: its own estimate for a quantity replaces the factory rate for it only', () => {
+  const { g, admin } = env();
+  g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }] }, admin);   // 9 QR of materials per KG
+  g.api('production.post', { product: 'BASBOUSA', qty: 100, unit: 'KG', date: TODAY, client_id: 'oh2' }, admin);
+  g.api('overhead.save', { from: TODAY, to: TODAY, lines: [{ label: 'Electricity', amount: 450 }] }, admin);   // 50%
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 13.5);
+  // 200 QR of electricity and labour for 50 KG: 4 QR per KG in place of the 50%
+  assert.equal(g.api('overhead.product', { item_id: 'I0009', lines: [{ label: 'Electricity', amount: 80 }, { label: 'Labour', amount: 120 }] }, admin).error.code, 'qty_invalid');
+  assert.equal(g.api('overhead.product', { item_id: 'I0009', lines: [{ label: 'Electricity', amount: 80 }, { label: 'Labour', amount: 120 }], qty: 50 }, admin).data.per_unit, 4);
+  const c = g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data;
+  assert.deepEqual([c.overhead, c.total, c.overhead_rate], [4, 13, '']);
+  // back to the factory's rate
+  g.api('overhead.product', { item_id: 'I0009', lines: [] }, admin);
+  assert.equal(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.total, 13.5);
+});
+
+test('changing the base unit of a brand keeps what it holds of its family right; only its own rows are rewritten', () => {
+  const { g, admin } = env();
+  g.api('families.save', { name: 'Vegetable ghee', unit: 'KG', members: [{ item_id: 'I0001', factor: 16 }] }, admin);
+  const before = g.rows('Movements').filter((m) => m.item_id !== 'I0001').map((m) => JSON.stringify(m));
+  const r = g.api('items.convertUnit', { item_id: 'I0001', new_unit: 'KG', factor: 16 }, admin);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const it = g.rows('Items').find((i) => i.item_id === 'I0001');
+  assert.deepEqual([it.unit, it.family_factor], ['KG', 1]);
+  assert.deepEqual(g.rows('Movements').filter((m) => m.item_id !== 'I0001').map((m) => JSON.stringify(m)), before);
+});

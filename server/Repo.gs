@@ -168,7 +168,13 @@ var Repo = (function () {
     var c = t.idx[col];
     if (c === undefined) throw new Error('Unknown column ' + name + '.' + col);
     if (!t.rows.length) return;
-    t.rows.forEach(function (r, i) { var v = fn(toObj(t, r)); r[c] = v === null || v === undefined ? '' : v; changed(t, i); });
+    // only the rows whose value really changes are written back (a whole sheet rewritten took long)
+    t.rows.forEach(function (r, i) {
+      var v = fn(toObj(t, r));
+      v = v === null || v === undefined ? '' : v;
+      if (String(v) === String(r[c] === null || r[c] === undefined ? '' : r[c])) return;
+      r[c] = v; changed(t, i);
+    });
   }
 
   /** Replaces every data row (used for small lists such as Lists and Recipes). */
