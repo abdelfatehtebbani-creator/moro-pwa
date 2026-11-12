@@ -182,7 +182,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '58';
+var SCHEMA_VERSION = '59';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -196,6 +196,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 26) Perm.addDashView();
     // the dispatching record: food safety officers and distribution with their own ticks get it too
     if (Number(Settings.get('schema_version', '0')) < 56) Perm.addRoleLeaves({ food_safety: ['report.dispatch', 'dispatch.review'], distribution: ['report.dispatch'] });
+    // the running costs: an admin with their own ticks gets the new tick too
+    if (Number(Settings.get('schema_version', '0')) < 59) Perm.addRoleLeaves({ admin: ['recipes.overhead'] });
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);

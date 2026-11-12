@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.213', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) تكاليف التشغيل: المدير الذي له صلاحيات مخصصة يأخذ صلاحية «تكاليف التشغيل» تلقائيًا، فيظهر له القسم في «الوصفات»."]},
+    en: {"news": ["(Development copy) Running costs: an admin with their own set of ticks gets the \"Running costs\" tick automatically, so the section shows in Recipes."]},
+  },
+  {
     v: '0.9.212', date: '2026-11-12',
     ar: {"news": ["(نسخة التطوير) تكاليف التشغيل: في «الوصفات» قسم جديد يكتب فيه المدير تكاليف فترة (كهرباء، رواتب، غاز، إيجار…). النظام يقسمها على تكلفة مواد ما أُنتج في الفترة، فتخرج نسبة (مثل 25%) تُضاف فوق تكلفة مواد كل منتج. نافذة المنتج تعرض: المواد، التشغيل، التكلفة الكاملة. ويدخل ذلك في تقرير الهامش وتنبيه «التكلفة فوق السعر»."]},
     en: {"news": ["(Development copy) Running costs: the Recipes tab has a new section where the admin writes the costs of a period (electricity, salaries, gas, rent…). They are divided by the material cost of what was produced in the period, giving a rate (like 25%) added on top of each product's material cost. The product window shows materials, running costs and the full cost; the margin report and the cost-over-price alert use it."]},
