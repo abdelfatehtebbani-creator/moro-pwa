@@ -73,13 +73,15 @@ export function render(root) {
     const q = Number(qty.value);
     const recipe = Data.recipes.filter((r) => r.cost_only !== true && norm(r.product) === norm(product.value));
     lines = recipe.map((r) => {
-      const it = Data.items.get(r.item_id) || { name: r.item_id, unit: '' };
+      // a generic material (a family): what all its brands hold, in its unit (the brand is taken when saving)
+      const fam = Data.isFamily(r.item_id);
+      const part = Data.recipePart(r.item_id);
       const need = Math.round(Number(r.qty_per_unit) * (q || 0) * 1e6) / 1e6;
-      const have = Data.qty(r.item_id);
-      return { it, need, have, ok: have >= need };
+      const have = fam ? Math.round(Data.familyQty(r.item_id) * 1000) / 1000 : Data.qty(r.item_id);
+      return { part, fam, need, have, ok: have >= need };
     });
-    body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', h('bdi', Data.nameOf(l.it))), h('td.num', fmtNum(l.need)),
-      h('td.num', fmtNum(l.have)), h('td', l.it.unit), h('td', h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')))))
+    body.replaceChildren(...(lines.length ? lines.map((l) => h('tr', h('td.wrap', l.fam ? h('b', '◆ ', h('bdi', l.part.name)) : h('bdi', l.part.name)), h('td.num', fmtNum(l.need)),
+      h('td.num', fmtNum(l.have)), h('td', l.part.unit), h('td', h('span', { class: 'pill ' + (l.ok ? 'in' : 'low') }, l.ok ? t('enough') : t('short')))))
       : [h('tr', h('td.empty', { colspan: 5 }, !product.value ? t('choose_product') : noRecipe() ? t('no_recipe_help') : t('recipe_missing')))]));
     const short = lines.filter((l) => !l.ok).length;
     summary.textContent = lines.length ? t('ingredients_summary', { n: lines.length, s: short }) : '';

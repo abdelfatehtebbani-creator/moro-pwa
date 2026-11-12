@@ -9,14 +9,23 @@ var Production = {
     var k = Util.key(product);
     var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k && r.cost_only !== true; });
     Util.require(lines.length, 'recipe_missing', product);
-    return lines.map(function (r) {
-      var item = Repo.find('Items', 'item_id', r.item_id);
-      var bal = Repo.find('Balances', 'item_id', r.item_id);
+    var have = function (id) { var bal = Repo.find('Balances', 'item_id', id); return bal ? Number(bal.qty) || 0 : 0; };
+    var moves = null;
+    var out = [];
+    lines.forEach(function (r) {
       var need = Util.round(Number(r.qty_per_unit) * qty);
-      var have = bal ? Number(bal.qty) : 0;
-      return { item_id: r.item_id, name: item ? item.name : r.item_id, unit: item ? item.unit : '', need: need, available: have,
-               enough: have >= need };
+      // a family: the brands in the store, the oldest received first
+      var parts = Families.isId(r.item_id) ? Families.allocate(r.item_id, need, have, Util.today(), moves || (moves = Repo.all('Movements')))
+        : [{ item_id: r.item_id, qty: need }];
+      parts.forEach(function (x) {
+        var item = Repo.find('Items', 'item_id', x.item_id);
+        var prev = out.filter(function (o) { return o.item_id === x.item_id; })[0];
+        if (prev) { prev.need = Util.round(prev.need + x.qty); prev.enough = prev.available >= prev.need; return; }
+        out.push({ item_id: x.item_id, name: item ? item.name : x.item_id, unit: item ? item.unit : '', need: x.qty, available: have(x.item_id),
+                   enough: have(x.item_id) >= x.qty, family_id: x.family_id || '' });
+      });
     });
+    return out;
   },
 
   partyId: function (name) {

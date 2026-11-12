@@ -463,15 +463,20 @@ function recipes(body) {
   };
   const product = combo({ id: 'rc-product', placeholder: t('product'), options: productOptions, onPick: (v) => load(v) });
   deptFilter.addEventListener('change', () => { product.clear(); load(''); product.input.focus(); });
-  const item = combo({ id: 'rc-item', options: () => Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: i.name, hint: i.unit })) });
+  // a line names a generic material (a family: the brand is taken when producing) or one item
+  const item = combo({ id: 'rc-item', options: () => [...Data.families.values()].filter((f) => f.active === true)
+    .sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+    .map((f) => ({ value: f.family_id, label: '◆ ' + Data.nameOf(f), alt: f.name, hint: f.unit + ' · ' + t('fam_word') }))
+    .concat(Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: i.name, hint: i.unit }))) });
   const qty = trackFilled(h('input.input.num#rc-qty', { type: 'number', step: 'any', min: 0 }));
   // a recipe that only prices the product: producing it takes nothing from the stores
   const costOnly = h('input#rc-costonly', { type: 'checkbox' });
   const tb = h('tbody');
   const err = h('p.err-text', '');
-  const draw = () => tb.replaceChildren(...(lines.length ? lines.map((l, i) => h('tr', h('td.wrap', h('bdi', (Data.items.get(l.item_id) || {}).name || l.item_id)),
-    h('td.num', fmtNum(l.qty_per_unit) + ' ' + ((Data.items.get(l.item_id) || {}).unit || '')),
-    h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))))
+  const draw = () => tb.replaceChildren(...(lines.length ? lines.map((l, i) => { const part = Data.recipePart(l.item_id); return h('tr',
+    h('td.wrap', part.family ? h('b', '◆ ', h('bdi', part.name)) : h('bdi', part.name), part.family ? h('small.muted', ' · ' + t('fam_word')) : ''),
+    h('td.num', fmtNum(l.qty_per_unit) + ' ' + (part.unit || '')),
+    h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))); })
     : [h('tr', h('td.empty', { colspan: 3 }, t('no_lines')))]));
   function load(name) {
     const mine = name ? Data.recipes.filter((r) => norm(r.product) === norm(name)) : [];
@@ -494,13 +499,81 @@ function recipes(body) {
       toast(t('saved'), 'ok');
     } catch (e) { err.textContent = errText(e); }
   };
-  body.replaceChildren(h('small.muted', t('recipe_help')),
+  body.replaceChildren(familiesBox(body), h('small.muted', t('recipe_help')),
     h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
     h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save'))));
   draw();
+}
+
+// ---------- generic materials (families): one name for the recipes, the brands linked to it with how much each holds
+function familiesBox(body) {
+  const fams = [...Data.families.values()].sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)));
+  const canEdit = Data.can('families.save');
+  const rows = fams.map((f) => {
+    const brands = Data.familyBrands(f.family_id);
+    return h('tr', { class: f.active === true ? '' : 'muted' }, h('td.wrap', h('b', h('bdi', Data.nameOf(f)))), h('td', f.unit),
+      h('td.wrap', brands.length ? brands.map((b) => h('span.fam-brand', h('bdi', b.it.name), h('small', ' · ', h('bdi', { dir: 'ltr' }, fmtNum(b.factor) + ' ' + f.unit)))) : h('small.err-text', t('fam_no_brands'))),
+      h('td.num', fmtNum(Math.round(Data.familyQty(f.family_id) * 100) / 100) + ' ' + f.unit),
+      h('td', canEdit ? h('button.link', { type: 'button', onclick: () => editFamily(f, body) }, t('fam_edit')) : ''));
+  });
+  const box = h('details.fam-box', h('summary', h('b', t('fam_title')), ' ', h('small.muted', '(' + fams.length + ')')),
+    h('small.muted', t('fam_help')),
+    fams.length ? h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('fam_name')), h('th', t('unit')), h('th', t('fam_brands')), h('th', t('available')), h('th', ''))),
+      h('tbody', rows))) : '',
+    canEdit ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => editFamily(null, body) }, '+ ' + t('fam_new'))) : '');
+  if (!fams.length) box.open = true;
+  return box;
+}
+
+function editFamily(f, body) {
+  const name = trackFilled(h('input.input#fm-name', { value: f ? f.name : '' }));
+  const nameAr = trackFilled(h('input.input#fm-name-ar', { value: f ? f.name_ar || '' : '', dir: 'rtl' }));
+  const unit = trackFilled(h('input.input#fm-unit', { value: f ? f.unit : 'KG' }));
+  const active = h('input#fm-active', { type: 'checkbox', checked: !f || f.active === true });
+  const members = f ? [...Data.items.values()].filter((i) => String(i.family_id || '') === f.family_id).map((i) => ({ item_id: i.item_id, factor: Number(i.family_factor) })) : [];
+  const famName = (id) => Data.nameOf(Data.families.get(id) || {});
+  const brand = combo({ id: 'fm-brand', options: () => Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL' && !members.some((m) => m.item_id === i.item_id))
+    .map((i) => ({ value: i.item_id, label: i.name, hint: i.unit + (i.family_id && (!f || i.family_id !== f.family_id) ? ' · ' + famName(i.family_id) : '') })) });
+  const factor = trackFilled(h('input.input.num#fm-factor', { type: 'number', step: 'any', min: 0 }));
+  const factorLabel = h('label', { for: 'fm-factor' });
+  const label = () => { const it = Data.items.get(brand.value); factorLabel.textContent = t('fam_factor', { u: it ? it.unit : '…', f: unit.value || 'KG' }); };
+  const tb = h('tbody');
+  const err = h('p.err-text', '');
+  brand.input.addEventListener('change', label);
+  const draw = () => tb.replaceChildren(...(members.length ? members.map((m, i) => { const it = Data.items.get(m.item_id) || { name: m.item_id, unit: '' };
+    return h('tr', h('td.wrap', h('bdi', it.name)), h('td.num', '1 ' + it.unit + ' = ' + fmtNum(m.factor) + ' ' + (unit.value || 'KG')),
+      h('td', h('button.link', { type: 'button', onclick: () => { members.splice(i, 1); draw(); } }, t('delete')))); })
+    : [h('tr', h('td.empty', { colspan: 3 }, t('fam_no_brands')))]));
+  unit.addEventListener('input', () => { draw(); label(); });
+  const add = () => {
+    if (!brand.value) return flash(brand.input);
+    if (!(Number(factor.value) > 0)) return flash(factor);
+    members.push({ item_id: brand.value, factor: Number(factor.value) });
+    brand.clear(); factor.value = ''; draw(); label(); brand.input.focus();
+  };
+  factor.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+  draw(); label();
+  return dialog((close) => [h('h3', f ? Data.nameOf(f) : t('fam_new')), h('small.muted', t('fam_help')),
+    h('div.form-grid', field(t('fam_name'), name, { wide: true }), field(t('fam_name_ar'), nameAr, { wide: true }), field(t('fam_unit'), unit)),
+    h('h4', t('fam_brands')),
+    h('div.form-grid', field(t('item'), brand, { wide: true }), h('div.field', factorLabel, factor),
+      h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
+    h('div.table-wrap', h('table', tb)),
+    f ? h('label.check', active, ' ', t('fam_active')) : '', err,
+    h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+      h('button.btn', { type: 'button', onclick: async (e) => {
+        const btn = e.currentTarget;
+        if (!name.value.trim()) return flash(name);
+        btn.disabled = true;
+        try {
+          await call('families.save', { family_id: f ? f.family_id : '', name: name.value, name_ar: nameAr.value, unit: unit.value, active: active.checked, members });
+          toast(t('saved'), 'ok'); close(true);
+          refreshSoon(() => recipes(body));
+        } catch (ex) { err.textContent = errText(ex); btn.disabled = false; }
+      } }, t('save')))]);
 }
 
 /** Rows of a CSV text (quotes, commas and new lines inside quotes). */
