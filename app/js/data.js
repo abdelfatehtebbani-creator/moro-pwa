@@ -24,6 +24,7 @@ export const Data = {
   pendingDeltas: {},
   lists: [],
   recipes: [],
+  families: new Map(),
   locations: [],
   units: [],
   purposes: [],
@@ -48,6 +49,8 @@ export const Data = {
     this.applyPending(this.pendingDeltas || {});
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
+    // generic materials of the recipes (e.g. Vegetable ghee): brands are linked to one with a factor
+    this.families = new Map(objects(b.families || { columns: [], rows: [] }).map((f) => [f.family_id, named(f)]));
     this.locations = objects(b.locations);
     this.reservedQty = b.reserved || {};
     this.units = objects(b.units || { columns: [], rows: [] });
@@ -211,6 +214,17 @@ export const Data = {
   todayIso() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qatar' }).format(new Date()); },
 
   activeItems() { return [...this.items.values()].filter((i) => i.active === true); },
+  isFamily(id) { return /^F\d+$/.test(String(id || '')); },
+  /** The brands of a family: [{it, factor}]. */
+  familyBrands(fid) { return this.activeItems().filter((i) => String(i.family_id || '') === fid && Number(i.family_factor) > 0).map((it) => ({ it, factor: Number(it.family_factor) })); },
+  /** What the store holds of a family, in its unit (every brand by its factor). */
+  familyQty(fid) { return this.familyBrands(fid).reduce((s, b) => s + Math.max(0, this.qty(b.it.item_id)) * b.factor, 0); },
+  /** An item or a family as a row of a recipe: {name, unit, family}. */
+  recipePart(id) {
+    if (this.isFamily(id)) { const f = this.families.get(id) || { name: id, unit: '' }; return { name: this.nameOf(f), unit: f.unit, family: true }; }
+    const it = this.items.get(id) || { name: id, unit: '' };
+    return { name: this.nameOf(it), unit: it.unit, family: false };
+  },
 
   inStockCount() { return this.activeItems().filter((i) => this.qty(i.item_id) > 0).length; },
 

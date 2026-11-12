@@ -57,6 +57,7 @@ var Exec = {
     });
     var recipes = {};
     Repo.all('Recipes').forEach(function (r) { var k = Util.key(r.product); (recipes[k] = recipes[k] || []).push(r); });
+    var famCost = {};
     var costOf = function (id) {
       var it = items[id];
       if (!it) return null;
@@ -64,7 +65,12 @@ var Exec = {
       var lines = recipes[Util.key(it.name)];
       if (!lines) return null;
       var c = 0;
-      for (var i = 0; i < lines.length; i++) { if (!(lines[i].item_id in cost)) return null; c += Number(lines[i].qty_per_unit) * cost[lines[i].item_id]; }
+      for (var i = 0; i < lines.length; i++) {
+        var lid = lines[i].item_id;
+        // a generic material (family): one of its units, from its brands
+        if (Families.isId(lid)) { if (!(lid in famCost)) { var fc = Families.cost(lid, Masters.lastCosts()); famCost[lid] = fc ? fc.unit : null; } if (famCost[lid] === null) return null; c += Number(lines[i].qty_per_unit) * famCost[lid]; continue; }
+        if (!(lid in cost)) return null; c += Number(lines[i].qty_per_unit) * cost[lid];
+      }
       return c;
     };
 

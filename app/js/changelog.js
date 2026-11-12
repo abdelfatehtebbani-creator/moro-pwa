@@ -3,6 +3,36 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.208', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) طباعة قائمة الأسعار: نافذة اختيار الأعمدة تعرض مربعات الأعمدة بدل نص غريب."]},
+    en: {"news": ["(Development copy) Price list printing: the column choice shows the column boxes again instead of odd text."]},
+  },
+  {
+    v: '0.9.207', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الإنتاج لا يخصم مكونات الوصفات من المخزن حاليًا: يزيد رصيد المنتج النهائي فقط، والوصفة تظهر للعرض وتُستعمل للتكلفة وسجل التشغيلة. يفعّل المدير الخصم من «المستخدمون» ← «إعدادات عامة» ← «الإنتاج يخصم مكونات الوصفة من المخزن» عندما تكتمل الوصفات."]},
+    en: {"news": ["(Development copy) Producing no longer takes the recipe's ingredients from the stores for now: it only raises the final product's stock; the recipe is shown and used for the cost and the batch record. The admin switches taking on in Users → General settings when the recipes are complete."]},
+  },
+  {
+    v: '0.9.206', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) المواد العامة للوصفات: في صفحة «الوصفات» قسم جديد «المواد العامة». أنشئ مادة عامة مثل «سمنة نباتية» بوحدة الكيلو، واربط بها البراندات مع ما تحويه وحدة كل براند (مثل 4*4 كغ = 16 كغ). تُكتب الوصفة بالمادة العامة (تظهر بعلامة ◆)، وعند الإنتاج يُخصم من البراند المتوفر، الأقدم استلامًا أولًا. شاشة الإنتاج تعرض المتاح من كل البراندات بالكيلو، وسجل التشغيلة يذكر البراند الذي استُعمل فعلًا. التكلفة تُحسب من أسعار البراندات المتوفرة، وإن نفدت كلها فمن آخر براند اشتُري."]},
+    en: {"news": ["(Development copy) Generic materials for recipes: the Recipes tab has a new \"Generic materials\" section. Create one like \"Vegetable ghee\" in KG and link the brands with how much one unit of each holds (4*4 kg = 16 KG). A recipe is written with the generic material (marked ◆); producing takes the brand in the store, the oldest received first. The production screen shows what all the brands hold in KG, and the batch record names the brand really used. The cost comes from the prices of the brands in the store, or the brand bought last when none is left."]},
+  },
+  {
+    v: '0.9.205', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الوصفات: خانة «المنتج» صارت قائمة بالمنتجات النهائية، وفوقها فلتر «القسم الذي ينتجه». بجانب كل منتج قسمه، وعلامة «له وصفة» إن كانت له وصفة."]},
+    en: {"news": ["(Development copy) Recipes: the product field is now a list of the final products, with a filter by the department that makes them above it. Each product shows its department and whether it has a recipe."]},
+  },
+  {
+    v: '0.9.204', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) طلبات الأقسام: في السطر الذي رصيده صفر تبدأ خانة «للصرف الآن» بصفر بدل الكمية المطلوبة."]},
+    en: {"news": ["(Development copy) Department requests: on a line with nothing in stock, \"Issue now\" starts at 0 instead of the quantity asked for."]},
+  },
+  {
+    v: '0.9.203', date: '2026-11-11',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: لوحة مفاتيح على الشاشة تظهر عند لمس خانة البحث في «طلب مواد»، بالعربية أو الإنجليزية، والقائمة تصغر فوقها فلا يختفي شيء خلفها. والبحث لا يفرّق بين أ وإ وا، ولا بين ى وي، ولا بين ة وه."]},
+    en: {"news": ["(Development copy) Shared device: an on-screen keyboard opens when the search field in \"Ask the store\" is touched, in Arabic or English; the list shrinks above it so nothing is hidden. The search treats the forms of alef, yaa and taa marbuta alike."]},
+  },
+  {
     v: '0.9.202', date: '2026-11-11',
     ar: {"news": ["الجهاز المشترك: أيقونة «طلب مواد» صارت عربة تسوق بعجلات."]},
     en: {"news": ["Shared device: the \"Ask the store\" icon is now a shopping cart on wheels."]},

@@ -190,6 +190,9 @@ tr.click { cursor: pointer; }
 .pill.st-clean { background: var(--clean-soft); color: var(--clean); }
 .pill.low { background: var(--danger-soft); color: var(--danger); }
 tr.req-none td { background: var(--danger-soft); }
+.fam-box { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.fam-box summary { cursor: pointer; }
+.fam-brand { display: inline-block; border: 1px solid var(--line, #d9dee5); border-radius: 10px; padding: 1px 8px; margin: 2px; font-size: 13px; white-space: nowrap; }
 tr.req-none td:first-child { box-shadow: inset 4px 0 0 var(--danger); }
 [dir=rtl] tr.req-none td:first-child { box-shadow: inset -4px 0 0 var(--danger); }
 tr.req-none .pill.low { margin-inline-start: 6px; background: var(--danger); color: #fff; }
@@ -881,3 +884,4 @@ p.pickup { margin: 8px 0 2px; }
 /* a row of buttons under a search line */
 .tool-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .tool-row .btn { white-space: nowrap; }
+.pcols { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; }

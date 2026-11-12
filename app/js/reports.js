@@ -228,7 +228,9 @@ function margin(p, movs, data) {
     const lines = recipe.get(String(it.name).trim().toUpperCase());
     if (!lines) return undefined;
     let c = 0;
-    for (const l of lines) { if (!cost.has(l.item_id)) return undefined; c += l.qty_per_unit * cost.get(l.item_id); }
+    // a generic material (family) costs what one of its units costs from its brands (worked out by the server)
+    const fc = data.family_costs || {};
+    for (const l of lines) { const u = Data.isFamily(l.item_id) ? fc[l.item_id] : cost.get(l.item_id); if (u === undefined) return undefined; c += l.qty_per_unit * u; }
     return c;
   };
   const by = new Map(), shops = new Map();

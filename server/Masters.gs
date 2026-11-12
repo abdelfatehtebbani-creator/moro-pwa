@@ -298,7 +298,8 @@ var Masters = {
     Util.require(product, 'name_required');
     return withLock(function () {
       var lines = (p.lines || []).filter(function (l) { return Util.num(l.qty_per_unit) > 0; });
-      lines.forEach(function (l) { Util.require(Repo.find('Items', 'item_id', l.item_id), 'item_unknown', l.item_id); });
+      // a line names an item, or a family (a generic material: the brand is chosen when producing)
+      lines.forEach(function (l) { Util.require(Families.isId(l.item_id) ? Repo.find('Families', 'family_id', l.item_id) : Repo.find('Items', 'item_id', l.item_id), 'item_unknown', l.item_id); });
       var keep = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) !== Util.key(product); });
       Repo.replaceAll('Recipes', keep.concat(lines.map(function (l) {
         return { product: product, item_id: l.item_id, qty_per_unit: Util.num(l.qty_per_unit), cost_only: p.cost_only === true };
@@ -341,6 +342,7 @@ var Masters = {
         return { columns: ['list', 'item_id'], rows: out };
       })(),
       recipes: Repo.raw('Recipes'),
+      families: Repo.raw('Families'),
       balances: (function () {
         // last_expiry = the nearest expiry of what is still in stock (not the last receipt's)
         var raw = Repo.raw('Balances'), near = Batches.nearest(batches), c = raw.columns.indexOf('last_expiry'), k = raw.columns.indexOf('item_id');
@@ -421,7 +423,7 @@ Masters.recipeCost = function (product, costs) {
   costs = costs || Masters.lastCosts();
   var k = Util.key(product), total = 0, missing = [];
   var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k; }).map(function (r) {
-    var c = costs[r.item_id], q = Number(r.qty_per_unit) || 0;
+    var c = Families.isId(r.item_id) ? Families.cost(r.item_id, costs) : costs[r.item_id], q = Number(r.qty_per_unit) || 0;
     if (!c) missing.push(r.item_id); else total += q * c.unit;
     return { item_id: r.item_id, qty: q, unit_cost: c ? Util.round(c.unit * 1000) / 1000 : '', date: c ? c.date : '', amount: c ? Util.round(q * c.unit * 100) / 100 : '' };
   });
@@ -463,6 +465,16 @@ Masters.decisions = function (session) {
 };
 
 /** Minutes without activity before the app goes back to the home screen (0 = never). Read by every device from the bootstrap settings. */
+/** The admin: producing takes the recipes' ingredients from the stores, or not (until the recipes are complete). p: {on} */
+Masters.saveRecipeStock = function (session, p) {
+  return withLock(function () {
+    var before = Settings.get('recipes_take_stock', '');
+    Settings.set('recipes_take_stock', p.on === true ? '1' : '');
+    Audit.log(session.user_id, 'settings_recipe_stock', 'Settings', 'recipes_take_stock', before, p.on === true ? '1' : '');
+    return { on: p.on === true, version: Version.bump() };
+  });
+};
+
 Masters.saveIdle = function (session, p) {
   var m = Util.num(p.minutes);
   Util.require(m !== null && m >= 0 && m <= 240 && Math.round(m) === m, 'idle_minutes_invalid');

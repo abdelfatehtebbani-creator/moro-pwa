@@ -79,7 +79,24 @@ var BatchRec = {
     var recipe = Repo.all('Recipes').filter(function (x) { return Util.key(x.product) === Util.key(item.name); });
     var source = recipe.length ? 'recipe' : 'issues';
     var need = {};
-    if (recipe.length) recipe.forEach(function (x) { need[x.item_id] = Util.round((need[x.item_id] || 0) + (Number(x.qty_per_unit) || 0) * qty); });
+    // a family line: the brands this production really took (its own consumption movements)
+    var used = [];
+    if (recipe.some(function (x) { return Families.isId(x.item_id); })) {
+      var outMove = Repo.find('Movements', 'movement_id', r.movement_id) || {};
+      var cid = String(outMove.client_id || '').replace(/-o$/, '');
+      used = cid ? moves.filter(function (m) { return m.kind === 'PROD_CONSUME' && m.status !== 'deleted' && String(m.client_id || '').indexOf(cid + '-c') === 0; }) : [];
+    }
+    if (recipe.length) recipe.forEach(function (x) {
+      if (!Families.isId(x.item_id)) { need[x.item_id] = Util.round((need[x.item_id] || 0) + (Number(x.qty_per_unit) || 0) * qty); return; }
+      var mine = used.filter(function (m) { var it = Repo.find('Items', 'item_id', m.item_id); return it && String(it.family_id || '') === x.item_id; });
+      mine.forEach(function (m) { need[m.item_id] = Util.round((need[m.item_id] || 0) + Math.abs(Number(m.qty) || 0)); });
+      // nothing was taken from the stores (taking is switched off): the brands that were in the store that day, oldest first
+      if (!mine.length) {
+        var onDay = function (id) { return moves.reduce(function (a, m) { return m.item_id === id && m.status !== 'deleted' && String(m.date) <= r.date ? a + (Number(m.qty) || 0) : a; }, 0); };
+        try { Families.allocate(x.item_id, (Number(x.qty_per_unit) || 0) * qty, onDay, r.date, moves).forEach(function (a) { need[a.item_id] = Util.round((need[a.item_id] || 0) + a.qty); }); }
+        catch (e) { /* a family with no brand: nothing to trace */ }
+      }
+    });
     else if (r.dept) moves.forEach(function (m) {
       if (m.kind === 'ISSUE' && m.status !== 'deleted' && m.party_id === r.dept && String(m.date) === r.date) need[m.item_id] = Util.round((need[m.item_id] || 0) + Math.abs(Number(m.qty) || 0));
     });

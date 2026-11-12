@@ -5,7 +5,7 @@
  */
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
-                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept', 'shelf_days'],
+                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept', 'shelf_days', 'family_id', 'family_factor'],
   Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone', 'producing', 'at_shop'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
@@ -60,6 +60,7 @@ var SCHEMA = {
   Trips:        ['trip_id', 'driver_id', 'status', 'note', 'created_by', 'created_at', 'updated_at', 'client_id', 'vehicle', 'temp', 'departed_at',
                  'departed_by'],
   DispatchReviews: ['date', 'ok', 'note', 'by', 'at'],
+  Families:     ['family_id', 'name', 'name_ar', 'unit', 'active', 'created_at'],
   TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by'],
   Invoices:     ['invoice_id', 'invoice_no', 'order_id', 'order_no', 'shop_party_id', 'date', 'total_final', 'total_store', 'total',
                  'created_by', 'created_at'],
@@ -77,7 +78,7 @@ var SCHEMA = {
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['batch_no', 'supplier_lot', 'start_time', 'end_time', 'checks', 'prepared_at', 'dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['family_id', 'batch_no', 'supplier_lot', 'start_time', 'end_time', 'checks', 'prepared_at', 'dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',

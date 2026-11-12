@@ -20,7 +20,7 @@ const W = {
     pick_product: 'اختر المنتج', qty_of: 'الكمية', save: 'حفظ', saved_prod: 'تم تسجيل الإنتاج', batch: 'رقم التشغيلة', again: 'عملية أخرى', home: 'القائمة',
     wanted: 'مطلوب للمحلات', no_products: 'لا منتجات لقسمك', no_lines: 'لا أسطر بانتظارك', hand: 'سلّم', cannot: 'غير متوفر', handed: 'تم التسليم',
     reason: 'السبب', r_none: 'لم يُنتج', r_stock: 'نفد المخزون', r_quality: 'مشكلة في الجودة', r_other: 'سبب آخر', saved: 'تم الحفظ', left: 'المتبقي',
-    pick_dept: 'لأي قسم؟', search: 'ابحث عن مادة', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
+    pick_dept: 'لأي قسم؟', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
     available: 'المتوفر', remove: 'حذف', bye: 'سيُغلق خلال {n} ث', loading: 'جارٍ التحميل…', unknown: 'الجهاز لم يعد مفعّلًا. يفعّله المدير من جديد.',
     lang: 'English', none_users: 'لا مستخدمين لهذا الجهاز بعد' },
   en: { setup: 'Set up the shared device', setup_help: 'This device is not a shared device yet. The admin signs in to set it up.', device_name: 'Device name',
@@ -29,7 +29,7 @@ const W = {
     pick_product: 'Choose the product', qty_of: 'Quantity', save: 'Save', saved_prod: 'Production recorded', batch: 'Batch No.', again: 'Another one', home: 'Menu',
     wanted: 'Wanted by the shops', no_products: 'No products for your department', no_lines: 'No lines waiting for you', hand: 'Hand over', cannot: 'Not available', handed: 'Handed over',
     reason: 'Reason', r_none: 'Not made', r_stock: 'Out of stock', r_quality: 'Quality problem', r_other: 'Other reason', saved: 'Saved', left: 'Left',
-    pick_dept: 'For which department?', search: 'Search a material', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
+    pick_dept: 'For which department?', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
     available: 'Available', remove: 'Remove', bye: 'Closing in {n} s', loading: 'Loading…', unknown: 'This device is no longer set up. The admin sets it up again.',
     lang: 'العربية', none_users: 'No users for this device yet' },
 };
@@ -51,6 +51,7 @@ let idleTimer = null, tickTimer = null, idleAt = 0;
 function frame(title, body, foot, opts = {}) {
   const left = me ? h('div.k-me', h('b', h('bdi', me.display_name)), h('button.k-btn.k-out', { type: 'button', onclick: signOut }, k('logout')))
     : h('button.k-btn.k-lang', { type: 'button', onclick: () => { setLang(getLang() === 'ar' ? 'en' : 'ar'); applyLang(); if (people) names(); else setup(); } }, k('lang'));
+  document.querySelectorAll('.k-kb').forEach((x) => x.remove()); document.body.classList.remove('k-kbopen');   // a new screen: the on-screen keyboard closes
   root.replaceChildren(
     h('header.k-head', h('div.k-brand', h('img', { src: 'icons/logo.png', alt: '' }), h('span', 'MORO'), people ? h('small', h('bdi', people.device)) : ''),
       opts.back ? h('button.k-btn.k-back', { type: 'button', onclick: opts.back }, '→ ' + k('back')) : '', h('h1', title), h('div.k-bye'), left),
@@ -99,6 +100,41 @@ function keypad(opts) {
   return { el: h('div.k-pad', out, h('div.k-keys', keys.map((x) => x ? h('button.k-key', { type: 'button', onclick: () => press(x) }, x) : h('span')))),
     get value() { return val; }, clear() { val = ''; draw(); } };
 }
+
+// ---------- the on-screen keyboard (the device has no keyboard): opens when the field is touched, Arabic or English letters
+const KB = {
+  en: ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
+  ar: ['1234567890', 'ضصثقفغعهخحج', 'شسيبلاتنمكط', 'ئءؤرىةوزظدذ']
+};
+function textpad(input, onChange) {
+  let layout = getLang() === 'ar' ? 'ar' : 'en';
+  let box = null;
+  const put = (v) => { input.value = v; onChange(); };
+  const close = () => { if (box) box.remove(); box = null; input.classList.remove('k-typing'); document.body.classList.remove('k-kbopen'); };
+  const draw = () => {
+    const row = (keys) => h('div.k-kbrow', [...keys].map((c) => h('button.k-kbkey', { type: 'button', onclick: () => put(input.value + c) }, c)));
+    box.replaceChildren(...KB[layout].map(row), h('div.k-kbrow',
+      h('button.k-kbkey.k-kbwide', { type: 'button', onclick: () => { layout = layout === 'ar' ? 'en' : 'ar'; draw(); } }, layout === 'ar' ? 'EN' : 'ع'),
+      h('button.k-kbkey.k-kbwide', { type: 'button', onclick: () => put('') }, k('kb_clear')),
+      h('button.k-kbkey.k-kbspace', { type: 'button', onclick: () => put(input.value + ' ') }, k('kb_space')),
+      h('button.k-kbkey.k-kbwide', { type: 'button', onclick: () => put(input.value.slice(0, -1)) }, '⌫'),
+      h('button.k-kbkey.k-kbwide.k-kbdone', { type: 'button', onclick: close }, k('kb_done'))));
+  };
+  const open = () => {
+    if (box) return;
+    box = h('div.k-kb', { dir: 'ltr' });
+    draw();
+    document.body.append(box);
+    document.body.classList.add('k-kbopen');
+    input.classList.add('k-typing');
+  };
+  input.setAttribute('inputmode', 'none');   // no keyboard of the system on top of this one
+  input.addEventListener('pointerdown', open);
+  input.addEventListener('focus', open);
+  return { close };
+}
+/** Search text compared loosely: case, and the forms of alef, yaa and taa marbuta. */
+function fold(s) { return String(s || '').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').trim(); }
 
 function flashMsg(text, kind) {
   const m = h('div.k-msg' + (kind ? '.k-' + kind : ''), text);
@@ -311,11 +347,12 @@ async function request() {
     const all = Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL').sort((a, b) => (times.get(b.item_id) || 0) - (times.get(a.item_id) || 0)
       || (Data.qty(b.item_id) > 0) - (Data.qty(a.item_id) > 0) || Data.nameOf(a).localeCompare(Data.nameOf(b)));
     const search = h('input.k-input.k-search', { type: 'search', placeholder: k('search'), autocomplete: 'off' });
-    const list = () => { const q = search.value.trim().toLowerCase(); return all.filter((i) => !q || Data.nameOf(i).toLowerCase().includes(q) || String(i.name).toLowerCase().includes(q)); };
+    const list = () => { const q = fold(search.value); return all.filter((i) => !q || fold(i.name).includes(q) || fold(i.name_ar).includes(q)); };
     const p2 = pager(list(), 9, (ls) => ls.map((it) => h('button.k-tile.k-item', { type: 'button', onclick: () => qtyOf(it) }, h('b', h('bdi', Data.nameOf(it))),
       h('small', k('available') + ': ' + qu(Math.max(0, Data.qty(it.item_id)), it.unit)))));
     p2.box.classList.add('k-grid', 'k-g3');
     search.addEventListener('input', () => p2.set(list()));
+    textpad(search, () => p2.set(list()));
     const side = h('div.k-cart');
     const drawCart = () => side.replaceChildren(h('h2', k('cart')), lines.length ? h('div.k-cartlist', lines.slice(-7).map((l) => h('div.k-cartrow',
       h('bdi', Data.nameOf(Data.items.get(l.item_id))), h('b', qu(l.qty, Data.items.get(l.item_id).unit)),
