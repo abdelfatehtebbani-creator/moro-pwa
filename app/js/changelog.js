@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.205', date: '2026-11-12',
+    ar: {"news": ["(نسخة التطوير) الوصفات: خانة «المنتج» صارت قائمة بالمنتجات النهائية، وفوقها فلتر «القسم الذي ينتجه». بجانب كل منتج قسمه، وعلامة «له وصفة» إن كانت له وصفة."]},
+    en: {"news": ["(Development copy) Recipes: the product field is now a list of the final products, with a filter by the department that makes them above it. Each product shows its department and whether it has a recipe."]},
+  },
+  {
     v: '0.9.204', date: '2026-11-11',
     ar: {"news": ["(نسخة التطوير) طلبات الأقسام: في السطر الذي رصيده صفر تبدأ خانة «للصرف الآن» بصفر بدل الكمية المطلوبة."]},
     en: {"news": ["(Development copy) Department requests: on a line with nothing in stock, \"Issue now\" starts at 0 instead of the quantity asked for."]},

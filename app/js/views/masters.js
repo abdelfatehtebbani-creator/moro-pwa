@@ -447,10 +447,22 @@ function recipes(body) {
   const norm = (s) => String(s || '').trim().toUpperCase();
   const products = () => [...new Map(Data.recipes.map((r) => [norm(r.product), r.product])).values()].sort();
   let lines = [];
-  const product = trackFilled(h('input.input#rc-product', { list: 'rc-products', placeholder: t('product') }));
-  // the final products are offered by name (a recipe is linked to its product by the name)
-  const finalNames = () => Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL').map((i) => i.name);
-  const dl = h('datalist#rc-products', [...new Set(finalNames().concat(products()))].sort().map((p) => h('option', { value: p })));
+  // the final products, picked from a list, narrowed by the department that makes them (a recipe is linked to its product by the name)
+  const deptFilter = h('select.input#rc-dept', h('option', { value: '' }, t('all_depts')), Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name)));
+  const hasRecipe = new Set(products().map(norm));
+  const productOptions = () => {
+    const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && (!deptFilter.value || String(i.dept || '') === deptFilter.value));
+    const opts = finals.map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name,
+      hint: [(Data.parties.get(String(i.dept || '')) || {}).name, hasRecipe.has(norm(i.name)) ? '✓ ' + t('rc_has') : ''].filter(Boolean).join(' · ') }));
+    // a recipe whose product is not a final product (an older one) is still offered, with no department
+    if (!deptFilter.value) {
+      const known = new Set(Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL').map((i) => norm(i.name)));
+      products().filter((n) => !known.has(norm(n))).forEach((n) => opts.push({ value: n, label: n, hint: '✓ ' + t('rc_has') }));
+    }
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
+  };
+  const product = combo({ id: 'rc-product', placeholder: t('product'), options: productOptions, onPick: (v) => load(v) });
+  deptFilter.addEventListener('change', () => { product.clear(); load(''); product.input.focus(); });
   const item = combo({ id: 'rc-item', options: () => Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: i.name, hint: i.unit })) });
   const qty = trackFilled(h('input.input.num#rc-qty', { type: 'number', step: 'any', min: 0 }));
   // a recipe that only prices the product: producing it takes nothing from the stores
@@ -461,12 +473,12 @@ function recipes(body) {
     h('td.num', fmtNum(l.qty_per_unit) + ' ' + ((Data.items.get(l.item_id) || {}).unit || '')),
     h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))))
     : [h('tr', h('td.empty', { colspan: 3 }, t('no_lines')))]));
-  product.addEventListener('change', () => {
-    const mine = Data.recipes.filter((r) => norm(r.product) === norm(product.value));
+  function load(name) {
+    const mine = name ? Data.recipes.filter((r) => norm(r.product) === norm(name)) : [];
     lines = mine.map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }));
     costOnly.checked = mine.some((r) => r.cost_only === true);
     draw();
-  });
+  }
   const add = () => {
     if (!item.value) return flash(item.input);
     if (!(Number(qty.value) > 0)) return flash(qty);
@@ -475,7 +487,7 @@ function recipes(body) {
   };
   qty.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
   const saveRecipe = async () => {
-    if (!product.value.trim()) return flash(product);
+    if (!product.value) return flash(product.input);
     try {
       await call('recipes.save', { product: product.value.trim(), lines, cost_only: costOnly.checked });
       refreshSoon();
@@ -483,7 +495,7 @@ function recipes(body) {
     } catch (e) { err.textContent = errText(e); }
   };
   body.replaceChildren(h('small.muted', t('recipe_help')),
-    h('div.form-grid', field(t('product'), product, { wide: true }), dl, field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
+    h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
