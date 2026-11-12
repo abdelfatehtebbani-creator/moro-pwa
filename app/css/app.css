@@ -195,6 +195,8 @@ tr.click { cursor: pointer; }
 tr.req-none td { background: var(--danger-soft); }
 .fam-box { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .fam-box summary { cursor: pointer; }
+.recipe-cost { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.recipe-cost:empty { display: none; }
 .kiosk-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #d9dee5); }
 .kiosk-box h3 { margin: 0; }
 .check-grid { display: flex; flex-wrap: wrap; gap: 6px 18px; }

@@ -523,11 +523,27 @@ function recipes(body) {
     h('td.num', fmtNum(l.qty_per_unit) + ' ' + (part.unit || '')),
     h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))); })
     : [h('tr', h('td.empty', { colspan: 3 }, t('no_lines')))]));
+  // the chosen product's cost (materials, running costs, full) and its own running costs, under the product
+  const costLine = h('div.recipe-cost');
+  const showCost = (name) => {
+    costLine.replaceChildren();
+    const fin = name && Data.activeItems().find((i) => Data.storeOf(i) === 'FINAL' && norm(i.name) === norm(name));
+    if (!fin || !Data.recipes.some((r) => norm(r.product) === norm(name)) || !Data.can('recipes.cost')) return;
+    call('recipes.cost', { product: fin.name }).then((c) => {
+      if (norm(product.value) !== norm(name)) return;
+      costLine.replaceChildren(...[
+        h('span', h('b', t('recipe_cost')), ' ', c.cost === '' ? h('span.err-text', t('recipe_cost_missing')) : h('b.num', fmtNum(c.cost) + ' QR / ' + fin.unit)),
+        c.cost !== '' && (c.overhead_rate || c.overhead_own) ? h('span', ' · ', c.overhead_own ? t('overhead_own_line', { v: fmtNum(c.overhead) }) : t('overhead_line', { p: fmtNum(Math.round(c.overhead_rate * 1000) / 10), v: fmtNum(c.overhead) }),
+          ' · ', h('b', t('overhead_total')), ' ', h('b.num', fmtNum(c.total) + ' QR / ' + fin.unit)) : null,
+        Data.can('overhead.product') ? h('button.link', { type: 'button', onclick: () => editProductOverhead(fin, c.overhead_own, () => showCost(name)) }, c.overhead_own ? t('overhead_own_edit') : t('overhead_own_new')) : null].filter(Boolean));
+    }).catch(() => {});
+  };
   function load(name) {
     const mine = name ? Data.recipes.filter((r) => norm(r.product) === norm(name)) : [];
     lines = mine.map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }));
     costOnly.checked = mine.some((r) => r.cost_only === true);
     draw();
+    showCost(name);
   }
   const add = () => {
     if (!item.value) return flash(item.input);
@@ -547,7 +563,7 @@ function recipes(body) {
   // the recipe folds like the boxes above it (open at first)
   body.replaceChildren(Data.can('overhead.save') ? overheadBox(body) : '', familiesBox(body), h('details.fam-box', { open: true }, h('summary', h('b', t('recipe_box'))),
     h('small.muted', t('recipe_help')),
-    h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
+    h('div.form-grid', field(t('made_by_dept'), deptFilter), field(t('product'), product.el, { wide: true }), h('div.field.wide', costLine), field(t('item'), item, { wide: true }), field(t('qty_per_unit'), qty),
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
