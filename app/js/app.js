@@ -169,6 +169,13 @@ function whatsNew(always) {
     h('div.actions', h('button.btn', { type: 'button', onclick: () => close() }, t('whats_new_ok')))]);
 }
 
+/** The group of the screen being opened is unfolded (without changing what is remembered). */
+function openNavOf(name) {
+  const a = document.querySelector('.nav [data-route="' + name + '"]');
+  const sec = a && a.closest('.nav-sec');
+  if (sec && sec.classList.contains('folded')) sec.classList.remove('folded');
+}
+
 function buildShell() {
   const u = Data.user;
   const navLinks = [];
@@ -177,10 +184,28 @@ function buildShell() {
   const groupOf = (name) => (u.role === 'admin' && name !== 'home' ? ((GROUPS.find((g) => g[1].includes(name)) || ['grp_other'])[0]) : ROUTES[name].group);
   const order = u.role === 'admin' ? ['home'].concat(GROUPS.flatMap((g) => g[1]).filter((r) => ROUTES[r]), Object.keys(ROUTES).filter((r) => r !== 'home' && !GROUPS.some((g) => g[1].includes(r))))
     : Object.keys(ROUTES);
+  // each group of the menu folds with a press on its title; what was folded is remembered on this device
+  let folded = [];
+  try { folded = JSON.parse(localStorage.getItem('moro.navFold') || '[]'); } catch (e) { folded = []; }
+  let items = null;
   for (const name of order) {
     if (!allowed(name)) continue;
-    if (groupOf(name) !== group) { group = groupOf(name); navLinks.push(h('div.nav-group', t(group))); }
-    navLinks.push(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
+    if (groupOf(name) !== group) {
+      group = groupOf(name);
+      const key = group;
+      items = h('div.nav-items');
+      const sec = h('div.nav-sec', { class: folded.includes(key) ? 'folded' : '' });
+      sec.append(h('button.nav-group', { type: 'button', 'aria-expanded': String(!folded.includes(key)), onclick: () => {
+        const now = !sec.classList.toggle('folded');
+        sec.querySelector('.nav-group').setAttribute('aria-expanded', String(now));
+        let f = [];
+        try { f = JSON.parse(localStorage.getItem('moro.navFold') || '[]'); } catch (e) { f = []; }
+        f = f.filter((k) => k !== key).concat(now ? [] : [key]);
+        try { localStorage.setItem('moro.navFold', JSON.stringify(f)); } catch (e) { /* private mode */ }
+      } }, h('span', t(group)), h('span.nav-arrow', '▾')), items);
+      navLinks.push(sec);
+    }
+    (items || { append: (x) => navLinks.push(x) }).append(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -254,6 +279,7 @@ function route() {
   if (name === 'failed' && canSeeFailed()) return showFailed();
   if (!ROUTES[name] || !allowed(name)) name = firstScreen();
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
+  openNavOf(name);
   title.textContent = t(name);
   if (helpBtn) { helpBtn.textContent = name === 'guide' ? '✕' : '?'; helpBtn.title = name === 'guide' ? t('guide_close') : t('guide'); }
   current = ROUTES[name].view;
@@ -305,6 +331,7 @@ function resumeIdle() {
   shellEl.classList.toggle('at-home', name === 'home');
   title.textContent = t(name);
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
+  openNavOf(name);
 }
 /** Something typed in the screen and not saved yet: a field that differs from what it showed when it was drawn. */
 function hasUnsaved(root) {
