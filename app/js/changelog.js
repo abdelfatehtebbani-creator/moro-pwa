@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.220', date: '2026-11-13',
-    ar: {"news": ["(نسخة التطوير) القائمة الجانبية: كل مجموعة (المخازن، دورة الطلبيات، المشتريات والمالية…) تنطوي بالضغط على عنوانها، ويتذكر الجهاز اختيارك. المجموعة المطوية التي فيها عمل ينتظرك تظهر بجانب عنوانها نقطة برتقالية، وفتح شاشة منها يفتحها."]},
-    en: {"news": ["(Development copy) Side menu: each group (Stores, Order cycle, Purchasing and finance…) folds with a press on its title, remembered on this device. A folded group with work waiting shows an orange dot by its title, and opening one of its screens unfolds it."]},
+    ar: {"news": ["القائمة الجانبية: كل مجموعة (المخازن، دورة الطلبيات، المشتريات والمالية…) تنطوي بالضغط على عنوانها، ويتذكر الجهاز اختيارك. المجموعة المطوية التي فيها عمل ينتظرك تظهر بجانب عنوانها نقطة برتقالية، وفتح شاشة منها يفتحها."]},
+    en: {"news": ["Side menu: each group (Stores, Order cycle, Purchasing and finance…) folds with a press on its title, remembered on this device. A folded group with work waiting shows an orange dot by its title, and opening one of its screens unfolds it."]},
   },
   {
     v: '0.9.219', date: '2026-11-12',
