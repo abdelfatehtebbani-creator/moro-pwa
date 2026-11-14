@@ -321,6 +321,65 @@ var Masters = {
     });
   },
 
+  /**
+   * The recipes sheet: rows {product, product_ar, ingredient, qty} – qty per unit of the product, in the ingredient's unit.
+   * A product is a final product found by its name (English or Arabic); an ingredient is a generic material (by its name),
+   * else an item. Lines not found are left out and listed. Without apply: what would happen. With apply: the recipe of
+   * each product found is replaced by its lines found.
+   */
+  importRecipes: function (session, p) {
+    var k = function (s) { return Util.key(s).replace(/[^A-Z0-9\u0600-\u06FF]/g, ''); };
+    var items = Repo.all('Items').filter(function (i) { return i.active === true; });
+    var finals = items.filter(function (i) { return Stores.of(i) === 'FINAL'; });
+    var fams = Repo.all('Families').filter(function (f) { return f.active === true; });
+    var findProduct = function (en, ar) {
+      return finals.filter(function (i) {
+        var names = [i.name, i.name_ar].concat(String(i.aliases || '').split(' | ')).map(k).filter(String);
+        return (en && names.indexOf(k(en)) >= 0) || (ar && names.indexOf(k(ar)) >= 0);
+      })[0];
+    };
+    var findIngredient = function (name) {
+      var f = fams.filter(function (x) { return k(x.name) === k(name) || (x.name_ar && k(x.name_ar) === k(name)); })[0];
+      if (f) return f.family_id;
+      var it = items.filter(function (x) { return k(x.name) === k(name) || (x.name_ar && k(x.name_ar) === k(name)); })[0];
+      return it ? it.item_id : '';
+    };
+    var byProduct = {}, order = [], noProduct = {}, noIngredient = [], noQty = [];
+    (p.rows || []).forEach(function (r) {
+      var en = Util.clean(r.product), ar = Util.clean(r.product_ar), ing = Util.clean(r.ingredient), qty = Util.num(r.qty);
+      if (!en && !ar) return;
+      var prod = findProduct(en, ar);
+      if (!prod) { noProduct[en || ar] = true; return; }
+      if (!ing) { noIngredient.push((en || ar) + ': —'); return; }
+      var id = findIngredient(ing);
+      if (!id) { noIngredient.push((en || ar) + ': ' + ing); return; }
+      if (!(qty > 0)) { noQty.push((en || ar) + ': ' + ing); return; }
+      if (!byProduct[prod.item_id]) { byProduct[prod.item_id] = { item: prod, lines: {} }; order.push(prod.item_id); }
+      var b = byProduct[prod.item_id];
+      b.lines[id] = Util.round((b.lines[id] || 0) + qty);
+    });
+    var out = { products: order.length, lines: order.reduce(function (a, id) { return a + Object.keys(byProduct[id].lines).length; }, 0),
+                no_product: Object.keys(noProduct), no_ingredient: noIngredient, no_qty: noQty,
+                found: order.map(function (id) { return byProduct[id].item.name; }) };
+    if (!p.apply) return out;
+    return withLock(function () {
+      var all = Repo.all('Recipes');
+      var names = order.map(function (id) { return Util.key(byProduct[id].item.name); });
+      var keep = all.filter(function (r) { return names.indexOf(Util.key(r.product)) < 0; });
+      var add = [];
+      order.forEach(function (id) {
+        var b = byProduct[id];
+        var costOnly = all.some(function (r) { return Util.key(r.product) === Util.key(b.item.name) && r.cost_only === true; });
+        Object.keys(b.lines).forEach(function (iid) { add.push({ product: b.item.name, item_id: iid, qty_per_unit: b.lines[iid], cost_only: costOnly }); });
+      });
+      Repo.replaceAll('Recipes', keep.concat(add));
+      Audit.log(session.user_id, 'recipes_import', 'Recipes', '', null, { products: out.products, lines: out.lines });
+      out.done = true;
+      out.version = Version.bump();
+      return out;
+    });
+  },
+
   /** Everything the app needs to work offline, except the movement history. */
   bootstrap: function (session) {
     var settings = Settings.all();

@@ -575,7 +575,8 @@ function recipes(body) {
       h('div.field.end', h('button.btn', { type: 'button', onclick: add }, t('add_line')))),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty_per_unit')), h('th', ''))), tb)),
     h('label.check', costOnly, ' ', h('b', t('recipe_cost_only'))), h('small.muted', t('recipe_cost_only_help')), err,
-    h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save')))));
+    h('div.form-actions', h('button.btn.save-btn', { type: 'button', onclick: saveRecipe }, t('save')),
+      Data.can('recipes.import') ? h('button.btn.secondary', { type: 'button', onclick: () => importRecipes(body) }, t('rc_import')) : null)));
   draw();
 }
 
@@ -692,6 +693,34 @@ function familiesBox(body) {
       Data.can('families.import') ? h('button.btn.secondary', { type: 'button', onclick: () => importFamilies(body) }, t('fam_import')) : null) : '');
   if (!fams.length) box.open = true;
   return box;
+}
+
+// the recipes sheet (columns: product, product in Arabic, generic material or item, quantity per unit of the product)
+async function importRecipes(body) {
+  const file = h('input', { type: 'file', accept: '.xlsx' });
+  file.addEventListener('change', async () => {
+    const f = file.files[0];
+    if (!f) return;
+    let rows;
+    try {
+      rows = (await readXlsx(f)).slice(1).filter((r) => String(r[0] || r[1] || '').trim())
+        .map((r) => ({ product: r[0], product_ar: r[1], ingredient: r[2], qty: r[3] }));
+    } catch (e) { toast(t('fam_import_bad'), 'err'); return; }
+    if (!rows.length) { toast(t('fam_import_bad'), 'err'); return; }
+    let pv;
+    try { pv = await call('recipes.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+    const list = (key, l) => (l.length ? h('div', h('b.err-text', t(key, { n: l.length })), h('small.muted', ' ' + l.join(' · '))) : null);
+    const go = await dialog((close) => [h('h3', t('rc_import')),
+      h('p', t('rc_import_summary', { p: pv.products, l: pv.lines })),
+      list('rc_import_no_product', pv.no_product), list('rc_import_no_ingredient', pv.no_ingredient), list('rc_import_no_qty', pv.no_qty),
+      h('small.muted', t('rc_import_note')),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+        pv.products ? h('button.btn', { type: 'button', onclick: () => close(true) }, t('fam_import_go')) : null)]);
+    if (!go) return;
+    try { await call('recipes.import', { rows, apply: true }); toast(t('saved'), 'ok'); refreshSoon(() => recipes(body)); }
+    catch (e) { toast(errText(e), 'err'); }
+  });
+  file.click();
 }
 
 // the sheet of generic materials (columns: name EN, name AR, recipe unit, item No., brand, its unit, how much it holds, note)
