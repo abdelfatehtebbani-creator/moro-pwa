@@ -194,6 +194,8 @@ export function doublePress(key) {
  * its generic material and that weight are asked for and saved. Resolves true when the item can be used.
  */
 export async function completeItem(itemId, { call, dialog, toast, errText }) {
+  // asked of the storekeeper only (the others receive or issue as before)
+  if (!Data.user || Data.user.role !== 'storekeeper') return true;
   const it = Data.items.get(itemId);
   if (!it || !['DRY', 'CHILLED'].includes(Data.storeOf(it)) || (it.family_id && Number(it.family_factor) > 0)) return true;
   const can = Data.can('add_items') || Data.can('rename.items') || Data.can('families.save');
