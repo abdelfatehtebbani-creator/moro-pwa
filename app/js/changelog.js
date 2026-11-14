@@ -4,18 +4,18 @@
 export const CHANGELOG = [
   {
     v: '0.9.223', date: '2026-11-14',
-    ar: {"news": ["(نسخة التطوير) «أكمل بيانات المادة»: أمين المخزن يكمل المادة بنفسه (المادة العامة ووزن الوحدة) بصلاحية الاستلام أو الصرف، دون الرجوع إلى المدير."]},
-    en: {"news": ["(Development copy) \"Complete the item\": the storekeeper completes the item (generic material and unit weight) with the receiving or issuing right, without the admin."]},
+    ar: {"news": ["«أكمل بيانات المادة»: أمين المخزن يكمل المادة بنفسه (المادة العامة ووزن الوحدة) بصلاحية الاستلام أو الصرف، دون الرجوع إلى المدير."]},
+    en: {"news": ["\"Complete the item\": the storekeeper completes the item (generic material and unit weight) with the receiving or issuing right, without the admin."]},
   },
   {
     v: '0.9.222', date: '2026-11-14',
-    ar: {"news": ["(نسخة التطوير) نافذة «أكمل بيانات المادة» عند الاستلام والصرف تظهر لأمين المخزن فقط."]},
-    en: {"news": ["(Development copy) The \"Complete the item\" window when receiving or issuing shows to the storekeeper only."]},
+    ar: {"news": ["نافذة «أكمل بيانات المادة» عند الاستلام والصرف تظهر لأمين المخزن فقط."]},
+    en: {"news": ["The \"Complete the item\" window when receiving or issuing shows to the storekeeper only."]},
   },
   {
     v: '0.9.221', date: '2026-11-14',
-    ar: {"news": ["(نسخة التطوير) المواد العامة: زر «استيراد من Excel» في «الوصفات» ← «المواد العامة» يرفع ملف المواد العامة: ينشئ المواد العامة ويربط بها الأصناف بأوزانها. يُعرض الملخص قبل التنفيذ، ولا يُربط رقم غير موجود، ولا منتج نهائي، ولا رقم اسمه مختلف عن اسم الصنف.", "(نسخة التطوير) عند الاستلام أو الصرف: المادة الأولية الناقصة (بلا مادة عامة أو بلا وزن وحدة) تفتح نافذة «أكمل بيانات المادة» قبل المتابعة. من لا يملك صلاحية التعديل يُطلب منه الرجوع إلى المدير."]},
-    en: {"news": ["(Development copy) Generic materials: \"Import from Excel\" in Recipes → Generic materials uploads the sheet: it creates the generic materials and links the items with their weights. A summary shows first; unknown numbers, final products and numbers whose name differs are not linked.", "(Development copy) When receiving or issuing: an incomplete raw material (no generic material or no unit weight) opens \"Complete the item\" before going on. Someone who cannot edit items is told to ask the admin."]},
+    ar: {"news": ["المواد العامة: زر «استيراد من Excel» في «الوصفات» ← «المواد العامة» يرفع ملف المواد العامة: ينشئ المواد العامة ويربط بها الأصناف بأوزانها. يُعرض الملخص قبل التنفيذ، ولا يُربط رقم غير موجود، ولا منتج نهائي، ولا رقم اسمه مختلف عن اسم الصنف.", "عند الاستلام أو الصرف: المادة الأولية الناقصة (بلا مادة عامة أو بلا وزن وحدة) تفتح نافذة «أكمل بيانات المادة» قبل المتابعة. من لا يملك صلاحية التعديل يُطلب منه الرجوع إلى المدير."]},
+    en: {"news": ["Generic materials: \"Import from Excel\" in Recipes → Generic materials uploads the sheet: it creates the generic materials and links the items with their weights. A summary shows first; unknown numbers, final products and numbers whose name differs are not linked.", "When receiving or issuing: an incomplete raw material (no generic material or no unit weight) opens \"Complete the item\" before going on. Someone who cannot edit items is told to ask the admin."]},
   },
   {
     v: '0.9.220', date: '2026-11-13',
