@@ -4,13 +4,13 @@
 export const CHANGELOG = [
   {
     v: '0.9.225', date: '2026-11-14',
-    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: كل زر يُضغط يتميز فورًا ولا يقبل ضغطة ثانية لثانية (أزرار لوحة الأرقام والحروف تكتب بسرعتها). وصار أسرع: قائمة الأسماء تظهر فورًا من الجهاز ثم تتحدث، وبعد الدخول تُستعمل نسخة الكتالوج المحفوظة دون انتظار ولا يُعاد تحميلها إلا إن تغيّرت، والمنتجات والمواد تظهر فورًا ثم تُرتب حسب ما تنتظره المحلات وما يطلبه القسم عادة عند وصوله."]},
-    en: {"news": ["(Development copy) Shared device: every button pressed shows it at once and takes no second press for a second (keypad and keyboard keys type at their speed). Faster too: the names show at once from the device then refresh; after signing in the saved catalogue is used with no wait and read again only when it changed; products and materials show at once and are sorted by what the shops wait for and what the department usually asks for when that arrives."]},
+    ar: {"news": ["الجهاز المشترك: كل زر يُضغط يتميز فورًا ولا يقبل ضغطة ثانية لثانية (أزرار لوحة الأرقام والحروف تكتب بسرعتها). وصار أسرع: قائمة الأسماء تظهر فورًا من الجهاز ثم تتحدث، وبعد الدخول تُستعمل نسخة الكتالوج المحفوظة دون انتظار ولا يُعاد تحميلها إلا إن تغيّرت، والمنتجات والمواد تظهر فورًا ثم تُرتب حسب ما تنتظره المحلات وما يطلبه القسم عادة عند وصوله."]},
+    en: {"news": ["Shared device: every button pressed shows it at once and takes no second press for a second (keypad and keyboard keys type at their speed). Faster too: the names show at once from the device then refresh; after signing in the saved catalogue is used with no wait and read again only when it changed; products and materials show at once and are sorted by what the shops wait for and what the department usually asks for when that arrives."]},
   },
   {
     v: '0.9.224', date: '2026-11-14',
-    ar: {"news": ["(نسخة التطوير) «استيراد الوصفات من Excel» في «الوصفات» ← «وصفة المنتج»: يُعرف المنتج باسمه الإنجليزي أو العربي، والمكوّن باسم مادته العامة أو اسم المادة، والكمية لكل وحدة منتج. تُعرض قبل التنفيذ المنتجات غير الموجودة والمكونات غير المعروفة، ثم تُستبدل وصفة كل منتج يُطابق."]},
-    en: {"news": ["(Development copy) \"Import recipes from Excel\" in Recipes → Product recipe: a product is found by its English or Arabic name, an ingredient by its generic material or item name, with the quantity per unit of the product. Products and ingredients not found show first; then the recipe of each product found is replaced."]},
+    ar: {"news": ["«استيراد الوصفات من Excel» في «الوصفات» ← «وصفة المنتج»: يُعرف المنتج باسمه الإنجليزي أو العربي، والمكوّن باسم مادته العامة أو اسم المادة، والكمية لكل وحدة منتج. تُعرض قبل التنفيذ المنتجات غير الموجودة والمكونات غير المعروفة، ثم تُستبدل وصفة كل منتج يُطابق."]},
+    en: {"news": ["\"Import recipes from Excel\" in Recipes → Product recipe: a product is found by its English or Arabic name, an ingredient by its generic material or item name, with the quantity per unit of the product. Products and ingredients not found show first; then the recipe of each product found is replaced."]},
   },
   {
     v: '0.9.223', date: '2026-11-14',
