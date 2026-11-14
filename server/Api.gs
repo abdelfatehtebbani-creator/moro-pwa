@@ -29,6 +29,7 @@ var ROUTES = {
   'items.convertUnit': function (s, p) { return Packs.convert(s, p); },
   'lists.save':       function (s, p) { return Masters.saveList(s, p); },
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
+  'recipes.import':   function (s, p) { return Masters.importRecipes(s, p); },
   'recipes.cost':     function (s, p) { return Masters.recipeCost(String(p.product || '')); },
   'families.save':    function (s, p) { return Families.save(s, p); },
   'families.import':  function (s, p) { return Families.importRows(s, p); },

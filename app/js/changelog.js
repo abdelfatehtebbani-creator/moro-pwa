@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.224', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) «استيراد الوصفات من Excel» في «الوصفات» ← «وصفة المنتج»: يُعرف المنتج باسمه الإنجليزي أو العربي، والمكوّن باسم مادته العامة أو اسم المادة، والكمية لكل وحدة منتج. تُعرض قبل التنفيذ المنتجات غير الموجودة والمكونات غير المعروفة، ثم تُستبدل وصفة كل منتج يُطابق."]},
+    en: {"news": ["(Development copy) \"Import recipes from Excel\" in Recipes → Product recipe: a product is found by its English or Arabic name, an ingredient by its generic material or item name, with the quantity per unit of the product. Products and ingredients not found show first; then the recipe of each product found is replaced."]},
+  },
+  {
     v: '0.9.223', date: '2026-11-14',
     ar: {"news": ["«أكمل بيانات المادة»: أمين المخزن يكمل المادة بنفسه (المادة العامة ووزن الوحدة) بصلاحية الاستلام أو الصرف، دون الرجوع إلى المدير."]},
     en: {"news": ["\"Complete the item\": the storekeeper completes the item (generic material and unit weight) with the receiving or issuing right, without the admin."]},

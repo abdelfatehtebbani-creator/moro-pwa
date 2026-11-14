@@ -149,3 +149,20 @@ test('whoever receives completes an incomplete raw material on the spot, with no
   // a complete item is not changed this way
   assert.equal(g.api('items.complete', { item_id: 'I0001', family_id: r.data.family_id, family_factor: 1 }, sk).error.code, 'item_complete_already');
 });
+
+test('the recipes sheet: products found by name, ingredients by generic material or item, the rest listed', () => {
+  const { g, admin } = env();
+  g.api('families.save', { name: 'Vegetable ghee', name_ar: 'سمنة نباتية', unit: 'KG', members: [{ item_id: 'I0001', factor: 16 }] }, admin);
+  const rows = [
+    { product: 'basbousa', product_ar: '', ingredient: 'سمنة نباتية', qty: 0.2 },
+    { product: 'BASBOUSA', ingredient: 'SUGAR 50KG', qty: 0.3 },
+    { product: 'BASBOUSA', ingredient: 'Unicorn milk', qty: 1 },
+    { product: 'BASBOUSA', ingredient: 'SUGAR 50KG', qty: '' },
+    { product: 'Ghost cake', ingredient: 'Sugar', qty: 1 }];
+  const pv = g.api('recipes.import', { rows }, admin).data;
+  assert.deepEqual([pv.products, pv.lines, pv.no_product, pv.no_ingredient.length, pv.no_qty.length], [1, 2, ['Ghost cake'], 1, 1]);
+  assert.equal(g.rows('Recipes').length, 0);
+  g.api('recipes.import', { rows, apply: true }, admin);
+  const rec = g.rows('Recipes').filter((r) => r.product === 'BASBOUSA').map((r) => [r.item_id, r.qty_per_unit]).sort();
+  assert.deepEqual(rec, [['F001', 0.2], ['I0003', 0.3]]);
+});
