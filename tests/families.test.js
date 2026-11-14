@@ -135,3 +135,17 @@ test('the generic materials sheet: families made or found by name, items linked,
   g.api('families.import', { rows, apply: true }, admin);
   assert.equal(g.rows('Families').length, 2);
 });
+
+test('whoever receives completes an incomplete raw material on the spot, with no right on the items', () => {
+  const { g, admin } = env();
+  g.api('users.save', { username: 'store1', display_name: 'Store', role: 'storekeeper', pin: '5678' }, admin);
+  const u = g.rows('Users').find((x) => x.username === 'store1');
+  g.api('users.save', { user_id: u.user_id, caps: ['receive.view', 'receive.save'] }, admin);   // receiving only, nothing on items
+  const sk = g.api('auth.login', { username: 'store1', pin: '5678' }).data.token;
+  assert.equal(g.api('items.complete', { item_id: 'I0001', family_factor: 16 }, sk).error.code, 'family_required');
+  const r = g.api('items.complete', { item_id: 'I0001', new_family: { name: 'Vegetable ghee', unit: 'KG' }, family_factor: 16 }, sk);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(g.rows('Items').find((i) => i.item_id === 'I0001').family_factor, 16);
+  // a complete item is not changed this way
+  assert.equal(g.api('items.complete', { item_id: 'I0001', family_id: r.data.family_id, family_factor: 1 }, sk).error.code, 'item_complete_already');
+});

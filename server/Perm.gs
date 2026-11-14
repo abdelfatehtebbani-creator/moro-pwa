@@ -80,13 +80,13 @@ var CAPS = (function () {
     // today's takings of the shops (money: for the admin, not the stores)
     'dash.takings':      ['nav.dashboard', 'dash.takings', 'see_prices'],
     'receive.view':      ['nav.receive'],
-    'receive.save':      ['nav.receive', 'movements.save', 'kind.RECEIPT'],
+    'receive.save':      ['nav.receive', 'movements.save', 'kind.RECEIPT', 'items.complete'],
     'receive.return':    ['nav.receive', 'movements.save', 'kind.SUPPLIER_RETURN'],
     'receive.edit_own':  ['movements.update', 'edit_own.receive'],
     'receive.edit_all':  ['movements.update', 'edit_own.receive', 'edit_all.receive'],
     'receive.delete':    ['movements.delete', 'delete.receive'],
     'issue.view':        ['nav.issue'],
-    'issue.post':        ['nav.issue', 'movements.save', 'kind.ISSUE'],
+    'issue.post':        ['nav.issue', 'movements.save', 'kind.ISSUE', 'items.complete'],
     // who takes returns back into a store also confirms the shops' returns sent back to it
     'issue.dept_return': ['nav.issue', 'movements.save', 'kind.DEPT_RETURN', 'nav.returns', 'returns.list', 'returns.receive'],
     'issue.disposal':    ['nav.issue', 'movements.save', 'kind.DISPOSAL'],

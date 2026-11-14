@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.223', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) «أكمل بيانات المادة»: أمين المخزن يكمل المادة بنفسه (المادة العامة ووزن الوحدة) بصلاحية الاستلام أو الصرف، دون الرجوع إلى المدير."]},
+    en: {"news": ["(Development copy) \"Complete the item\": the storekeeper completes the item (generic material and unit weight) with the receiving or issuing right, without the admin."]},
+  },
+  {
     v: '0.9.222', date: '2026-11-14',
     ar: {"news": ["(نسخة التطوير) نافذة «أكمل بيانات المادة» عند الاستلام والصرف تظهر لأمين المخزن فقط."]},
     en: {"news": ["(Development copy) The \"Complete the item\" window when receiving or issuing shows to the storekeeper only."]},

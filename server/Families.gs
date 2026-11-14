@@ -170,6 +170,23 @@ var Families = {
     });
   },
 
+  /**
+   * Whoever receives or issues completes an incomplete raw material on the spot (no other right needed):
+   * p: {item_id, family_id | new_family, family_factor}. Only an incomplete item can be completed this way.
+   */
+  complete: function (session, p) {
+    return withLock(function () {
+      var it = Repo.find('Items', 'item_id', p.item_id);
+      Util.require(it, 'not_found');
+      Util.require(Families.incomplete(it), 'item_complete_already');
+      var fam = Families.ofItem(session, Object.assign({ name: it.name }, p));
+      Util.require(fam, 'family_required');
+      Repo.update('Items', 'item_id', it.item_id, { family_id: fam.family_id, family_factor: fam.factor });
+      Audit.log(session.user_id, 'item_complete', 'Items', it.item_id, { family_id: it.family_id || '', family_factor: it.family_factor || '' }, fam);
+      return { item_id: it.item_id, family_id: fam.family_id, family_factor: fam.factor, version: Version.bump() };
+    });
+  },
+
   /** p: {family_id?, name, name_ar, unit, active, members: [{item_id, factor}]}. Creates or changes a family and its brands. */
   save: function (session, p) {
     var name = Util.clean(p.name);

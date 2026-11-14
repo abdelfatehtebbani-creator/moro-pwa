@@ -198,7 +198,7 @@ export async function completeItem(itemId, { call, dialog, toast, errText }) {
   if (!Data.user || Data.user.role !== 'storekeeper') return true;
   const it = Data.items.get(itemId);
   if (!it || !['DRY', 'CHILLED'].includes(Data.storeOf(it)) || (it.family_id && Number(it.family_factor) > 0)) return true;
-  const can = Data.can('add_items') || Data.can('rename.items') || Data.can('families.save');
+  const can = Data.can('items.complete');
   const fams = [...Data.families.values()].filter((f) => f.active === true).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)));
   const sel = h('select.input#ci-fam', { disabled: !can }, h('option', { value: '' }, '—'), fams.map((f) => h('option', { value: f.family_id }, Data.nameOf(f) + ' (' + f.unit + ')')),
     h('option', { value: 'new' }, '+ ' + t('fam_new')));
@@ -229,9 +229,8 @@ export async function completeItem(itemId, { call, dialog, toast, errText }) {
         if (sel.value === 'new') p.new_family = { name: nfName.value.trim(), name_ar: nfAr.value.trim(), unit: nfUnit.value.trim() || 'KG' };
         else p.family_id = sel.value;
         try {
-          const r = await call('items.save', p);
-          const saved = (r && r.item) || {};
-          Data.items.set(it.item_id, { ...it, family_id: saved.family_id || p.family_id || it.family_id, family_factor: p.family_factor });
+          const r = await call('items.complete', p);
+          Data.items.set(it.item_id, { ...it, family_id: r.family_id, family_factor: r.family_factor });
           toast(t('saved'), 'ok'); close(true);
           Data.refresh().catch(() => {});
         } catch (ex) { err.textContent = errText(ex); btn.disabled = false; }
