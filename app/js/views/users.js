@@ -6,6 +6,7 @@ import { t, errText } from '../i18n.js';
 import { IDLE_HOME_MINUTES } from '../config.js';
 import { h, toast, flash, fmtDate, trackFilled, dialog } from '../ui.js';
 import { field, storePill } from '../components.js';
+import { readXlsx } from '../xlsx-read.js';
 
 const ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
 
@@ -49,9 +50,42 @@ export async function render(root) {
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
       Data.can('kiosk.off') ? kioskBox() : null,
       Data.can('vehicles.save') ? vehiclesBox() : null,
+      Data.can('workers.import') ? workersBox() : null,
       Data.can('sales.setChannels') ? channelsBox() : null,
       Data.can('settings.close') ? h('details.kiosk-box', h('summary', h('b', t('closed_until'))), h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // the list of workers (name, ID card number, job): each opens their own account from the sign-in screen
+  function workersBox() {
+    const count = h('small.muted', '…');
+    call('workers.summary', {}).then((s) => { count.textContent = '(' + t('wk_count', { w: s.workers, r: s.registered }) + ')'; }).catch(() => { count.textContent = ''; });
+    const upload = () => {
+      const file = h('input', { type: 'file', accept: '.xlsx' });
+      file.addEventListener('change', async () => {
+        const f = file.files[0];
+        if (!f) return;
+        let rows;
+        try {
+          const all = await readXlsx(f);
+          // the columns are found by their titles (name, QID / card, job), else taken as A, B, C
+          const head = (all[0] || []).map((x) => String(x || '').toLowerCase());
+          const col = (re, d) => { const i = head.findIndex((x) => re.test(x)); return i >= 0 ? i : d; };
+          const cn = col(/name|اسم/, 0), cq = col(/qid|id|بطاق|هوي/, 1), cj = col(/job|position|وظيف|مهن/, 2);
+          rows = all.slice(1).map((r) => ({ name: r[cn], qid: r[cq], job: r[cj] })).filter((r) => String(r.name || '').trim());
+        } catch (e) { toast(t('fam_import_bad'), 'err'); return; }
+        let pv;
+        try { pv = await call('workers.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+        const go = await dialog((close) => [h('h3', t('wk_title')), h('p', t('wk_summary', { w: pv.workers, n: pv.new_workers, c: pv.chefs })),
+          pv.bad ? h('p.err-text', t('wk_bad', { n: pv.bad })) : null,
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('fam_import_go')))]);
+        if (!go) return;
+        try { await call('workers.import', { rows, apply: true }); toast(t('saved'), 'ok'); render(root); } catch (e) { toast(errText(e), 'err'); }
+      });
+      file.click();
+    };
+    return h('details.kiosk-box', h('summary', h('b', t('wk_title')), ' ', count), h('small.muted', t('wk_help')),
+      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: upload }, t('fam_import'))));
   }
 
   // the company's vehicles: chosen when a trip is prepared (the driver's last one first)

@@ -130,6 +130,8 @@ var ROUTES = {
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'vehicles.save':    function (s, p) { return Vehicles.save(s, p); },
+  'workers.import':   function (s, p) { return Workers.importRows(s, p); },
+  'workers.summary':  function (s, p) { return Workers.summary(); },
   'trips.depart':     function (s, p) { return Trips.depart(s, p); },
   'kiosk.enable':     function (s, p) { return Kiosk.enable(s, p); },
   'kiosk.reset':      function (s, p) { return Kiosk.reset(s, p); },
@@ -149,7 +151,10 @@ var PUBLIC = {
   'auth.login':  function (p) { return Auth.login(p); },
   'auth.setup':  function (p) { return withLock(function () { return Auth.setup(p); }); },
   // the shared device in the factory: its people (the device key, no session)
-  'kiosk.users': function (p) { return Kiosk.users(p); }
+  'kiosk.users': function (p) { return Kiosk.users(p); },
+  // a worker on the list opens their own account with their ID card number
+  'workers.lookup': function (p) { return Workers.lookup(p); },
+  'workers.register': function (p) { return Workers.register(p); }
 };
 
 function handle(body) {
@@ -187,7 +192,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '61';
+var SCHEMA_VERSION = '62';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
