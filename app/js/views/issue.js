@@ -1,12 +1,13 @@
 // Department issues – an issue slip with several lines, posted together (MORO v13 frmIssue).
 // Enter: department → item → quantity → adds the line and returns to item; Enter on an empty item
 // moves to "Post"; Enter there posts. The slip number D-MMDD-NNN is given by the server.
+import { call } from '../api.js';
 import { Data } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, fmtMoveQty, trackFilled, dialog } from '../ui.js';
-import { combo, field, storePicker, storePill, doublePress, newId, recordFilters, enteredBy } from '../components.js';
+import { combo, field, storePicker, storePill, doublePress, newId, recordFilters, enteredBy, completeItem } from '../components.js';
 
 let cleanup = null;
 
@@ -29,7 +30,10 @@ export async function render(root) {
 
   const dept = combo({ id: 'i-dept', options: deptOpts, onPick: (v) => { reasonField.hidden = v !== DISPOSAL; } });
   const date = trackFilled(h('input.input#i-date', { type: 'date', value: Data.todayIso() }));
-  const item = combo({ id: 'i-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: showItem });
+  // a raw material still to complete is completed (its generic material and unit weight) before it is issued
+  const item = combo({ id: 'i-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: async (v, o) => {
+    if (v && !(await completeItem(v, { call, dialog, toast, errText }))) { item.clear(); item.input.focus(); return; }
+    showItem(v, o); } });
   const qty = trackFilled(h('input.input.num#i-qty', { type: 'number', step: 'any', min: 0, inputmode: 'decimal' }));
   const info = h('p.item-info', '');
   const unitSel = h('select.input#i-unit');

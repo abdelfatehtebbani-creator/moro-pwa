@@ -105,6 +105,71 @@ var Families = {
     return { family_id: id, factor: factor };
   },
 
+  /** An item still to complete: a raw material with no family, or no weight of its unit in it. */
+  incomplete: function (it) {
+    return Families.RAW_STORES.indexOf(Stores.of(it)) >= 0 && it.active === true && (!it.family_id || !(Number(it.family_factor) > 0));
+  },
+
+  /**
+   * The sheet of generic materials: rows {family, family_ar, unit, item_id, factor}. A family is found by its name or made;
+   * each item is linked to it (a missing factor is left empty: the item is completed when it is next received or issued).
+   * Without apply: what would happen.
+   */
+  importRows: function (session, p) {
+    var rows = (p.rows || []).map(function (r) {
+      return { family: Util.clean(r.family), family_ar: Util.clean(r.family_ar), unit: Util.clean(r.unit).toUpperCase() || 'KG',
+               item_id: Util.clean(r.item_id).toUpperCase(), factor: Util.num(r.factor), name: Util.clean(r.name) };
+    }).filter(function (r) { return r.family && r.item_id; });
+    var unknown = [], finals = [], mismatch = [], seen = {};
+    // the brand's name in the sheet must be the item's (another copy of the data may number its items differently)
+    var same = function (a, b) { var k = function (s) { return Util.key(s).replace(/[^A-Z0-9]/g, ''); }; return !a || k(a) === k(b) || (k(a).length >= 4 && k(b).indexOf(k(a)) === 0) || (it2(b).aliases || '').split(' | ').some(function (x) { return k(x) === k(a); }); };
+    var it2 = function (name) { return Repo.all('Items').filter(function (i) { return i.name === name; })[0] || {}; };
+    rows = rows.filter(function (r) {
+      var it = Repo.find('Items', 'item_id', r.item_id);
+      if (!it) { unknown.push(r.item_id); return false; }
+      if (Stores.of(it) === 'FINAL') { finals.push(r.item_id); return false; }
+      if (!same(r.name, it.name)) { mismatch.push(r.item_id + ' (' + r.name + ' ≠ ' + it.name + ')'); return false; }
+      if (seen[r.item_id]) return false;
+      seen[r.item_id] = true;
+      return true;
+    });
+    var famNames = {};
+    rows.forEach(function (r) { famNames[Util.key(r.family)] = r; });
+    var existing = {};
+    Repo.all('Families').forEach(function (f) { existing[Util.key(f.name)] = f; });
+    var out = { families: Object.keys(famNames).length, new_families: Object.keys(famNames).filter(function (k) { return !existing[k]; }).length,
+                items: rows.length, no_factor: rows.filter(function (r) { return !(r.factor > 0); }).length, unknown: unknown, finals: finals, mismatch: mismatch };
+    if (!p.apply) return out;
+    return withLock(function () {
+      var n = 0;
+      Repo.column('Families', 'family_id').forEach(function (x) { n = Math.max(n, Number(String(x).slice(1)) || 0); });
+      var ids = {};
+      Object.keys(famNames).forEach(function (k) {
+        var r = famNames[k], f = existing[k];
+        if (f) {
+          var ch = {};
+          if (r.family_ar && r.family_ar !== String(f.name_ar || '')) ch.name_ar = r.family_ar;
+          if (r.unit && r.unit !== String(f.unit || '')) ch.unit = r.unit;
+          if (f.active !== true) ch.active = true;
+          if (Object.keys(ch).length) Repo.update('Families', 'family_id', f.family_id, ch);
+          ids[k] = f.family_id;
+        } else {
+          n++;
+          var id = 'F' + Util.pad(n, 3);
+          Repo.append('Families', [{ family_id: id, name: r.family, name_ar: r.family_ar, unit: r.unit, active: true, created_at: Util.nowIso() }]);
+          ids[k] = id;
+        }
+      });
+      rows.forEach(function (r) {
+        Repo.update('Items', 'item_id', r.item_id, { family_id: ids[Util.key(r.family)], family_factor: r.factor > 0 ? r.factor : '' });
+      });
+      Audit.log(session.user_id, 'families_import', 'Families', '', null, { families: out.families, new_families: out.new_families, items: out.items, no_factor: out.no_factor });
+      out.done = true;
+      out.version = Version.bump();
+      return out;
+    });
+  },
+
   /** p: {family_id?, name, name_ar, unit, active, members: [{item_id, factor}]}. Creates or changes a family and its brands. */
   save: function (session, p) {
     var name = Util.clean(p.name);

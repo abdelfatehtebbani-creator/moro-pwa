@@ -114,3 +114,24 @@ test('changing the base unit of a brand keeps what it holds of its family right;
   assert.deepEqual([it.unit, it.family_factor], ['KG', 1]);
   assert.deepEqual(g.rows('Movements').filter((m) => m.item_id !== 'I0001').map((m) => JSON.stringify(m)), before);
 });
+
+test('the generic materials sheet: families made or found by name, items linked, a missing weight left to complete', () => {
+  const { g, admin } = env();
+  const rows = [
+    { family: 'Vegetable ghee', family_ar: 'سمنة نباتية', unit: 'kg', item_id: 'I0001', factor: 16 },
+    { family: 'Vegetable ghee', family_ar: 'سمنة نباتية', unit: 'kg', item_id: 'I0002', factor: '' },
+    { family: 'Sugar', family_ar: 'سكر', unit: 'KG', item_id: 'I0003', factor: 50 },
+    { family: 'Basbousa', unit: 'KG', item_id: 'I0009', factor: 1 },
+    { family: 'Ghost', unit: 'KG', item_id: 'I9999', factor: 1 },
+    { family: 'Wrong', unit: 'KG', item_id: 'I0003', name: 'SOMETHING ELSE', factor: 1 }];
+  const pv = g.api('families.import', { rows }, admin).data;
+  assert.deepEqual([pv.families, pv.new_families, pv.items, pv.no_factor, pv.unknown, pv.finals, pv.mismatch.length], [2, 2, 3, 1, ['I9999'], ['I0009'], 1]);
+  assert.equal(g.rows('Families').length, 0, 'a preview writes nothing');
+  g.api('families.import', { rows, apply: true }, admin);
+  const it = (id) => g.rows('Items').find((i) => i.item_id === id);
+  assert.deepEqual([it('I0001').family_id, it('I0001').family_factor, it('I0002').family_factor], ['F001', 16, '']);
+  assert.equal(g.rows('Families').find((f) => f.name === 'Sugar').unit, 'KG');
+  // run again: found by name, nothing doubled
+  g.api('families.import', { rows, apply: true }, admin);
+  assert.equal(g.rows('Families').length, 2);
+});

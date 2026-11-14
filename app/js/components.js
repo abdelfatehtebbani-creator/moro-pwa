@@ -189,4 +189,51 @@ export function doublePress(key) {
   return false;
 }
 
+/**
+ * A raw material still to complete (no generic material, or no weight of its unit in it): before it is received or issued,
+ * its generic material and that weight are asked for and saved. Resolves true when the item can be used.
+ */
+export async function completeItem(itemId, { call, dialog, toast, errText }) {
+  const it = Data.items.get(itemId);
+  if (!it || !['DRY', 'CHILLED'].includes(Data.storeOf(it)) || (it.family_id && Number(it.family_factor) > 0)) return true;
+  const can = Data.can('add_items') || Data.can('rename.items') || Data.can('families.save');
+  const fams = [...Data.families.values()].filter((f) => f.active === true).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)));
+  const sel = h('select.input#ci-fam', { disabled: !can }, h('option', { value: '' }, '—'), fams.map((f) => h('option', { value: f.family_id }, Data.nameOf(f) + ' (' + f.unit + ')')),
+    h('option', { value: 'new' }, '+ ' + t('fam_new')));
+  sel.value = it.family_id || '';
+  const nfName = trackFilled(h('input.input#ci-nf', { dir: 'ltr', placeholder: 'Vegetable ghee' }));
+  const nfAr = trackFilled(h('input.input#ci-nf-ar', { dir: 'rtl', placeholder: 'سمنة نباتية' }));
+  const nfUnit = trackFilled(h('input.input#ci-nf-unit', { dir: 'ltr', value: 'KG' }));
+  const newBox = h('div', field(t('fam_name'), nfName), field(t('fam_name_ar'), nfAr), field(t('fam_unit'), nfUnit));
+  const factor = trackFilled(h('input.input.num#ci-factor', { type: 'number', min: 0, step: 'any', disabled: !can }));
+  const lbl = h('label', { for: 'ci-factor' });
+  const err = h('p.err-text', '');
+  const draw = () => {
+    newBox.hidden = sel.value !== 'new';
+    const fu = sel.value === 'new' ? (nfUnit.value.trim().toUpperCase() || 'KG') : ((Data.families.get(sel.value) || {}).unit || '…');
+    lbl.textContent = t('fam_factor', { f: fu, u: it.unit });
+  };
+  sel.addEventListener('change', draw); nfUnit.addEventListener('input', draw);
+  draw();
+  return dialog((close) => [h('h3', t('ci_title')), h('p', h('b', h('bdi', it.name)), ' · ', it.unit), h('small.muted', can ? t('ci_help') : t('ci_ask_admin')),
+    field(t('fam_word_title'), sel), newBox, h('div.field', lbl, factor), err,
+    h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')),
+      can ? h('button.btn', { type: 'button', onclick: async (e) => {
+        if (!sel.value) return flash(sel);
+        if (sel.value === 'new' && !nfName.value.trim()) return flash(nfName);
+        if (!(Number(factor.value) > 0)) return flash(factor);
+        const btn = e.currentTarget; btn.disabled = true; err.textContent = '';
+        const p = { item_id: it.item_id, name: it.name, family_factor: Number(factor.value) };
+        if (sel.value === 'new') p.new_family = { name: nfName.value.trim(), name_ar: nfAr.value.trim(), unit: nfUnit.value.trim() || 'KG' };
+        else p.family_id = sel.value;
+        try {
+          const r = await call('items.save', p);
+          const saved = (r && r.item) || {};
+          Data.items.set(it.item_id, { ...it, family_id: saved.family_id || p.family_id || it.family_id, family_factor: p.family_factor });
+          toast(t('saved'), 'ok'); close(true);
+          Data.refresh().catch(() => {});
+        } catch (ex) { err.textContent = errText(ex); btn.disabled = false; }
+      } }, t('save')) : null)]).then((v) => v === true);
+}
+
 export const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));

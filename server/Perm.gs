@@ -163,7 +163,7 @@ var CAPS = (function () {
     'units.add':         ['units.save'],
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
-    'recipes.edit':      ['recipes.save', 'families.save'],
+    'recipes.edit':      ['recipes.save', 'families.save', 'families.import'],
     // the running costs of the factory (electricity, salaries…) spread over the products' cost
     'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
