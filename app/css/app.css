@@ -211,6 +211,10 @@ tr.req-none td { background: var(--danger-soft); }
 .recipe-cost:empty { display: none; }
 .kiosk-box { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, #d9dee5); }
 .kiosk-box h3 { margin: 0; }
+.kiosk-box > summary { cursor: pointer; }
+details.fold-card > summary { cursor: pointer; list-style: revert; }
+details.fold-card > summary h2 { display: inline; margin: 0; }
+details.fold-card[open] > summary { margin-bottom: 10px; }
 .check-grid { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .fam-field { border: 1px solid var(--line, #d9dee5); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .fam-brand { display: inline-block; border: 1px solid var(--line, #d9dee5); border-radius: 10px; padding: 1px 8px; margin: 2px; font-size: 13px; white-space: nowrap; }

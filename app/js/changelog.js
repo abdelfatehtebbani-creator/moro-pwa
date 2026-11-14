@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.227', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) شاشة «المستخدمون»: بطاقة المستخدمين وبطاقة «إعدادات عامة» تنطويان، وداخل الإعدادات كل جزء ينطوي وحده: الرجوع إلى الرئيسية، خصم الوصفات، الجهاز المشترك، المركبات، قنوات المبيعات، الفترة المقفلة."]},
+    en: {"news": ["(Development copy) Users screen: the users card and the General settings card fold, and each part of the settings folds on its own: return to home, recipe stock, shared device, vehicles, sales channels, closed period."]},
+  },
+  {
     v: '0.9.226', date: '2026-11-14',
     ar: {"news": ["(نسخة التطوير) مركبات الشركة (31 مركبة) صارت ضمن بيانات التطبيق. عند تجهيز رحلة، اختيار السائق يضع آخر مركبة استعملها في أعلى قائمة المركبات ويختارها، ويمكن تغييرها من القائمة. المدير يضيف مركبة أو يوقفها من «المستخدمون» ← «إعدادات عامة» ← «مركبات الشركة»."]},
     en: {"news": ["(Development copy) The company's vehicles (31) are part of the app's data. When a trip is prepared, choosing the driver puts their last vehicle at the top of the list and chooses it; another can be picked from the list. The admin adds or stops a vehicle in Users → General settings → Company vehicles."]},

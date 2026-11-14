@@ -15,8 +15,9 @@ export async function render(root) {
   const roleSel = h('select.input#u-filter-role', h('option', { value: '' }, t('all_roles')));
   const search = trackFilled(h('input.input#u-search', { type: 'search', placeholder: t('user_search_hint') }));
   let all = [];
-  root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('users')),
-    h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_user'))),
+  // each card of the screen folds (the list open, the settings folded)
+  root.replaceChildren(h('details.card.fold-card', { open: true }, h('summary', h('h2', t('users'))),
+    h('div.card-head', h('span'), h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_user'))),
     h('div.search', roleSel, search),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('display_name')), h('th', t('username')), h('th', t('role')),
       h('th', t('permissions')), h('th', t('last_login')), h('th', ''))), tb)),
@@ -41,14 +42,15 @@ export async function render(root) {
       try { await call('settings.close', { date: d }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
       catch (e) { toast(errText(e), 'err'); }
     };
-    return h('div.card', h('h2', t('settings_general')),
-      h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
-      h('small.muted', t('idle_minutes_help')),
+    return h('details.card.fold-card', h('summary', h('h2', t('settings_general'))),
+      h('details.kiosk-box', h('summary', h('b', t('idle_minutes'))),
+        h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
+        h('small.muted', t('idle_minutes_help'))),
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
       Data.can('kiosk.off') ? kioskBox() : null,
       Data.can('vehicles.save') ? vehiclesBox() : null,
       Data.can('sales.setChannels') ? channelsBox() : null,
-      Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
+      Data.can('settings.close') ? h('details.kiosk-box', h('summary', h('b', t('closed_until'))), h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
   }
 
@@ -81,7 +83,7 @@ export async function render(root) {
         toast(t('saved'), 'ok'); Data.refresh().catch(() => {});
       } catch (e) { toast(errText(e), 'err'); }
     };
-    return h('div.kiosk-box', h('h3', t('kiosk_settings')), h('small.muted', t('kiosk_settings_help')),
+    return h('details.kiosk-box', h('summary', h('b', t('kiosk_settings'))), h('small.muted', t('kiosk_settings_help')),
       h('b', t('kiosk_depts')), h('div.check-grid', depts.map((x) => h('label.check', x.box, ' ', h('bdi', x.d.name)))),
       h('b', t('kiosk_tiles')), h('div.check-grid', tiles.map((x) => h('label.check', x.box, ' ', t('kiosk_tile_' + x.k)))),
       h('div.form-actions', h('button.btn', { type: 'button', onclick: save }, t('save'))));
@@ -94,7 +96,7 @@ export async function render(root) {
       try { await call('settings.recipeStock', { on: on.checked }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
       catch (e) { on.checked = !on.checked; toast(errText(e), 'err'); }
     });
-    return h('div', h('label.check', on, ' ', h('b', t('recipe_stock_on'))), h('small.muted', t('recipe_stock_help')));
+    return h('details.kiosk-box', h('summary', h('b', t('recipe_stock_title'))), h('label.check', on, ' ', h('b', t('recipe_stock_on'))), h('small.muted', t('recipe_stock_help')));
   }
 
   // the sales channels of the daily sales sheet: names, the shops of each (none = all), stopped or not
@@ -120,7 +122,7 @@ export async function render(root) {
     const save = async () => {
       try { await call('sales.setChannels', { channels: list }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); } catch (e) { toast(errText(e), 'err'); }
     };
-    return h('details.fold', h('summary', h('b', t('sl_channels')), ' ', h('small.muted', String(list.filter((c) => c.active !== false).length))),
+    return h('details.fold.kiosk-box', h('summary', h('b', t('sl_channels')), ' ', h('small.muted', String(list.filter((c) => c.active !== false).length))),
       h('small.muted', t('sl_channels_help')), box,
       h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: add }, '+ ' + t('sl_ch_add')), h('button.btn', { type: 'button', onclick: save }, t('save'))));
   }
