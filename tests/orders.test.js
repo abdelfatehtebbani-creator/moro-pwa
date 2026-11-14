@@ -806,3 +806,14 @@ test('a return to Salwa: the shop chooses it, the Salwa manager decides, what is
   assert.equal(g.api('returns.decide', { lines: [{ return_id: made[0].return_id, decision: 'available' }] }, tok.najeeb).ok, true);
   assert.equal(bal('I0002'), 4);
 });
+
+test('company vehicles: changed in place, the plate too; a plate already there is refused', () => {
+  const g = createGas();
+  g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
+  const admin = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  assert.equal(g.api('vehicles.save', { old_plate: '931287', plate: '931088', model: 'X' }, admin).error.code, 'vehicle_exists');
+  g.api('vehicles.save', { old_plate: '931287', plate: '931999', model: 'hyundai i-20' }, admin);
+  const v = g.rows('Vehicles').find((x) => String(x.plate) === '931999');
+  assert.equal(v.model, 'HYUNDAI I-20');
+  assert.ok(!g.rows('Vehicles').some((x) => String(x.plate) === '931287'));
+});

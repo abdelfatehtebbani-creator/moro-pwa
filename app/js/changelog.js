@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.228', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) «مركبات الشركة»: زر «تعديل» لكل مركبة يغيّر رقمها ونوعها في مكانه. الرحلات السابقة تبقى بالرقم الذي كانت به."]},
+    en: {"news": ["(Development copy) Company vehicles: \"Edit\" on each vehicle changes its plate and model in place; earlier trips keep the plate they had."]},
+  },
+  {
     v: '0.9.227', date: '2026-11-14',
     ar: {"news": ["(نسخة التطوير) شاشة «المستخدمون»: بطاقة المستخدمين وبطاقة «إعدادات عامة» تنطويان، وداخل الإعدادات كل جزء ينطوي وحده: الرجوع إلى الرئيسية، خصم الوصفات، الجهاز المشترك، المركبات، قنوات المبيعات، الفترة المقفلة."]},
     en: {"news": ["(Development copy) Users screen: the users card and the General settings card fold, and each part of the settings folds on its own: return to home, recipe stock, shared device, vehicles, sales channels, closed period."]},

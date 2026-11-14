@@ -62,7 +62,18 @@ export async function render(root) {
     const send = async (p) => { try { await call('vehicles.save', p); toast(t('saved'), 'ok'); await Data.refresh(); draw(); } catch (e) { toast(errText(e), 'err'); } };
     const draw = () => tb.replaceChildren(...Data.vehicles.slice().sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true })).map((v) => {
       const on = h('input', { type: 'checkbox', checked: v.active === true, onchange: () => send({ plate: v.plate, model: v.model, active: on.checked }) });
-      return h('tr', { class: v.active === true ? '' : 'muted' }, h('td.num', h('bdi', v.plate)), h('td', h('bdi', v.model || '')), h('td', h('label.check', on, ' ', t('active'))));
+      const row = h('tr', { class: v.active === true ? '' : 'muted' });
+      // changed in place: plate and model (the trips keep the plate they had)
+      const edit = () => {
+        const p = trackFilled(h('input.input', { dir: 'ltr', value: v.plate }));
+        const m = trackFilled(h('input.input', { dir: 'ltr', value: v.model || '' }));
+        row.replaceChildren(h('td', p), h('td', m), h('td', h('button.btn', { type: 'button', onclick: () => { if (!p.value.trim()) return flash(p); send({ old_plate: v.plate, plate: p.value.trim(), model: m.value.trim(), active: v.active === true }); } }, t('save')),
+          ' ', h('button.link', { type: 'button', onclick: draw }, t('cancel'))));
+        p.focus();
+      };
+      row.append(h('td.num', h('bdi', v.plate)), h('td', h('bdi', v.model || '')),
+        h('td', h('label.check', on, ' ', t('active')), ' ', h('button.link', { type: 'button', onclick: edit }, t('fam_edit'))));
+      return row;
     }));
     draw();
     return h('details.kiosk-box', h('summary', h('b', t('vehicles_title')), ' ', h('small.muted', '(' + Data.vehicles.filter((v) => v.active === true).length + ')')),
