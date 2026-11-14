@@ -17,6 +17,7 @@ export async function render(root) {
   let editIndex = -1;
 
   if (!Data.myStores('issue').length) { root.replaceChildren(h('div.card.no-store', t('no_store'))); return; }
+  document.body.classList.remove('dept-return');
   const zone = storePicker(() => { item.clear(); info.textContent = ''; loadRecords(); item.input.focus(); }, 'issue');
   // "Disposal" (damaged / expired stock thrown away) is chosen like a department and needs a reason
   const DISPOSAL = '__DISPOSAL__';
@@ -29,6 +30,14 @@ export async function render(root) {
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
 
   const dept = combo({ id: 'i-dept', options: deptOpts, onPick: (v) => { reasonField.hidden = v !== DISPOSAL; } });
+  // a raw material coming back from a department: the same slip, the stock goes up (like a return to the supplier when receiving)
+  const isReturn = h('input#i-return', { type: 'checkbox' });
+  const returnBox = Data.can('kind.DEPT_RETURN') ? h('label.check.ret-box', isReturn, ' ', h('b', t('dept_return_box'))) : null;
+  isReturn.addEventListener('change', () => {
+    document.body.classList.toggle('dept-return', isReturn.checked);
+    postBtn.textContent = isReturn.checked ? t('dept_return_post') : t('post_slip');
+    postBtn.hidden = isReturn.checked ? false : !Data.can('kind.ISSUE');
+  });
   const date = trackFilled(h('input.input#i-date', { type: 'date', value: Data.todayIso() }));
   // a raw material still to complete is completed (its generic material and unit weight) before it is issued
   const item = combo({ id: 'i-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: async (v, o) => {
@@ -125,11 +134,14 @@ export async function render(root) {
     if (!lines.length) { flash(item.input); status.textContent = t('no_lines'); status.className = 'form-status warn'; item.input.focus(); return; }
     if (!dept.value) { flash(dept.input); dept.input.disabled = false; dept.input.focus(); return; }
     const dispose = dept.value === DISPOSAL;
+    const back = isReturn.checked;
+    if (back && dispose) { flash(dept.input); dept.input.focus(); return; }
     if (dispose && !reason.value.trim()) { flash(reason); reason.focus(); return; }
     const movements = lines.map((l) => (dispose
       ? { client_id: newId(), kind: 'DISPOSAL', date: date.value, party_id: '', item_id: l.item_id, qty: l.qty, unit: l.unit, purpose: reason.value.trim() }
-      : { client_id: newId(), kind: 'ISSUE', date: date.value, party_id: dept.value, item_id: l.item_id, qty: l.qty, unit: l.unit }));
-    const deptName = dispose ? t('disposal') : Data.parties.get(dept.value).name;
+      : { client_id: newId(), kind: back ? 'DEPT_RETURN' : 'ISSUE', date: date.value, party_id: dept.value, item_id: l.item_id, qty: l.qty, unit: l.unit }));
+    const deptName = dispose ? t('disposal') : (back ? t('kind_DEPT_RETURN') + ': ' : '') + Data.parties.get(dept.value).name;
+    if (back) { isReturn.checked = false; isReturn.dispatchEvent(new Event('change')); }
     reason.value = ''; reasonField.hidden = true;
     const n = lines.length;
     lines = []; editIndex = -1;          // cleared before the await: a second Enter finds nothing to post
@@ -182,8 +194,8 @@ export async function render(root) {
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
-        h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : '')),
-        h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num.qty-neg', fmtMoveQty(m)),
+        h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : ''), m.kind === 'DEPT_RETURN' ? h('span.pill.in', ' ↩ ' + t('kind_DEPT_RETURN')) : ''),
+        h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num', { class: m.kind === 'DEPT_RETURN' ? '' : 'qty-neg' }, m.kind === 'DEPT_RETURN' ? '+' : '', fmtMoveQty(m)),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''), h('td.wrap.muted', enteredBy(m)));
     }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
   };
@@ -192,7 +204,7 @@ export async function render(root) {
   async function loadRecords() {
     try {
       const res = await MovStore.all();          // local copy: works without internet
-      records = res.list.filter((m) => m.kind === 'ISSUE' || m.kind === 'DISPOSAL').map((m) => (m.pending ? { ...m, doc_no: '…' } : m));
+      records = res.list.filter((m) => m.kind === 'ISSUE' || m.kind === 'DISPOSAL' || m.kind === 'DEPT_RETURN').map((m) => (m.pending ? { ...m, doc_no: '…' } : m));
       fillRecords();
     } catch (e) { if (!records.length) recBody.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
@@ -224,7 +236,7 @@ export async function render(root) {
     h('div.card.form-card',
       h('div.card-head', h('h2', t('issue_slip')), zone.el),
       h('div.form-grid',
-        field(t('department'), dept, { wide: true }), reasonField, field(t('date'), date), h('div.field', h('label', t('slip_no')), h('div.slip-auto', t('slip_auto'))),
+        returnBox, field(t('department'), dept, { wide: true }), reasonField, field(t('date'), date), h('div.field', h('label', t('slip_no')), h('div.slip-auto', t('slip_auto'))),
         field(t('item'), item, { wide: true }), info, field(t('qty'), qty), unitField, h('div.field.end', addBtn), conv),
       h('div.card-head', h('h2', t('slip_lines')), count),
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('kind')), h('th', t('qty')), h('th', ''))), lineBody)),
@@ -242,7 +254,7 @@ export async function render(root) {
   window.addEventListener('moro:sent', onSent);
   window.addEventListener('moro:rejected', onRejected);
   window.addEventListener('moro:data', loadRecords);      // new server data → refresh the records list
-  cleanup = () => { zone.dispose(); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected);
+  cleanup = () => { zone.dispose(); document.body.classList.remove('dept-return'); window.removeEventListener('moro:sent', onSent); window.removeEventListener('moro:rejected', onRejected);
     window.removeEventListener('moro:data', loadRecords); cleanup = null; };
   drawLines();
   loadRecords();
