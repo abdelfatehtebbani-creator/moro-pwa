@@ -220,8 +220,10 @@ async function signIn(u, pin) {
   caps = new Set(r.user.caps || []);
   // the catalogue: the copy on the device at once, the person's own from the server behind it
   const cached = await kv.get('boot');
-  if (cached) { Data.boot = cached; Data.index(); }
-  dataReady = Data.refresh().catch(() => { if (!cached) throw new Error('offline'); });
+  if (cached) { Data.boot = cached; Data.index(); Data.user = me; }
+  // with a copy: nothing waits; the catalogue is read again behind only when the server has newer data
+  const behind = cached ? Data.refreshIfChanged().then(() => { Data.user = me; }).catch(() => {}) : Data.refresh().then(() => { Data.user = me; });
+  dataReady = cached ? Promise.resolve() : behind;
   if (!cached) await dataReady;
   menu();
 }
@@ -246,6 +248,8 @@ function done(title, lines) {
 }
 
 // ---------- record a production
+let lastWanted = new Map();       // what the shops waited for at the last look (shown at once, then read again)
+const asked = new Map();          // department → {at, times}: what it asked the store for before (read once in a while)
 async function production() {
   startIdle();
   frame(k('production'), h('p.k-empty', k('loading')), '', { back: menu });
@@ -255,19 +259,19 @@ async function production() {
   const head = (me.depts || []).length > 0 && me.role !== 'production';
   const mine = (it) => !head || (me.depts || []).includes(String(it.dept || ''));
   const items = Data.activeItems().filter((i) => (Data.storeOf(i) === 'FINAL' || withRecipe.has(norm(i.name))) && mine(i));
-  let wanted = new Map();
-  try {
-    (await call('shop.list', { status: 'open', native: true })).forEach((l) => {
-      if (l.special || !l.can) return;
-      wanted.set(l.item_id, (wanted.get(l.item_id) || 0) + Math.max(0, l.qty - l.handed_qty - l.reserved_qty));
-    });
-  } catch { wanted = new Map(); }
-  items.sort((a, b) => (wanted.get(b.item_id) || 0) - (wanted.get(a.item_id) || 0) || Data.nameOf(a).localeCompare(Data.nameOf(b)));
+  let wanted = lastWanted;
+  const sorted = () => items.slice().sort((a, b) => (wanted.get(b.item_id) || 0) - (wanted.get(a.item_id) || 0) || Data.nameOf(a).localeCompare(Data.nameOf(b)));
   if (!items.length) { frame(k('production'), h('p.k-empty', k('no_products')), '', { back: menu }); return; }
-  const p = pager(items, 12, (list) => list.map((it) => h('button.k-tile', { type: 'button', onclick: () => prodQty(it) },
+  const p = pager(sorted(), 12, (list) => list.map((it) => h('button.k-tile', { type: 'button', onclick: () => prodQty(it) },
     h('b', h('bdi', Data.nameOf(it))), wanted.get(it.item_id) > 0 ? h('small.k-want', k('wanted') + ': ' + qu(wanted.get(it.item_id), it.unit)) : h('small', it.unit))));
   p.box.classList.add('k-grid', 'k-g4');
   frame(k('pick_product'), p.box, p.nav, { back: menu });
+  call('shop.list', { status: 'open', native: true }).then((rows) => {
+    const w = new Map();
+    rows.forEach((l) => { if (l.special || !l.can) return; w.set(l.item_id, (w.get(l.item_id) || 0) + Math.max(0, l.qty - l.handed_qty - l.reserved_qty)); });
+    wanted = lastWanted = w;
+    if (p.box.isConnected) p.set(sorted());
+  }).catch(() => { /* by name */ });
 
   function prodQty(it) {
     const pad = keypad({ unit: it.unit, max: 8 });
@@ -345,11 +349,21 @@ async function request() {
   async function cart(dept) {
     const lines = [];
     // what this department asked for before comes first (most asked first), then what the store has, then the rest
-    const times = new Map();
-    try { (await call('requests.list', { limit: 300 })).filter((r) => r.party_id === dept.party_id).forEach((r) => r.lines.forEach((l) => times.set(l.item_id, (times.get(l.item_id) || 0) + 1))); }
-    catch { /* no history: by name */ }
-    const all = Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL').sort((a, b) => (times.get(b.item_id) || 0) - (times.get(a.item_id) || 0)
-      || (Data.qty(b.item_id) > 0) - (Data.qty(a.item_id) > 0) || Data.nameOf(a).localeCompare(Data.nameOf(b)));
+    const known = asked.get(dept.party_id);
+    let times = known ? known.times : new Map();
+    let all = [];
+    const order = () => { all = Data.activeItems().filter((i) => Data.storeOf(i) !== 'FINAL').sort((a, b) => (times.get(b.item_id) || 0) - (times.get(a.item_id) || 0)
+      || (Data.qty(b.item_id) > 0) - (Data.qty(a.item_id) > 0) || Data.nameOf(a).localeCompare(Data.nameOf(b))); };
+    order();
+    if (!known || Date.now() - known.at > 15 * 60000) {
+      call('requests.list', { limit: 300 }).then((rs) => {
+        const t = new Map();
+        rs.filter((r) => r.party_id === dept.party_id).forEach((r) => r.lines.forEach((l) => t.set(l.item_id, (t.get(l.item_id) || 0) + 1)));
+        asked.set(dept.party_id, { at: Date.now(), times: t });
+        times = t; order();
+        if (p2.box.isConnected && !search.value) p2.set(list());
+      }).catch(() => { /* by name */ });
+    }
     const search = h('input.k-input.k-search', { type: 'search', placeholder: k('search'), autocomplete: 'off' });
     const list = () => { const q = fold(search.value); return all.filter((i) => !q || fold(i.name).includes(q) || fold(i.name_ar).includes(q)); };
     const p2 = pager(list(), 9, (ls) => ls.map((it) => h('button.k-tile.k-item', { type: 'button', onclick: () => qtyOf(it) }, h('b', h('bdi', Data.nameOf(it))),
@@ -395,17 +409,31 @@ async function start() {
   session.token = '';
   const key = getKey();
   if (!key) { setup(); return; }
-  frame('MORO', h('p.k-empty', k('loading')));
-  try { people = await call('kiosk.users', { key }); }
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(KEY + '.people') || 'null'); } catch { kept = null; }
+  if (kept) { people = kept; names(); } else frame('MORO', h('p.k-empty', k('loading')));
+  try { people = await call('kiosk.users', { key }); try { localStorage.setItem(KEY + '.people', JSON.stringify(people)); } catch { /* full */ } }
   catch (e) {
+    if (kept && e.code !== 'kiosk_unknown') { setTimeout(start, 60000); return; }
     if (e.code === 'kiosk_unknown') { try { localStorage.removeItem(KEY); } catch { /* ignore */ } frame('MORO', h('p.k-empty', k('unknown')), h('button.k-btn.k-big', { type: 'button', onclick: setup }, k('enable'))); return; }
     frame('MORO', h('p.k-empty', errText(e)), h('button.k-btn.k-big', { type: 'button', onclick: start }, '↻'));
     return;
   }
-  names();
+  if (!me && (!kept || root.querySelector('.k-name') || root.querySelector('.k-empty'))) names();
   // the list of names is read again now and then (new people, people switched off)
   setInterval(async () => { if (me) return; try { people = await call('kiosk.users', { key: getKey() }); if (!me && root.querySelector('.k-name')) names(); } catch { /* next time */ } }, 10 * 60000);
 }
+
+// a button pressed shows it and takes no second press for a moment (no double entries); keypad keys only show it
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.busy) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+  b.classList.add('k-pressed');
+  const key = b.matches('.k-key, .k-kbkey, .k-chip');
+  if (!key) b.dataset.busy = '1';
+  setTimeout(() => { delete b.dataset.busy; b.classList.remove('k-pressed'); }, key ? 160 : 1200);
+}, true);
 
 // no pinch, no double-tap zoom, no right-click menu on a touch screen
 document.addEventListener('contextmenu', (e) => e.preventDefault());

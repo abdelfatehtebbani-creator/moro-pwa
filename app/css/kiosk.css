@@ -31,6 +31,10 @@ body { background: var(--bg); color: var(--text); font: 18px 'IBM Plex Sans Arab
 .k-btn { border: 0; border-radius: 14px; padding: 12px 22px; font: inherit; font-weight: 600; background: #e7ebf0; color: var(--text); min-height: 52px; cursor: pointer; }
 .k-btn:disabled { opacity: .4; }
 .k-btn:active, .k-tile:active, .k-key:active { transform: scale(.97); }
+/* pressed: shown at once, and no second press for a moment */
+.k-pressed { transform: scale(.96); filter: brightness(.88); box-shadow: inset 0 0 0 3px rgba(14, 124, 116, .45) !important; }
+.k-btn[data-busy], .k-tile[data-busy] { pointer-events: none; opacity: .75; }
+.k-btn:disabled { cursor: progress; }
 .k-head .k-btn { background: rgba(255, 255, 255, .14); color: #fff; }
 .k-big { min-width: 220px; min-height: 68px; font-size: 22px; }
 .k-ok { background: var(--teal); color: #fff; }
