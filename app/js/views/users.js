@@ -46,9 +46,27 @@ export async function render(root) {
       h('small.muted', t('idle_minutes_help')),
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
       Data.can('kiosk.off') ? kioskBox() : null,
+      Data.can('vehicles.save') ? vehiclesBox() : null,
       Data.can('sales.setChannels') ? channelsBox() : null,
       Data.can('settings.close') ? h('div', h('div.form-grid', field(t('closed_until'), closed), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: saveClosed }, t('save')))),
         h('small.muted', t('closed_until_help'))) : null);
+  }
+
+  // the company's vehicles: chosen when a trip is prepared (the driver's last one first)
+  function vehiclesBox() {
+    const tb = h('tbody');
+    const plate = trackFilled(h('input.input#v-plate', { dir: 'ltr', placeholder: '931287' }));
+    const model = trackFilled(h('input.input#v-model', { dir: 'ltr', placeholder: 'HYUNDAI I-10' }));
+    const send = async (p) => { try { await call('vehicles.save', p); toast(t('saved'), 'ok'); await Data.refresh(); draw(); } catch (e) { toast(errText(e), 'err'); } };
+    const draw = () => tb.replaceChildren(...Data.vehicles.slice().sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true })).map((v) => {
+      const on = h('input', { type: 'checkbox', checked: v.active === true, onchange: () => send({ plate: v.plate, model: v.model, active: on.checked }) });
+      return h('tr', { class: v.active === true ? '' : 'muted' }, h('td.num', h('bdi', v.plate)), h('td', h('bdi', v.model || '')), h('td', h('label.check', on, ' ', t('active'))));
+    }));
+    draw();
+    return h('details.kiosk-box', h('summary', h('b', t('vehicles_title')), ' ', h('small.muted', '(' + Data.vehicles.filter((v) => v.active === true).length + ')')),
+      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('vehicle_no')), h('th', t('vehicle_model')), h('th', ''))), tb)),
+      h('div.form-grid', field(t('vehicle_no'), plate), field(t('vehicle_model'), model),
+        h('div.field.end', h('button.btn', { type: 'button', onclick: () => { if (!plate.value.trim()) return flash(plate); send({ plate: plate.value.trim(), model: model.value.trim(), active: true }); plate.value = ''; model.value = ''; } }, t('add_line')))));
   }
 
   // the shared device in the factory: departments shown on it, and the cards of its menu (ticked = shown)

@@ -254,9 +254,16 @@ var Trips = {
   },
 
   /** Active drivers, for the trip form. */
+  /** The drivers, each with the vehicle of their last trip (else the one saved with them). */
   drivers: function () {
+    var last = {}, at = {};
+    Repo.all('Trips').forEach(function (t) {
+      if (!t.vehicle) return;
+      var k = String(t.departed_at || t.created_at || '');
+      if (!at[t.driver_id] || k > at[t.driver_id]) { at[t.driver_id] = k; last[t.driver_id] = String(t.vehicle); }
+    });
     return Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; })
-      .map(function (u) { return { user_id: u.user_id, name: u.display_name, vehicle: String(u.vehicle || '') }; });
+      .map(function (u) { return { user_id: u.user_id, name: u.display_name, vehicle: last[u.user_id] || String(u.vehicle || '') }; });
   }
 };
 

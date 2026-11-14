@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.226', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) مركبات الشركة (31 مركبة) صارت ضمن بيانات التطبيق. عند تجهيز رحلة، اختيار السائق يضع آخر مركبة استعملها في أعلى قائمة المركبات ويختارها، ويمكن تغييرها من القائمة. المدير يضيف مركبة أو يوقفها من «المستخدمون» ← «إعدادات عامة» ← «مركبات الشركة»."]},
+    en: {"news": ["(Development copy) The company's vehicles (31) are part of the app's data. When a trip is prepared, choosing the driver puts their last vehicle at the top of the list and chooses it; another can be picked from the list. The admin adds or stops a vehicle in Users → General settings → Company vehicles."]},
+  },
+  {
     v: '0.9.225', date: '2026-11-14',
     ar: {"news": ["الجهاز المشترك: كل زر يُضغط يتميز فورًا ولا يقبل ضغطة ثانية لثانية (أزرار لوحة الأرقام والحروف تكتب بسرعتها). وصار أسرع: قائمة الأسماء تظهر فورًا من الجهاز ثم تتحدث، وبعد الدخول تُستعمل نسخة الكتالوج المحفوظة دون انتظار ولا يُعاد تحميلها إلا إن تغيّرت، والمنتجات والمواد تظهر فورًا ثم تُرتب حسب ما تنتظره المحلات وما يطلبه القسم عادة عند وصوله."]},
     en: {"news": ["Shared device: every button pressed shows it at once and takes no second press for a second (keypad and keyboard keys type at their speed). Faster too: the names show at once from the device then refresh; after signing in the saved catalogue is used with no wait and read again only when it changed; products and materials show at once and are sorted by what the shops wait for and what the department usually asks for when that arrives."]},

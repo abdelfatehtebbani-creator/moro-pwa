@@ -139,6 +139,9 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(g.api('trips.depart', { trip_id: trip.trip_id, vehicle: '', temp: 4 }, tok.driver).error.code, 'vehicle_required');
   const dep = g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '4.5' }, tok.driver).data.trip;
   assert.deepEqual([dep.vehicle, Number(dep.temp), !!dep.departed_at], ['Q 123', 4.5, true]);
+  // the next trip offers the driver's last vehicle; the company's vehicles are loaded once
+  assert.equal(g.api('trips.drivers', {}, tok.dist).data.find((d) => d.user_id === driverId).vehicle, 'Q 123');
+  assert.ok(g.rows('Vehicles').some((v) => String(v.plate) === '931287'));
   assert.equal(g.api('trips.deliver', { trip_id: trip.trip_id, order_id: o.order_id }, tok.driver).data.trip.status, 'completed');
   assert.equal(g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 3 }] }, tok.cashier).error.code, 'reason_required');
   assert.equal(g.api('orders.receive', { order_id: o.order_id, temp: 5, lines: [{ line_no: 1, qty: 5, reason: 'other' }] }, tok.cashier).error.code, 'qty_too_much');

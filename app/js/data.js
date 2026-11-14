@@ -25,6 +25,7 @@ export const Data = {
   lists: [],
   recipes: [],
   families: new Map(),
+  vehicles: [],
   locations: [],
   units: [],
   purposes: [],
@@ -50,6 +51,7 @@ export const Data = {
     this.lists = objects(b.lists);
     this.recipes = objects(b.recipes);
     // generic materials of the recipes (e.g. Vegetable ghee): brands are linked to one with a factor
+    this.vehicles = objects(b.vehicles || { columns: [], rows: [] }).map((v) => ({ ...v, plate: String(v.plate) }));
     this.families = new Map(objects(b.families || { columns: [], rows: [] }).map((f) => [f.family_id, named(f)]));
     this.locations = objects(b.locations);
     this.reservedQty = b.reserved || {};
