@@ -559,3 +559,11 @@ test("the owner and his factories: a party of their own kind, issued to like a d
   const acc = g.api('accounts.openings', {}, tok).data.parties.map((x) => x.party_id);
   assert.equal(acc.includes(o.party_id), false);
 });
+
+test('a raw material returned by a department: the stock goes up; only to a department', () => {
+  const { g, tok, bal } = env();
+  const r = g.api('movements.save', { movements: [{ kind: 'DEPT_RETURN', date: TODAY, party_id: 'P001', item_id: 'I0001', qty: 2, unit: 'BAG' }] }, tok.storekeeper);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(bal('I0001'), 7);
+  assert.equal(g.api('movements.save', { movements: [{ kind: 'DEPT_RETURN', date: TODAY, party_id: 'P002', item_id: 'I0001', qty: 1, unit: 'BAG' }] }, tok.storekeeper).error.code, 'party_not_section');
+});

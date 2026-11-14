@@ -3,6 +3,16 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.230', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) «صرف للأقسام»: مربع جديد «إرجاع من القسم إلى المخزن». يختار أمين المخزن القسم والمادة والكمية، فتزيد في رصيد المخزن، ويظهر في السجل «↩ مرتجع من قسم» بكمية موجبة، ويُطرح مما صُرف للقسم في التقارير."]},
+    en: {"news": ["(Development copy) Department issues: a new box \"Return from the department to the store\". The storekeeper picks the department, the item and the quantity; the store's stock goes up, the record shows \"↩ Return from dept.\" with a plus quantity, and the reports take it off what the department was issued."]},
+  },
+  {
+    v: '0.9.229', date: '2026-11-14',
+    ar: {"news": ["(نسخة التطوير) إنشاء الحساب ذاتيًا: المدير يرفع قائمة العمال (الاسم، رقم البطاقة QID، الوظيفة) من «المستخدمون» ← «إعدادات عامة» ← «قائمة العمال»، ويُحفظ رقم البطاقة مشفّرًا. في شاشة الدخول «ليس لديك حساب؟»: يكتب العامل رقم بطاقته فيظهر اسمه، يختار قسمه واسم مستخدم ورمزًا، فيُنشأ حسابه ويدخل. الشيف يأخذ تجهيز الطلبيات (الشاشة، التسليم للتوزيع، لا يمكن توفيره) والإنتاج (الشاشة، تسجيل إنتاج) وطلبات الأقسام (الشاشة، إنشاء طلب)، والمساعد طلبات الأقسام فقط. لكل عامل حساب واحد."]},
+    en: {"news": ["(Development copy) Opening one's own account: the admin uploads the workers list (name, ID card QID, job) in Users → General settings → Workers list; the card number is kept hashed. On the sign-in screen, \"No account?\": a worker types their card number, sees their name, picks their department, a username and a PIN; the account is made and they are signed in. A chef gets preparing orders (screen, hand to distribution, cannot be provided), production (screen, record) and department requests (screen, create); an assistant department requests only. One account per worker."]},
+  },
+  {
     v: '0.9.228', date: '2026-11-14',
     ar: {"news": ["«مركبات الشركة»: زر «تعديل» لكل مركبة يغيّر رقمها ونوعها في مكانه. الرحلات السابقة تبقى بالرقم الذي كانت به."]},
     en: {"news": ["Company vehicles: \"Edit\" on each vehicle changes its plate and model in place; earlier trips keep the plate they had."]},
