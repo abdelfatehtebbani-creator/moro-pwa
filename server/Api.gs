@@ -129,6 +129,7 @@ var ROUTES = {
   'trips.cancel':     function (s, p) { return Trips.cancel(s, p); },
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
+  'vehicles.save':    function (s, p) { return Vehicles.save(s, p); },
   'trips.depart':     function (s, p) { return Trips.depart(s, p); },
   'kiosk.enable':     function (s, p) { return Kiosk.enable(s, p); },
   'kiosk.reset':      function (s, p) { return Kiosk.reset(s, p); },
@@ -186,7 +187,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '60';
+var SCHEMA_VERSION = '61';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -202,6 +203,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 56) Perm.addRoleLeaves({ food_safety: ['report.dispatch', 'dispatch.review'], distribution: ['report.dispatch'] });
     // the running costs: an admin with their own ticks gets the new tick too
     if (Number(Settings.get('schema_version', '0')) < 59) Perm.addRoleLeaves({ admin: ['recipes.overhead'] });
+    // the company's vehicles (the list given on 2026-11-14), loaded once
+    if (Number(Settings.get('schema_version', '0')) < 61) Vehicles.seed();
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);

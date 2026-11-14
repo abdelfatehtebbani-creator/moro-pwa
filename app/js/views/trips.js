@@ -6,7 +6,7 @@ import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtDate, fmtNum, trackFilled, dialog } from '../ui.js';
-import { field, newId } from '../components.js';
+import { field, newId, combo } from '../components.js';
 
 const PILL = { preparing: 'soon', loaded: 'soon', in_transit: 'soon', completed: 'in', cancelled: 'out' };
 let tab = 'open';
@@ -61,14 +61,23 @@ export async function render(root) {
     const driver = h('select.input#t-driver', h('option', { value: '' }, '—'), drivers.map((d) => h('option', { value: d.user_id }, d.name)));
     const note = trackFilled(h('input.input#t-note'));
     // the vehicle: the driver's own, changed here when the trip goes in another one
-    const vehicle = trackFilled(h('input.input#t-vehicle', { type: 'text', maxlength: 30 }));
-    driver.addEventListener('change', () => { vehicle.value = (drivers.find((d) => d.user_id === driver.value) || {}).vehicle || ''; vehicle.dispatchEvent(new Event('input')); });
+    // the company's vehicles, the driver's last one at the top (and chosen)
+    const lastOf = () => String((drivers.find((d) => d.user_id === driver.value) || {}).vehicle || '');
+    const vehicle = combo({ id: 't-vehicle', placeholder: t('vehicle_pick'), options: () => {
+      const last = lastOf();
+      const list = Data.vehicles.filter((v) => v.active === true).sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true }))
+        .map((v) => ({ value: v.plate, label: v.plate + (v.model ? ' · ' + v.model : ''), hint: v.plate === last ? t('vehicle_last') : '' }));
+      if (!last) return list;
+      const top = list.find((o) => o.value === last) || { value: last, label: last, hint: t('vehicle_last') };
+      return [top].concat(list.filter((o) => o.value !== last));
+    } });
+    driver.addEventListener('change', () => { const last = lastOf(); if (last) vehicle.set(last); else vehicle.clear(); });
     const create = async (e) => {
       if (!chosen.length) { flash(list); return; }
       if (!driver.value) { flash(driver); return; }
       const btn = e.currentTarget; btn.disabled = true;
       // queued and sent in the background (the client id makes a resend the same trip)
-      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, vehicle: vehicle.value.trim(), client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
+      try { await Outbox.add('trips.save', { driver_id: driver.value, order_ids: chosen.slice(), note: note.value, vehicle: vehicle.value, client_id: newId() }, t('trip_new')); toast(t('trip_created'), 'ok');
         build(lastNew ? lastNew.ready : readyAll, drivers); }
       catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
     };

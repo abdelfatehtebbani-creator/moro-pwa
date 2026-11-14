@@ -414,6 +414,7 @@ var Masters = {
       })(),
       recipes: Repo.raw('Recipes'),
       families: Repo.raw('Families'),
+      vehicles: Repo.raw('Vehicles'),
       balances: (function () {
         // last_expiry = the nearest expiry of what is still in stock (not the last receipt's)
         var raw = Repo.raw('Balances'), near = Batches.nearest(batches), c = raw.columns.indexOf('last_expiry'), k = raw.columns.indexOf('item_id');
