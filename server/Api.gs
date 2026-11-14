@@ -31,6 +31,8 @@ var ROUTES = {
   'recipes.save':     function (s, p) { return Masters.saveRecipe(s, p); },
   'recipes.cost':     function (s, p) { return Masters.recipeCost(String(p.product || '')); },
   'families.save':    function (s, p) { return Families.save(s, p); },
+  'families.import':  function (s, p) { return Families.importRows(s, p); },
+  'items.complete':   function (s, p) { return Families.complete(s, p); },
   'overhead.list':    function (s, p) { return Overhead.list(); },
   'overhead.save':    function (s, p) { return Overhead.save(s, p); },
   'overhead.delete':  function (s, p) { return Overhead.remove(s, p); },

@@ -6,6 +6,7 @@ import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { combo, field, storePill } from '../components.js';
 import { STORES } from '../data.js';
+import { readXlsx } from '../xlsx-read.js';
 
 let tab = 'items';
 let cleanup = null;
@@ -687,9 +688,38 @@ function familiesBox(body) {
     h('small.muted', t('fam_help')),
     fams.length ? h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('fam_name')), h('th', t('unit')), h('th', t('fam_brands')), h('th', t('available')), h('th', ''))),
       h('tbody', rows))) : '',
-    canEdit ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => editFamily(null, body) }, '+ ' + t('fam_new'))) : '');
+    canEdit ? h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: () => editFamily(null, body) }, '+ ' + t('fam_new')),
+      Data.can('families.import') ? h('button.btn.secondary', { type: 'button', onclick: () => importFamilies(body) }, t('fam_import')) : null) : '');
   if (!fams.length) box.open = true;
   return box;
+}
+
+// the sheet of generic materials (columns: name EN, name AR, recipe unit, item No., brand, its unit, how much it holds, note)
+async function importFamilies(body) {
+  const file = h('input', { type: 'file', accept: '.xlsx' });
+  file.addEventListener('change', async () => {
+    const f = file.files[0];
+    if (!f) return;
+    let rows;
+    try {
+      rows = (await readXlsx(f)).filter((r) => /^I\d+$/i.test(String(r[3] || '').trim()))
+        .map((r) => ({ family: r[0], family_ar: r[1], unit: r[2], item_id: String(r[3]).trim(), name: r[4], factor: r[6] }));
+    } catch (e) { toast(t('fam_import_bad'), 'err'); return; }
+    if (!rows.length) { toast(t('fam_import_bad'), 'err'); return; }
+    let pv;
+    try { pv = await call('families.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+    const go = await dialog((close) => [h('h3', t('fam_import')),
+      h('p', t('fam_import_summary', { f: pv.families, n: pv.new_families, i: pv.items, m: pv.no_factor })),
+      pv.unknown.length ? h('p.err-text', t('fam_import_unknown', { l: pv.unknown.join(', ') })) : null,
+      pv.finals.length ? h('p.err-text', t('fam_import_finals', { l: pv.finals.join(', ') })) : null,
+      (pv.mismatch || []).length ? h('p.err-text', t('fam_import_mismatch', { l: pv.mismatch.join(' · ') })) : null,
+      h('small.muted', t('fam_import_note')),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('fam_import_go')))]);
+    if (!go) return;
+    try { await call('families.import', { rows, apply: true }); toast(t('saved'), 'ok'); refreshSoon(() => recipes(body)); }
+    catch (e) { toast(errText(e), 'err'); }
+  });
+  file.click();
 }
 
 function editFamily(f, body) {

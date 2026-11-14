@@ -1,12 +1,13 @@
 // Goods receiving – same fields and rules as MORO v13 (frmReceive), with the v7–v13 habits:
 // Enter through the fields, red flash on an empty required field, Enter on Save saves,
 // fields clear at once while the save goes out in the background, F2 switches Food/Packaging.
+import { call } from '../api.js';
 import { Data } from '../data.js';
 import { MovStore } from '../movstore.js';
 import { Outbox } from '../outbox.js';
 import { t, errText } from '../i18n.js';
-import { h, toast, fmtNum, fmtDate, fmtMoveQty, trackFilled } from '../ui.js';
-import { combo, field, enterNav, checkAll, storePicker, doublePress, newId, recordFilters, enteredBy, storePill } from '../components.js';
+import { h, toast, fmtNum, fmtDate, fmtMoveQty, trackFilled, dialog } from '../ui.js';
+import { combo, field, enterNav, checkAll, storePicker, doublePress, newId, recordFilters, enteredBy, storePill, completeItem } from '../components.js';
 
 let cleanup = null;
 
@@ -31,7 +32,10 @@ export async function render(root) {
   };
   const locOpts = () => Data.locations.filter((l) => Data.storeOf(l) === zone.value && l.active !== false).map((l) => ({ value: l.name, label: l.name }));
 
-  const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: (v, o) => { showItem(v, o); drawLpo(lpo.value); } });
+  // a raw material still to complete is completed (its generic material and unit weight) before it is received
+  const item = combo({ id: 'r-item', options: itemOpts, placeholder: t('lookup_hint'), onPick: async (v, o) => {
+    if (v && !(await completeItem(v, { call, dialog, toast, errText }))) { item.clear(); item.input.focus(); return; }
+    showItem(v, o); drawLpo(lpo.value); } });
   const supplier = combo({ id: 'r-supplier', options: supplierOpts });
   const date = trackFilled(h('input.input#r-date', { type: 'date', value: today }));
   const invoice = trackFilled(h('input.input#r-invoice', { autocomplete: 'off' }));
