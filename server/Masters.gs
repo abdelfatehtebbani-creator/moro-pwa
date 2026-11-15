@@ -430,6 +430,9 @@ var Masters = {
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
       orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       follow_late: Perm.has(session, 'orders.follow') ? Orders.followLate() : 0,
+      // customers' orders from their phones: the shop that makes them sees the screen, with the new ones on the menu
+      online_mine: Perm.has(session, 'nav.online') && Online.mine(session, Online.cfg().shop),
+      online_new: Perm.has(session, 'online.accept') ? Online.pending(session) : 0,
       branch_late: Perm.has(session, 'branches.summary') ? Branches.late(session) : 0,
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       prod_todo: Perm.has(session, 'production.post') ? Shop.prodTodo(session) : 0,

@@ -4,7 +4,7 @@ export const GROUPS = [
   ['grp_stores', ['receive', 'issue', 'requests', 'counts']],
   // making the products: production, the batch records of food safety, the coffee bags (roasting and packing)
   ['grp_production', ['production', 'batches', 'coffee']],
-  ['grp_orders', ['orders', 'orderapprove', 'shoporders', 'trips', 'returns', 'invoices']],
+  ['grp_orders', ['custorders', 'orders', 'orderapprove', 'shoporders', 'trips', 'returns', 'invoices']],
   ['grp_finance', ['lpo', 'accounts']],
   ['grp_follow', ['exec', 'branches', 'dashboard', 'reports']],
   ['grp_admin', ['masters', 'users', 'guide']],

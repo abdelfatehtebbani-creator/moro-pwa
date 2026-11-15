@@ -66,6 +66,9 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   const list = g.api('online.list', {}, salwa).data;
   assert.equal(list.orders[0].no, r.no);
   assert.ok(!('token_hash' in list.orders[0]));
+  const boot = g.api('data.bootstrap', {}, salwa).data;
+  assert.deepEqual([boot.online_mine, boot.online_new], [true, 1], 'the shop sees the screen, with the new order on the menu');
+  assert.equal(g.api('data.bootstrap', {}, lulua).data.online_mine, false);
   g.api('online.called', { no: r.no }, salwa);
   g.api('online.accept', { no: r.no }, salwa);
   assert.equal(g.api('online.cancel', { token: r.token }).error.code, 'online_cancel_late', 'accepted: the customer can no longer cancel');

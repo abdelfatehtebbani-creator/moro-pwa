@@ -34,6 +34,7 @@ import { GROUPS, Counts } from './groups.js';
 import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
+import * as online from './views/online.js';
 
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
@@ -41,6 +42,8 @@ const ROUTES = {
   branches:  { view: branches, perm: 'nav.branches', group: 'nav_main' },
   dashboard: { view: dashboard, perm: 'nav.dashboard', group: 'nav_main' },
   orders:    { view: orders, perm: 'nav.orders', group: 'nav_ops' },
+  // customers' orders from their phones: the shop that makes them (and the admin)
+  custorders: { view: online, perm: 'nav.online', group: 'nav_ops' },
   orderapprove: { view: orders, perm: 'nav.orderapprove', group: 'nav_ops' },
   trips:     { view: trips, perm: 'nav.trips', group: 'nav_ops' },
   invoices:  { view: invoices, perm: 'nav.invoices', group: 'nav_ops' },
@@ -134,7 +137,7 @@ async function start() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
-function allowed(name) { return Data.can(ROUTES[name].perm); }
+function allowed(name) { return Data.can(ROUTES[name].perm) && (name !== 'custorders' || !!(Data.boot || {}).online_mine || Data.can('online.settings')); }
 // the first screen: home (every user may open it)
 function firstScreen() {
   if (Data.user && Data.user.role === 'pdg' && allowed('exec')) return 'exec';
@@ -205,7 +208,7 @@ function buildShell() {
       } }, h('span', t(group)), h('span.nav-arrow', '▾')), items);
       navLinks.push(sec);
     }
-    (items || { append: (x) => navLinks.push(x) }).append(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null));
+    (items || { append: (x) => navLinks.push(x) }).append(h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns', 'custorders'].includes(name) ? h('span.badge', { hidden: true }) : null));
   }
   const side = h('aside.side',
     h('div.brand', h('img', { src: 'icons/logo.png', alt: '' }), h('div', h('b', t('app_name')), h('small', h('bdi', t('app_sub'))))),
@@ -217,7 +220,7 @@ function buildShell() {
   // phone: the first four allowed screens + "more" (opens the full menu)
   const phoneRoutes = Object.keys(ROUTES).filter(allowed).slice(0, 4);
   const bottom = h('nav.bottom-nav',
-    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns'].includes(name) ? h('span.badge', { hidden: true }) : null)),
+    phoneRoutes.map((name) => h('a', { href: '#/' + name, 'data-route': name }, icon(name), h('span', t(name)), ['lpo', 'requests', 'orderapprove', 'shoporders', 'production', 'orders', 'trips', 'invoices', 'returns', 'custorders'].includes(name) ? h('span.badge', { hidden: true }) : null)),
     h('a', { href: '#/more', 'data-route': 'more' }, icon('more'), h('span', t('more'))));
 
   title = h('h1', '');
@@ -432,11 +435,14 @@ function updateBadges() {
     document.querySelectorAll('a[data-route="' + route + '"] .badge').forEach((b) => { b.hidden = !c; b.textContent = String(c); });
     return c;
   }).reduce((a, b) => a + b, 0);
-  Push.badge(n + r + o + bl + sp + pr + more);
+  // customers' orders waiting for the shop's answer
+  const ol = allowed('custorders') ? Number((Data.boot || {}).online_new) || 0 : 0;
+  document.querySelectorAll('a[data-route="custorders"] .badge').forEach((b) => { b.hidden = !ol; b.textContent = String(ol); });
+  Push.badge(n + r + o + bl + sp + pr + more + ol);
   // the same numbers for "waiting for you" on the admin's home screen
   const ot2 = (Data.boot || {}).order_todo || {};
   Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, production: pr, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
-    trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0 };
+    trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0, custorders: ol };
   window.dispatchEvent(new Event('moro:badges'));
 }
 

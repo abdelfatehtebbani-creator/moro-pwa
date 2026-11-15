@@ -1,13 +1,14 @@
 /* Service worker: keeps the app shell available offline. Data never goes through here –
    it is cached in IndexedDB by the app (js/db.js). Bump VERSION on every release. */
-const VERSION = 'moro-v0.9.236';
+const VERSION = 'moro-v0.9.237';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/api.js', 'js/db.js', 'js/i18n.js', 'js/ui.js', 'js/data.js',
   'js/views/login.js', 'js/views/home.js', 'js/disc.js', 'css/disc.css', 'js/views/dashboard.js', 'js/views/soon.js', 'js/components.js', 'js/outbox.js',
   'js/views/receive.js', 'js/views/issue.js', 'js/views/production.js', 'js/views/requests.js', 'js/views/masters.js', 'js/views/users.js',
-  'js/reports.js', 'js/xlsx.js', 'js/xlsx-read.js', 'js/views/reports.js', 'js/movstore.js', 'js/views/shoporders.js', 'js/views/counts.js', 'js/views/lpo.js', 'js/views/cash.js', 'js/views/coffee.js', 'js/views/orders.js', 'js/views/trips.js', 'js/views/invoices.js', 'js/views/returns.js', 'js/photos.js', 'js/reports-ar.js', 'js/groups.js', 'js/views/accounts.js', 'js/views/exec.js', 'js/views/branches.js', 'js/views/guide.js', 'js/views/batches.js', 'js/guide.js', 'js/views/analysis.js', 'js/charts.js', 'js/changelog.js', 'js/push.js',
+  'js/reports.js', 'js/xlsx.js', 'js/xlsx-read.js', 'js/views/reports.js', 'js/movstore.js', 'js/views/shoporders.js', 'js/views/counts.js', 'js/views/lpo.js', 'js/views/cash.js', 'js/views/coffee.js', 'js/views/online.js', 'js/views/orders.js', 'js/views/trips.js', 'js/views/invoices.js', 'js/views/returns.js', 'js/photos.js', 'js/reports-ar.js', 'js/groups.js', 'js/views/accounts.js', 'js/views/exec.js', 'js/views/branches.js', 'js/views/guide.js', 'js/views/batches.js', 'js/guide.js', 'js/views/analysis.js', 'js/charts.js', 'js/changelog.js', 'js/push.js',
   'kiosk.html', 'js/kiosk.js', 'css/kiosk.css',
+  'order.html', 'js/order.js', 'css/order.css', 'order.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.png', 'icons/lpo-logo.svg'
 ];
 
@@ -16,7 +17,7 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).filter((k) => k !== 'moro.order-photos').map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -31,7 +32,7 @@ self.addEventListener('fetch', (e) => {
       const copy = res.clone();
       caches.open(VERSION).then((c) => c.put(e.request, copy));
       return res;
-    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match('index.html')))
+    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match(url.pathname.endsWith('order.html') ? 'order.html' : 'index.html')))
   );
 });
 
