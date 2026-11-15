@@ -17,6 +17,9 @@ var ROUTES = {
   'movements.save':   function (s, p) { return Movements.save(s, p); },
   'coffee.list':      function (s) { return Coffee.list(s); },
   'coffee.pack':      function (s, p) { return Coffee.pack(s, p); },
+  'coffee.roastStart': function (s, p) { return Coffee.roastStart(s, p); },
+  'coffee.roastFinish': function (s, p) { return Coffee.roastFinish(s, p); },
+  'coffee.packBags':  function (s, p) { return Coffee.packBags(s, p); },
   'coffee.defaults':  function (s, p) { return Coffee.saveDefaults(s, p); },
   'movements.update': function (s, p) { return Movements.update(s, p); },
   'movements.delete': function (s, p) { return Movements.remove(s, p); },
@@ -192,7 +195,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '62';
+var SCHEMA_VERSION = '63';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
