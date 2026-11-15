@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.234', date: '2026-11-15',
+    ar: {"news": ["(نسخة التطوير) أكياس القهوة: البطاقات صارت «القهوة المحمصة المطحونة في المخزن» و«محمصة مطحونة من …»."]},
+    en: {"news": ["(Development copy) Coffee bags: the cards now read \"Roasted ground coffee in stock\" and \"Roasted ground from …\"."]},
+  },
+  {
     v: '0.9.233', date: '2026-11-15',
     ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «المخزون والسجل»: بطاقة للبن المحمص المطحون في المخزن، وبطاقة لكل صنف أخضر بنصيبه منه (تقدير بنسبة ما أعطته دفعات تحميصه)."]},
     en: {"news": ["(Development copy) Coffee bags → Stock and history: a card for the roasted ground coffee in stock, and one per green coffee with its share of it (an estimate from what its roasts gave)."]},
