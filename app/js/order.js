@@ -182,6 +182,7 @@ function card(it, onChange) {
 function step1() {
   step = 1; current = step1;
   const min = cat.cfg.min_req || 0;
+  if (!items().some((i) => i.req)) return frame(h('div.o-done', h('div.o-check-big', { style: 'background:#c9a27e' }, '⏳'), h('p.o-sub', tx('closed'))), null, false);
   const grid = h('div.o-grid', items().filter((i) => i.req).map((it) => card(it, step1)));
   const left = Math.max(0, min - trays());
   frame([h('h2.o-title', tx('s1')), h('p.o-sub', tx('s1_sub', { n: min })), grid],
