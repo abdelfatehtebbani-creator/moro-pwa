@@ -112,4 +112,7 @@ test('coffee in three steps on their own days: taken for roasting, ground coffee
   const bag = g.rows('Items').find((i) => i.name === 'COFFEE BAG 200G');
   assert.equal(qty(g, bag.item_id), 100);
   assert.equal(qty(g, 'I0003'), 1.98);
+  // a packing shows its green coffee and losses worked out from the roasts before it (estimates)
+  const p1 = g.api('coffee.list', {}, tok.store).data.batches.find((b) => b.batch_id === 'p1');
+  assert.deepEqual([p1.estimated, p1.green_kg, p1.roast_loss_pct, p1.loss_pct], [true, 12.56, 18, 20.4]);
 });

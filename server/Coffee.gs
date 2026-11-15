@@ -240,6 +240,21 @@ var Coffee = {
                green: String(r.green || '').split(';').filter(String).map(function (s) { var x = s.split(':'); return { item_id: x[0], qty: Number(x[1]) }; }),
                by_out: r.by_out, by_in: r.by_in, loss_pct: k !== null && g ? Util.round((g - k) / g * 100) : null };
     });
+    // a packing from ground coffee: its green coffee, total and roasting loss worked out from the roasts before it
+    // (their weighted roasting loss up to its date), shown as estimates
+    var doneRoasts = roasts.filter(function (r) { return r.status === 'done' && r.ground_kg !== null && r.green_kg; });
+    batches.forEach(function (b) {
+      if (b.mode !== 'pack') return;
+      var before = doneRoasts.filter(function (r) { return String(r.date_in) <= String(b.date); });
+      var g = before.reduce(function (s, r) { return s + r.green_kg; }, 0), k = before.reduce(function (s, r) { return s + r.ground_kg; }, 0);
+      if (!g || !k || !b.ground_kg) return;
+      var loss = (g - k) / g;
+      var green = b.ground_kg / (1 - loss);
+      b.estimated = true;
+      b.green_kg = Util.round(Math.round(green * 100) / 100);
+      b.roast_loss_pct = Util.round(Math.round(loss * 1000) / 10);
+      b.loss_pct = Util.round(Math.round((green - b.packed_kg) / green * 1000) / 10);
+    });
     var ground = Repo.all('Items').filter(function (i) { return Util.key(i.name) === Coffee.GROUND_NAME; })[0];
     return { batches: batches, out: out, bag_items: Object.keys(bagIds), roasts: roasts, ground_item: ground ? ground.item_id : '' };
   },
