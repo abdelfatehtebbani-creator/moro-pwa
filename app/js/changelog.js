@@ -4,28 +4,28 @@
 export const CHANGELOG = [
   {
     v: '0.9.235', date: '2026-11-15',
-    ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «المخزون والسجل»: لكل نوع من البطاقات لون وعلامة: الأكياس المعبأة (أخضر مزرق)، والمحمصة المطحونة (بني)، والبن الأخضر (أخضر)."]},
-    en: {"news": ["(Development copy) Coffee bags → Stock and history: each kind of card has its colour and tag: packed bags (teal), roasted ground (brown), green coffee (green)."]},
+    ar: {"news": ["أكياس القهوة ← «المخزون والسجل»: لكل نوع من البطاقات لون وعلامة: الأكياس المعبأة (أخضر مزرق)، والمحمصة المطحونة (بني)، والبن الأخضر (أخضر)."]},
+    en: {"news": ["Coffee bags → Stock and history: each kind of card has its colour and tag: packed bags (teal), roasted ground (brown), green coffee (green)."]},
   },
   {
     v: '0.9.234', date: '2026-11-15',
-    ar: {"news": ["(نسخة التطوير) أكياس القهوة: البطاقات صارت «القهوة المحمصة المطحونة في المخزن» و«محمصة مطحونة من …»."]},
-    en: {"news": ["(Development copy) Coffee bags: the cards now read \"Roasted ground coffee in stock\" and \"Roasted ground from …\"."]},
+    ar: {"news": ["أكياس القهوة: البطاقات صارت «القهوة المحمصة المطحونة في المخزن» و«محمصة مطحونة من …»."]},
+    en: {"news": ["Coffee bags: the cards now read \"Roasted ground coffee in stock\" and \"Roasted ground from …\"."]},
   },
   {
     v: '0.9.233', date: '2026-11-15',
-    ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «المخزون والسجل»: بطاقة للبن المحمص المطحون في المخزن، وبطاقة لكل صنف أخضر بنصيبه منه (تقدير بنسبة ما أعطته دفعات تحميصه)."]},
-    en: {"news": ["(Development copy) Coffee bags → Stock and history: a card for the roasted ground coffee in stock, and one per green coffee with its share of it (an estimate from what its roasts gave)."]},
+    ar: {"news": ["أكياس القهوة ← «المخزون والسجل»: بطاقة للبن المحمص المطحون في المخزن، وبطاقة لكل صنف أخضر بنصيبه منه (تقدير بنسبة ما أعطته دفعات تحميصه)."]},
+    en: {"news": ["Coffee bags → Stock and history: a card for the roasted ground coffee in stock, and one per green coffee with its share of it (an estimate from what its roasts gave)."]},
   },
   {
     v: '0.9.232', date: '2026-11-15',
-    ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «دفعات التعبئة»: سطر التعبئة من المطحون يعرض الآن البن الأخضر المقابل والفاقد الكلي وفاقد التحميص، محسوبة من متوسط فاقد دفعات التحميص التي سبقته، بعلامة ≈ لأنها تقدير."]},
-    en: {"news": ["(Development copy) Coffee bags → batches: a packing from ground coffee now shows its matching green coffee, total loss and roasting loss, worked out from the roasts before it, marked ≈ as estimates."]},
+    ar: {"news": ["أكياس القهوة ← «دفعات التعبئة»: سطر التعبئة من المطحون يعرض الآن البن الأخضر المقابل والفاقد الكلي وفاقد التحميص، محسوبة من متوسط فاقد دفعات التحميص التي سبقته، بعلامة ≈ لأنها تقدير."]},
+    en: {"news": ["Coffee bags → batches: a packing from ground coffee now shows its matching green coffee, total loss and roasting loss, worked out from the roasts before it, marked ≈ as estimates."]},
   },
   {
     v: '0.9.231', date: '2026-11-15',
-    ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «تجهيز الأكياس» صار ثلاث خطوات، كل واحدة في يومها: 1) سحب البن الأخضر للتحميص (يخرج من المخزن وتُفتح دفعة «في التحميص»)، 2) ناتج التحميص والطحن (يدخل المخزن كـ Coffee Powder For Packaging ويُحسب فاقد التحميص)، 3) تعبئة الأكياس من المطحون (يُخصم المطحون والأكياس الفارغة وتدخل الأكياس الجاهزة، ويُحسب هدر الكيس). «المخزون والسجل» يعرض دفعات التحميص ثم التعبئة."]},
-    en: {"news": ["(Development copy) Coffee bags → Prepare bags is now three steps, each on its own day: 1) green coffee taken for roasting (leaves the stock, a roast opens), 2) roasted and ground (goes in as Coffee Powder For Packaging, the roasting loss is worked out), 3) bags packed from the ground coffee (ground coffee and empty pouches taken, bags in, waste per bag worked out). Stock and log shows the roasts, then the packings."]},
+    ar: {"news": ["أكياس القهوة ← «تجهيز الأكياس» صار ثلاث خطوات، كل واحدة في يومها: 1) سحب البن الأخضر للتحميص (يخرج من المخزن وتُفتح دفعة «في التحميص»)، 2) ناتج التحميص والطحن (يدخل المخزن كـ Coffee Powder For Packaging ويُحسب فاقد التحميص)، 3) تعبئة الأكياس من المطحون (يُخصم المطحون والأكياس الفارغة وتدخل الأكياس الجاهزة، ويُحسب هدر الكيس). «المخزون والسجل» يعرض دفعات التحميص ثم التعبئة."]},
+    en: {"news": ["Coffee bags → Prepare bags is now three steps, each on its own day: 1) green coffee taken for roasting (leaves the stock, a roast opens), 2) roasted and ground (goes in as Coffee Powder For Packaging, the roasting loss is worked out), 3) bags packed from the ground coffee (ground coffee and empty pouches taken, bags in, waste per bag worked out). Stock and log shows the roasts, then the packings."]},
   },
   {
     v: '0.9.230', date: '2026-11-14',
