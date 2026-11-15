@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.236', date: '2026-11-15',
+    ar: {"news": ["(نسخة التطوير) قائمة المدير والرئيسية: مجموعة جديدة «الإنتاج والجودة» تضم الإنتاج وسجل التشغيلات وأكياس القهوة. وبقي في «المخازن» الاستلام والصرف وطلبات الأقسام والجرد."]},
+    en: {"news": ["(Development copy) The admin's menu and home: a new group \"Production and quality\" with Production, Batch records and Coffee bags; Stores keeps receiving, issues, department requests and counts."]},
+  },
+  {
     v: '0.9.235', date: '2026-11-15',
     ar: {"news": ["أكياس القهوة ← «المخزون والسجل»: لكل نوع من البطاقات لون وعلامة: الأكياس المعبأة (أخضر مزرق)، والمحمصة المطحونة (بني)، والبن الأخضر (أخضر)."]},
     en: {"news": ["Coffee bags → Stock and history: each kind of card has its colour and tag: packed bags (teal), roasted ground (brown), green coffee (green)."]},
