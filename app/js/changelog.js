@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.235', date: '2026-11-15',
+    ar: {"news": ["(نسخة التطوير) أكياس القهوة ← «المخزون والسجل»: لكل نوع من البطاقات لون وعلامة: الأكياس المعبأة (أخضر مزرق)، والمحمصة المطحونة (بني)، والبن الأخضر (أخضر)."]},
+    en: {"news": ["(Development copy) Coffee bags → Stock and history: each kind of card has its colour and tag: packed bags (teal), roasted ground (brown), green coffee (green)."]},
+  },
+  {
     v: '0.9.234', date: '2026-11-15',
     ar: {"news": ["(نسخة التطوير) أكياس القهوة: البطاقات صارت «القهوة المحمصة المطحونة في المخزن» و«محمصة مطحونة من …»."]},
     en: {"news": ["(Development copy) Coffee bags: the cards now read \"Roasted ground coffee in stock\" and \"Roasted ground from …\"."]},

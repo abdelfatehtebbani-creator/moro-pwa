@@ -381,7 +381,8 @@ async function renderLog(root, go) {
   const greens = [...new Set([mem.o1, mem.o2].concat(...res.batches.map((b) => b.green.map((x) => x.item_id))).filter(Boolean))];
   const greenKg = greens.reduce((sum, id) => sum + Math.max(0, Data.qty(id)), 0);
   const enough = Math.floor(greenKg * (1 - calc.loss / 100) * 1000 / (calc.weight + calc.waste));
-  const stat = (label, value, sub) => h('div.card.cp-stat', h('small.muted', label), h('b.num', value), sub ? h('small.muted', sub) : null);
+  // the cards by kind, each with its colour: the bags packed, the roasted ground coffee, the green coffee
+  const stat = (label, value, sub, kind) => h('div.card.cp-stat', { class: kind ? 'cp-' + kind : '' }, kind ? h('span.cp-kind', t('cf_kind_' + kind)) : null, h('small.muted', label), h('b.num', value), sub ? h('small.muted', sub) : null);
   // the roasted ground coffee in the stock, and how much of it comes from each green coffee
   // (the ground coffee is one item, mixed: each origin's share of what the roasts gave, an estimate)
   const groundKg = res.ground_item ? Math.max(0, Data.qty(res.ground_item)) : 0;
@@ -391,15 +392,15 @@ async function renderLog(root, go) {
     groundMade += r.ground_kg;
     r.green.forEach((x) => fromOrigin.set(x.item_id, (fromOrigin.get(x.item_id) || 0) + r.ground_kg * x.qty / r.green_kg));
   });
-  const roastedCards = res.ground_item ? [stat(t('cf_roasted_total'), fmtNum(Math.round(groundKg * 100) / 100) + ' ' + t('cf_kg'))]
+  const roastedCards = res.ground_item ? [stat(t('cf_roasted_total'), fmtNum(Math.round(groundKg * 100) / 100) + ' ' + t('cf_kg'), null, 'roasted')]
     .concat(groundMade ? [...fromOrigin].map(([id, kgOut]) => stat(t('cf_roasted_of', { n: name(id) }), '≈ ' + fmtNum(Math.round(groundKg * kgOut / groundMade * 100) / 100) + ' ' + t('cf_kg'),
-      t('cf_roasted_share', { p: Math.round(kgOut / groundMade * 100) }))) : []) : [];
+      t('cf_roasted_share', { p: Math.round(kgOut / groundMade * 100) }), 'roasted')) : []) : [];
   const empty = (cols) => h('tr', h('td.empty', { colspan: cols }, t('cf_none')));
   root.replaceChildren(h('div.cf.cf-wide',
     h('div.cp-stats',
-      res.bag_items.map((id) => stat(name(id), fmtNum(Data.qty(id)) + ' ' + unit(id))),
+      res.bag_items.map((id) => stat(name(id), fmtNum(Data.qty(id)) + ' ' + unit(id), null, 'bags')),
       roastedCards,
-      greens.map((id) => stat(name(id), fmtNum(Data.qty(id)) + ' ' + unit(id))),
+      greens.map((id) => stat(name(id), fmtNum(Data.qty(id)) + ' ' + unit(id), null, 'green')),
       greens.length ? stat(t('cf_enough_title'), fmtNum(Math.max(0, enough)), t('cf_enough_sub', { w: calc.weight })) : null),
     h('div.card',
       h('h3', t('cf_roasts')),
