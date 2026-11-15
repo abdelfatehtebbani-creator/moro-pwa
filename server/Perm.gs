@@ -34,6 +34,7 @@ var PERM_TREE = [
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
+  { key: 'online', children: [{ leaf: 'online.decide' }, { leaf: 'online.settings' }] },
   { key: 'accounts', children: [
     { key: 'tab_acc_balances', children: [{ leaf: 'accounts.balances' }] },
     { key: 'tab_acc_statement', children: [{ leaf: 'accounts.statement' }] },
@@ -163,6 +164,9 @@ var CAPS = (function () {
     'units.add':         ['units.save'],
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
+    // the customers' orders: the shop that makes them answers, sends and delivers them; the admin sets them up
+    'online.decide':     ['nav.online', 'online.list', 'online.called', 'online.accept', 'online.reject', 'online.out', 'online.delivered', 'online.soldOut'],
+    'online.settings':   ['nav.online', 'online.list', 'online.settings', 'online.saveSettings', 'online.setPhoto', 'online.soldOut'],
     'recipes.edit':      ['recipes.save', 'families.save', 'families.import', 'recipes.import'],
     // the running costs of the factory (electricity, salaries…) spread over the products' cost
     'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
@@ -223,7 +227,7 @@ var ROLE_CAPS = {
   production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide', 'orders.route']),
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
-  cashier:     ['orders.create', 'orders.receive', 'returns.create'],
+  cashier:     ['orders.create', 'orders.receive', 'returns.create', 'online.decide'],
   distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
                  'report.unavailable', 'report.shopSales', 'report.dispatch', 'prices.see'],
   driver:      ['trips.drive'],
@@ -231,7 +235,7 @@ var ROLE_CAPS = {
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],
   // a manager of one or more branches (Users.branches): follows them, approves nothing
-  branch_manager: ['branches.view', 'branches.note'],
+  branch_manager: ['branches.view', 'branches.note', 'online.decide'],
   // the food safety officer: follows production and the expiry of the materials, changes nothing in the stock
   food_safety: ['batches.view', 'batches.edit', 'dash.view', 'production.view', 'receive.view', 'issue.view', 'reports.view',
                 'report.expiry', 'report.near', 'report.trace', 'report.production', 'report.changes', 'report.losses', 'report.dispatch', 'dispatch.review'],

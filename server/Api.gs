@@ -133,6 +133,16 @@ var ROUTES = {
   'trips.load':       function (s, p) { return Trips.confirm(s, p, 'load'); },
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'vehicles.save':    function (s, p) { return Vehicles.save(s, p); },
+  'online.list':      function (s) { return Online.list(s); },
+  'online.called':    function (s, p) { return Online.called(s, p); },
+  'online.accept':    function (s, p) { return Online.accept(s, p); },
+  'online.reject':    function (s, p) { return Online.reject(s, p); },
+  'online.out':       function (s, p) { return Online.out(s, p); },
+  'online.delivered': function (s, p) { return Online.delivered(s, p); },
+  'online.soldOut':   function (s, p) { return Online.soldOut(s, p); },
+  'online.settings':  function () { return Online.settings(); },
+  'online.saveSettings': function (s, p) { return Online.saveSettings(s, p); },
+  'online.setPhoto':  function (s, p) { return Online.setPhoto(s, p); },
   'workers.import':   function (s, p) { return Workers.importRows(s, p); },
   'workers.summary':  function (s, p) { return Workers.summary(); },
   'trips.depart':     function (s, p) { return Trips.depart(s, p); },
@@ -157,7 +167,14 @@ var PUBLIC = {
   'kiosk.users': function (p) { return Kiosk.users(p); },
   // a worker on the list opens their own account with their ID card number
   'workers.lookup': function (p) { return Workers.lookup(p); },
-  'workers.register': function (p) { return Workers.register(p); }
+  'workers.register': function (p) { return Workers.register(p); },
+  // the customers' page (order.html): the catalogue, a photo, the order, following it, cancelling it
+  'online.catalog':  function (p) { return Online.catalog(p); },
+  'online.photo':    function (p) { return Online.photo(p); },
+  'online.order':    function (p) { return Online.order(p); },
+  'online.track':    function (p) { return Online.track(p); },
+  'online.cancel':   function (p) { return Online.cancel(p); },
+  'online.flush':    function () { return Push.flush(); }
 };
 
 function handle(body) {
@@ -178,7 +195,8 @@ function handleRequest(body) {
     ensureSchema();
     var action = String(req.action || '');
     var payload = req.payload || {};
-    if (PUBLIC[action]) { var pub = PUBLIC[action](payload); Repo.flush(); return { ok: true, data: pub }; }
+    // a public action's notifications are sent by the page's next call (online.flush), so its answer comes at once
+    if (PUBLIC[action]) { var pub = PUBLIC[action](payload); Repo.flush(); return Push.keep() ? { ok: true, data: pub, push: true } : { ok: true, data: pub }; }
     if (LINK_ROUTES[action]) { Link.check(payload.key); var lk = LINK_ROUTES[action](payload); Repo.flush(); return { ok: true, data: lk }; }
     var session = Auth.verify(req.token);
     Perm.check(action, session);
@@ -195,7 +213,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '63';
+var SCHEMA_VERSION = '64';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -213,6 +231,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 59) Perm.addRoleLeaves({ admin: ['recipes.overhead'] });
     // the company's vehicles (the list given on 2026-11-14), loaded once
     if (Number(Settings.get('schema_version', '0')) < 61) Vehicles.seed();
+    // the customers' orders: the admin and the cashiers / branch managers with their own ticks get the new ticks
+    if (Number(Settings.get('schema_version', '0')) < 64) Perm.addRoleLeaves({ admin: ['online.decide', 'online.settings'], cashier: ['online.decide'], branch_manager: ['online.decide'] });
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
