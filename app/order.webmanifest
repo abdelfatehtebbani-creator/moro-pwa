@@ -1,0 +1,19 @@
+{
+  "name": "حلويات العكر – اطلب صينيتك",
+  "short_name": "حلويات العكر",
+  "description": "ALAKER SWEETS – order hot kunafa trays to your door",
+  "lang": "ar",
+  "dir": "rtl",
+  "id": "./order.html",
+  "start_url": "./order.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16263f",
+  "theme_color": "#16263f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

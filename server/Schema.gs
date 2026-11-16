@@ -5,7 +5,8 @@
  */
 var SCHEMA = {
   Items:        ['item_id', 'name', 'category', 'unit', 'min_stock', 'image', 'active', 'aliases', 'created_at', 'store',
-                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept', 'shelf_days', 'family_id', 'family_factor'],
+                 'sale_price', 'shop_orderable', 'pack_units', 'report_unit', 'final_price', 'store_unit', 'name_ar', 'dept', 'shelf_days', 'family_id', 'family_factor',
+                 'online', 'online_req', 'online_photo', 'online_out'],
   Parties:      ['party_id', 'name', 'kind', 'active', 'ext_id', 'tel', 'fax', 'email', 'contact', 'contact_phone', 'producing', 'at_shop'],
   Locations:    ['location_id', 'name', 'category', 'active', 'store'],
   Units:        ['unit', 'active'],
@@ -65,6 +66,11 @@ var SCHEMA = {
   ProductOverheads: ['item_id', 'lines', 'qty', 'per_unit', 'by', 'at'],
   Vehicles:     ['plate', 'model', 'active', 'created_at'],
   CoffeeRoasts: ['roast_id', 'date_out', 'green', 'green_kg', 'status', 'date_in', 'ground_kg', 'note', 'by_out', 'at_out', 'by_in', 'at_in'],
+  OnlineOrders: ['no', 'token_hash', 'client_id', 'created_at', 'from_shop', 'shop', 'name', 'phone', 'address', 'map', 'date', 'time', 'note',
+                 'lines', 'fees', 'goods', 'fee_total', 'deposit', 'trays', 'total', 'pay', 'status', 'reason', 'terms_at', 'called_at', 'called_by',
+                 'decided_at', 'decided_by', 'out_at', 'driver', 'delivered_at', 'cancelled_at', 'alert_at',
+                 'pay_shop', 'paid_at', 'paid_by', 'paid_shop', 'paid_shift', 'push_token', 'push_lang', 'alt_hashes',
+                 'handed_at', 'handed_by', 'cash_given_at', 'cash_received_at', 'cash_received_by', 'cash_shift', 'trays_back', 'deposit_back', 'tray_log', 'trays_kept_at'],
   Workers:      ['qid_hash', 'name', 'job', 'kind', 'active', 'user_id', 'created_at', 'registered_at'],
   TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by'],
   Invoices:     ['invoice_id', 'invoice_no', 'order_id', 'order_no', 'shop_party_id', 'date', 'total_final', 'total_store', 'total',
@@ -83,7 +89,7 @@ var SCHEMA = {
 };
 
 /** Columns kept as plain text so Sheets never turns IDs, codes or dates into numbers/dates. */
-var TEXT_COLUMNS = ['roast_id', 'date_out', 'date_in', 'at_out', 'at_in', 'qid_hash', 'registered_at', 'plate', 'period_id', 'from', 'to', 'lines', 'family_id', 'batch_no', 'supplier_lot', 'start_time', 'end_time', 'checks', 'prepared_at', 'dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
+var TEXT_COLUMNS = ['handed_at', 'cash_given_at', 'cash_received_at', 'cash_shift', 'tray_log', 'trays_kept_at', 'pay_shop', 'paid_at', 'paid_shop', 'paid_shift', 'push_token', 'alt_hashes', 'no', 'token_hash', 'from_shop', 'phone', 'time', 'map', 'terms_at', 'called_at', 'out_at', 'cancelled_at', 'alert_at', 'online_photo', 'online_out', 'roast_id', 'date_out', 'date_in', 'at_out', 'at_in', 'qid_hash', 'registered_at', 'plate', 'period_id', 'from', 'to', 'lines', 'family_id', 'batch_no', 'supplier_lot', 'start_time', 'end_time', 'checks', 'prepared_at', 'dest', 'made_at', 'parent_id', 'at_shop', 'branches', 'mgr_note_at', 'day_id', 'channels', 'return_note', 'received_at', 'shift_id', 'opened_at', 'closed_at', 'payment_id', 'ref', 'voided_at', 'photo_id', 'photos', 'delivery_time', 'customer_phone', 'deadline', 'data', 'return_id', 'invoice_id', 'invoice_no', 'order_no', 'trip_id', 'loaded_at', 'delivered_at', 'received_at', 'order_date', 'sent_at', 'shop', 'depts', 'dept', 'name_ar', 'reason', 'store_ops', 'item_id', 'party_id', 'location_id', 'purpose_id', 'movement_id', 'request_id', 'user_id', 'audit_id',
                     'date', 'expiry', 'expiry_text', 'doc_no', 'last_expiry', 'created_at', 'updated_at', 'fulfilled_at',
                     'last_login', 'at', 'phone', 'pin_hash', 'pin_salt', 'value', 'pin_changed_ms', 'client_id',
                     'updated_at', 'legacy_ref', 'line_id', 'order_id', 'order_item_id', 'ext_id', 'handed_at', 'decided_at',
