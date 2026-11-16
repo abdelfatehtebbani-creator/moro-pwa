@@ -11,6 +11,14 @@ import { h, toast, dialog, fmtNum } from '../ui.js';
 import { shrink } from '../photos.js';
 
 let tab = '';
+const trayIco = () => h('img.tray-ico', { src: 'icons/tray.svg', alt: '' });
+// the last lists are kept on the phone: the screen opens at once, even after the app was closed
+const memKey = (k) => 'moro.ol.' + k + '.' + ((Data.user || {}).user_id || '');
+const memGet = (k) => { try { return JSON.parse(localStorage.getItem(memKey(k)) || 'null'); } catch { return null; } };
+const memSet = (k, v) => { try { localStorage.setItem(memKey(k), JSON.stringify(v)); } catch { /* storage full */ } };
+// a notification that arrives while the screen is open reads the list again at once
+let onPush = null;
+window.addEventListener('moro:push', () => { if (onPush) onPush(); });
 let cached = null;            // the last list, shown at once on the next visit
 let timer = null;
 const money = (n) => fmtNum(Math.round(Number(n || 0) * 100) / 100) + ' ' + t('ol_qr');
@@ -75,9 +83,11 @@ function orders(box) {
       } }, (i.out ? '✕ ' : '') + nameOf(i))))));
   };
   async function reload() {
-    try { const d = await call('online.list'); if (box.isConnected) show(d); } catch (e) { if (!cached) list.replaceChildren(h('p.empty', errText(e))); }
+    try { const d = await call('online.list'); memSet('list', d); if (box.isConnected) show(d); } catch (e) { if (!cached) list.replaceChildren(h('p.empty', errText(e))); }
   }
+  cached = cached || memGet('list');
   if (cached) show(cached); else list.replaceChildren(h('p.empty', t('refreshing')));
+  onPush = reload;
   reload();
   timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 30000);
 }
@@ -196,8 +206,8 @@ function driverOrders(box) {
       // a step shows at once and is sent in the background (back as it was if the server refuses it)
       const step = (action, change, label, cls) => h('button.btn' + (cls || ''), { type: 'button', onclick: async () => {
         const before = Object.assign({}, o);
-        Object.assign(o, change); show(d); toast(o.no + ' · ' + label, 'ok');
-        try { await call(action, { no: o.no }); } catch (e) { Object.assign(o, before); show(d); toast(errText(e), 'err'); }
+        Object.assign(o, change); show(d); memSet('drive', d); toast(o.no + ' · ' + label, 'ok');
+        try { await call(action, { no: o.no }); reload(); } catch (e) { Object.assign(o, before); show(d); toast(errText(e), 'err'); }
       } }, label);
       const done = step('online.delivered', { status: 'delivered', delivered_at: new Date().toISOString() }, '✔ ' + t('ol_delivered'));
       return h('div.ol-card', { class: 'st-' + o.status },
@@ -212,10 +222,13 @@ function driverOrders(box) {
         cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
     }) : [h('p.empty', t('ol_drive_none'))]));
   };
-  const reload = () => call('online.driverList').then((d) => { if (box.isConnected) show(d); }).catch((e) => { if (!driveCache) list.replaceChildren(h('p.empty', errText(e))); });
+  const reload = () => call('online.driverList').then((d) => { memSet('drive', d); if (box.isConnected) show(d); }).catch((e) => { if (!driveCache) list.replaceChildren(h('p.empty', errText(e))); });
+  driveCache = driveCache || memGet('drive');
   if (driveCache) show(driveCache); else list.replaceChildren(h('p.empty', t('refreshing')));
+  onPush = reload;
   reload();
-  timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 30000);
+  // the driver's list follows closely (every 15 s while open, and at once on a notification)
+  timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 15000);
 }
 
 // ---------- any shop's cashier: orders paid in cash at the shop
@@ -246,7 +259,9 @@ function payOrders(box) {
       } }, '💵 ' + t('ol_took') + ' ' + money(o.total))))) : [h('p.empty', t('ol_pay_none'))]));
   };
   q.addEventListener('input', () => payCache && show(payCache));
-  const reload = () => call('online.payList').then((d) => { if (box.isConnected) show(d); }).catch((e) => { if (!payCache) list.replaceChildren(h('p.empty', errText(e))); });
+  const reload = () => call('online.payList').then((d) => { memSet('pay', d); if (box.isConnected) show(d); }).catch((e) => { if (!payCache) list.replaceChildren(h('p.empty', errText(e))); });
+  payCache = payCache || memGet('pay');
+  onPush = () => reload();
   if (payCache) show(payCache); else list.replaceChildren(h('p.empty', t('refreshing')));
   reload();
   timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 30000);
@@ -268,7 +283,7 @@ function trayOrders(box) {
     list.replaceChildren(...(rows.length ? rows.map((o) => {
       const late = o.until && o.until < today;
       return h('div.ol-card', { class: o.out ? 'st-new' : 'st-delivered' },
-        h('div.ol-top', h('b.num', o.no), o.out ? h('span.ol-pill.new', '🧺 ' + t('ol_trays_out', { n: o.out })) : h('span.ol-pill.delivered', '✅ ' + t('ol_trays_all_back')),
+        h('div.ol-top', h('b.num', o.no), o.out ? h('span.ol-pill.new', trayIco(), t('ol_trays_out', { n: o.out })) : h('span.ol-pill.delivered', '✅ ' + t('ol_trays_all_back')),
           h('span.ol-when', { class: late ? 'late' : '' }, t('ol_trays_until') + ' ', h('bdi', o.until))),
         h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('span', { dir: 'ltr' }, '•••• ' + String(o.phone).slice(-4)), ' · ', t('ol_per_tray_dep', { m: money(o.per) })),
         o.today_back ? h('small.muted', t('ol_trays_today', { n: o.today_back })) : '',
@@ -287,13 +302,15 @@ function trayOrders(box) {
           const before = o.out;
           o.out -= n; o.today_back = (o.today_back || 0) + n; show(d); toast(o.no + ' · ' + t('ol_trays_paid', { m: money(n * o.per) }), 'ok');
           try { await call('online.trayReturn', { no: o.no, n }); } catch (ex) { o.out = before; o.today_back -= n; show(d); toast(errText(ex), 'err'); }
-        } }, '🧺 ' + t('ol_trays_btn')),
+        } }, trayIco(), t('ol_trays_btn')),
         canWa ? h('a.btn.secondary', { href: 'https://wa.me/974' + String(o.phone).replace(/\D/g, '').replace(/^974/, '') + '?text=' + encodeURIComponent(t('ol_trays_msg', { no: o.no, n: o.out, d: o.until, m: money(o.out * o.per) })), target: '_blank', rel: 'noopener' }, '💬 ' + t('ol_remind'))
           : '') : '');
     }) : [h('p.empty', t('ol_trays_none'))]));
   };
   q.addEventListener('input', () => trayCache && show(trayCache));
-  const reload = () => call('online.trays').then((d) => { if (box.isConnected) show(d); }).catch((e) => { if (!trayCache) list.replaceChildren(h('p.empty', errText(e))); });
+  const reload = () => call('online.trays').then((d) => { memSet('trays', d); if (box.isConnected) show(d); }).catch((e) => { if (!trayCache) list.replaceChildren(h('p.empty', errText(e))); });
+  trayCache = trayCache || memGet('trays');
+  onPush = () => reload();
   if (trayCache) show(trayCache); else list.replaceChildren(h('p.empty', t('refreshing')));
   reload();
 }

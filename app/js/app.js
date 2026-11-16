@@ -81,6 +81,8 @@ if ('serviceWorker' in navigator) {
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
   }).catch(() => {});
   let reloaded = false;
+  // a notification arrived while the app is open: the screen it is about reads its data again
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.type === 'push') window.dispatchEvent(new CustomEvent('moro:push', { detail: e.data })); });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloaded) return;
     reloaded = true;

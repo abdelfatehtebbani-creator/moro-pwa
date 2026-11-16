@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 32">
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f6f8"/><stop offset=".55" stop-color="#b9c0c8"/><stop offset="1" stop-color="#8b939c"/>
+    </linearGradient>
+    <radialGradient id="base" cx=".5" cy=".45" r=".6">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#dfe3e8"/><stop offset="1" stop-color="#c3c9d0"/>
+    </radialGradient>
+  </defs>
+  <!-- a round kunafa tray seen from the side: the rim and the flat bottom -->
+  <ellipse cx="24" cy="18" rx="22.5" ry="11.5" fill="url(#rim)" stroke="#7d858e" stroke-width="1"/>
+  <ellipse cx="24" cy="16.2" rx="19" ry="8.6" fill="url(#base)" stroke="#9aa2ab" stroke-width=".8"/>
+  <ellipse cx="24" cy="15.4" rx="11" ry="4.2" fill="none" stroke="#ffffff" stroke-opacity=".7" stroke-width=".8"/>
+</svg>

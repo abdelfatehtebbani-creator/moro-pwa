@@ -552,7 +552,7 @@ function trayBox(t) {
   if (!st) return '';
   const left = st.out ? Math.ceil((Date.parse(st.until + 'T23:59:59') - Date.now()) / 864e5) : 0;
   return h('div.o-trays', { class: st.kept ? 'kept' : st.out ? '' : 'done' },
-    h('b', '🧺 ' + (st.kept ? tx('tr_kept', { n: st.out, m: money(st.out * st.per) }) : st.out ? tx('tr_out', { n: st.out }) : tx('tr_all_back'))),
+    h('b', h('img.tray-ico', { src: 'icons/tray.svg', alt: '' }), (st.kept ? tx('tr_kept', { n: st.out, m: money(st.out * st.per) }) : st.out ? tx('tr_out', { n: st.out }) : tx('tr_all_back'))),
     st.out && !st.kept ? h('small', tx('tr_until', { d: st.until, n: Math.max(0, left), m: money(st.out * st.per) })) : '',
     st.log.map((l) => h('small', '✓ ' + tx('tr_back', { n: l.n, m: money(l.amount), d: String(l.at).slice(0, 10) }))));
 }
@@ -563,7 +563,7 @@ function showMine() {
     const trs = (lastTrack(o.no) || {}).trays_state;
     return h('button', { type: 'button', onclick: () => track(o) },
       h('span', h('b', { dir: 'ltr' }, o.no), ' ', h('span.o-pill', { class: st }, tx('st_' + (st === 'handed' ? 'accepted' : st))),
-        trs && trs.out && !trs.kept ? [' ', h('span.o-pill.new', '🧺 ' + trs.out)] : '', h('br'), h('small', h('bdi', { dir: 'ltr' }, o.date + ' ' + o.time))),
+        trs && trs.out && !trs.kept ? [' ', h('span.o-pill.new', h('img.tray-ico', { src: 'icons/tray.svg', alt: '' }), String(trs.out))] : '', h('br'), h('small', h('bdi', { dir: 'ltr' }, o.date + ' ' + o.time))),
       h('span.o-mine-total', money(o.total), h('span.o-chev', lang === 'ar' ? '‹' : '›'))); }))
     : h('p.o-sub', tx('no_orders')), h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')), recoverBox()], null, false);
 }
@@ -604,4 +604,6 @@ async function start() {
   }
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// a notification about this order while its page is open: read it again at once
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.type === 'push' && current === trackScreen && tracking) track(tracking); });
 start();

@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.244', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) شاشة السائق أسرع: تفتح فورًا من آخر نسخة على الجوال، وتتحدث كل 15 ثانية وفور وصول إشعار، والأزرار تتغير فورًا. وصورة صينية بدل السلة في الصواني."]},
+    en: {"news": ["(Development copy) A faster driver screen: it opens at once from the last copy on the phone, refreshes every 15 seconds and as soon as a notification arrives, and its buttons change at once. A tray picture instead of the basket for trays."]},
+  },
+  {
     v: '0.9.243', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) «طلبيات الزبائن»: الأحدث أولًا، وتظهر طلبيات اليوم فقط والباقي في «الأرشيف» مطويًا. بطاقات الإعدادات مطوية. «يحوّل بعد القبول» قبل القبول. لا «رفض» بعد الدفع. وأُصلح خطأ «سلّمت للسائق» بعد «وصل التحويل»."]},
     en: {"news": ["(Development copy) Customer orders: newest first, only today's orders shown and the rest folded in the Archive. The settings cards are folded. \"Transfers after acceptance\" before acceptance. No \"Refuse\" once paid. Fixed the error on \"Handed to the driver\" after \"Transfer arrived\"."]},
