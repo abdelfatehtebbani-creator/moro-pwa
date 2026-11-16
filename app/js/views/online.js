@@ -24,6 +24,7 @@ const cashOpen = (o) => o.status === 'delivered' && cashDue(o) && !o.cash_receiv
 // a step pressed shows at once; it is sent in the background, and a list read meanwhile keeps it until the server has it
 const NEXT = { 'online.accept': 'accepted', 'online.hand': 'handed', 'online.reject': 'rejected', 'online.cashIn': 'delivered', 'online.fawranOk': 'accepted' };
 const pending = {};
+const archiveOpen = {};
 
 export function render(root) {
   const b = Data.boot || {};
@@ -55,9 +56,16 @@ function orders(box) {
     const fresh = d.orders.filter((o) => o.status === 'new').length;
     if (Data.boot && Data.boot.online_new !== fresh) { Data.boot.online_new = fresh; window.dispatchEvent(new Event('moro:badge')); }
     const late = (o) => o.status === 'new' && !o.called_at && (Date.now() - Date.parse(o.created_at)) / 60000 > (d.reply_min || 15);
+    // newest first; ordered today or delivered today on top, the rest folded in the archive
+    const today = new Date().toISOString().slice(0, 10);
+    const isToday = (o) => String(o.created_at).slice(0, 10) === today || o.date === today;
     const rows = d.orders.filter((o) => (tab === 'done' ? !OPEN.includes(o.status) && !cashOpen(o) : OPEN.includes(o.status) || cashOpen(o)))
-      .sort((a, b) => (tab === 'done' ? 0 : (OPEN.indexOf(a.status) - OPEN.indexOf(b.status)) || String(a.date + a.time).localeCompare(String(b.date + b.time))));
-    list.replaceChildren(...(rows.length ? rows.map((o) => card(o, d, late(o), reload, () => show(d))) : [h('p.empty', t(tab === 'done' ? 'ol_none_done' : 'ol_none'))]));
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    const now = rows.filter(isToday), old = rows.filter((o) => !isToday(o));
+    const cards = (l) => l.map((o) => card(o, d, late(o), reload, () => show(d)));
+    list.replaceChildren(...(now.length ? cards(now) : [h('p.empty', t(tab === 'done' ? 'ol_none_done' : 'ol_none'))]),
+      old.length ? h('details.ol-archive', { open: archiveOpen[tab] || null, ontoggle: (e) => { archiveOpen[tab] = e.currentTarget.open; } },
+        h('summary', '🗂 ' + t('ol_archive', { n: old.length })), h('div.ol-list', cards(old))) : '');
     // sold out today: one tap per product
     out.replaceChildren(tab === 'done' || !d.items.length ? '' : h('details.ol-sold', h('summary', '🚫 ' + t('ol_sold_out'), ' ',
       h('small.muted', d.items.filter((i) => i.out).length ? t('ol_sold_n', { n: d.items.filter((i) => i.out).length }) : '')),
@@ -120,7 +128,8 @@ function card(o, d, late, reload, redraw) {
       h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('ol_cash_got')))]);
     if (ok) act(btn, 'online.cashIn');
   } }, '💵 ' + t('ol_cash_got') + ' ' + money(o.total)));
-  if (o.status === 'new' || o.status === 'accepted') btns.push(h('button.btn.danger', { type: 'button', onclick: async (e) => {
+  // paid already (at a shop or by transfer): it is no longer refused here
+  if (o.status === 'new' || (o.status === 'accepted' && !o.paid_at)) btns.push(h('button.btn.danger', { type: 'button', onclick: async (e) => {
     const btn = e.currentTarget;
     const reason = await dialog((close) => {
       const ta = h('textarea.input', { rows: 3, placeholder: t('ol_reason_ph') });
@@ -163,7 +172,8 @@ const fmtTime = (iso) => { const x = String(iso || ''); return x.slice(11, 16) +
 function payLine(o) {
   if (o.pay === 'card') return h('div.ol-pay', '💳 ' + t('ol_pay_card') + (OPEN.includes(o.status) ? ' · ' + t('ol_take_pos') : ''));
   if (o.pay === 'fawran') return h('div.ol-pay', '🏦 ' + t('ol_pay_fawran') + ' · ',
-    o.paid_at ? h('span.paid', '✅ ' + t('ol_fawran_in')) : h('span.wait', '⏳ ' + t('ol_fawran_wait')));
+    o.paid_at ? h('span.paid', '✅ ' + t('ol_fawran_in')) : o.status === 'new' ? h('span', t('ol_fawran_after')) : h('span.wait', '⏳ ' + t('ol_fawran_wait')));
+  if (o.pay === 'shop' && o.status === 'new') return h('div.ol-pay', '🏪 ' + t('ol_pay_shop_in', { s: o.pay_shop_name || '' }) + ' · ' + t('ol_shop_after'));
   if (o.pay !== 'shop') return h('div.ol-pay', '💵 ' + t('ol_pay_delivery') + (OPEN.includes(o.status) ? ' · ' + t('ol_collect', { m: money(o.total) }) : ''));
   return h('div.ol-pay', '🏪 ' + t('ol_pay_shop_in', { s: o.pay_shop_name || '' }) + ' · ',
     o.paid_at ? h('span.paid', '✅ ' + t('ol_paid_at', { s: o.paid_shop_name || '' })) : h('span.wait', '⏳ ' + t('ol_unpaid_yet')));
@@ -392,7 +402,8 @@ function drawSettings(box, s) {
     save.disabled = false;
   } }, t('save'));
 
-  const sec = (title, ...kids) => h('section.card', h('h2', title), ...kids);
+  // every part folded: open the one to change
+  const sec = (title, ...kids) => h('details.card.ol-fold', h('summary', h('h2', title)), h('div.ol-fold-in', ...kids));
   box.replaceChildren(h('div.ol-set',
     sec(t('ol_s_products'), h('p.muted', t('ol_products_hint')), search, prodBox),
     sec(t('ol_s_rules'),

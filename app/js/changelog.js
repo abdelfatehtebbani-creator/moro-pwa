@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.243', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) «طلبيات الزبائن»: الأحدث أولًا، وتظهر طلبيات اليوم فقط والباقي في «الأرشيف» مطويًا. بطاقات الإعدادات مطوية. «يحوّل بعد القبول» قبل القبول. لا «رفض» بعد الدفع. وأُصلح خطأ «سلّمت للسائق» بعد «وصل التحويل»."]},
+    en: {"news": ["(Development copy) Customer orders: newest first, only today's orders shown and the rest folded in the Archive. The settings cards are folded. \"Transfers after acceptance\" before acceptance. No \"Refuse\" once paid. Fixed the error on \"Handed to the driver\" after \"Transfer arrived\"."]},
+  },
+  {
     v: '0.9.242', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) طرق الدفع: الدفع عند الاستلام (نقدًا أو بالبطاقة) للزبائن الموثوقين فقط، يعلّمهم محل سلوى من بطاقة الطلبية أو المدير من الإعدادات. التحويل عبر «فورا» بعد قبول الطلبية: يرى الزبون الرقم والمبلغ مع زر نسخ وزر لإرسال الإثبات على واتساب، وسلوى تضغط «وصل التحويل». ويبقى الدفع في المحل."]},
     en: {"news": ["(Development copy) Payment: on delivery (cash or card) only for trusted customers, marked by the Salwa shop from an order's card or by the admin in the settings. A Fawran transfer after the order is accepted: the customer sees the number and amount with copy buttons and a button to send the proof on WhatsApp; Salwa presses \"Transfer arrived\". Cash at a shop stays."]},

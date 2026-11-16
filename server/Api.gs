@@ -227,13 +227,19 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '65';
+var SCHEMA_VERSION = '66';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
   }
-  if (Settings.get('schema_version', '') === SCHEMA_VERSION) return;
+  // a column added without raising SCHEMA_VERSION still reaches the sheets (their count is kept)
+  var cols = String(Object.keys(SCHEMA).reduce(function (n, k) { return n + SCHEMA[k].length; }, 0));
+  if (Settings.get('schema_version', '') === SCHEMA_VERSION) {
+    if (Settings.get('schema_cols', '') !== cols) withLock(function () { setupSheets(); Repo.reset(); Settings.set('schema_cols', cols); });
+    return;
+  }
   withLock(function () {
+    Settings.set('schema_cols', cols);
     setupSheets();
     Repo.reset();
     Masters.seedUnits();
