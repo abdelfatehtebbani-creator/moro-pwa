@@ -439,7 +439,9 @@ var Orders = {
       var limit = limits[stage];
       out.push({ order_id: o.order_id, order_no: o.order_no, shop_party_id: o.shop_party_id, kind: o.kind || '', stage: stage, since: since,
         hours: hours, limit: limit, level: hours > 2 * limit ? 'very' : hours > limit ? 'late' : 'ok', diff_pending: o.diff_status === 'pending', mgr_note: o.mgr_note || '',
-        made_at: o.made_at || '' });
+        made_at: o.made_at || '',
+        // on its way: the trip's driver and vehicle
+        driver_id: o.trip_id ? (trips[o.trip_id] || {}).driver_id || '' : '', vehicle: o.trip_id ? (trips[o.trip_id] || {}).vehicle || '' : '' });
     });
     var rank = { very: 0, late: 1, ok: 2 };
     return { hours: limits, orders: out.sort(function (a, b) { return rank[a.level] - rank[b.level] || b.hours - a.hours; }) };

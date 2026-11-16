@@ -314,6 +314,7 @@ export async function render(root, name) {
       return h('div', { class: 'fu-row ' + x.level },
         h('div.fu-who', h('b', x.order_no), h('bdi', shopName(x.shop_party_id)), x.kind === 'special' ? h('span.pill.soon', t('special')) : null),
         h('div.fu-steps', STAGES.map((s, i) => h('span', { class: 'fu-step' + (i < at ? ' done' : i === at ? ' now' : ''), title: t('fu_st_' + s) }))),
+        x.driver_id ? h('div.fu-driver', '🚚 ', h('bdi', (Data.userNames || {})[x.driver_id] || x.driver_id), x.vehicle ? h('span.muted', ' · ' + x.vehicle) : '') : null,
         h('div.fu-now', h('b', t('fu_st_' + x.stage)), x.diff_pending ? h('small.err-text', ' · ' + t('diff_pending')) : null, x.mgr_note ? h('small.mgr-note', ' · 📝 ' + x.mgr_note) : null,
           h('small', { class: 'fu-age' }, t('fu_since', { d: dur(x.hours) }), x.level !== 'ok' ? ' · ' + t('fu_usual', { d: dur(x.limit) }) : '')));
     };
@@ -321,7 +322,7 @@ export async function render(root, name) {
       h('div.fu-chips', chip('late', t('fu_late'), lateN, lateN ? 'bad' : ''), ...STAGES.filter((s) => by[s]).map((s) => chip(s, t('fu_st_' + s), by[s]))),
       h('small.muted', t('fu_help')),
       ...(shown.length ? shown.map(row) : [h('p.empty', t('fu_none'))]),
-      Data.can('orders.setFollowHours') ? followHoursBox(f.hours) : null);
+      Data.can('orders.setFollowHours') ? followHoursBox(f.hours) : '');
   }
   function followHoursBox(hours) {
     const inputs = {};

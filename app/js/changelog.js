@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.246', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) «اعتماد الطلبيات ← المتابعة»: اسم السائق والسيارة على الطلبيات في الرحلات، وأُزيلت كلمة null في آخر القائمة."]},
+    en: {"news": ["(Development copy) Approve orders → Follow-up: the driver's name and vehicle on orders in trips, and the stray \"null\" at the end of the list is gone."]},
+  },
+  {
     v: '0.9.245', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) صفحة الزبون: زر تحديث برتقالي بارز في الرأس، يجلب الأصناف والأسعار وحالة الطلبية المعروضة."]},
     en: {"news": ["(Development copy) The customer's page: a clear orange refresh button in the header, reading the products, prices and the order shown again."]},
