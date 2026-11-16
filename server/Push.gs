@@ -68,6 +68,24 @@ var Push = {
     return Push.sendNow(userIds, msg);
   },
 
+  /** The same to devices known only by their token (a customer's phone, without an account); msg.ar is their language. */
+  toTokens: function (tokens, msg) {
+    if (!tokens || !tokens.length) return 0;
+    if (IN_REQUEST && !PUSH_NOW) { PUSH_QUEUE.push([{ tokens: tokens }, msg]); return 0; }
+    return Push.sendTokens(tokens, msg);
+  },
+  sendTokens: function (tokens, msg) {
+    try {
+      if (!Push.configured()) return 0;
+      var text = msg.ar || msg;
+      var data = { title: String(text.title || '').slice(0, 120), body: String(text.body || '').slice(0, 240), page: msg.page || '', badge: String(msg.badge || 0) };
+      return FcmSender.sendAll(tokens, data).filter(function (r) { return r.ok; }).length;
+    } catch (e) {
+      console.error('push tokens failed ' + (e && e.stack || e));
+      return 0;
+    }
+  },
+
   /** Keeps this request's messages for push.flush (called at the end of the request). Returns true when there are some. */
   keep: function () {
     if (!PUSH_QUEUE.length) return false;
@@ -98,7 +116,7 @@ var Push = {
     }
     var n = 0;
     PUSH_NOW = true;
-    try { jobs.forEach(function (j) { n += Push.sendNow(j[0], j[1]); }); } finally { PUSH_NOW = false; }
+    try { jobs.forEach(function (j) { n += j[0] && j[0].tokens ? Push.sendTokens(j[0].tokens, j[1]) : Push.sendNow(j[0], j[1]); }); } finally { PUSH_NOW = false; }
     return { sent: n, jobs: jobs.length };
   },
 

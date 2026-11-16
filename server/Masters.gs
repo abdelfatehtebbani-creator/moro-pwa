@@ -433,6 +433,13 @@ var Masters = {
       // customers' orders from their phones: the shop that makes them sees the screen, with the new ones on the menu
       online_mine: Perm.has(session, 'nav.online') && Online.mine(session, Online.cfg().shop),
       online_new: Perm.has(session, 'online.accept') ? Online.pending(session) : 0,
+      // the driver: customers' orders on the way with them; a cashier: orders to be paid at their shop
+      online_drive: Perm.has(session, 'online.driverList') ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && o.status === 'out'; }).length : -1,
+      online_pay: (function () {
+        if (!Perm.has(session, 'online.pay')) return -1;
+        var shop = String((Repo.find('Users', 'user_id', session.user_id) || {}).shop || '');
+        return shop ? Repo.all('OnlineOrders').filter(function (o) { return o.pay === 'shop' && o.status === 'accepted' && !o.paid_at && o.pay_shop === shop; }).length : -1;
+      })(),
       branch_late: Perm.has(session, 'branches.summary') ? Branches.late(session) : 0,
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
       prod_todo: Perm.has(session, 'production.post') ? Shop.prodTodo(session) : 0,

@@ -1,6 +1,6 @@
 /* Service worker: keeps the app shell available offline. Data never goes through here –
    it is cached in IndexedDB by the app (js/db.js). Bump VERSION on every release. */
-const VERSION = 'moro-v0.9.239';
+const VERSION = 'moro-v0.9.240';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/api.js', 'js/db.js', 'js/i18n.js', 'js/ui.js', 'js/data.js',
@@ -55,7 +55,8 @@ self.addEventListener('push', (e) => {
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const page = e.notification.data && e.notification.data.page;
-  const url = new URL(page ? './#/' + page : './', self.registration.scope).href;
+  // a customer's order opens its page (order.html), the rest the app's screen
+  const url = new URL(page && page.startsWith('order:') ? './order.html?track=' + encodeURIComponent(page.slice(6)) : page ? './#/' + page : './', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
     const open = list.find((c) => c.url.startsWith(self.registration.scope));
     if (open) return open.navigate(url).then((c) => (c || open).focus()).catch(() => open.focus());

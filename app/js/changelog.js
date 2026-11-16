@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.240', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) السائق: تبويب «توصيلاتي» في «طلبيات الزبائن» مع إشعار ورقم، فيه العنوان والخريطة والاتصال والمبلغ الذي يقبضه، وزر «سُلّمت».", "(نسخة التطوير) الدفع نقدًا في محل: يختاره الزبون ويختار المحل، وتظهر الطلبية لكاشير أي محل في تبويب «الدفع في المحل» فيضغط «قبضت» فيُحسب لمحله وورديته. لا تخرج للتوصيل قبل الدفع، وتُلغى وحدها إن لم تُدفع قبل الموعد، مع زر واتساب جاهز للزبون.", "(نسخة التطوير) إشعارات الزبون: يُطلب منه تفعيلها بعد الإرسال وفي صفحة المتابعة (مع خطوات آيفون)، ويصله إشعار عند القبول والدفع والخروج والتسليم. ويمكنه استرجاع طلبيته على جهاز آخر برقمها وجواله."]},
+    en: {"news": ["(Development copy) Drivers: a \"My deliveries\" tab in Customer orders, with a notification and a number, showing the address, map, call, the amount to collect, and a \"Delivered\" button.", "(Development copy) Cash at a shop: the customer chooses it and the shop; any shop's cashier sees the order in \"Paid at the shop\" and presses \"Taken\", counted for their shop and shift. It does not leave before it is paid, and is cancelled by itself when not paid in time, with a ready WhatsApp message for the customer.", "(Development copy) Customer notifications: asked after sending and on the tracking page (with the iPhone steps); they are told when it is accepted, paid, out and delivered. They can find their order on another device by its number and mobile."]},
+  },
+  {
     v: '0.9.239', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) طلبيات الزبائن أسرع: صور الأصناف كلها تُجلب بطلب واحد فور فتح الصفحة وتبقى على الجوال، ومتابعة الطلبية تفتح فورًا وتتحدث وحدها كل 30 ثانية، وأشكال تحميل بدل الصفحة الفارغة.", "(نسخة التطوير) شاشة سلوى: القبول والخروج والتسليم والرفض تظهر فورًا وتُرسل في الخلفية، وتبويب الإعدادات يفتح فورًا."]},
     en: {"news": ["(Development copy) Faster customer orders: all product photos come in one call as the page opens and stay on the phone, following an order opens at once and refreshes itself every 30 seconds, and loading shapes replace the blank page.", "(Development copy) The Salwa screen: accept, out, delivered and refuse show at once and are sent in the background; the Settings tab opens at once."]},

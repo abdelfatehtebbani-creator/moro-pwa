@@ -34,7 +34,7 @@ var PERM_TREE = [
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
-  { key: 'online', children: [{ leaf: 'online.decide' }, { leaf: 'online.settings' }] },
+  { key: 'online', children: [{ leaf: 'online.decide' }, { leaf: 'online.settings' }, { leaf: 'online.drive' }] },
   { key: 'accounts', children: [
     { key: 'tab_acc_balances', children: [{ leaf: 'accounts.balances' }] },
     { key: 'tab_acc_statement', children: [{ leaf: 'accounts.statement' }] },
@@ -165,7 +165,8 @@ var CAPS = (function () {
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     // the customers' orders: the shop that makes them answers, sends and delivers them; the admin sets them up
-    'online.decide':     ['nav.online', 'online.list', 'online.called', 'online.accept', 'online.reject', 'online.out', 'online.delivered', 'online.soldOut'],
+    'online.decide':     ['nav.online', 'online.list', 'online.called', 'online.accept', 'online.reject', 'online.out', 'online.delivered', 'online.soldOut', 'online.payList', 'online.pay'],
+    'online.drive':      ['nav.online', 'online.driverList', 'online.delivered'],
     'online.settings':   ['nav.online', 'online.list', 'online.settings', 'online.saveSettings', 'online.setPhoto', 'online.soldOut'],
     'recipes.edit':      ['recipes.save', 'families.save', 'families.import', 'recipes.import'],
     // the running costs of the factory (electricity, salaries…) spread over the products' cost
@@ -230,7 +231,7 @@ var ROLE_CAPS = {
   cashier:     ['orders.create', 'orders.receive', 'returns.create', 'online.decide'],
   distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
                  'report.unavailable', 'report.shopSales', 'report.dispatch', 'prices.see'],
-  driver:      ['trips.drive'],
+  driver:      ['trips.drive', 'online.drive'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],

@@ -91,3 +91,39 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60 }, blocked: ['55512345'] }, admin);
   assert.equal(g.api('online.order', base({ client_id: 'c11', lines: [{ id: 'I0002', qty: 1 }] })).error.code, 'online_blocked');
 });
+
+test('online: paid at a shop before it leaves, cancelled when not paid in time; the driver sees and delivers it', () => {
+  const { g, admin, salwa, lulua } = env();
+  g.api('users.save', { username: 'drv1', display_name: 'Driver', role: 'driver', pin: '5678' }, admin);
+  const drv = g.api('auth.login', { username: 'drv1', pin: '5678' }).data.token;
+  const drvId = g.rows('Users').find((u) => u.username === 'drv1').user_id;
+  assert.equal(g.api('online.order', base({ pay: 'shop', pay_shop: 'P999' })).error.code, 'online_pay_shop');
+  const r = g.api('online.order', base({ pay: 'shop', pay_shop: 'P002' })).data;
+  g.api('online.accept', { no: r.no }, salwa);
+  let t = g.api('online.track', { token: r.token }).data;
+  assert.deepEqual([t.pay, t.pay_shop, t.paid], ['shop', 'Lulua Branch', false]);
+  assert.equal(g.api('online.out', { no: r.no }, salwa).error.code, 'online_unpaid', 'not paid: it does not leave');
+  // any shop's cashier sees it and takes the money
+  const pl = g.api('online.payList', {}, lulua).data;
+  assert.equal(pl.orders.find((o) => o.no === r.no).total, r.total);
+  assert.equal(g.api('data.bootstrap', {}, lulua).data.online_pay, 1);
+  g.api('online.pay', { no: r.no }, lulua);
+  const row = g.rows('OnlineOrders').find((o) => o.no === r.no);
+  assert.equal(row.paid_shop, 'P002');
+  assert.equal(g.api('online.track', { token: r.token }).data.paid, true);
+  // it leaves with the driver, who sees it and marks it delivered
+  g.api('online.out', { no: r.no, driver: drvId }, salwa);
+  assert.equal(g.api('data.bootstrap', {}, drv).data.online_drive, 1);
+  assert.equal(g.api('online.driverList', {}, drv).data.orders[0].no, r.no);
+  assert.equal(g.api('online.delivered', { no: r.no }, drv).data.order.status, 'delivered');
+  // not paid by its time: cancelled
+  const r2 = g.api('online.order', base({ client_id: 'c5', pay: 'shop', pay_shop: 'P001' })).data;
+  g.api('online.accept', { no: r2.no }, salwa);
+  g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60, pay_min: 24 * 60 * 4 } }, admin);
+  assert.deepEqual([g.api('online.track', { token: r2.token }).data.status, g.api('online.track', { token: r2.token }).data.reason], ['cancelled', 'unpaid']);
+  // the order found again on another phone by its number and mobile
+  assert.equal(g.api('online.recover', { no: r.no, phone: '0000' }).error.code, 'not_found');
+  const rc = g.api('online.recover', { no: r.no, phone: '974 5551 2345' }).data;
+  assert.equal(g.api('online.track', { token: rc.token }).data.no, r.no);
+  assert.equal(g.api('online.track', { token: r.token }).data.no, r.no, 'the first link still works');
+});

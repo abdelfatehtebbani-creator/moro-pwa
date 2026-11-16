@@ -13,6 +13,8 @@
 var ONLINE_STATUSES = ['new', 'accepted', 'out', 'delivered', 'rejected', 'cancelled'];
 var ONLINE_DEFAULTS = {
   shop: '', whatsapp: '', min_req: 1, lead_min: 180, reply_min: 15, max_open: 2, return_days: 7,
+  // paying cash at a shop before the delivery: allowed or not, and how many minutes before the delivery time at the latest
+  pay_shop: true, pay_min: 120,
   terms_ar: '', terms_en: '', fees: [],
   // per day of the week (0 = Sunday): the hours orders may be delivered in; off = no delivery that day
   hours: { 0: { from: '10:00', to: '22:00', off: false }, 1: { from: '10:00', to: '22:00', off: false }, 2: { from: '10:00', to: '22:00', off: false },
@@ -62,6 +64,7 @@ var Online = {
     if (shop) { var sp = Repo.find('Parties', 'party_id', shop); Util.require(sp && sp.kind === 'shop', 'shop_invalid'); }
     var cfg = { shop: shop, whatsapp: Online.phone(c.whatsapp), min_req: num(c.min_req, 0, 100, 1), lead_min: num(c.lead_min, 0, 7 * 24 * 60, 180),
       reply_min: num(c.reply_min, 1, 24 * 60, 15), max_open: num(c.max_open, 1, 50, 2), return_days: num(c.return_days, 0, 365, 7),
+      pay_shop: c.pay_shop !== false, pay_min: num(c.pay_min, 15, 7 * 24 * 60, 120),
       terms_ar: String(c.terms_ar || '').slice(0, 2000), terms_en: String(c.terms_en || '').slice(0, 2000), fees: fees, hours: hours };
     var blocked = (p.blocked || []).map(Online.phone).filter(function (x) { return x.length >= 6; });
     return withLock(function () {
@@ -117,7 +120,7 @@ var Online = {
       .map(function (x) { return { id: x.party_id, name: x.name }; });
     var out = { v: v, today: today, items: items, shops: shops,
       cfg: { min_req: cfg.min_req, lead_min: cfg.lead_min, hours: cfg.hours, fees: cfg.fees, return_days: cfg.return_days,
-             terms_ar: cfg.terms_ar, terms_en: cfg.terms_en, whatsapp: cfg.whatsapp } };
+             terms_ar: cfg.terms_ar, terms_en: cfg.terms_en, whatsapp: cfg.whatsapp, pay_shop: cfg.pay_shop, pay_min: cfg.pay_min } };
     try { cache.put('online_cat_' + v, JSON.stringify(out), 600); } catch (e) { /* too big for the cache: built each time */ }
     return out;
   },
@@ -193,6 +196,16 @@ var Online = {
     var goods = Util.round(lines.reduce(function (s, l) { return s + l.qty * l.price; }, 0));
     var feeSum = Util.round(fees.reduce(function (s, f) { return s + f.total; }, 0));
     var deposit = Util.round(fees.filter(function (f) { return f.refundable; }).reduce(function (s, f) { return s + f.total; }, 0));
+    // cash on delivery, or cash at a shop the customer chooses (before the delivery, by the time the admin set)
+    var pay = p.pay === 'shop' && cfg.pay_shop ? 'shop' : 'delivery', payShop = '';
+    if (pay === 'shop') {
+      var ps = Repo.find('Parties', 'party_id', String(p.pay_shop || ''));
+      Util.require(ps && ps.kind === 'shop' && ps.active === true, 'online_pay_shop');
+      payShop = ps.party_id;
+      Util.require(Online.untilMinutes(p.date, p.time) >= cfg.pay_min + 30, 'online_pay_too_late', String(cfg.pay_min + 30));
+    }
+    var pushToken = '';
+    try { pushToken = p.push_token ? Push.token(p.push_token) : ''; } catch (e) { pushToken = ''; }
     return withLock(function () {
       var cid = Util.clean(p.client_id);
       if (cid) {
@@ -209,8 +222,9 @@ var Online = {
       var row = { no: no, token_hash: Auth.hashPin(token, 'online'), client_id: cid, created_at: now, from_shop: from && from.kind === 'shop' ? from.party_id : '',
         shop: cfg.shop, name: name, phone: phone, address: address, map: Util.clean(p.map).slice(0, 300), date: p.date, time: p.time,
         note: String(p.note || '').slice(0, 600), lines: JSON.stringify(lines), fees: JSON.stringify(fees), goods: goods, fee_total: feeSum,
-        deposit: deposit, trays: trays, total: Util.round(goods + feeSum), pay: 'delivery', status: 'new', reason: '', terms_at: now,
-        called_at: '', called_by: '', decided_at: '', decided_by: '', out_at: '', driver: '', delivered_at: '', cancelled_at: '', alert_at: '' };
+        deposit: deposit, trays: trays, total: Util.round(goods + feeSum), pay: pay, pay_shop: payShop, status: 'new', reason: '', terms_at: now,
+        called_at: '', called_by: '', decided_at: '', decided_by: '', out_at: '', driver: '', delivered_at: '', cancelled_at: '', alert_at: '',
+        paid_at: '', paid_by: '', paid_shop: '', paid_shift: '', push_token: pushToken, push_lang: p.lang === 'en' ? 'en' : 'ar', alt_hashes: '' };
       Repo.append('OnlineOrders', [row]);
       Audit.log('online', 'online_order', 'OnlineOrders', no, null, { phone: phone, total: row.total, trays: trays });
       Online.tell(cfg.shop, ['طلبية زبون ' + no, name + ' – ' + p.date + ' ' + p.time + ' – ' + row.total + ' ر.ق'],
@@ -221,18 +235,62 @@ var Online = {
   },
 
   find: function (token) {
-    var o = Repo.find('OnlineOrders', 'token_hash', Auth.hashPin(String(token || ''), 'online'));
+    var hash = Auth.hashPin(String(token || ''), 'online');
+    var o = Repo.find('OnlineOrders', 'token_hash', hash);
+    // a link given again to the customer on another phone (online.recover)
+    if (!o) o = Repo.all('OnlineOrders').filter(function (x) { return x.alt_hashes && String(x.alt_hashes).indexOf(hash) >= 0; })[0];
     Util.require(o, 'not_found');
     return o;
   },
 
+  shopName: function (id) { var x = id ? Repo.find('Parties', 'party_id', id) : null; return x ? x.name : ''; },
+  /** The latest time to pay at the shop: the delivery time less the minutes the admin set ("YYYY-MM-DD HH:MM"). */
+  payBy: function (o, cfg) {
+    var t = new Date(o.date + 'T' + o.time + ':00Z').getTime() - (cfg || Online.cfg()).pay_min * 60000;
+    return new Date(t).toISOString().slice(0, 16).replace('T', ' ');
+  },
+
+  /** The customer's phone: a notification about their order (when they allowed them). */
+  notify: function (o, ar, en) {
+    if (!o.push_token) return;
+    var lang = o.push_lang === 'en' ? en : ar;
+    Push.toTokens([o.push_token], { ar: { title: lang[0], body: lang[1] || '' }, page: 'order:' + o.no, badge: 1 });
+  },
+
+  /** The customer allowed notifications: their orders on this phone send to it. p: {tokens: [order links], push_token, lang} */
+  subscribe: function (p) {
+    var pt = Push.token(p.push_token);
+    var lang = p.lang === 'en' ? 'en' : 'ar';
+    var rows = (p.tokens || []).slice(0, 30).map(function (t) { try { return Online.find(t); } catch (e) { return null; } }).filter(Boolean);
+    if (!rows.length) return { subscribed: 0 };
+    return withLock(function () {
+      rows.forEach(function (o) { Repo.update('OnlineOrders', 'no', o.no, { push_token: pt, push_lang: lang }); });
+      return { subscribed: rows.length };
+    });
+  },
+
+  /** On another phone (or the app added to the home screen): the order found again by its number and the customer's mobile. p: {no, phone} */
+  recover: function (p) {
+    var o = Repo.find('OnlineOrders', 'no', String(p.no || '').trim().toUpperCase());
+    Util.require(o && o.phone === Online.phone(p.phone), 'not_found');
+    return withLock(function () {
+      var token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+      var alt = String(o.alt_hashes || '').split(',').filter(Boolean).slice(-4).concat([Auth.hashPin(token, 'online')]);
+      Repo.update('OnlineOrders', 'no', o.no, { alt_hashes: alt.join(',') });
+      Audit.log('online', 'online_recover', 'OnlineOrders', o.no, null, null);
+      return { no: o.no, token: token, date: o.date, time: o.time, total: Number(o.total) };
+    });
+  },
+
   /** What the customer sees of their order. p: {token} */
   track: function (p) {
+    Online.checkUnpaid();
     var o = Online.find(p.token);
     var cfg = Online.cfg();
     return { no: o.no, status: o.status, reason: o.reason || '', date: o.date, time: o.time, name: o.name, address: o.address, note: o.note,
              lines: JSON.parse(o.lines || '[]'), fees: JSON.parse(o.fees || '[]'), goods: Number(o.goods), fee_total: Number(o.fee_total),
-             deposit: Number(o.deposit), total: Number(o.total), created_at: o.created_at, called: !!o.called_at, whatsapp: cfg.whatsapp };
+             deposit: Number(o.deposit), total: Number(o.total), created_at: o.created_at, called: !!o.called_at, whatsapp: cfg.whatsapp,
+             pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: o.pay === 'shop' ? Online.payBy(o, cfg) : '' };
   },
 
   /** The customer cancels while it is new. p: {token} */
@@ -261,7 +319,7 @@ var Online = {
   },
   tell: function (shop, ar, en) {
     var ids = Online.people(shop);
-    if (ids.length) Push.toUsers(ids, { ar: { title: ar[0], body: ar[1] || '' }, en: { title: en[0], body: en[1] || '' }, page: 'online', badge: 1 });
+    if (ids.length) Push.toUsers(ids, { ar: { title: ar[0], body: ar[1] || '' }, en: { title: en[0], body: en[1] || '' }, page: 'custorders', badge: 1 });
   },
 
   /** May this session work on that shop's orders? The admin, its cashier (on shift there) or its manager. */
@@ -285,6 +343,7 @@ var Online = {
     var cfg = Online.cfg();
     Util.require(Online.mine(session, cfg.shop), 'forbidden');
     Online.checkLate();
+    Online.checkUnpaid();
     var since = Util.today().slice(0, 8) + '01';
     var rows = Repo.all('OnlineOrders').filter(function (o) {
       return o.shop === cfg.shop && (['new', 'accepted', 'out'].indexOf(o.status) >= 0 || String(o.date) >= since);
@@ -292,6 +351,9 @@ var Online = {
     var drivers = Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; }).map(function (u) { return { id: u.user_id, name: u.display_name }; });
     var items = Repo.all('Items').filter(function (i) { return i.active === true && i.online === true; })
       .map(function (i) { return { id: i.item_id, name: i.name, name_ar: i.name_ar || '', out: String(i.online_out || '') === Util.today() }; });
+    var names = {};
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
+    rows.forEach(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; });
     return { orders: rows, drivers: drivers, items: items, shop: cfg.shop, reply_min: cfg.reply_min };
   },
 
@@ -300,11 +362,14 @@ var Online = {
     return withLock(function () {
       var o = Repo.find('OnlineOrders', 'no', String(p.no || ''));
       Util.require(o, 'not_found');
-      Util.require(Online.mine(session, o.shop), 'forbidden');
+      // the driver who took it may mark it delivered
+      var driverOwn = auditName === 'online_delivered' && o.driver && o.driver === session.user_id;
+      Util.require(driverOwn || Online.mine(session, o.shop), 'forbidden');
       Util.require(from.indexOf(o.status) >= 0, 'online_status', o.status);
       var ch = change(o);
       Repo.update('OnlineOrders', 'no', o.no, ch);
       Audit.log(session.user_id, auditName, 'OnlineOrders', o.no, { status: o.status }, ch);
+      Online.afterStep(Object.assign({}, o, ch), auditName);
       return { order: Online.view(Repo.find('OnlineOrders', 'no', o.no)), version: Version.bump() };
     });
   },
@@ -323,7 +388,96 @@ var Online = {
   out: function (session, p) {
     var d = p.driver ? Repo.find('Users', 'user_id', String(p.driver)) : null;
     Util.require(!p.driver || (d && d.role === 'driver'), 'driver_invalid');
-    return Online.act(session, p, ['accepted'], function () { return { status: 'out', out_at: Util.nowIso(), driver: d ? d.user_id : '' }; }, 'online_out');
+    return Online.act(session, p, ['accepted'], function (o) {
+      // to be paid at a shop: it leaves only once paid
+      Util.require(o.pay !== 'shop' || o.paid_at, 'online_unpaid');
+      return { status: 'out', out_at: Util.nowIso(), driver: d ? d.user_id : '' };
+    }, 'online_out');
+  },
+
+  /** After a step: the customer is told, and the driver of an order sent with them. */
+  afterStep: function (o, step) {
+    var no = o.no;
+    if (step === 'online_accept') {
+      if (o.pay === 'shop') Online.notify(o, ['قُبلت طلبيتك ' + no, 'ادفع ' + o.total + ' ر.ق نقدًا في ' + Online.shopName(o.pay_shop) + ' قبل ' + Online.payBy(o)],
+        ['Your order ' + no + ' is accepted', 'Pay ' + o.total + ' QR cash at ' + Online.shopName(o.pay_shop) + ' before ' + Online.payBy(o)]);
+      else Online.notify(o, ['قُبلت طلبيتك ' + no, 'نجهّزها الآن للتسليم ' + o.date + ' ' + o.time], ['Your order ' + no + ' is accepted', 'Being prepared for ' + o.date + ' ' + o.time]);
+    }
+    if (step === 'online_reject') Online.notify(o, ['تعذر تنفيذ طلبيتك ' + no, o.reason], ['Your order ' + no + ' could not be made', o.reason]);
+    if (step === 'online_out') {
+      Online.notify(o, ['طلبيتك في الطريق إليك', no], ['Your order is on its way', no]);
+      if (o.driver) Push.toUsers([o.driver], { ar: { title: 'طلبية زبون للتوصيل ' + no, body: o.name + ' – ' + o.address },
+        en: { title: 'Customer order to deliver ' + no, body: o.name + ' – ' + o.address }, page: 'custorders', badge: 1 });
+    }
+    if (step === 'online_delivered') Online.notify(o, ['سُلّمت طلبيتك ' + no, 'بالهناء والعافية'], ['Your order ' + no + ' is delivered', 'Enjoy!']);
+  },
+
+  /** The driver: the customers' orders they take (on the way) and those they delivered today. */
+  driverList: function (session) {
+    var today = Util.today();
+    var names = {};
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
+    var rows = Repo.all('OnlineOrders').filter(function (o) {
+      return o.driver === session.user_id && (o.status === 'out' || (o.status === 'delivered' && String(o.delivered_at).slice(0, 10) === today));
+    }).map(Online.view).map(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; return o; });
+    return { orders: rows };
+  },
+
+  /** Any shop's cashier: the accepted orders to be paid at a shop, not paid yet (only what the cashier needs). */
+  payList: function (session) {
+    Online.checkUnpaid();
+    var u = Repo.find('Users', 'user_id', session.user_id) || {};
+    Util.require(session.role === 'admin' || u.shop, 'online_need_shift');
+    var cfg = Online.cfg(), names = {};
+    Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
+    var today = Util.today();
+    var rows = Repo.all('OnlineOrders').filter(function (o) {
+      return o.pay === 'shop' && ((o.status === 'accepted' && !o.paid_at) || (o.paid_at && String(o.paid_at).slice(0, 10) === today && o.paid_shop === u.shop));
+    }).map(function (o) {
+      return { no: o.no, name: o.name, phone: o.phone, total: Number(o.total), date: o.date, time: o.time, pay_shop: o.pay_shop,
+               pay_shop_name: names[o.pay_shop] || '', pay_by: Online.payBy(o, cfg), paid: !!o.paid_at, paid_at: o.paid_at || '' };
+    });
+    return { orders: rows, shop: u.shop || '' };
+  },
+
+  /** A cashier took the money: the order is paid at their shop, in their shift. p: {no} */
+  pay: function (session, p) {
+    var u = Repo.find('Users', 'user_id', session.user_id) || {};
+    Util.require(u.shop, 'online_need_shift');
+    return withLock(function () {
+      var o = Repo.find('OnlineOrders', 'no', String(p.no || ''));
+      Util.require(o && o.pay === 'shop', 'not_found');
+      if (o.paid_at) return { order: { no: o.no, paid: true }, duplicate: true };
+      Util.require(o.status === 'accepted', 'online_status', o.status);
+      var shift = Repo.all('Shifts').filter(function (s) { return s.user_id === session.user_id && s.shop_party_id === u.shop && !s.closed_at; }).pop();
+      var ch = { paid_at: Util.nowIso(), paid_by: session.user_id, paid_shop: u.shop, paid_shift: shift ? shift.shift_id : '' };
+      Repo.update('OnlineOrders', 'no', o.no, ch);
+      Audit.log(session.user_id, 'online_paid', 'OnlineOrders', o.no, null, { total: Number(o.total), shop: u.shop });
+      Online.notify(o, ['تم دفع طلبيتك ' + o.no, Number(o.total) + ' ر.ق – شكرًا لك'], ['Your order ' + o.no + ' is paid', Number(o.total) + ' QR – thank you']);
+      Online.tell(o.shop, ['دُفعت طلبية الزبون ' + o.no, Online.shopName(u.shop) + ' – ' + Number(o.total) + ' ر.ق'], ['Customer order paid ' + o.no, Online.shopName(u.shop) + ' – ' + Number(o.total) + ' QR']);
+      return { order: { no: o.no, paid: true }, version: Version.bump() };
+    });
+  },
+
+  /** Orders to be paid at a shop and not paid by their time are cancelled, and the customer and the shop are told. */
+  checkUnpaid: function () {
+    var cfg = Online.cfg();
+    var late = Repo.all('OnlineOrders').filter(function (o) {
+      return o.status === 'accepted' && o.pay === 'shop' && !o.paid_at && Online.untilMinutes(o.date, o.time) <= cfg.pay_min;
+    });
+    if (!late.length) return 0;
+    withLock(function () {
+      late.forEach(function (o) {
+        var cur = Repo.find('OnlineOrders', 'no', o.no);
+        if (!cur || cur.status !== 'accepted' || cur.paid_at) return;
+        Repo.update('OnlineOrders', 'no', o.no, { status: 'cancelled', reason: 'unpaid', cancelled_at: Util.nowIso() });
+        Audit.log('online', 'online_unpaid_cancel', 'OnlineOrders', o.no, null, null);
+        Online.notify(o, ['أُلغيت طلبيتك ' + o.no, 'لم تُدفع قبل الموعد'], ['Your order ' + o.no + ' was cancelled', 'It was not paid in time']);
+        Online.tell(o.shop, ['أُلغيت طلبية زبون لعدم الدفع ' + o.no, o.name], ['Customer order cancelled, not paid ' + o.no, o.name]);
+      });
+      Version.bump();
+    });
+    return late.length;
   },
   delivered: function (session, p) {
     return Online.act(session, p, ['out', 'accepted'], function () { return { status: 'delivered', delivered_at: Util.nowIso() }; }, 'online_delivered');
@@ -344,7 +498,7 @@ var Online = {
     if (to.length) Push.toUsers(to.filter(function (x, i, a) { return a.indexOf(x) === i; }), {
       ar: { title: 'طلبية زبون بلا رد', body: late.map(function (o) { return o.no; }).join('، ') + ' – أكثر من ' + cfg.reply_min + ' دقيقة' },
       en: { title: 'Customer order not answered', body: late.map(function (o) { return o.no; }).join(', ') + ' – over ' + cfg.reply_min + ' min' },
-      page: 'online', badge: 1 });
+      page: 'custorders', badge: 1 });
     return late.length;
   },
 

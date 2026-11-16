@@ -973,3 +973,8 @@ p.pickup { margin: 8px 0 2px; }
 .ol-link { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
 .ol-link a { overflow-wrap: anywhere; font-size: 13px; }
 @media (max-width: 640px) { .ol-link { grid-template-columns: 1fr auto; } .ol-link a { grid-column: 1 / -1; } }
+
+.ol-pay { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.ol-pay.paid { color: #3f8a3a; } .ol-pay.wait { color: var(--warn); }
+.ol-collect { background: #fff1e5; color: #b4560f; border-radius: 8px; padding: 8px 12px; font-weight: 800; font-size: 17px; text-align: center; }
+.ol-amount { font-size: 22px; font-weight: 800; text-align: center; }

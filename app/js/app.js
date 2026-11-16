@@ -137,7 +137,7 @@ async function start() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
 }
 
-function allowed(name) { return Data.can(ROUTES[name].perm) && (name !== 'custorders' || !!(Data.boot || {}).online_mine || Data.can('online.settings')); }
+function allowed(name) { return Data.can(ROUTES[name].perm) && (name !== 'custorders' || !!(Data.boot || {}).online_mine || Data.can('online.settings') || (Data.boot || {}).online_drive >= 0 || (Data.boot || {}).online_pay >= 0); }
 // the first screen: home (every user may open it)
 function firstScreen() {
   if (Data.user && Data.user.role === 'pdg' && allowed('exec')) return 'exec';
@@ -436,7 +436,8 @@ function updateBadges() {
     return c;
   }).reduce((a, b) => a + b, 0);
   // customers' orders waiting for the shop's answer
-  const ol = allowed('custorders') ? Number((Data.boot || {}).online_new) || 0 : 0;
+  const bb = Data.boot || {};
+  const ol = allowed('custorders') ? (Number(bb.online_new) || 0) + Math.max(0, Number(bb.online_drive) || 0) + Math.max(0, Number(bb.online_pay) || 0) : 0;
   document.querySelectorAll('a[data-route="custorders"] .badge').forEach((b) => { b.hidden = !ol; b.textContent = String(ol); });
   Push.badge(n + r + o + bl + sp + pr + more + ol);
   // the same numbers for "waiting for you" on the admin's home screen

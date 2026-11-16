@@ -132,3 +132,23 @@ a.o-btn { display: block; text-align: center; text-decoration: none; }
 .o-chev { color: var(--muted); font-size: 22px; }
 .o-stepof { padding: 4px 16px 0; font-size: 12px; color: var(--muted); }
 .o-main { padding-top: 6px; }
+
+/* payment choice */
+.o-paybox { display: grid; gap: 8px; }
+.o-paybox h3 { margin: 6px 0 0; }
+.o-opt { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 12px; cursor: pointer; }
+.o-opt.on { border-color: var(--orange); background: var(--soft); }
+.o-opt input { width: 20px; height: 20px; accent-color: var(--orange); margin-top: 3px; flex: none; }
+.o-opt span { display: grid; gap: 2px; flex: 1; }
+.o-opt small { color: var(--muted); }
+.o-opt .o-field { margin-top: 8px; }
+.o-waitpay { display: block; color: #b4560f !important; font-weight: 700; margin-top: 2px; }
+.o-paid { display: block; color: var(--teal) !important; font-weight: 700; }
+/* notifications */
+.o-push { background: #eef6f5; border: 1.5px solid #cfe7e4; border-radius: 16px; padding: 14px; display: grid; gap: 8px; text-align: start; width: 100%; }
+.o-push small { color: var(--muted); }
+.o-ios { margin: 0; padding-inline-start: 20px; display: grid; gap: 6px; font-size: 14px; }
+.o-share { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: #fff; border: 1px solid var(--line); color: #1a73e8; font-size: 13px; }
+.o-recover { background: #fff; border-radius: 14px; padding: 12px 14px; margin-top: 8px; }
+.o-recover summary { cursor: pointer; font-weight: 700; color: var(--navy); }
+.o-recover .o-btn { margin-top: 8px; }

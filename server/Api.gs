@@ -134,6 +134,9 @@ var ROUTES = {
   'trips.deliver':    function (s, p) { return Trips.confirm(s, p, 'deliver'); },
   'vehicles.save':    function (s, p) { return Vehicles.save(s, p); },
   'online.list':      function (s) { return Online.list(s); },
+  'online.driverList': function (s) { return Online.driverList(s); },
+  'online.payList':   function (s) { return Online.payList(s); },
+  'online.pay':       function (s, p) { return Online.pay(s, p); },
   'online.called':    function (s, p) { return Online.called(s, p); },
   'online.accept':    function (s, p) { return Online.accept(s, p); },
   'online.reject':    function (s, p) { return Online.reject(s, p); },
@@ -172,6 +175,8 @@ var PUBLIC = {
   'online.catalog':  function (p) { return Online.catalog(p); },
   'online.photo':    function (p) { return Online.photo(p); },
   'online.photos':   function (p) { return Online.photos(p); },
+  'online.push':     function (p) { return Online.subscribe(p); },
+  'online.recover':  function (p) { return Online.recover(p); },
   'online.order':    function (p) { return Online.order(p); },
   'online.track':    function (p) { return Online.track(p); },
   'online.cancel':   function (p) { return Online.cancel(p); },
@@ -214,7 +219,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '64';
+var SCHEMA_VERSION = '65';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -234,6 +239,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 61) Vehicles.seed();
     // the customers' orders: the admin and the cashiers / branch managers with their own ticks get the new ticks
     if (Number(Settings.get('schema_version', '0')) < 64) Perm.addRoleLeaves({ admin: ['online.decide', 'online.settings'], cashier: ['online.decide'], branch_manager: ['online.decide'] });
+    // customers' orders: the drivers see the ones they take (the payment at a shop comes with online.decide)
+    if (Number(Settings.get('schema_version', '0')) < 65) Perm.addRoleLeaves({ driver: ['online.drive'] });
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
