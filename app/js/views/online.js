@@ -16,6 +16,9 @@ let timer = null;
 const money = (n) => fmtNum(Math.round(Number(n || 0) * 100) / 100) + ' ' + t('ol_qr');
 const nameOf = (x) => Data.nameOf(x);
 const OPEN = ['new', 'accepted', 'out'];
+// a step pressed shows at once; it is sent in the background, and a list read meanwhile keeps it until the server has it
+const NEXT = { 'online.accept': 'accepted', 'online.out': 'out', 'online.delivered': 'delivered', 'online.reject': 'rejected' };
+const pending = {};
 
 export function render(root) {
   const keys = [].concat((Data.boot || {}).online_mine ? ['orders', 'done'] : [], Data.can('online.settings') ? ['settings'] : []);
@@ -40,13 +43,14 @@ function orders(box) {
   box.replaceChildren(out, list);
   const show = (d) => {
     cached = d;
+    d.orders.forEach((o) => { if (pending[o.no]) Object.assign(o, pending[o.no]); });
     // the number on the menu follows the list
     const fresh = d.orders.filter((o) => o.status === 'new').length;
     if (Data.boot && Data.boot.online_new !== fresh) { Data.boot.online_new = fresh; window.dispatchEvent(new Event('moro:badge')); }
     const late = (o) => o.status === 'new' && !o.called_at && (Date.now() - Date.parse(o.created_at)) / 60000 > (d.reply_min || 15);
     const rows = d.orders.filter((o) => (tab === 'done' ? !OPEN.includes(o.status) : OPEN.includes(o.status)))
       .sort((a, b) => (tab === 'done' ? 0 : (OPEN.indexOf(a.status) - OPEN.indexOf(b.status)) || String(a.date + a.time).localeCompare(String(b.date + b.time))));
-    list.replaceChildren(...(rows.length ? rows.map((o) => card(o, d, late(o), reload)) : [h('p.empty', t(tab === 'done' ? 'ol_none_done' : 'ol_none'))]));
+    list.replaceChildren(...(rows.length ? rows.map((o) => card(o, d, late(o), reload, () => show(d))) : [h('p.empty', t(tab === 'done' ? 'ol_none_done' : 'ol_none'))]));
     // sold out today: one tap per product
     out.replaceChildren(tab === 'done' || !d.items.length ? '' : h('details.ol-sold', h('summary', '🚫 ' + t('ol_sold_out'), ' ',
       h('small.muted', d.items.filter((i) => i.out).length ? t('ol_sold_n', { n: d.items.filter((i) => i.out).length }) : '')),
@@ -63,11 +67,18 @@ function orders(box) {
   timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 30000);
 }
 
-function card(o, d, late, reload) {
+function card(o, d, late, reload, redraw) {
   const act = async (btn, action, extra) => {
-    btn.disabled = true;
-    try { const r = await call(action, Object.assign({ no: o.no }, extra || {})); Object.assign(o, r.order); reload(); toast(t('saved'), 'ok'); }
-    catch (e) { toast(errText(e), 'err'); btn.disabled = false; }
+    const before = Object.assign({}, o);
+    const change = { status: NEXT[action] };
+    if (extra && extra.driver !== undefined) change.driver = extra.driver;
+    if (extra && extra.reason) change.reason = extra.reason;
+    pending[o.no] = change;
+    Object.assign(o, change);
+    redraw();
+    toast(o.no + ' · ' + t('ol_st_' + change.status), 'ok');
+    try { const r = await call(action, Object.assign({ no: o.no }, extra || {})); delete pending[o.no]; Object.assign(o, r.order); redraw(); }
+    catch (e) { delete pending[o.no]; Object.assign(o, before); redraw(); toast(errText(e), 'err'); }
   };
   const tel = 'tel:+974' + String(o.phone || '').replace(/\D/g, '').replace(/^974/, '');
   const btns = [];
@@ -95,7 +106,7 @@ function card(o, d, late, reload) {
   } }, t('ol_reject')));
   const driverName = o.driver ? ((d.drivers.find((x) => x.id === o.driver) || {}).name || '') : '';
   return h('div.ol-card', { class: 'st-' + o.status + (late ? ' late' : '') },
-    h('div.ol-top', h('b.num', o.no), h('span.ol-pill', { class: o.status }, t('ol_st_' + o.status)), late ? h('span.ol-pill.late', '⏰ ' + t('ol_late')) : '',
+    h('div.ol-top', h('b.num', o.no), h('span.ol-pill', { class: o.status }, t('ol_st_' + o.status)), pending[o.no] ? h('span.ol-pill.called', '⏳') : '', late ? h('span.ol-pill.late', '⏰ ' + t('ol_late')) : '',
       o.called_at && o.status === 'new' ? h('span.ol-pill.called', '📞 ' + t('ol_called')) : '', h('span.ol-when', '🗓 ', h('bdi', o.date + ' ' + o.time))),
     h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('a', { href: tel, dir: 'ltr' }, o.phone)),
     h('div.ol-addr', '📍 ', h('bdi', o.address), o.map ? [' ', h('a', { href: o.map, target: '_blank', rel: 'noopener' }, t('ol_map'))] : ''),
@@ -110,9 +121,17 @@ function card(o, d, late, reload) {
 
 // ---------- the admin's settings
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
+let setCache = null;
 function settings(box) {
-  box.replaceChildren(h('p.empty', t('refreshing')));
-  call('online.settings').then((s) => drawSettings(box, s)).catch((e) => box.replaceChildren(h('p.empty', errText(e))));
+  // the last settings at once; the server's are drawn when they differ, unless something was already changed here
+  let touched = false;
+  const mark = () => { touched = true; };
+  box.addEventListener('input', mark); box.addEventListener('change', mark);
+  if (setCache) drawSettings(box, JSON.parse(setCache)); else box.replaceChildren(h('p.empty', t('refreshing')));
+  call('online.settings').then((s) => {
+    const j = JSON.stringify(s);
+    if (j !== setCache && !touched && box.isConnected) { setCache = j; drawSettings(box, s); } else setCache = setCache || j;
+  }).catch((e) => { if (!setCache) box.replaceChildren(h('p.empty', errText(e))); });
 }
 function drawSettings(box, s) {
   const cfg = JSON.parse(JSON.stringify(s.cfg));
@@ -140,7 +159,7 @@ function drawSettings(box, s) {
       file.addEventListener('change', async () => {
         const f = file.files[0]; if (!f) return;
         ph.disabled = true;
-        try { const data = await shrink(f); const r = await call('online.setPhoto', { item_id: i.id, photo: data }); i.photo = r.photo; toast(t('saved'), 'ok'); drawProds(); }
+        try { const data = await shrink(f); const r = await call('online.setPhoto', { item_id: i.id, photo: data }); i.photo = r.photo; setCache = null; toast(t('saved'), 'ok'); drawProds(); }
         catch (e) { toast(errText(e), 'err'); ph.disabled = false; }
       });
       return h('div.ol-prod', { class: m.online ? 'on' : '' }, h('label.ol-ck', on, h('span', h('bdi', nameOf(i)), h('small.muted', ' ' + money(i.price)))),
@@ -195,6 +214,7 @@ function drawSettings(box, s) {
     try {
       await call('online.saveSettings', { cfg, items, blocked: blocked.value.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean) });
       items.forEach((x) => { const i = s.items.find((y) => y.id === x.item_id); i.online = x.online; i.req = x.req; });
+      setCache = null;
       toast(t('saved'), 'ok');
     } catch (e) { toast(errText(e), 'err'); }
     save.disabled = false;

@@ -84,6 +84,9 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   g.api('online.soldOut', { item_id: 'I0001', out: true }, salwa);
   assert.equal(g.api('online.catalog', {}).data.items.find((i) => i.id === 'I0001').out, true);
   assert.equal(g.api('online.order', base({ client_id: 'c10' })).error.code, 'online_item_gone');
+  // photos: several in one call, only those of the products offered
+  const ph = g.api('online.setPhoto', { item_id: 'I0002', photo: 'data:image/jpeg;base64,AAAA' }, admin).data.photo;
+  assert.deepEqual(g.api('online.photos', { ids: [ph, 'PH999'] }).data, { [ph]: 'data:image/jpeg;base64,AAAA' });
   // a blocked number
   g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60 }, blocked: ['55512345'] }, admin);
   assert.equal(g.api('online.order', base({ client_id: 'c11', lines: [{ id: 'I0002', qty: 1 }] })).error.code, 'online_blocked');

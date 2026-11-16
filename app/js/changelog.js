@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.239', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) طلبيات الزبائن أسرع: صور الأصناف كلها تُجلب بطلب واحد فور فتح الصفحة وتبقى على الجوال، ومتابعة الطلبية تفتح فورًا وتتحدث وحدها كل 30 ثانية، وأشكال تحميل بدل الصفحة الفارغة.", "(نسخة التطوير) شاشة سلوى: القبول والخروج والتسليم والرفض تظهر فورًا وتُرسل في الخلفية، وتبويب الإعدادات يفتح فورًا."]},
+    en: {"news": ["(Development copy) Faster customer orders: all product photos come in one call as the page opens and stay on the phone, following an order opens at once and refreshes itself every 30 seconds, and loading shapes replace the blank page.", "(Development copy) The Salwa screen: accept, out, delivered and refuse show at once and are sent in the background; the Settings tab opens at once."]},
+  },
+  {
     v: '0.9.238', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) صفحة طلب الزبون: زر الإرسال باهت حتى يوافق على الشروط، وسؤال الإلغاء من الصفحة نفسها، وزرا «طلباتي» و«اطلب من جديد» أوضح، والموقع المحفوظ يمكن تحديثه أو حذفه، والدفع نقدًا عند الاستلام فقط."]},
     en: {"news": ["(Development copy) The customer's order page: the send button stays faded until the terms are agreed, the cancel question comes from the page itself, clearer \"My orders\" and \"Order again\" buttons, the saved location can be updated or removed, and payment is cash on delivery only."]},

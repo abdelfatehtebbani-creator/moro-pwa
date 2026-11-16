@@ -5,7 +5,7 @@ import { API_URL } from './config.js';
 
 const T = {
   ar: {
-    brand: 'حلويات العكر', tagline: 'صواني الكنافة الساخنة إلى بابك', mine: '🧾 طلباتي', lang: 'English',
+    brand: 'حلويات العكر', tagline: 'صواني ساخنة إلى بابك', mine: '🧾 طلباتي', lang: 'EN', step_of: 'الخطوة {a} من 5',
     s1: 'اختر صينيتك', s1_sub: 'الحد الأدنى للطلبية {n} صينية، ثم أكمل.', s2: 'أضف معها', s2_sub: 'اختياري: أصناف أخرى مع طلبيتك.',
     s3: 'ملاحظاتك على الطلبية', s3_sub: 'شروطك أو ما تريد تحسينه (مثلًا: أقل سكر، قطع صغيرة، بلا فستق).', s3_ph: 'اكتب ملاحظتك هنا (اختياري)',
     s4: 'بياناتك', s5: 'مراجعة الطلبية', next: 'التالي', back: 'رجوع', send: 'أرسل الطلبية', sending: 'يُرسل…',
@@ -19,7 +19,7 @@ const T = {
     done: 'وصلتنا طلبيتك', done_sub: 'سيتصل بك المحل لتأكيدها. احفظ رقم طلبيتك:', follow: 'تابع طلبيتك', new_order: 'طلبية جديدة',
     st_new: 'قيد المراجعة', st_new_sub: 'سيتصل بك المحل للتأكيد', st_accepted: 'مقبولة – قيد التجهيز', st_out: 'في الطريق إليك', st_delivered: 'سُلّمت',
     st_rejected: 'تعذر تنفيذ الطلبية', st_cancelled: 'ألغيت الطلبية', reason: 'السبب', wa: 'تواصل معنا على واتساب', cancel: 'ألغِ الطلبية',
-    cancel_q: 'إلغاء الطلبية؟', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
+    cancel_q: 'إلغاء الطلبية؟', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
     closed: 'الطلب غير متاح الآن، حاول لاحقًا', offline: 'لا اتصال بالإنترنت، حاول مرة أخرى',
     err: { customer_required: 'اكتب اسمك', online_phone_invalid: 'رقم الجوال غير صحيح', address_required: 'اكتب العنوان', online_terms_required: 'وافق على الشروط',
       online_blocked: 'لا يمكن قبول طلبات من هذا الرقم، تواصل مع المحل', delivery_date_invalid: 'اختر اليوم والوقت', online_outside_hours: 'الوقت خارج ساعات التوصيل',
@@ -28,7 +28,7 @@ const T = {
       not_found: 'لم نجد الطلبية', qty_invalid: 'كمية غير صحيحة', nothing_to_save: 'اختر صنفًا', busy: 'ضغط على الخادم، حاول بعد لحظات' },
   },
   en: {
-    brand: 'Alaker Sweets', tagline: 'Hot kunafa trays to your door', mine: '🧾 My orders', lang: 'العربية',
+    brand: 'Alaker Sweets', tagline: 'Hot trays to your door', mine: '🧾 My orders', lang: 'ع', step_of: 'Step {a} of 5',
     s1: 'Choose your tray', s1_sub: 'An order holds at least {n} tray(s), then go on.', s2: 'Add with it', s2_sub: 'Optional: other products with your order.',
     s3: 'Your notes on the order', s3_sub: 'Your wishes (less sugar, small pieces, no pistachio…).', s3_ph: 'Write your note (optional)',
     s4: 'Your details', s5: 'Review the order', next: 'Next', back: 'Back', send: 'Send the order', sending: 'Sending…',
@@ -42,7 +42,7 @@ const T = {
     done: 'We have your order', done_sub: 'The shop will call you to confirm it. Keep your order number:', follow: 'Follow your order', new_order: 'New order',
     st_new: 'Being reviewed', st_new_sub: 'The shop will call you to confirm', st_accepted: 'Accepted – being prepared', st_out: 'On its way to you', st_delivered: 'Delivered',
     st_rejected: 'The order could not be made', st_cancelled: 'The order was cancelled', reason: 'Reason', wa: 'Contact us on WhatsApp', cancel: 'Cancel the order',
-    cancel_q: 'Cancel the order?', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
+    cancel_q: 'Cancel the order?', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
     closed: 'Ordering is not open now, try later', offline: 'No internet connection, try again',
     err: { customer_required: 'Write your name', online_phone_invalid: 'The mobile number is not valid', address_required: 'Write the address', online_terms_required: 'Agree to the terms',
       online_blocked: 'Orders from this number cannot be taken, contact the shop', delivery_date_invalid: 'Choose the day and time', online_outside_hours: 'The time is outside the delivery hours',
@@ -124,37 +124,43 @@ async function loadCatalog() {
   return false;
 }
 
-// photos: kept in the phone's cache after the first time, loaded when they come into view
+// photos: kept in the phone's cache after the first time; those missing are asked for together in one call,
+// all of them as soon as the catalogue is known, so the next steps show them at once
 const photoCache = 'moro.order-photos';   // kept by the service worker across releases
 const photoUrls = {}, photoReady = {};          // one object URL per photo while the page is open
-async function photoUrl(id) {
-  if (!photoUrls[id]) photoUrls[id] = loadPhoto(id).then((u) => { if (u) photoReady[id] = u; else delete photoUrls[id]; return u; });
+const photoKey = (id) => new Request(location.origin + '/__online_photo/' + id);
+let queue = {}, queueTimer = null;
+function photoUrl(id) {
+  if (!photoUrls[id]) photoUrls[id] = new Promise((resolve) => { queue[id] = resolve; clearTimeout(queueTimer); queueTimer = setTimeout(fetchQueued, 20); })
+    .then((u) => { if (u) photoReady[id] = u; else delete photoUrls[id]; return u; });
   return photoUrls[id];
 }
-async function loadPhoto(id) {
-  const key = new Request(location.origin + '/__online_photo/' + id);
-  try {
-    const c = await caches.open(photoCache);
-    const hit = await c.match(key);
-    if (hit) return URL.createObjectURL(await hit.blob());
-    const r = await api('online.photo', { id });
-    const blob = await (await fetch(r.data)).blob();
-    c.put(key, new Response(blob, { headers: { 'Content-Type': blob.type } })).catch(() => {});
-    return URL.createObjectURL(blob);
-  } catch {
-    try { const r = await api('online.photo', { id }); return r.data; } catch { return ''; }
-  }
+async function fetchQueued() {
+  const q = queue; queue = {};
+  let c = null;
+  try { c = await caches.open(photoCache); } catch { /* no cache storage: from the server each time */ }
+  const missing = [];
+  await Promise.all(Object.keys(q).map(async (id) => {
+    const hit = c && await c.match(photoKey(id)).catch(() => null);
+    if (hit) q[id](URL.createObjectURL(await hit.blob())); else missing.push(id);
+  }));
+  if (!missing.length) return;
+  let got = {};
+  try { got = await api('online.photos', { ids: missing }); } catch { /* offline: the placeholders stay */ }
+  await Promise.all(missing.map(async (id) => {
+    if (!got[id]) return q[id]('');
+    try {
+      const blob = await (await fetch(got[id])).blob();
+      if (c) c.put(photoKey(id), new Response(blob, { headers: { 'Content-Type': blob.type } })).catch(() => {});
+      q[id](URL.createObjectURL(blob));
+    } catch { q[id](got[id]); }
+  }));
 }
-const seen = typeof IntersectionObserver === 'function' ? new IntersectionObserver((list) => list.forEach(async (e) => {
-  if (!e.isIntersecting) return;
-  seen.unobserve(e.target);
-  const url = await photoUrl(e.target.dataset.photo);
-  if (url) e.target.replaceChildren(h('img', { src: url, alt: '', loading: 'lazy' }));
-}), { rootMargin: '200px' }) : null;
+function prefetchPhotos() { items().forEach((i) => { if (i.photo) photoUrl(i.photo); }); }
 function photo(it) {
   if (photoReady[it.photo]) return h('div.o-ph', h('img', { src: photoReady[it.photo], alt: '' }));
-  const box = h('div.o-ph', '🍰');
-  if (it.photo) { box.dataset.photo = it.photo; if (seen) seen.observe(box); else photoUrl(it.photo).then((u) => u && box.replaceChildren(h('img', { src: u, alt: '' }))); }
+  const box = h('div.o-ph', it.photo ? h('span.o-shimmer') : '🍰');
+  if (it.photo) photoUrl(it.photo).then((u) => box.replaceChildren(u ? h('img', { src: u, alt: '', class: 'o-fade' }) : '🍰'));
   return box;
 }
 
@@ -169,8 +175,8 @@ let shown = null;
 let current = null;            // the screen shown, drawn again when the language or the catalogue changes
 function render() { if (current) current(); else if (cat) step1(); }
 function frame(main, bar, withSteps = true) {
-  root.replaceChildren(head(), withSteps ? h('div.o-steps', [1, 2, 3, 4, 5].map((i) => h('span', { class: i <= step ? 'on' : '' }))) : '', h('main.o-main', main),
-    bar ? h('div.o-bar', h('div.o-bar-in', bar)) : '');
+  root.replaceChildren(...[head(), withSteps ? [h('div.o-steps', [1, 2, 3, 4, 5].map((i) => h('span', { class: i <= step ? 'on' : '' }))), h('div.o-stepof', tx('step_of', { a: step }))] : '', h('main.o-main', main),
+    bar ? h('div.o-bar', h('div.o-bar-in', bar)) : ''].flat());
   // to the top only on a new screen (adding a product draws the same screen again in place)
   if (shown !== current) { shown = current; window.scrollTo(0, 0); }
 }
@@ -178,7 +184,7 @@ function frame(main, bar, withSteps = true) {
 const items = () => (cat ? cat.items : []);
 const trays = () => items().filter((i) => i.req).reduce((s, i) => s + (cart[i.id] || 0), 0);
 const goods = () => items().reduce((s, i) => s + (cart[i.id] || 0) * i.price, 0);
-const count = () => Object.values(cart).reduce((s, n) => s + n, 0);
+const count = () => items().reduce((s, i) => s + (cart[i.id] || 0), 0);
 
 function card(it, onChange) {
   const q = cart[it.id] || 0;
@@ -315,17 +321,20 @@ function step5() {
   agree.addEventListener('change', () => { btn.disabled = !agree.checked; if (agree.checked) err.textContent = ''; });
   async function send() {
     if (!agree.checked) { err.textContent = T[lang].err.online_terms_required; return; }
-    btn.disabled = true; btn.textContent = tx('sending'); err.textContent = '';
+    btn.disabled = true; btn.classList.add('busy'); btn.textContent = tx('sending'); err.textContent = '';
     try {
       const r = await api('online.order', { client_id: clientId, from, name: details.name, phone: details.phone, address: details.address, map: details.map,
         date: when.date, time: when.time, note, lines: lines.map((i) => ({ id: i.id, qty: cart[i.id] })), terms: true, pay: 'delivery' });
       const mine = store.get('orders', []);
       if (r.token) mine.unshift({ no: r.no, token: r.token, date: when.date, time: when.time, total: r.total });
+      // what the order looks like now, so following it opens at once (the server's answer replaces it)
+      if (r.token) store.set('t.' + r.no, { no: r.no, status: 'new', reason: '', date: when.date, time: when.time, whatsapp: cat.cfg.whatsapp,
+        lines: lines.map((i) => ({ qty: cart[i.id], name: i.name, name_ar: i.name_ar, price: i.price })), fees: fees.map((f) => ({ ...f, qty: f.n })), total: r.total });
       store.set('orders', mine.slice(0, 30));
       cart = {}; saveCart(); note = ''; store.set('note', ''); clientId = newId();
       done(r);
     } catch (e) {
-      err.textContent = errText(e); btn.disabled = false; btn.textContent = tx('send');
+      err.textContent = errText(e); btn.disabled = false; btn.classList.remove('busy'); btn.textContent = tx('send');
       if (e.code === 'online_item_gone') loadCatalog().catch(() => {});
     }
   }
@@ -353,37 +362,71 @@ function done(r) {
 
 // ---------- following an order, and the orders sent from this phone
 const STAGES = ['new', 'accepted', 'out', 'delivered'];
-async function track(o) {
+const FINAL = ['delivered', 'rejected', 'cancelled'];
+// the last answer for each order is kept: the order shows at once, and is read again in the background
+const lastTrack = (no) => store.get('t.' + no, null);
+function keepTrack(t) {
+  store.set('t.' + t.no, t);
+  const mine = store.get('orders', []);
+  const m = mine.find((x) => x.no === t.no);
+  if (m && m.status !== t.status) { m.status = t.status; store.set('orders', mine); }
+}
+let tracking = null, trackTimer = null;
+function trackScreen() { track(tracking); }
+async function track(o, fresh) {
   if (!o) return showMine();
-  current = () => track(o);
-  frame(h('p.o-sub', '…'), null, false);
-  let t;
-  try { t = await api('online.track', { token: o.token }); } catch (e) { frame([h('p.o-err', errText(e)), h('button.o-btn.sec', { type: 'button', onclick: () => track(o) }, tx('refresh'))], null, false); return; }
+  tracking = o; current = trackScreen;
+  clearInterval(trackTimer);
+  const t = lastTrack(o.no);
+  if (t) drawTrack(o, t, true); else frame(h('div.o-skel', [1, 2, 3].map(() => h('span.o-shimmer'))), null, false);
+  const read = async () => {
+    try {
+      const n = await api('online.track', { token: o.token });
+      keepTrack(n);
+      if (current === trackScreen && tracking === o) drawTrack(o, n, false);
+      if (FINAL.includes(n.status)) clearInterval(trackTimer);
+    } catch (e) {
+      if (current !== trackScreen || tracking !== o) return;
+      if (lastTrack(o.no)) { const u = root.querySelector('.o-upd'); if (u) u.textContent = errText(e); }
+      else frame([h('p.o-err', errText(e)), h('button.o-btn.sec', { type: 'button', onclick: () => track(o) }, tx('refresh'))], null, false);
+    }
+  };
+  if (fresh !== false) read();
+  // while the page is open: read again every 30 seconds until it is done
+  trackTimer = setInterval(() => {
+    if (current !== trackScreen || tracking !== o) return clearInterval(trackTimer);
+    if (document.visibilityState === 'visible') read();
+  }, 30000);
+}
+function drawTrack(o, t, stale) {
   const at = STAGES.indexOf(t.status);
   const bad = t.status === 'rejected' || t.status === 'cancelled';
   const wa = t.whatsapp ? 'https://wa.me/974' + t.whatsapp + '?text=' + encodeURIComponent(tx('order_no') + ' ' + t.no) : '';
-  frame([h('h2.o-title', tx('order_no') + ' ', h('span', { dir: 'ltr' }, t.no)), h('p.o-sub', tx('when') + ': ', h('bdi', { dir: 'ltr' }, t.date + ' ' + t.time)),
+  frame([h('h2.o-title', tx('order_no') + ' ', h('span', { dir: 'ltr' }, t.no)), h('p.o-sub', tx('when') + ': ', h('bdi', { dir: 'ltr' }, t.date + ' ' + t.time),
+      h('small.o-upd', stale ? ' · ' + tx('updating') : '')),
     bad ? h('div.o-bad', tx('st_' + t.status), t.reason && t.reason !== 'customer' ? h('div', tx('reason') + ': ' + t.reason) : '')
       : h('div.o-track', STAGES.map((s, i) => h('div.o-st', { class: i < at ? 'done' : i === at ? 'now' : '' }, h('span.o-dot', i < at ? '✓' : ''),
         h('div', h('b', tx('st_' + s)), s === 'new' && i === at ? h('small', tx('st_new_sub')) : '')))),
     h('div.o-box', h('div.o-lines', t.lines.map((l) => h('div.o-line', h('span', l.qty + ' × ' + nameOf(l)), h('span', money(l.qty * l.price)))),
       t.fees.map((f) => h('div.o-line.sub', h('span', (lang === 'ar' ? f.name_ar || f.name_en : f.name_en || f.name_ar) + (f.qty > 1 ? ' × ' + f.qty : '')), h('span', money(f.total)))),
       h('div.o-line.total', h('span', tx('total')), h('span', money(t.total))))),
-    h('div.o-form', wa ? h('a.o-btn.wa.block', { href: wa, target: '_blank', rel: 'noopener', style: 'text-align:center;text-decoration:none' }, '💬 ' + tx('wa')) : '',
-      h('button.o-btn.sec.block', { type: 'button', onclick: () => track(o) }, '↻ ' + tx('refresh')),
+    h('div.o-form', wa && !FINAL.includes(t.status) ? h('a.o-btn.wa.block', { href: wa, target: '_blank', rel: 'noopener' }, '💬 ' + tx('wa')) : '',
       t.status === 'new' ? h('button.o-btn.ghost.block.o-cancel', { type: 'button', onclick: async (e) => {
         const b = e.currentTarget;
         if (!(await ask(tx('cancel_q'), tx('yes'), tx('no')))) return;
-        b.disabled = true;
-        try { await api('online.cancel', { token: o.token }); track(o); } catch (ex) { toast(errText(ex), true); b.disabled = false; }
+        b.disabled = true; b.textContent = tx('cancelling');
+        try { const r = await api('online.cancel', { token: o.token }); keepTrack(Object.assign({}, t, { status: r.status || 'cancelled', reason: 'customer' })); drawTrack(o, lastTrack(o.no), false); }
+        catch (ex) { toast(errText(ex), true); b.disabled = false; b.textContent = tx('cancel'); }
       } }, tx('cancel')) : '',
       h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')))], null, false);
 }
 function showMine() {
   current = showMine;
   const mine = store.get('orders', []);
-  frame([h('h2.o-title', tx('mine')), mine.length ? h('div.o-mine', mine.map((o) => h('button', { type: 'button', onclick: () => track(o) },
-    h('span', h('b', { dir: 'ltr' }, o.no), h('br'), h('small', o.date + ' ' + o.time)), h('span', money(o.total)))))
+  frame([h('h2.o-title', tx('mine')), mine.length ? h('div.o-mine', mine.map((o) => { const st = o.status || (lastTrack(o.no) || {}).status || 'new';
+    return h('button', { type: 'button', onclick: () => track(o) },
+      h('span', h('b', { dir: 'ltr' }, o.no), ' ', h('span.o-pill', { class: st }, tx('st_' + st)), h('br'), h('small', h('bdi', { dir: 'ltr' }, o.date + ' ' + o.time))),
+      h('span.o-mine-total', money(o.total), h('span.o-chev', lang === 'ar' ? '‹' : '›'))); }))
     : h('p.o-sub', tx('no_orders')), h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home'))], null, false);
 }
 
@@ -391,10 +434,10 @@ function showMine() {
 async function start() {
   applyLang();
   if (params.get('track')) { const o = store.get('orders', []).find((x) => x.no === params.get('track')); if (o) { track(o); return; } }
-  if (cat) step1(); else frame(h('p.o-sub', '…'), null, false);
+  if (cat) { step1(); prefetchPhotos(); } else frame([h('div.o-skel-title', h('span.o-shimmer')), h('div.o-grid', [1, 2, 3, 4].map(() => h('div.o-card', h('div.o-ph', h('span.o-shimmer')), h('div.o-card-b', h('span.o-shimmer.line'), h('span.o-shimmer.line.short')))))], null, true);
   try {
     const changed = await loadCatalog();
-    if (changed || !current) render();
+    if (changed || !current) { render(); prefetchPhotos(); }
   } catch (e) {
     if (!cat) frame([h('p.o-err', errText(e)), h('button.o-btn', { type: 'button', onclick: start }, tx('refresh'))], null, false);
   }

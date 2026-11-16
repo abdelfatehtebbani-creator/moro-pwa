@@ -171,6 +171,7 @@ var PUBLIC = {
   // the customers' page (order.html): the catalogue, a photo, the order, following it, cancelling it
   'online.catalog':  function (p) { return Online.catalog(p); },
   'online.photo':    function (p) { return Online.photo(p); },
+  'online.photos':   function (p) { return Online.photos(p); },
   'online.order':    function (p) { return Online.order(p); },
   'online.track':    function (p) { return Online.track(p); },
   'online.cancel':   function (p) { return Online.cancel(p); },

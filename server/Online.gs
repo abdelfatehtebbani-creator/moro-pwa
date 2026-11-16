@@ -129,6 +129,21 @@ var Online = {
     return Photos.get(null, { photo_id: id });
   },
 
+  /** Several photos of the page in one call (the page asks for all it lacks at once). p: {ids} -> {id: data URL} */
+  photos: function (p) {
+    var offered = {};
+    Repo.all('Items').forEach(function (i) { if (i.online === true && i.online_photo) offered[i.online_photo] = true; });
+    var want = {};
+    (p.ids || []).slice(0, 60).forEach(function (id) { if (offered[String(id)]) want[String(id)] = []; });
+    Repo.all('Photos').forEach(function (x) { if (want[x.photo_id]) want[x.photo_id].push(x); });
+    var out = {};
+    Object.keys(want).forEach(function (id) {
+      if (!want[id].length) return;
+      out[id] = want[id].sort(function (a, b) { return Number(a.part) - Number(b.part); }).map(function (x) { return String(x.data); }).join('');
+    });
+    return out;
+  },
+
   minutes: function (hhmm) { var m = String(hhmm || '').match(/^(\d{2}):(\d{2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; },
 
   /** Minutes from now (Qatar time) to a day and time. */
