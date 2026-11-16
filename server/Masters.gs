@@ -434,7 +434,7 @@ var Masters = {
       online_mine: Perm.has(session, 'nav.online') && Online.mine(session, Online.cfg().shop),
       online_new: Perm.has(session, 'online.accept') ? Online.pending(session) : 0,
       // the driver: customers' orders on the way with them; a cashier: orders to be paid at their shop
-      online_drive: Perm.has(session, 'online.driverList') ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && o.status === 'out'; }).length : -1,
+      online_drive: Perm.has(session, 'online.driverList') ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && (o.status === 'handed' || o.status === 'out'); }).length : -1,
       online_pay: (function () {
         if (!Perm.has(session, 'online.pay')) return -1;
         var shop = String((Repo.find('Users', 'user_id', session.user_id) || {}).shop || '');

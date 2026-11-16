@@ -10,7 +10,9 @@
  *   Fast on purpose: the catalogue is built once per data version and kept in the script cache; the page keeps its own
  *   copy and asks only whether it changed. Prices are fixed in the order when it is sent.
  */
-var ONLINE_STATUSES = ['new', 'accepted', 'out', 'delivered', 'rejected', 'cancelled'];
+// handed: given to the driver at the shop; out: the driver left with it (the customer is told then)
+var ONLINE_STATUSES = ['new', 'accepted', 'handed', 'out', 'delivered', 'rejected', 'cancelled'];
+var ONLINE_OPEN = ['new', 'accepted', 'handed', 'out'];
 var ONLINE_DEFAULTS = {
   shop: '', whatsapp: '', min_req: 1, lead_min: 180, reply_min: 15, max_open: 2, return_days: 7,
   // paying cash at a shop before the delivery: allowed or not, and how many minutes before the delivery time at the latest
@@ -213,7 +215,7 @@ var Online = {
         if (dup) return { no: dup.no, duplicate: true };
       }
       // no more open orders from the same number than the admin allows (orders sent in jest)
-      var open = Repo.all('OnlineOrders').filter(function (o) { return o.phone === phone && (o.status === 'new' || o.status === 'accepted' || o.status === 'out'); }).length;
+      var open = Repo.all('OnlineOrders').filter(function (o) { return o.phone === phone && ONLINE_OPEN.indexOf(o.status) >= 0; }).length;
       Util.require(open < cfg.max_open, 'online_too_many');
       var no = 'W' + Util.pad(Settings.next('seq_online', 0), 5);
       var token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
@@ -285,12 +287,14 @@ var Online = {
   /** What the customer sees of their order. p: {token} */
   track: function (p) {
     Online.checkUnpaid();
+    Online.checkKept();
     var o = Online.find(p.token);
     var cfg = Online.cfg();
     return { no: o.no, status: o.status, reason: o.reason || '', date: o.date, time: o.time, name: o.name, address: o.address, note: o.note,
              lines: JSON.parse(o.lines || '[]'), fees: JSON.parse(o.fees || '[]'), goods: Number(o.goods), fee_total: Number(o.fee_total),
              deposit: Number(o.deposit), total: Number(o.total), created_at: o.created_at, called: !!o.called_at, whatsapp: cfg.whatsapp,
-             pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: o.pay === 'shop' ? Online.payBy(o, cfg) : '' };
+             pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: o.pay === 'shop' ? Online.payBy(o, cfg) : '',
+             delivered_at: o.delivered_at || '', trays_state: o.status === 'delivered' && Number(o.trays) > 0 && Number(o.deposit) > 0 ? Online.trayState(o, cfg) : null };
   },
 
   /** The customer cancels while it is new. p: {token} */
@@ -346,7 +350,8 @@ var Online = {
     Online.checkUnpaid();
     var since = Util.today().slice(0, 8) + '01';
     var rows = Repo.all('OnlineOrders').filter(function (o) {
-      return o.shop === cfg.shop && (['new', 'accepted', 'out'].indexOf(o.status) >= 0 || String(o.date) >= since);
+      return o.shop === cfg.shop && (ONLINE_OPEN.indexOf(o.status) >= 0 || String(o.date) >= since
+        || (o.status === 'delivered' && o.pay !== 'shop' && !o.cash_received_at));
     }).sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); }).slice(0, 200).map(Online.view);
     var drivers = Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; }).map(function (u) { return { id: u.user_id, name: u.display_name }; });
     var items = Repo.all('Items').filter(function (i) { return i.active === true && i.online === true; })
@@ -362,9 +367,9 @@ var Online = {
     return withLock(function () {
       var o = Repo.find('OnlineOrders', 'no', String(p.no || ''));
       Util.require(o, 'not_found');
-      // the driver who took it may mark it delivered
-      var driverOwn = auditName === 'online_delivered' && o.driver && o.driver === session.user_id;
-      Util.require(driverOwn || Online.mine(session, o.shop), 'forbidden');
+      // the driver's steps are theirs only (the order they took); the rest are the shop's
+      var driverStep = ['online_depart', 'online_delivered', 'online_cash_given'].indexOf(auditName) >= 0;
+      Util.require(driverStep ? (o.driver && o.driver === session.user_id) : Online.mine(session, o.shop), 'forbidden');
       Util.require(from.indexOf(o.status) >= 0, 'online_status', o.status);
       var ch = change(o);
       Repo.update('OnlineOrders', 'no', o.no, ch);
@@ -385,14 +390,36 @@ var Online = {
     Util.require(reason, 'reason_required');
     return Online.act(session, p, ['new', 'accepted'], function () { return { status: 'rejected', reason: reason, decided_at: Util.nowIso(), decided_by: session.user_id }; }, 'online_reject');
   },
-  out: function (session, p) {
-    var d = p.driver ? Repo.find('Users', 'user_id', String(p.driver)) : null;
-    Util.require(!p.driver || (d && d.role === 'driver'), 'driver_invalid');
-    return Online.act(session, p, ['accepted'], function (o) {
+  /** The shop gives it to a driver (the driver confirms when they leave with it). p: {no, driver} */
+  hand: function (session, p) {
+    var d = Repo.find('Users', 'user_id', String(p.driver || ''));
+    Util.require(d && d.role === 'driver' && d.active === true, 'driver_invalid');
+    return Online.act(session, p, ['accepted', 'handed'], function (o) {
       // to be paid at a shop: it leaves only once paid
       Util.require(o.pay !== 'shop' || o.paid_at, 'online_unpaid');
-      return { status: 'out', out_at: Util.nowIso(), driver: d ? d.user_id : '' };
-    }, 'online_out');
+      return { status: 'handed', handed_at: Util.nowIso(), handed_by: session.user_id, driver: d.user_id };
+    }, 'online_hand');
+  },
+  /** The driver got it and leaves: the customer is told it is on its way. */
+  depart: function (session, p) {
+    return Online.act(session, p, ['handed'], function () { return { status: 'out', out_at: Util.nowIso() }; }, 'online_depart');
+  },
+  /** The driver gave the money of an order paid on delivery to the shop (the cashier confirms it). */
+  cashGiven: function (session, p) {
+    return Online.act(session, p, ['delivered'], function (o) {
+      Util.require(o.pay !== 'shop', 'online_status', 'paid');
+      return { cash_given_at: o.cash_given_at || Util.nowIso() };
+    }, 'online_cash_given');
+  },
+  /** The shop's cashier got the money from the driver. */
+  cashIn: function (session, p) {
+    var u = Repo.find('Users', 'user_id', session.user_id) || {};
+    return Online.act(session, p, ['delivered'], function (o) {
+      Util.require(o.pay !== 'shop', 'online_status', 'paid');
+      if (o.cash_received_at) return {};
+      var shift = Repo.all('Shifts').filter(function (s) { return s.user_id === session.user_id && s.shop_party_id === u.shop && !s.closed_at; }).pop();
+      return { cash_received_at: Util.nowIso(), cash_received_by: session.user_id, cash_shift: shift ? shift.shift_id : '' };
+    }, 'online_cash_in');
   },
 
   /** After a step: the customer is told, and the driver of an order sent with them. */
@@ -404,12 +431,16 @@ var Online = {
       else Online.notify(o, ['قُبلت طلبيتك ' + no, 'نجهّزها الآن للتسليم ' + o.date + ' ' + o.time], ['Your order ' + no + ' is accepted', 'Being prepared for ' + o.date + ' ' + o.time]);
     }
     if (step === 'online_reject') Online.notify(o, ['تعذر تنفيذ طلبيتك ' + no, o.reason], ['Your order ' + no + ' could not be made', o.reason]);
-    if (step === 'online_out') {
-      Online.notify(o, ['طلبيتك في الطريق إليك', no], ['Your order is on its way', no]);
-      if (o.driver) Push.toUsers([o.driver], { ar: { title: 'طلبية زبون للتوصيل ' + no, body: o.name + ' – ' + o.address },
-        en: { title: 'Customer order to deliver ' + no, body: o.name + ' – ' + o.address }, page: 'custorders', badge: 1 });
+    if (step === 'online_hand' && o.driver) Push.toUsers([o.driver], { ar: { title: 'طلبية زبون للتوصيل ' + no, body: o.name + ' – ' + o.address },
+      en: { title: 'Customer order to deliver ' + no, body: o.name + ' – ' + o.address }, page: 'custorders', badge: 1 });
+    if (step === 'online_depart') Online.notify(o, ['طلبيتك في الطريق إليك', no], ['Your order is on its way', no]);
+    if (step === 'online_delivered') {
+      var days = Online.cfg().return_days;
+      Online.notify(o, ['سُلّمت طلبيتك ' + no, Number(o.trays) && Number(o.deposit) ? 'أرجع الصواني إلى أي محل خلال ' + days + ' يوم لتسترد ' + Number(o.deposit) + ' ر.ق' : 'بالهناء والعافية'],
+        ['Your order ' + no + ' is delivered', Number(o.trays) && Number(o.deposit) ? 'Return the trays to any shop within ' + days + ' days to get ' + Number(o.deposit) + ' QR back' : 'Enjoy!']);
+      Online.tell(o.shop, ['سلّم السائق الطلبية ' + no, o.pay === 'shop' ? 'مدفوعة' : 'معه ' + Number(o.total) + ' ر.ق'], ['Driver delivered ' + no, o.pay === 'shop' ? 'Paid' : 'Holding ' + Number(o.total) + ' QR']);
     }
-    if (step === 'online_delivered') Online.notify(o, ['سُلّمت طلبيتك ' + no, 'بالهناء والعافية'], ['Your order ' + no + ' is delivered', 'Enjoy!']);
+    if (step === 'online_cash_given') Online.tell(o.shop, ['السائق سلّم مبلغ الطلبية ' + no, Number(o.total) + ' ر.ق – أكّد الاستلام'], ['Driver handed the money of ' + no, Number(o.total) + ' QR – confirm']);
   },
 
   /** The driver: the customers' orders they take (on the way) and those they delivered today. */
@@ -418,7 +449,8 @@ var Online = {
     var names = {};
     Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
     var rows = Repo.all('OnlineOrders').filter(function (o) {
-      return o.driver === session.user_id && (o.status === 'out' || (o.status === 'delivered' && String(o.delivered_at).slice(0, 10) === today));
+      return o.driver === session.user_id && (o.status === 'handed' || o.status === 'out'
+        || (o.status === 'delivered' && (String(o.delivered_at).slice(0, 10) === today || (o.pay !== 'shop' && !o.cash_received_at))));
     }).map(Online.view).map(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; return o; });
     return { orders: rows };
   },
@@ -459,6 +491,77 @@ var Online = {
     });
   },
 
+  // ---------- the trays at the customers (and their deposit)
+  /** An order's trays: how many are out, the deposit of each, until when they may come back. */
+  trayState: function (o, cfg) {
+    var trays = Number(o.trays) || 0, back = Number(o.trays_back) || 0, dep = Number(o.deposit) || 0;
+    var per = trays ? Util.round(dep / trays) : 0;
+    var until = o.delivered_at ? Online.addDays(String(o.delivered_at).slice(0, 10), (cfg || Online.cfg()).return_days) : '';
+    return { trays: trays, back: back, out: Math.max(0, trays - back), per: per, until: until, kept: !!o.trays_kept_at,
+             deposit_back: Number(o.deposit_back) || 0, log: JSON.parse(o.tray_log || '[]') };
+  },
+  addDays: function (iso, n) { var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); },
+
+  /** Past the days to return them: the deposit of the trays not returned is kept (the tray's price). */
+  checkKept: function () {
+    var cfg = Online.cfg(), today = Util.today();
+    var due = Repo.all('OnlineOrders').filter(function (o) {
+      if (o.status !== 'delivered' || o.trays_kept_at || !(Number(o.deposit) > 0)) return false;
+      var st = Online.trayState(o, cfg);
+      return st.out > 0 && st.until && st.until < today;
+    });
+    if (!due.length) return 0;
+    withLock(function () {
+      due.forEach(function (o) {
+        Repo.update('OnlineOrders', 'no', o.no, { trays_kept_at: Util.nowIso() });
+        Audit.log('online', 'online_trays_kept', 'OnlineOrders', o.no, null, { trays: Online.trayState(o, cfg).out });
+        var st = Online.trayState(o, cfg);
+        Online.notify(o, ['انتهت مدة إرجاع الصواني ' + o.no, 'احتُسب التأمين ' + Util.round(st.out * st.per) + ' ر.ق ثمنًا لـ ' + st.out + ' صينية'],
+          ['Time to return the trays is over ' + o.no, 'The deposit of ' + Util.round(st.out * st.per) + ' QR is kept for ' + st.out + ' tray(s)']);
+      });
+    });
+    return due.length;
+  },
+
+  /** Any shop's cashier: the customers who have trays (to take them back and pay the deposit). */
+  trays: function (session) {
+    Online.checkKept();
+    var u = Repo.find('Users', 'user_id', session.user_id) || {};
+    Util.require(session.role === 'admin' || u.shop, 'online_need_shift');
+    var cfg = Online.cfg(), today = Util.today();
+    var rows = Repo.all('OnlineOrders').filter(function (o) { return o.status === 'delivered' && Number(o.trays) > 0 && Number(o.deposit) > 0; }).map(function (o) {
+      var st = Online.trayState(o, cfg);
+      return { no: o.no, name: o.name, phone: o.phone, trays: st.trays, out: st.out, back: st.back, per: st.per, until: st.until, kept: st.kept,
+               delivered: String(o.delivered_at).slice(0, 10), deposit_back: st.deposit_back,
+               today_back: st.log.filter(function (l) { return String(l.at).slice(0, 10) === today && l.shop === u.shop; }).reduce(function (s, l) { return s + l.n; }, 0) };
+    }).filter(function (r) { return (r.out > 0 && !r.kept) || r.today_back > 0; });
+    return { orders: rows, shop: u.shop || '', return_days: cfg.return_days };
+  },
+
+  /** A cashier took back trays of an order and paid their deposit from the drawer. p: {no, n} */
+  trayReturn: function (session, p) {
+    var u = Repo.find('Users', 'user_id', session.user_id) || {};
+    Util.require(u.shop, 'online_need_shift');
+    var n = Util.num(p.n);
+    Util.require(n !== null && n > 0 && Math.round(n) === n, 'qty_invalid');
+    return withLock(function () {
+      var o = Repo.find('OnlineOrders', 'no', String(p.no || ''));
+      Util.require(o && o.status === 'delivered', 'not_found');
+      var st = Online.trayState(o);
+      Util.require(!st.kept, 'online_trays_kept');
+      Util.require(n <= st.out, 'online_trays_too_many', String(st.out));
+      var shift = Repo.all('Shifts').filter(function (s) { return s.user_id === session.user_id && s.shop_party_id === u.shop && !s.closed_at; }).pop();
+      var amount = Util.round(n * st.per);
+      var log = st.log.concat([{ at: Util.nowIso(), by: session.user_id, shop: u.shop, shift: shift ? shift.shift_id : '', n: n, amount: amount }]);
+      var ch = { trays_back: st.back + n, deposit_back: Util.round(st.deposit_back + amount), tray_log: JSON.stringify(log) };
+      Repo.update('OnlineOrders', 'no', o.no, ch);
+      Audit.log(session.user_id, 'online_trays_back', 'OnlineOrders', o.no, null, { n: n, amount: amount, shop: u.shop });
+      Online.notify(o, ['استلمنا ' + n + ' صينية – ' + o.no, 'استرددت ' + amount + ' ر.ق في ' + Online.shopName(u.shop) + (st.out - n ? ' – باقي ' + (st.out - n) : '')],
+        ['We got ' + n + ' tray(s) back – ' + o.no, amount + ' QR paid back at ' + Online.shopName(u.shop) + (st.out - n ? ' – ' + (st.out - n) + ' left' : '')]);
+      return { no: o.no, out: st.out - n, amount: amount, version: Version.bump() };
+    });
+  },
+
   /** Orders to be paid at a shop and not paid by their time are cancelled, and the customer and the shop are told. */
   checkUnpaid: function () {
     var cfg = Online.cfg();
@@ -480,7 +583,7 @@ var Online = {
     return late.length;
   },
   delivered: function (session, p) {
-    return Online.act(session, p, ['out', 'accepted'], function () { return { status: 'delivered', delivered_at: Util.nowIso() }; }, 'online_delivered');
+    return Online.act(session, p, ['out'], function () { return { status: 'delivered', delivered_at: Util.nowIso() }; }, 'online_delivered');
   },
 
   /** New orders left without an answer past the minutes the admin set: the shop's manager and the admin are told (once). */

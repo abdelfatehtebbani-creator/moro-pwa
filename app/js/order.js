@@ -19,7 +19,7 @@ const T = {
     done: 'وصلتنا طلبيتك', done_sub: 'سيتصل بك المحل لتأكيدها. احفظ رقم طلبيتك:', follow: 'تابع طلبيتك', new_order: 'طلبية جديدة',
     st_new: 'قيد المراجعة', st_new_sub: 'سيتصل بك المحل للتأكيد', st_accepted: 'مقبولة – قيد التجهيز', st_out: 'في الطريق إليك', st_delivered: 'سُلّمت',
     st_rejected: 'تعذر تنفيذ الطلبية', st_cancelled: 'ألغيت الطلبية', reason: 'السبب', wa: 'تواصل معنا على واتساب', cancel: 'ألغِ الطلبية',
-    cancel_q: 'إلغاء الطلبية؟', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
+    cancel_q: 'إلغاء الطلبية؟', tr_out: 'عندك {n} صينية', tr_until: 'أرجعها إلى أي محل قبل {d} (باقي {n} يوم) لتسترد {m}.', tr_all_back: 'أرجعت الصواني كلها، شكرًا لك', tr_back: 'أرجعت {n} صينية واسترددت {m} ({d})', tr_kept: 'انتهت مدة الإرجاع: احتُسب {m} ثمنًا لـ {n} صينية', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
     closed: 'الطلب غير متاح الآن، حاول لاحقًا', offline: 'لا اتصال بالإنترنت، حاول مرة أخرى',
     pay_how: 'طريقة الدفع', pay_cod: 'نقدًا عند الاستلام', pay_cod_sub: 'تدفع للسائق عند وصول الطلبية.', pay_at_shop: 'نقدًا في محل', pay_at_shop_sub: 'تدفع في المحل الذي تختاره قبل موعد التسليم بـ {h}، وإلا تُلغى الطلبية.',
     pay_shop_pick: 'المحل الذي ستدفع فيه', st_wait_pay: 'ادفع {m} نقدًا في {s} قبل {t}', st_paid: 'دُفعت ✓', hours_n: '{n} ساعة', mins_n: '{n} دقيقة',
@@ -48,7 +48,7 @@ const T = {
     done: 'We have your order', done_sub: 'The shop will call you to confirm it. Keep your order number:', follow: 'Follow your order', new_order: 'New order',
     st_new: 'Being reviewed', st_new_sub: 'The shop will call you to confirm', st_accepted: 'Accepted – being prepared', st_out: 'On its way to you', st_delivered: 'Delivered',
     st_rejected: 'The order could not be made', st_cancelled: 'The order was cancelled', reason: 'Reason', wa: 'Contact us on WhatsApp', cancel: 'Cancel the order',
-    cancel_q: 'Cancel the order?', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
+    cancel_q: 'Cancel the order?', tr_out: 'You have {n} tray(s)', tr_until: 'Return them to any shop before {d} ({n} days left) to get {m} back.', tr_all_back: 'All trays returned, thank you', tr_back: '{n} tray(s) returned, {m} paid back ({d})', tr_kept: 'Time to return is over: {m} kept for {n} tray(s)', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
     closed: 'Ordering is not open now, try later', offline: 'No internet connection, try again',
     pay_how: 'Payment', pay_cod: 'Cash on delivery', pay_cod_sub: 'You pay the driver when the order arrives.', pay_at_shop: 'Cash at a shop', pay_at_shop_sub: 'You pay at the shop you choose, {h} before the delivery time at the latest, or the order is cancelled.',
     pay_shop_pick: 'Shop where you will pay', st_wait_pay: 'Pay {m} cash at {s} before {t}', st_paid: 'Paid ✓', hours_n: '{n} hours', mins_n: '{n} minutes',
@@ -474,7 +474,7 @@ async function track(o, fresh) {
       const n = await api('online.track', { token: o.token });
       keepTrack(n);
       if (current === trackScreen && tracking === o) drawTrack(o, n, false);
-      if (FINAL.includes(n.status)) clearInterval(trackTimer);
+      if (FINAL.includes(n.status) && !(n.trays_state && n.trays_state.out && !n.trays_state.kept)) clearInterval(trackTimer);
     } catch (e) {
       if (current !== trackScreen || tracking !== o) return;
       if (lastTrack(o.no)) { const u = root.querySelector('.o-upd'); if (u) u.textContent = errText(e); }
@@ -489,7 +489,8 @@ async function track(o, fresh) {
   }, 30000);
 }
 function drawTrack(o, t, stale) {
-  const at = STAGES.indexOf(t.status);
+  // given to the driver but not left yet: still "accepted" for the customer (told when the driver leaves)
+  const at = t.status === 'delivered' ? STAGES.length : STAGES.indexOf(t.status === 'handed' ? 'accepted' : t.status);
   const bad = t.status === 'rejected' || t.status === 'cancelled';
   try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch { /* optional */ }
   const waitPay = t.pay === 'shop' && !t.paid && t.status === 'accepted';
@@ -501,7 +502,8 @@ function drawTrack(o, t, stale) {
         h('div', h('b', tx('st_' + s)), s === 'new' && i === at ? h('small', tx('st_new_sub')) : '',
           s === 'accepted' && waitPay ? h('small.o-waitpay', tx('st_wait_pay', { m: money(t.total), s: t.pay_shop, t: t.pay_by })) : '',
           s === 'accepted' && t.pay === 'shop' && t.paid ? h('small.o-paid', tx('st_paid')) : '')))),
-    FINAL.includes(t.status) ? '' : pushBox(() => drawTrack(o, lastTrack(o.no) || t, false)),
+    trayBox(t),
+    FINAL.includes(t.status) && !(t.trays_state && t.trays_state.out && !t.trays_state.kept) ? '' : pushBox(() => drawTrack(o, lastTrack(o.no) || t, false)),
     h('div.o-box', h('div.o-lines', t.lines.map((l) => h('div.o-line', h('span', l.qty + ' × ' + nameOf(l)), h('span', money(l.qty * l.price)))),
       t.fees.map((f) => h('div.o-line.sub', h('span', (lang === 'ar' ? f.name_ar || f.name_en : f.name_en || f.name_ar) + (f.qty > 1 ? ' × ' + f.qty : '')), h('span', money(f.total)))),
       h('div.o-line.total', h('span', tx('total')), h('span', money(t.total))))),
@@ -515,12 +517,24 @@ function drawTrack(o, t, stale) {
       } }, tx('cancel')) : '',
       h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')))], null, false);
 }
+/** After delivery: the trays at the customer, until when, the deposit back so far. */
+function trayBox(t) {
+  const st = t.trays_state;
+  if (!st) return '';
+  const left = st.out ? Math.ceil((Date.parse(st.until + 'T23:59:59') - Date.now()) / 864e5) : 0;
+  return h('div.o-trays', { class: st.kept ? 'kept' : st.out ? '' : 'done' },
+    h('b', '🧺 ' + (st.kept ? tx('tr_kept', { n: st.out, m: money(st.out * st.per) }) : st.out ? tx('tr_out', { n: st.out }) : tx('tr_all_back'))),
+    st.out && !st.kept ? h('small', tx('tr_until', { d: st.until, n: Math.max(0, left), m: money(st.out * st.per) })) : '',
+    st.log.map((l) => h('small', '✓ ' + tx('tr_back', { n: l.n, m: money(l.amount), d: String(l.at).slice(0, 10) }))));
+}
 function showMine() {
   current = showMine;
   const mine = store.get('orders', []);
   frame([h('h2.o-title', tx('mine')), mine.length ? h('div.o-mine', mine.map((o) => { const st = o.status || (lastTrack(o.no) || {}).status || 'new';
+    const trs = (lastTrack(o.no) || {}).trays_state;
     return h('button', { type: 'button', onclick: () => track(o) },
-      h('span', h('b', { dir: 'ltr' }, o.no), ' ', h('span.o-pill', { class: st }, tx('st_' + st)), h('br'), h('small', h('bdi', { dir: 'ltr' }, o.date + ' ' + o.time))),
+      h('span', h('b', { dir: 'ltr' }, o.no), ' ', h('span.o-pill', { class: st }, tx('st_' + (st === 'handed' ? 'accepted' : st))),
+        trs && trs.out && !trs.kept ? [' ', h('span.o-pill.new', '🧺 ' + trs.out)] : '', h('br'), h('small', h('bdi', { dir: 'ltr' }, o.date + ' ' + o.time))),
       h('span.o-mine-total', money(o.total), h('span.o-chev', lang === 'ar' ? '‹' : '›'))); }))
     : h('p.o-sub', tx('no_orders')), h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')), recoverBox()], null, false);
 }

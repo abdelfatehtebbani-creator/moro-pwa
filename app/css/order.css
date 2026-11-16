@@ -152,3 +152,8 @@ a.o-btn { display: block; text-align: center; text-decoration: none; }
 .o-recover { background: #fff; border-radius: 14px; padding: 12px 14px; margin-top: 8px; }
 .o-recover summary { cursor: pointer; font-weight: 700; color: var(--navy); }
 .o-recover .o-btn { margin-top: 8px; }
+
+.o-trays { background: #fff7e8; border: 1.5px solid #f3d9a8; border-radius: 16px; padding: 14px; display: grid; gap: 6px; margin-top: 10px; }
+.o-trays small { color: var(--muted); }
+.o-trays.done { background: #e9f5ef; border-color: #bfe3cf; }
+.o-trays.kept { background: #fdecea; border-color: #f2c2bd; }

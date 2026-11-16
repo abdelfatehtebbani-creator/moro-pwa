@@ -978,3 +978,14 @@ p.pickup { margin: 8px 0 2px; }
 .ol-pay.paid { color: #3f8a3a; } .ol-pay.wait { color: var(--warn); }
 .ol-collect { background: #fff1e5; color: #b4560f; border-radius: 8px; padding: 8px 12px; font-weight: 800; font-size: 17px; text-align: center; }
 .ol-amount { font-size: 22px; font-weight: 800; text-align: center; }
+
+.ol-delivered { color: #3f8a3a; font-weight: 700; font-size: 13.5px; }
+.ol-driver { font-size: 13px; color: var(--muted); font-weight: 600; }
+.ol-pay .paid { color: #3f8a3a; } .ol-pay .wait { color: var(--warn); }
+.ol-pill.handed { background: #ede7f6; color: #5e35b1; }
+.ol-card.st-handed { border-inline-start-color: #5e35b1; }
+.ol-when.late { color: var(--danger); }
+.sync .sync-btn { border: 0; background: var(--teal); color: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; font-weight: 700; cursor: pointer; display: grid; place-items: center; flex: none; }
+.sync .sync-btn:active { transform: rotate(90deg); }
+.sync .sync-btn.spin { animation: sync-spin .8s linear infinite; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }

@@ -25,10 +25,12 @@ function env() {
   };
   const salwa = user('salwa1', 'cashier', 'P001');
   const lulua = user('lulua1', 'cashier', 'P002');
+  const drv = user('drv0', 'driver');
+  const drvId = g.rows('Users').find((u) => u.username === 'drv0').user_id;
   g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60, max_open: 2, reply_min: 15, whatsapp: '+974 5555 1234',
     fees: [{ name_ar: 'تأمين صينية', amount: 30, per: 'tray', refundable: true }, { name_ar: 'توصيل', amount: 15, per: 'order' }] },
     items: [{ item_id: 'I0001', online: true, req: true }, { item_id: 'I0002', online: true, req: true }, { item_id: 'I0003', online: true }] }, admin);
-  return { g, admin, salwa, lulua };
+  return { g, admin, salwa, lulua, drv, drvId };
 }
 const base = (over) => Object.assign({ client_id: 'c1', from: 'P002', name: 'Huda', phone: '5551 2345', address: 'Doha, Al Sadd, street 9',
   date: day(2), time: '12:00', note: 'less sugar', lines: [{ id: 'I0001', qty: 2 }, { id: 'I0003', qty: 1 }], terms: true }, over);
@@ -60,7 +62,7 @@ test('online: the catalogue, the order with its fees, following and cancelling i
 });
 
 test('online: the shop calls, accepts or refuses, sends and delivers; sold out today; blocked numbers', () => {
-  const { g, admin, salwa, lulua } = env();
+  const { g, admin, salwa, lulua, drv, drvId } = env();
   const r = g.api('online.order', base()).data;
   assert.equal(g.api('online.list', {}, lulua).error.code, 'forbidden', 'another shop does not see them');
   const list = g.api('online.list', {}, salwa).data;
@@ -72,9 +74,28 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   g.api('online.called', { no: r.no }, salwa);
   g.api('online.accept', { no: r.no }, salwa);
   assert.equal(g.api('online.cancel', { token: r.token }).error.code, 'online_cancel_late', 'accepted: the customer can no longer cancel');
-  g.api('online.out', { no: r.no }, salwa);
-  assert.equal(g.api('online.delivered', { no: r.no }, salwa).data.order.status, 'delivered');
-  assert.equal(g.api('online.track', { token: r.token }).data.status, 'delivered');
+  // given to the driver at the shop; the customer sees "on its way" only when the driver leaves
+  assert.equal(g.api('online.hand', { no: r.no }, salwa).error.code, 'driver_invalid', 'a driver is needed');
+  g.api('online.hand', { no: r.no, driver: drvId }, salwa);
+  assert.equal(g.api('online.track', { token: r.token }).data.status, 'handed');
+  assert.equal(g.api('online.depart', { no: r.no }, salwa).error.code, 'forbidden', 'only the driver leaves with it');
+  g.api('online.depart', { no: r.no }, drv);
+  assert.equal(g.api('online.track', { token: r.token }).data.status, 'out');
+  assert.equal(g.api('online.delivered', { no: r.no }, salwa).error.code, 'forbidden', 'only the driver delivers');
+  assert.equal(g.api('online.delivered', { no: r.no }, drv).data.order.status, 'delivered');
+  // the money of the delivery: the driver hands it, the cashier confirms
+  assert.equal(g.api('online.driverList', {}, drv).data.orders[0].no, r.no, 'until the cashier has the money, the driver still sees it');
+  g.api('online.cashGiven', { no: r.no }, drv);
+  g.api('online.cashIn', { no: r.no }, salwa);
+  assert.ok(g.rows('OnlineOrders').find((o) => o.no === r.no).cash_received_at);
+  // the trays: 2 out (60 of deposit); one comes back to another shop, which pays 30 back
+  let ts = g.api('online.track', { token: r.token }).data.trays_state;
+  assert.deepEqual([ts.out, ts.per], [2, 30]);
+  assert.equal(g.api('online.trays', {}, lulua).data.orders.find((o) => o.no === r.no).out, 2);
+  assert.equal(g.api('online.trayReturn', { no: r.no, n: 3 }, lulua).error.code, 'online_trays_too_many');
+  assert.equal(g.api('online.trayReturn', { no: r.no, n: 1 }, lulua).data.amount, 30);
+  ts = g.api('online.track', { token: r.token }).data.trays_state;
+  assert.deepEqual([ts.out, ts.back, ts.deposit_back], [1, 1, 30]);
   // refused with a reason
   const r2 = g.api('online.order', base({ client_id: 'c9' })).data;
   assert.equal(g.api('online.reject', { no: r2.no }, salwa).error.code, 'reason_required');
@@ -93,16 +114,13 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
 });
 
 test('online: paid at a shop before it leaves, cancelled when not paid in time; the driver sees and delivers it', () => {
-  const { g, admin, salwa, lulua } = env();
-  g.api('users.save', { username: 'drv1', display_name: 'Driver', role: 'driver', pin: '5678' }, admin);
-  const drv = g.api('auth.login', { username: 'drv1', pin: '5678' }).data.token;
-  const drvId = g.rows('Users').find((u) => u.username === 'drv1').user_id;
+  const { g, admin, salwa, lulua, drv, drvId } = env();
   assert.equal(g.api('online.order', base({ pay: 'shop', pay_shop: 'P999' })).error.code, 'online_pay_shop');
   const r = g.api('online.order', base({ pay: 'shop', pay_shop: 'P002' })).data;
   g.api('online.accept', { no: r.no }, salwa);
   let t = g.api('online.track', { token: r.token }).data;
   assert.deepEqual([t.pay, t.pay_shop, t.paid], ['shop', 'Lulua Branch', false]);
-  assert.equal(g.api('online.out', { no: r.no }, salwa).error.code, 'online_unpaid', 'not paid: it does not leave');
+  assert.equal(g.api('online.hand', { no: r.no, driver: drvId }, salwa).error.code, 'online_unpaid', 'not paid: it does not leave');
   // any shop's cashier sees it and takes the money
   const pl = g.api('online.payList', {}, lulua).data;
   assert.equal(pl.orders.find((o) => o.no === r.no).total, r.total);
@@ -112,7 +130,8 @@ test('online: paid at a shop before it leaves, cancelled when not paid in time; 
   assert.equal(row.paid_shop, 'P002');
   assert.equal(g.api('online.track', { token: r.token }).data.paid, true);
   // it leaves with the driver, who sees it and marks it delivered
-  g.api('online.out', { no: r.no, driver: drvId }, salwa);
+  g.api('online.hand', { no: r.no, driver: drvId }, salwa);
+  g.api('online.depart', { no: r.no }, drv);
   assert.equal(g.api('data.bootstrap', {}, drv).data.online_drive, 1);
   assert.equal(g.api('online.driverList', {}, drv).data.orders[0].no, r.no);
   assert.equal(g.api('online.delivered', { no: r.no }, drv).data.order.status, 'delivered');

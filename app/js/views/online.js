@@ -15,22 +15,24 @@ let cached = null;            // the last list, shown at once on the next visit
 let timer = null;
 const money = (n) => fmtNum(Math.round(Number(n || 0) * 100) / 100) + ' ' + t('ol_qr');
 const nameOf = (x) => Data.nameOf(x);
-const OPEN = ['new', 'accepted', 'out'];
+const OPEN = ['new', 'accepted', 'handed', 'out'];
+// delivered, paid on delivery, and the money not yet with the cashier: still to do
+const cashOpen = (o) => o.status === 'delivered' && o.pay !== 'shop' && !o.cash_received_at;
 // a step pressed shows at once; it is sent in the background, and a list read meanwhile keeps it until the server has it
-const NEXT = { 'online.accept': 'accepted', 'online.out': 'out', 'online.delivered': 'delivered', 'online.reject': 'rejected' };
+const NEXT = { 'online.accept': 'accepted', 'online.hand': 'handed', 'online.reject': 'rejected', 'online.cashIn': 'delivered' };
 const pending = {};
 
 export function render(root) {
   const b = Data.boot || {};
   const keys = [].concat(b.online_mine ? ['orders', 'done'] : [], b.online_drive >= 0 ? ['drive'] : [], b.online_pay >= 0 ? ['pay'] : [],
-    Data.can('online.settings') ? ['settings'] : []);
+    b.online_pay >= 0 || (Data.user || {}).role === 'admin' ? ['trays'] : [], Data.can('online.settings') ? ['settings'] : []);
   if (!keys.includes(tab)) tab = keys[0];
   const box = h('div');
   const bar = h('div.tabs.lpo-sections');
   const draw = () => {
     clearInterval(timer); timer = null;
     bar.replaceChildren(...keys.map((k) => h('button', { type: 'button', class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); } }, t('ol_tab_' + k))));
-    if (tab === 'settings') settings(box); else if (tab === 'drive') driverOrders(box); else if (tab === 'pay') payOrders(box); else orders(box);
+    if (tab === 'settings') settings(box); else if (tab === 'drive') driverOrders(box); else if (tab === 'pay') payOrders(box); else if (tab === 'trays') trayOrders(box); else orders(box);
   };
   root.replaceChildren(keys.length > 1 ? bar : '', box);
   if (!keys.length) { box.append(h('p.empty', t('ol_not_shop'))); return; }
@@ -50,7 +52,7 @@ function orders(box) {
     const fresh = d.orders.filter((o) => o.status === 'new').length;
     if (Data.boot && Data.boot.online_new !== fresh) { Data.boot.online_new = fresh; window.dispatchEvent(new Event('moro:badge')); }
     const late = (o) => o.status === 'new' && !o.called_at && (Date.now() - Date.parse(o.created_at)) / 60000 > (d.reply_min || 15);
-    const rows = d.orders.filter((o) => (tab === 'done' ? !OPEN.includes(o.status) : OPEN.includes(o.status)))
+    const rows = d.orders.filter((o) => (tab === 'done' ? !OPEN.includes(o.status) && !cashOpen(o) : OPEN.includes(o.status) || cashOpen(o)))
       .sort((a, b) => (tab === 'done' ? 0 : (OPEN.indexOf(a.status) - OPEN.indexOf(b.status)) || String(a.date + a.time).localeCompare(String(b.date + b.time))));
     list.replaceChildren(...(rows.length ? rows.map((o) => card(o, d, late(o), reload, () => show(d))) : [h('p.empty', t(tab === 'done' ? 'ol_none_done' : 'ol_none'))]));
     // sold out today: one tap per product
@@ -75,6 +77,7 @@ function card(o, d, late, reload, redraw) {
     const change = { status: NEXT[action] };
     if (extra && extra.driver !== undefined) change.driver = extra.driver;
     if (extra && extra.reason) change.reason = extra.reason;
+    if (action === 'online.cashIn') change.cash_received_at = new Date().toISOString();
     pending[o.no] = change;
     Object.assign(o, change);
     redraw();
@@ -87,17 +90,25 @@ function card(o, d, late, reload, redraw) {
   if (o.status === 'new' || o.status === 'accepted') btns.push(h('a.btn.secondary', { href: tel, onclick: () => { if (!o.called_at) call('online.called', { no: o.no }).then(() => { o.called_at = new Date().toISOString(); }).catch(() => {}); } }, '📞 ' + t('ol_call')));
   if (o.status === 'new') btns.push(h('button.btn', { type: 'button', onclick: (e) => act(e.currentTarget, 'online.accept') }, '✓ ' + t('ol_accept')));
   const unpaid = o.pay === 'shop' && !o.paid_at;
-  if (o.status === 'accepted' && !unpaid) btns.push(h('button.btn', { type: 'button', onclick: async (e) => {
+  // given to a driver at the shop; the driver confirms when they leave with it, and delivers it
+  if ((o.status === 'accepted' && !unpaid) || o.status === 'handed') btns.push(h('button.btn', { type: 'button', class: o.status === 'handed' ? 'secondary' : '', onclick: async (e) => {
     const btn = e.currentTarget;
-    if (!d.drivers.length) return act(btn, 'online.out');
+    if (!d.drivers.length) { toast(t('ol_no_drivers'), 'err'); return; }
     const driver = await dialog((close) => {
-      const sel = h('select.input', h('option', { value: '' }, t('ol_no_driver')), d.drivers.map((x) => h('option', { value: x.id }, x.name)));
-      return [h('h3', t('ol_send')), h('div.field', h('label', t('ol_driver')), sel),
-        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(undefined) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(sel.value) }, t('ol_send')))];
+      const sel = h('select.input', d.drivers.map((x) => h('option', { value: x.id }, x.name)));
+      if (o.driver) sel.value = o.driver;
+      return [h('h3', t('ol_hand')), h('p.muted', t('ol_hand_hint')), h('div.field', h('label', t('ol_driver')), sel),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(undefined) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(sel.value) }, t('ol_hand')))];
     });
-    if (driver !== undefined) act(btn, 'online.out', { driver });
-  } }, '🚚 ' + t('ol_send')));
-  if (o.status === 'out' || (o.status === 'accepted' && !unpaid)) btns.push(h('button.btn', { type: 'button', class: o.status === 'accepted' ? 'secondary' : '', onclick: (e) => act(e.currentTarget, 'online.delivered') }, '✔ ' + t('ol_delivered')));
+    if (driver) act(btn, 'online.hand', { driver });
+  } }, o.status === 'handed' ? '🔁 ' + t('ol_change_driver') : '🤝 ' + t('ol_hand')));
+  // the money of a delivery: the cashier confirms they have it from the driver
+  if (cashOpen(o)) btns.push(h('button.btn', { type: 'button', onclick: async (e) => {
+    const btn = e.currentTarget;
+    const ok = await dialog((close) => [h('h3', t('ol_cash_q', { m: money(o.total) })), h('p.muted', t('ol_cash_from', { d: driverNameOf(o, d) })),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('ol_cash_got')))]);
+    if (ok) act(btn, 'online.cashIn');
+  } }, '💵 ' + t('ol_cash_got') + ' ' + money(o.total)));
   if (o.status === 'new' || o.status === 'accepted') btns.push(h('button.btn.danger', { type: 'button', onclick: async (e) => {
     const btn = e.currentTarget;
     const reason = await dialog((close) => {
@@ -107,10 +118,11 @@ function card(o, d, late, reload, redraw) {
     });
     if (reason) act(btn, 'online.reject', { reason });
   } }, t('ol_reject')));
-  const driverName = o.driver ? ((d.drivers.find((x) => x.id === o.driver) || {}).name || '') : '';
+  const driverName = driverNameOf(o, d);
   return h('div.ol-card', { class: 'st-' + o.status + (late ? ' late' : '') },
     h('div.ol-top', h('b.num', o.no), h('span.ol-pill', { class: o.status }, t('ol_st_' + o.status)), pending[o.no] ? h('span.ol-pill.called', '⏳') : '', late ? h('span.ol-pill.late', '⏰ ' + t('ol_late')) : '',
       o.called_at && o.status === 'new' ? h('span.ol-pill.called', '📞 ' + t('ol_called')) : '', h('span.ol-when', '🗓 ', h('bdi', o.date + ' ' + o.time))),
+    o.delivered_at ? h('div.ol-delivered', '✔ ' + t('ol_delivered_at', { t: fmtTime(o.delivered_at) })) : '',
     h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('a', { href: tel, dir: 'ltr' }, o.phone)),
     h('div.ol-addr', '📍 ', h('bdi', o.address), o.map ? [' ', h('a', { href: o.map, target: '_blank', rel: 'noopener' }, t('ol_map'))] : ''),
     h('div.ol-lines', o.lines.map((l) => h('div', h('bdi', fmtNum(l.qty) + ' × ' + nameOf(l)), l.req ? h('small.muted', ' (' + t('ol_tray') + ')') : ''))),
@@ -122,15 +134,18 @@ function card(o, d, late, reload, redraw) {
     // not paid in time: a ready WhatsApp message for the customer
     o.status === 'cancelled' && o.reason === 'unpaid' ? h('div.ol-note', t('ol_unpaid_cancel'), ' ',
       h('a.btn.secondary', { href: 'https://wa.me/974' + String(o.phone).replace(/\D/g, '').replace(/^974/, '') + '?text=' + encodeURIComponent(t('ol_unpaid_msg', { no: o.no })), target: '_blank', rel: 'noopener' }, '💬 ' + t('ol_wa_customer'))) : '',
-    driverName ? h('small.muted', '🚚 ' + driverName) : '',
+    driverName ? h('div.ol-driver', '🚚 ' + driverName + ' · ' + t('ol_drv_' + (o.status === 'handed' ? 'handed' : o.status === 'out' ? 'out' : 'done'))
+      + (cashOpen(o) ? ' · ' + t(o.cash_given_at ? 'ol_cash_given' : 'ol_cash_with', { m: money(o.total) }) : '') + (o.cash_received_at && o.pay !== 'shop' ? ' · ✅ ' + t('ol_cash_in') : '')) : '',
     btns.length ? h('div.ol-btns', btns) : '');
 }
 
-/** How the order is paid: on delivery (the driver takes it), or at a shop (paid or waiting). */
+const driverNameOf = (o, d) => (o.driver ? ((d.drivers || []).find((x) => x.id === o.driver) || {}).name || '' : '');
+const fmtTime = (iso) => { const x = String(iso || ''); return x.slice(11, 16) + ' · ' + x.slice(0, 10); };
+/** How the order is paid: on delivery (the driver takes it), or cash at a shop (paid or waiting). */
 function payLine(o) {
-  if (o.pay !== 'shop') return h('div.ol-pay', '💵 ' + t('ol_pay_delivery') + ' · ' + t('ol_collect', { m: money(o.total) }));
-  return o.paid_at ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_at', { s: o.paid_shop_name || '' }))
-    : h('div.ol-pay.wait', '⏳ ' + t('ol_wait_pay', { s: o.pay_shop_name || '' }));
+  if (o.pay !== 'shop') return h('div.ol-pay', '💵 ' + t('ol_pay_delivery') + (OPEN.includes(o.status) ? ' · ' + t('ol_collect', { m: money(o.total) }) : ''));
+  return h('div.ol-pay', '🏪 ' + t('ol_pay_shop_in', { s: o.pay_shop_name || '' }) + ' · ',
+    o.paid_at ? h('span.paid', '✅ ' + t('ol_paid_at', { s: o.paid_shop_name || '' })) : h('span.wait', '⏳ ' + t('ol_unpaid_yet')));
 }
 
 // ---------- the driver: the customers' orders they take
@@ -140,24 +155,30 @@ function driverOrders(box) {
   box.replaceChildren(list);
   const show = (d) => {
     driveCache = d;
-    const fresh = d.orders.filter((o) => o.status === 'out').length;
+    const fresh = d.orders.filter((o) => o.status === 'out' || o.status === 'handed').length;
     if (Data.boot && Data.boot.online_drive !== fresh) { Data.boot.online_drive = fresh; window.dispatchEvent(new Event('moro:badge')); }
-    const rows = d.orders.slice().sort((a, b) => (a.status === 'out' ? 0 : 1) - (b.status === 'out' ? 0 : 1) || String(a.date + a.time).localeCompare(String(b.date + b.time)));
+    const rank = (o) => ({ handed: 0, out: 1 })[o.status] ?? (cashOpen(o) ? 2 : 3);
+    const rows = d.orders.slice().sort((a, b) => rank(a) - rank(b) || String(a.date + a.time).localeCompare(String(b.date + b.time)));
     list.replaceChildren(...(rows.length ? rows.map((o) => {
       const tel = 'tel:+974' + String(o.phone || '').replace(/\D/g, '').replace(/^974/, '');
       const map = o.map || 'https://maps.google.com/?q=' + encodeURIComponent(o.address);
-      const done = h('button.btn', { type: 'button', onclick: async () => {
-        o.status = 'delivered'; show(d); toast(o.no + ' · ' + t('ol_st_delivered'), 'ok');
-        try { await call('online.delivered', { no: o.no }); } catch (e) { o.status = 'out'; show(d); toast(errText(e), 'err'); }
-      } }, '✔ ' + t('ol_delivered'));
+      // a step shows at once and is sent in the background (back as it was if the server refuses it)
+      const step = (action, change, label, cls) => h('button.btn' + (cls || ''), { type: 'button', onclick: async () => {
+        const before = Object.assign({}, o);
+        Object.assign(o, change); show(d); toast(o.no + ' · ' + label, 'ok');
+        try { await call(action, { no: o.no }); } catch (e) { Object.assign(o, before); show(d); toast(errText(e), 'err'); }
+      } }, label);
+      const done = step('online.delivered', { status: 'delivered', delivered_at: new Date().toISOString() }, '✔ ' + t('ol_delivered'));
       return h('div.ol-card', { class: 'st-' + o.status },
         h('div.ol-top', h('b.num', o.no), h('span.ol-pill', { class: o.status }, t('ol_st_' + o.status)), h('span.ol-when', '🗓 ', h('bdi', o.date + ' ' + o.time))),
         h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('a', { href: tel, dir: 'ltr' }, o.phone)),
         h('div.ol-addr', '📍 ', h('bdi', o.address)),
         h('div.ol-lines', o.lines.map((l) => h('div', h('bdi', fmtNum(l.qty) + ' × ' + nameOf(l))))),
         o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
-        o.pay === 'shop' ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : h('div.ol-collect', t('ol_collect', { m: money(o.total) })),
-        o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '');
+        o.pay === 'shop' ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
+        o.status === 'handed' ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
+        o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '',
+        cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
     }) : [h('p.empty', t('ol_drive_none'))]));
   };
   const reload = () => call('online.driverList').then((d) => { if (box.isConnected) show(d); }).catch((e) => { if (!driveCache) list.replaceChildren(h('p.empty', errText(e))); });
@@ -198,6 +219,52 @@ function payOrders(box) {
   if (payCache) show(payCache); else list.replaceChildren(h('p.empty', t('refreshing')));
   reload();
   timer = setInterval(() => { if (!box.isConnected) { clearInterval(timer); timer = null; return; } if (document.visibilityState === 'visible') reload(); }, 30000);
+}
+
+// ---------- any shop's cashier: the trays at the customers, taken back and their deposit paid
+let trayCache = null;
+function trayOrders(box) {
+  const q = h('input.input', { type: 'search', inputmode: 'search', placeholder: t('ol_pay_search') });
+  const list = h('div.ol-list');
+  box.replaceChildren(h('p.muted', t('ol_trays_hint')), q, list);
+  const canWa = !!(Data.boot || {}).online_mine;
+  const show = (d) => {
+    trayCache = d;
+    const k = q.value.trim().toLowerCase().replace(/\s/g, '');
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = d.orders.filter((o) => !k || o.no.toLowerCase().includes(k) || String(o.phone).includes(k))
+      .sort((a, b) => (b.out > 0) - (a.out > 0) || String(a.until).localeCompare(String(b.until)));
+    list.replaceChildren(...(rows.length ? rows.map((o) => {
+      const late = o.until && o.until < today;
+      return h('div.ol-card', { class: o.out ? 'st-new' : 'st-delivered' },
+        h('div.ol-top', h('b.num', o.no), o.out ? h('span.ol-pill.new', '🧺 ' + t('ol_trays_out', { n: o.out })) : h('span.ol-pill.delivered', '✅ ' + t('ol_trays_all_back')),
+          h('span.ol-when', { class: late ? 'late' : '' }, t('ol_trays_until') + ' ', h('bdi', o.until))),
+        h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('span', { dir: 'ltr' }, '•••• ' + String(o.phone).slice(-4)), ' · ', t('ol_per_tray_dep', { m: money(o.per) })),
+        o.today_back ? h('small.muted', t('ol_trays_today', { n: o.today_back })) : '',
+        o.out ? h('div.ol-btns', h('button.btn', { type: 'button', onclick: async (e) => {
+          const btn = e.currentTarget;
+          const n = await dialog((close) => {
+            const inp = h('input.input', { type: 'number', min: 1, max: o.out, value: o.out, inputmode: 'numeric' });
+            const pay = h('p.ol-amount', money(o.out * o.per));
+            inp.addEventListener('input', () => { pay.textContent = money(Math.min(o.out, Math.max(0, Number(inp.value) || 0)) * o.per); });
+            return [h('h3', t('ol_trays_q', { no: o.no })), h('div.field', h('label', t('ol_trays_n', { n: o.out })), inp), h('p.muted', t('ol_trays_pay')), pay,
+              h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(0) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(Number(inp.value) || 0) }, t('ol_trays_ok')))];
+          });
+          if (!(n > 0)) return;
+          if (n > o.out) { toast(t('err.online_trays_too_many', { d: o.out }), 'err'); return; }
+          btn.disabled = true;
+          const before = o.out;
+          o.out -= n; o.today_back = (o.today_back || 0) + n; show(d); toast(o.no + ' · ' + t('ol_trays_paid', { m: money(n * o.per) }), 'ok');
+          try { await call('online.trayReturn', { no: o.no, n }); } catch (ex) { o.out = before; o.today_back -= n; show(d); toast(errText(ex), 'err'); }
+        } }, '🧺 ' + t('ol_trays_btn')),
+        canWa ? h('a.btn.secondary', { href: 'https://wa.me/974' + String(o.phone).replace(/\D/g, '').replace(/^974/, '') + '?text=' + encodeURIComponent(t('ol_trays_msg', { no: o.no, n: o.out, d: o.until, m: money(o.out * o.per) })), target: '_blank', rel: 'noopener' }, '💬 ' + t('ol_remind'))
+          : '') : '');
+    }) : [h('p.empty', t('ol_trays_none'))]));
+  };
+  q.addEventListener('input', () => trayCache && show(trayCache));
+  const reload = () => call('online.trays').then((d) => { if (box.isConnected) show(d); }).catch((e) => { if (!trayCache) list.replaceChildren(h('p.empty', errText(e))); });
+  if (trayCache) show(trayCache); else list.replaceChildren(h('p.empty', t('refreshing')));
+  reload();
 }
 
 // ---------- the admin's settings

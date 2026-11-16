@@ -225,7 +225,7 @@ function buildShell() {
 
   title = h('h1', '');
   // a click on the indicator opens the list of refused saves (the phone also has it under "more")
-  syncEl = h('div.sync', { title: t('refresh_now') }, h('span.dot'),
+  syncEl = h('div.sync', { title: t('refresh_now') }, h('button.sync-btn', { type: 'button', onclick: refreshNow, title: t('refresh_now'), 'aria-label': t('refresh_now') }, '↻'), h('span.dot'),
     h('button.sync-text', { type: 'button', onclick: refreshNow }, ''),
     h('button.sync-warn', { type: 'button', hidden: true, title: t('rejected_title'), onclick: () => { location.hash = '#/failed'; } }, ''));
   content = h('section.content');
@@ -514,11 +514,14 @@ async function refreshNow() {
   if (refreshing) return;
   refreshing = true;
   syncEl.querySelector('.sync-text').textContent = t('refreshing');
+  syncEl.querySelector('.sync-btn').classList.add('spin');
   try {
     await Outbox.flush();
     await sync(true);
+    // the screen is drawn again with what the server has now
+    if (content && !idleFrom) route();
     toast(lastSyncOk ? t('refreshed') : t('offline'), lastSyncOk ? 'ok' : 'err');
-  } finally { refreshing = false; updateSync(); }
+  } finally { refreshing = false; syncEl.querySelector('.sync-btn').classList.remove('spin'); updateSync(); }
 }
 
 function updateSync() {
