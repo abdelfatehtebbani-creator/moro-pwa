@@ -5,21 +5,21 @@ import { API_URL } from './config.js';
 
 const T = {
   ar: {
-    brand: 'حلويات العكر', tagline: 'صواني الكنافة الساخنة إلى بابك', mine: 'طلباتي', lang: 'English',
+    brand: 'حلويات العكر', tagline: 'صواني الكنافة الساخنة إلى بابك', mine: '🧾 طلباتي', lang: 'English',
     s1: 'اختر صينيتك', s1_sub: 'الحد الأدنى للطلبية {n} صينية، ثم أكمل.', s2: 'أضف معها', s2_sub: 'اختياري: أصناف أخرى مع طلبيتك.',
     s3: 'ملاحظاتك على الطلبية', s3_sub: 'شروطك أو ما تريد تحسينه (مثلًا: أقل سكر، قطع صغيرة، بلا فستق).', s3_ph: 'اكتب ملاحظتك هنا (اختياري)',
     s4: 'بياناتك', s5: 'مراجعة الطلبية', next: 'التالي', back: 'رجوع', send: 'أرسل الطلبية', sending: 'يُرسل…',
     trays: 'صواني', items: 'أصناف', min_left: 'باقي {n} للحد الأدنى', add: 'أضف', sold_out: 'نفد اليوم', qr: 'ر.ق',
     name: 'الاسم', phone: 'رقم الجوال', address: 'العنوان', address_ph: 'المنطقة، الشارع، رقم المبنى، أي وصف يساعد السائق', loc: '📍 موقعي الحالي',
     loc_ok: 'أُضيف موقعك ✓', loc_fail: 'تعذر تحديد الموقع، اكتب العنوان', date: 'يوم التسليم', time: 'وقت التسليم', closed_day: 'لا توصيل في هذا اليوم',
-    no_time: 'لا وقت متاح في هذا اليوم، اختر يومًا آخر', pay: 'الدفع عند الاستلام: نقدًا أو بالبطاقة مع السائق.',
+    no_time: 'لا وقت متاح في هذا اليوم، اختر يومًا آخر', pay: 'الدفع نقدًا عند الاستلام.', loc_saved: 'موقعك المحفوظ ✓', loc_new: '📍 حدّث إلى موقعي الحالي', loc_del: 'احذف الموقع', loc_hint: 'للتوصيل إلى مكان آخر: عدّل العنوان، ثم حدّث الموقع وأنت هناك أو احذفه.', yes: 'نعم، ألغِ', no: 'لا',
     goods: 'المنتجات', fees: 'الرسوم', total: 'المجموع', deposit_note: 'منها تأمين مسترد {d} ر.ق يُرد عند إرجاع الصواني إلى أي محل خلال {n} يوم.',
     terms_title: 'الشروط', terms_def: 'تأمين الصواني يُرد عند إرجاعها إلى أي فرع خلال {n} يوم من التسليم، وبعدها يُحتسب ثمنًا للصينية.',
     agree: 'قرأت الشروط وأوافق عليها', your_note: 'ملاحظتك',
     done: 'وصلتنا طلبيتك', done_sub: 'سيتصل بك المحل لتأكيدها. احفظ رقم طلبيتك:', follow: 'تابع طلبيتك', new_order: 'طلبية جديدة',
     st_new: 'قيد المراجعة', st_new_sub: 'سيتصل بك المحل للتأكيد', st_accepted: 'مقبولة – قيد التجهيز', st_out: 'في الطريق إليك', st_delivered: 'سُلّمت',
     st_rejected: 'تعذر تنفيذ الطلبية', st_cancelled: 'ألغيت الطلبية', reason: 'السبب', wa: 'تواصل معنا على واتساب', cancel: 'ألغِ الطلبية',
-    cancel_q: 'إلغاء الطلبية؟', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: 'الأصناف',
+    cancel_q: 'إلغاء الطلبية؟', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
     closed: 'الطلب غير متاح الآن، حاول لاحقًا', offline: 'لا اتصال بالإنترنت، حاول مرة أخرى',
     err: { customer_required: 'اكتب اسمك', online_phone_invalid: 'رقم الجوال غير صحيح', address_required: 'اكتب العنوان', online_terms_required: 'وافق على الشروط',
       online_blocked: 'لا يمكن قبول طلبات من هذا الرقم، تواصل مع المحل', delivery_date_invalid: 'اختر اليوم والوقت', online_outside_hours: 'الوقت خارج ساعات التوصيل',
@@ -28,21 +28,21 @@ const T = {
       not_found: 'لم نجد الطلبية', qty_invalid: 'كمية غير صحيحة', nothing_to_save: 'اختر صنفًا', busy: 'ضغط على الخادم، حاول بعد لحظات' },
   },
   en: {
-    brand: 'Alaker Sweets', tagline: 'Hot kunafa trays to your door', mine: 'My orders', lang: 'العربية',
+    brand: 'Alaker Sweets', tagline: 'Hot kunafa trays to your door', mine: '🧾 My orders', lang: 'العربية',
     s1: 'Choose your tray', s1_sub: 'An order holds at least {n} tray(s), then go on.', s2: 'Add with it', s2_sub: 'Optional: other products with your order.',
     s3: 'Your notes on the order', s3_sub: 'Your wishes (less sugar, small pieces, no pistachio…).', s3_ph: 'Write your note (optional)',
     s4: 'Your details', s5: 'Review the order', next: 'Next', back: 'Back', send: 'Send the order', sending: 'Sending…',
     trays: 'trays', items: 'items', min_left: '{n} more to the minimum', add: 'Add', sold_out: 'Sold out today', qr: 'QR',
     name: 'Name', phone: 'Mobile', address: 'Address', address_ph: 'Area, street, building, anything that helps the driver', loc: '📍 My location',
     loc_ok: 'Location added ✓', loc_fail: 'Could not get the location, write the address', date: 'Delivery day', time: 'Delivery time', closed_day: 'No delivery that day',
-    no_time: 'No time left that day, choose another day', pay: 'Pay on delivery: cash or card with the driver.',
+    no_time: 'No time left that day, choose another day', pay: 'Pay cash on delivery.', loc_saved: 'Your saved location ✓', loc_new: '📍 Update to my location now', loc_del: 'Remove the location', loc_hint: 'To deliver somewhere else: change the address, then update the location while there, or remove it.', yes: 'Yes, cancel', no: 'No',
     goods: 'Products', fees: 'Fees', total: 'Total', deposit_note: 'Of it, a refundable deposit of {d} QR, paid back when the trays come back to any shop within {n} days.',
     terms_title: 'Terms', terms_def: 'The trays’ deposit is paid back when they are returned to any shop within {n} days of delivery; after that it is kept as the tray’s price.',
     agree: 'I have read the terms and agree', your_note: 'Your note',
     done: 'We have your order', done_sub: 'The shop will call you to confirm it. Keep your order number:', follow: 'Follow your order', new_order: 'New order',
     st_new: 'Being reviewed', st_new_sub: 'The shop will call you to confirm', st_accepted: 'Accepted – being prepared', st_out: 'On its way to you', st_delivered: 'Delivered',
     st_rejected: 'The order could not be made', st_cancelled: 'The order was cancelled', reason: 'Reason', wa: 'Contact us on WhatsApp', cancel: 'Cancel the order',
-    cancel_q: 'Cancel the order?', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: 'Products',
+    cancel_q: 'Cancel the order?', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
     closed: 'Ordering is not open now, try later', offline: 'No internet connection, try again',
     err: { customer_required: 'Write your name', online_phone_invalid: 'The mobile number is not valid', address_required: 'Write the address', online_terms_required: 'Agree to the terms',
       online_blocked: 'Orders from this number cannot be taken, contact the shop', delivery_date_invalid: 'Choose the day and time', online_outside_hours: 'The time is outside the delivery hours',
@@ -75,6 +75,17 @@ function h(tag, attrs, ...kids) {
 }
 const money = (n) => (Math.round(n * 100) / 100).toLocaleString('en-US') + ' ' + tx('qr');
 const nameOf = (it) => (lang === 'ar' && it.name_ar ? it.name_ar : it.name);
+/** A question in the page itself (not the browser's box with the site's address). Resolves true or false. */
+function ask(q, yes, no) {
+  return new Promise((resolve) => {
+    const back = h('div.o-sheet-back');
+    const done = (v) => { back.remove(); resolve(v); };
+    back.addEventListener('click', (e) => { if (e.target === back) done(false); });
+    back.append(h('div.o-sheet', h('p', q), h('div.o-sheet-btns', h('button.o-btn.sec', { type: 'button', onclick: () => done(false) }, no),
+      h('button.o-btn.danger', { type: 'button', onclick: () => done(true) }, yes))));
+    document.body.append(back);
+  });
+}
 function toast(msg, err) {
   const m = h('div.o-toast' + (err ? '.err' : ''), msg);
   document.body.append(m);
@@ -239,14 +250,24 @@ function step4() {
   const address = h('textarea.o-in', { placeholder: tx('address_ph') });
   address.value = details.address || '';
   address.addEventListener('input', () => { details.address = address.value; store.set('me', details); });
-  const locMsg = h('small', details.map ? tx('loc_ok') : '');
-  const loc = h('button.o-loc', { type: 'button', onclick: () => {
-    if (!navigator.geolocation) { locMsg.textContent = tx('loc_fail'); return; }
+  // the location is kept for the next order; it can be updated (standing at the new place) or removed
+  const locMsg = h('div.o-locmsg');
+  const loc = h('button.o-loc', { type: 'button' });
+  const drawLoc = (msg) => {
+    loc.textContent = details.map ? tx('loc_new') : tx('loc');
+    locMsg.replaceChildren(...[msg ? h('small', msg) : '', details.map ? [h('small.ok', msg ? '' : tx('loc_saved')),
+      h('button.o-linkbtn', { type: 'button', onclick: () => { details.map = ''; store.set('me', details); drawLoc(); } }, '✕ ' + tx('loc_del')),
+      h('small.o-hint', tx('loc_hint'))] : ''].flat());
+  };
+  loc.addEventListener('click', () => {
+    if (!navigator.geolocation) { drawLoc(tx('loc_fail')); return; }
+    loc.disabled = true;
     navigator.geolocation.getCurrentPosition((p) => {
       details.map = 'https://maps.google.com/?q=' + p.coords.latitude.toFixed(6) + ',' + p.coords.longitude.toFixed(6);
-      store.set('me', details); locMsg.textContent = tx('loc_ok');
-    }, () => { locMsg.textContent = tx('loc_fail'); }, { enableHighAccuracy: true, timeout: 10000 });
-  } }, tx('loc'));
+      store.set('me', details); loc.disabled = false; drawLoc(tx('loc_ok'));
+    }, () => { loc.disabled = false; drawLoc(tx('loc_fail')); }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+  drawLoc();
   // the next 14 days that have delivery hours
   const days = [];
   for (let i = 0; i < 14; i++) { const d = new Date(); d.setDate(d.getDate() + i); const iso = isoDay(d); const ts = timesOf(iso); if (ts && ts.length) days.push(iso); }
@@ -290,7 +311,8 @@ function step5() {
   const terms = String((lang === 'ar' ? cat.cfg.terms_ar : cat.cfg.terms_en) || cat.cfg.terms_ar || '').trim() || tx('terms_def', { n: days });
   const agree = h('input', { type: 'checkbox' });
   const err = h('p.o-err');
-  const btn = h('button.o-btn', { type: 'button', onclick: send }, tx('send'));
+  const btn = h('button.o-btn', { type: 'button', onclick: send, disabled: true }, tx('send'));
+  agree.addEventListener('change', () => { btn.disabled = !agree.checked; if (agree.checked) err.textContent = ''; });
   async function send() {
     if (!agree.checked) { err.textContent = T[lang].err.online_terms_required; return; }
     btn.disabled = true; btn.textContent = tx('sending'); err.textContent = '';
@@ -350,18 +372,19 @@ async function track(o) {
     h('div.o-form', wa ? h('a.o-btn.wa.block', { href: wa, target: '_blank', rel: 'noopener', style: 'text-align:center;text-decoration:none' }, '💬 ' + tx('wa')) : '',
       h('button.o-btn.sec.block', { type: 'button', onclick: () => track(o) }, '↻ ' + tx('refresh')),
       t.status === 'new' ? h('button.o-btn.ghost.block.o-cancel', { type: 'button', onclick: async (e) => {
-        if (!confirm(tx('cancel_q'))) return;
-        e.currentTarget.disabled = true;
-        try { await api('online.cancel', { token: o.token }); track(o); } catch (ex) { toast(errText(ex), true); e.currentTarget.disabled = false; }
+        const b = e.currentTarget;
+        if (!(await ask(tx('cancel_q'), tx('yes'), tx('no')))) return;
+        b.disabled = true;
+        try { await api('online.cancel', { token: o.token }); track(o); } catch (ex) { toast(errText(ex), true); b.disabled = false; }
       } }, tx('cancel')) : '',
-      h('button.o-btn.ghost.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')))], null, false);
+      h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')))], null, false);
 }
 function showMine() {
   current = showMine;
   const mine = store.get('orders', []);
   frame([h('h2.o-title', tx('mine')), mine.length ? h('div.o-mine', mine.map((o) => h('button', { type: 'button', onclick: () => track(o) },
     h('span', h('b', { dir: 'ltr' }, o.no), h('br'), h('small', o.date + ' ' + o.time)), h('span', money(o.total)))))
-    : h('p.o-sub', tx('no_orders')), h('button.o-btn.ghost.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home'))], null, false);
+    : h('p.o-sub', tx('no_orders')), h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home'))], null, false);
 }
 
 // ---------- start: from the phone's copy at once, then what changed

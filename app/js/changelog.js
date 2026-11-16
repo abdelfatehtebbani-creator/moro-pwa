@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.238', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) صفحة طلب الزبون: زر الإرسال باهت حتى يوافق على الشروط، وسؤال الإلغاء من الصفحة نفسها، وزرا «طلباتي» و«اطلب من جديد» أوضح، والموقع المحفوظ يمكن تحديثه أو حذفه، والدفع نقدًا عند الاستلام فقط."]},
+    en: {"news": ["(Development copy) The customer's order page: the send button stays faded until the terms are agreed, the cancel question comes from the page itself, clearer \"My orders\" and \"Order again\" buttons, the saved location can be updated or removed, and payment is cash on delivery only."]},
+  },
+  {
     v: '0.9.237', date: '2026-11-15',
     ar: {"news": ["(نسخة التطوير) طلبيات الزبائن من الجوال: صفحة للزبون (رابط أو QR لكل محل) يختار فيها الصواني ثم الإضافات ثم ملاحظته وبياناته ويوم ووقت التسليم، ويراجع الرسوم والشروط ويرسل، ثم يتابع طلبيته ويتواصل على واتساب.", "(نسخة التطوير) شاشة «طلبيات الزبائن» لمحل سلوى: الطلبيات الجديدة أولًا مع رقم على القائمة، اتصال، قبول أو رفض بسبب، خروج للتوصيل مع السائق، تسليم، و«نفد اليوم» للأصناف.", "(نسخة التطوير) للمدير: تبويب «الإعدادات» في الشاشة نفسها: الأصناف المعروضة والصواني الإلزامية وصورها، الرسوم، أيام وساعات التوصيل، المهلة، واتساب، الشروط، الأرقام المحظورة، ورابط الصفحة لكل محل."]},
     en: {"news": ["(Development copy) Customer orders from the phone: a page for customers (a link or QR per shop) to choose the trays, then add-ons, a note, their details and the delivery day and time, review the fees and terms and send, then follow the order and reach the shop on WhatsApp.", "(Development copy) A \"Customer orders\" screen for the Salwa shop: new orders first with a number on the menu, call, accept or refuse with a reason, out for delivery with the driver, delivered, and \"Sold out today\" for products.", "(Development copy) For the admin: a Settings tab in the same screen: products offered, required trays and their photos, fees, delivery days and hours, notice, WhatsApp, terms, blocked numbers, and the page's link for each shop."]},
