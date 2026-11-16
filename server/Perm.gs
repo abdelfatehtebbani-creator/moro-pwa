@@ -165,7 +165,7 @@ var CAPS = (function () {
     'units.rename':      ['units.save', 'rename.units'],
     'recipes.view':      ['nav.masters', 'tab.recipes'],
     // the customers' orders: the shop that makes them answers, sends and delivers them; the admin sets them up
-    'online.decide':     ['nav.online', 'online.list', 'online.called', 'online.accept', 'online.reject', 'online.hand', 'online.soldOut', 'online.payList', 'online.pay', 'online.cashIn', 'online.trays', 'online.trayReturn'],
+    'online.decide':     ['nav.online', 'online.list', 'online.called', 'online.accept', 'online.reject', 'online.hand', 'online.soldOut', 'online.payList', 'online.pay', 'online.cashIn', 'online.trays', 'online.trayReturn', 'online.fawranOk', 'online.setTrusted'],
     'online.drive':      ['nav.online', 'online.driverList', 'online.depart', 'online.delivered', 'online.cashGiven'],
     'online.settings':   ['nav.online', 'online.list', 'online.settings', 'online.saveSettings', 'online.setPhoto', 'online.soldOut'],
     'recipes.edit':      ['recipes.save', 'families.save', 'families.import', 'recipes.import'],

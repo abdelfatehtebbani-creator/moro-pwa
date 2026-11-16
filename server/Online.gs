@@ -17,6 +17,8 @@ var ONLINE_DEFAULTS = {
   shop: '', whatsapp: '', min_req: 1, lead_min: 180, reply_min: 15, max_open: 2, return_days: 7,
   // paying cash at a shop before the delivery: allowed or not, and how many minutes before the delivery time at the latest
   pay_shop: true, pay_min: 120,
+  // a bank transfer with Fawran (after the shop accepts): the number or alias to transfer to; empty = not offered
+  fawran: '',
   terms_ar: '', terms_en: '', fees: [],
   // per day of the week (0 = Sunday): the hours orders may be delivered in; off = no delivery that day
   hours: { 0: { from: '10:00', to: '22:00', off: false }, 1: { from: '10:00', to: '22:00', off: false }, 2: { from: '10:00', to: '22:00', off: false },
@@ -42,6 +44,31 @@ var Online = {
   blocked: function () {
     try { return JSON.parse(Settings.get('online_blocked', '[]')) || []; } catch (e) { return []; }
   },
+  /** The trusted customers (by mobile): they may pay on delivery, in cash or by card. */
+  trusted: function () {
+    try { return JSON.parse(Settings.get('online_trusted', '[]')) || []; } catch (e) { return []; }
+  },
+  /** Paying on delivery is open to all when no other way is offered (else nobody could order). */
+  codOpen: function (cfg) { return !cfg.pay_shop && !cfg.fawran; },
+  /** The customer's page: may this mobile pay on delivery? p: {phone} */
+  trust: function (p) {
+    var cfg = Online.cfg(), ph = Online.phone(p.phone);
+    return { cod: Online.codOpen(cfg) || (ph.length >= 8 && Online.trusted().indexOf(ph) >= 0) };
+  },
+  /** The shop marks a customer trusted (or not) after calling them. p: {phone, on} */
+  setTrusted: function (session, p) {
+    var cfg = Online.cfg();
+    Util.require(Online.mine(session, cfg.shop), 'forbidden');
+    var ph = Online.phone(p.phone);
+    Util.require(ph.length >= 8, 'online_phone_invalid');
+    return withLock(function () {
+      var list = Online.trusted().filter(function (x) { return x !== ph; });
+      if (p.on === true) list.push(ph);
+      Settings.set('online_trusted', JSON.stringify(list));
+      Audit.log(session.user_id, 'online_trusted', 'Settings', ph, null, { on: p.on === true });
+      return { phone: ph, trusted: p.on === true };
+    });
+  },
 
   phone: function (v) { return String(v || '').replace(/\D/g, '').replace(/^00974|^974/, ''); },
 
@@ -66,12 +93,13 @@ var Online = {
     if (shop) { var sp = Repo.find('Parties', 'party_id', shop); Util.require(sp && sp.kind === 'shop', 'shop_invalid'); }
     var cfg = { shop: shop, whatsapp: Online.phone(c.whatsapp), min_req: num(c.min_req, 0, 100, 1), lead_min: num(c.lead_min, 0, 7 * 24 * 60, 180),
       reply_min: num(c.reply_min, 1, 24 * 60, 15), max_open: num(c.max_open, 1, 50, 2), return_days: num(c.return_days, 0, 365, 7),
-      pay_shop: c.pay_shop !== false, pay_min: num(c.pay_min, 15, 7 * 24 * 60, 120),
+      pay_shop: c.pay_shop !== false, pay_min: num(c.pay_min, 15, 7 * 24 * 60, 120), fawran: Util.clean(c.fawran).slice(0, 60),
       terms_ar: String(c.terms_ar || '').slice(0, 2000), terms_en: String(c.terms_en || '').slice(0, 2000), fees: fees, hours: hours };
     var blocked = (p.blocked || []).map(Online.phone).filter(function (x) { return x.length >= 6; });
     return withLock(function () {
       Settings.set('online_cfg', JSON.stringify(cfg));
       if (p.blocked !== undefined) Settings.set('online_blocked', JSON.stringify(blocked));
+      if (p.trusted !== undefined) Settings.set('online_trusted', JSON.stringify((p.trusted || []).map(Online.phone).filter(function (x) { return x.length >= 8; })));
       (p.items || []).forEach(function (x) {
         var it = Repo.find('Items', 'item_id', x.item_id);
         if (!it) return;
@@ -122,7 +150,7 @@ var Online = {
       .map(function (x) { return { id: x.party_id, name: x.name }; });
     var out = { v: v, today: today, items: items, shops: shops,
       cfg: { min_req: cfg.min_req, lead_min: cfg.lead_min, hours: cfg.hours, fees: cfg.fees, return_days: cfg.return_days,
-             terms_ar: cfg.terms_ar, terms_en: cfg.terms_en, whatsapp: cfg.whatsapp, pay_shop: cfg.pay_shop, pay_min: cfg.pay_min } };
+             terms_ar: cfg.terms_ar, terms_en: cfg.terms_en, whatsapp: cfg.whatsapp, pay_shop: cfg.pay_shop, pay_min: cfg.pay_min, fawran: !!cfg.fawran } };
     try { cache.put('online_cat_' + v, JSON.stringify(out), 600); } catch (e) { /* too big for the cache: built each time */ }
     return out;
   },
@@ -199,7 +227,16 @@ var Online = {
     var feeSum = Util.round(fees.reduce(function (s, f) { return s + f.total; }, 0));
     var deposit = Util.round(fees.filter(function (f) { return f.refundable; }).reduce(function (s, f) { return s + f.total; }, 0));
     // cash on delivery, or cash at a shop the customer chooses (before the delivery, by the time the admin set)
-    var pay = p.pay === 'shop' && cfg.pay_shop ? 'shop' : 'delivery', payShop = '';
+    // how it is paid: cash at a shop, a Fawran transfer (both before it leaves), or on delivery in cash or by card (trusted customers)
+    var pay = String(p.pay || '');
+    if (pay === 'shop') Util.require(cfg.pay_shop, 'online_pay_method');
+    else if (pay === 'fawran') Util.require(cfg.fawran, 'online_pay_method');
+    else {
+      pay = pay === 'card' ? 'card' : 'delivery';
+      Util.require(Online.codOpen(cfg) || Online.trusted().indexOf(phone) >= 0, 'online_pay_method');
+    }
+    var payShop = '';
+    if (pay === 'fawran') Util.require(Online.untilMinutes(p.date, p.time) >= cfg.pay_min + 30, 'online_pay_too_late', String(cfg.pay_min + 30));
     if (pay === 'shop') {
       var ps = Repo.find('Parties', 'party_id', String(p.pay_shop || ''));
       Util.require(ps && ps.kind === 'shop' && ps.active === true, 'online_pay_shop');
@@ -244,6 +281,11 @@ var Online = {
     Util.require(o, 'not_found');
     return o;
   },
+
+  /** Paid before it leaves (at a shop or by Fawran). */
+  prepaid: function (o) { return o.pay === 'shop' || o.pay === 'fawran'; },
+  /** Paid on delivery in cash: the driver hands the money to the shop. */
+  cashDue: function (o) { return o.pay !== 'shop' && o.pay !== 'fawran' && o.pay !== 'card'; },
 
   shopName: function (id) { var x = id ? Repo.find('Parties', 'party_id', id) : null; return x ? x.name : ''; },
   /** The latest time to pay at the shop: the delivery time less the minutes the admin set ("YYYY-MM-DD HH:MM"). */
@@ -293,7 +335,8 @@ var Online = {
     return { no: o.no, status: o.status, reason: o.reason || '', date: o.date, time: o.time, name: o.name, address: o.address, note: o.note,
              lines: JSON.parse(o.lines || '[]'), fees: JSON.parse(o.fees || '[]'), goods: Number(o.goods), fee_total: Number(o.fee_total),
              deposit: Number(o.deposit), total: Number(o.total), created_at: o.created_at, called: !!o.called_at, whatsapp: cfg.whatsapp,
-             pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: o.pay === 'shop' ? Online.payBy(o, cfg) : '',
+             pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: Online.prepaid(o) ? Online.payBy(o, cfg) : '',
+             fawran: o.pay === 'fawran' ? cfg.fawran : '',
              delivered_at: o.delivered_at || '', trays_state: o.status === 'delivered' && Number(o.trays) > 0 && Number(o.deposit) > 0 ? Online.trayState(o, cfg) : null };
   },
 
@@ -351,14 +394,15 @@ var Online = {
     var since = Util.today().slice(0, 8) + '01';
     var rows = Repo.all('OnlineOrders').filter(function (o) {
       return o.shop === cfg.shop && (ONLINE_OPEN.indexOf(o.status) >= 0 || String(o.date) >= since
-        || (o.status === 'delivered' && o.pay !== 'shop' && !o.cash_received_at));
+        || (o.status === 'delivered' && Online.cashDue(o) && !o.cash_received_at));
     }).sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); }).slice(0, 200).map(Online.view);
     var drivers = Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; }).map(function (u) { return { id: u.user_id, name: u.display_name }; });
     var items = Repo.all('Items').filter(function (i) { return i.active === true && i.online === true; })
       .map(function (i) { return { id: i.item_id, name: i.name, name_ar: i.name_ar || '', out: String(i.online_out || '') === Util.today() }; });
     var names = {};
     Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
-    rows.forEach(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; });
+    var trusted = Online.trusted();
+    rows.forEach(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; o.trusted = trusted.indexOf(o.phone) >= 0; });
     return { orders: rows, drivers: drivers, items: items, shop: cfg.shop, reply_min: cfg.reply_min };
   },
 
@@ -396,7 +440,7 @@ var Online = {
     Util.require(d && d.role === 'driver' && d.active === true, 'driver_invalid');
     return Online.act(session, p, ['accepted', 'handed'], function (o) {
       // to be paid at a shop: it leaves only once paid
-      Util.require(o.pay !== 'shop' || o.paid_at, 'online_unpaid');
+      Util.require(!Online.prepaid(o) || o.paid_at, 'online_unpaid');
       return { status: 'handed', handed_at: Util.nowIso(), handed_by: session.user_id, driver: d.user_id };
     }, 'online_hand');
   },
@@ -407,7 +451,7 @@ var Online = {
   /** The driver gave the money of an order paid on delivery to the shop (the cashier confirms it). */
   cashGiven: function (session, p) {
     return Online.act(session, p, ['delivered'], function (o) {
-      Util.require(o.pay !== 'shop', 'online_status', 'paid');
+      Util.require(Online.cashDue(o), 'online_status', 'paid');
       return { cash_given_at: o.cash_given_at || Util.nowIso() };
     }, 'online_cash_given');
   },
@@ -415,7 +459,7 @@ var Online = {
   cashIn: function (session, p) {
     var u = Repo.find('Users', 'user_id', session.user_id) || {};
     return Online.act(session, p, ['delivered'], function (o) {
-      Util.require(o.pay !== 'shop', 'online_status', 'paid');
+      Util.require(Online.cashDue(o), 'online_status', 'paid');
       if (o.cash_received_at) return {};
       var shift = Repo.all('Shifts').filter(function (s) { return s.user_id === session.user_id && s.shop_party_id === u.shop && !s.closed_at; }).pop();
       return { cash_received_at: Util.nowIso(), cash_received_by: session.user_id, cash_shift: shift ? shift.shift_id : '' };
@@ -428,8 +472,11 @@ var Online = {
     if (step === 'online_accept') {
       if (o.pay === 'shop') Online.notify(o, ['قُبلت طلبيتك ' + no, 'ادفع ' + o.total + ' ر.ق نقدًا في ' + Online.shopName(o.pay_shop) + ' قبل ' + Online.payBy(o)],
         ['Your order ' + no + ' is accepted', 'Pay ' + o.total + ' QR cash at ' + Online.shopName(o.pay_shop) + ' before ' + Online.payBy(o)]);
+      else if (o.pay === 'fawran') Online.notify(o, ['قُبلت طلبيتك ' + no, 'حوّل ' + o.total + ' ر.ق عبر فورا إلى ' + Online.cfg().fawran + ' قبل ' + Online.payBy(o) + '، وأرسل الإثبات على واتساب'],
+        ['Your order ' + no + ' is accepted', 'Transfer ' + o.total + ' QR with Fawran to ' + Online.cfg().fawran + ' before ' + Online.payBy(o) + ', and send the proof on WhatsApp']);
       else Online.notify(o, ['قُبلت طلبيتك ' + no, 'نجهّزها الآن للتسليم ' + o.date + ' ' + o.time], ['Your order ' + no + ' is accepted', 'Being prepared for ' + o.date + ' ' + o.time]);
     }
+    if (step === 'online_fawran_ok') Online.notify(o, ['وصل تحويلك، شكرًا – ' + no, Number(o.total) + ' ر.ق'], ['Your transfer arrived, thank you – ' + no, Number(o.total) + ' QR']);
     if (step === 'online_reject') Online.notify(o, ['تعذر تنفيذ طلبيتك ' + no, o.reason], ['Your order ' + no + ' could not be made', o.reason]);
     if (step === 'online_hand' && o.driver) Push.toUsers([o.driver], { ar: { title: 'طلبية زبون للتوصيل ' + no, body: o.name + ' – ' + o.address },
       en: { title: 'Customer order to deliver ' + no, body: o.name + ' – ' + o.address }, page: 'custorders', badge: 1 });
@@ -438,7 +485,7 @@ var Online = {
       var days = Online.cfg().return_days;
       Online.notify(o, ['سُلّمت طلبيتك ' + no, Number(o.trays) && Number(o.deposit) ? 'أرجع الصواني إلى أي محل خلال ' + days + ' يوم لتسترد ' + Number(o.deposit) + ' ر.ق' : 'بالهناء والعافية'],
         ['Your order ' + no + ' is delivered', Number(o.trays) && Number(o.deposit) ? 'Return the trays to any shop within ' + days + ' days to get ' + Number(o.deposit) + ' QR back' : 'Enjoy!']);
-      Online.tell(o.shop, ['سلّم السائق الطلبية ' + no, o.pay === 'shop' ? 'مدفوعة' : 'معه ' + Number(o.total) + ' ر.ق'], ['Driver delivered ' + no, o.pay === 'shop' ? 'Paid' : 'Holding ' + Number(o.total) + ' QR']);
+      Online.tell(o.shop, ['سلّم السائق الطلبية ' + no, Online.cashDue(o) ? 'معه ' + Number(o.total) + ' ر.ق' : 'مدفوعة'], ['Driver delivered ' + no, Online.cashDue(o) ? 'Holding ' + Number(o.total) + ' QR' : 'Paid']);
     }
     if (step === 'online_cash_given') Online.tell(o.shop, ['السائق سلّم مبلغ الطلبية ' + no, Number(o.total) + ' ر.ق – أكّد الاستلام'], ['Driver handed the money of ' + no, Number(o.total) + ' QR – confirm']);
   },
@@ -450,7 +497,7 @@ var Online = {
     Repo.all('Parties').forEach(function (x) { if (x.kind === 'shop') names[x.party_id] = x.name; });
     var rows = Repo.all('OnlineOrders').filter(function (o) {
       return o.driver === session.user_id && (o.status === 'handed' || o.status === 'out'
-        || (o.status === 'delivered' && (String(o.delivered_at).slice(0, 10) === today || (o.pay !== 'shop' && !o.cash_received_at))));
+        || (o.status === 'delivered' && (String(o.delivered_at).slice(0, 10) === today || (Online.cashDue(o) && !o.cash_received_at))));
     }).map(Online.view).map(function (o) { o.pay_shop_name = names[o.pay_shop] || ''; o.paid_shop_name = names[o.paid_shop] || ''; return o; });
     return { orders: rows };
   },
@@ -470,6 +517,15 @@ var Online = {
                pay_shop_name: names[o.pay_shop] || '', pay_by: Online.payBy(o, cfg), paid: !!o.paid_at, paid_at: o.paid_at || '' };
     });
     return { orders: rows, shop: u.shop || '' };
+  },
+
+  /** The shop saw the Fawran transfer arrive (the proof on WhatsApp): the order is paid. p: {no} */
+  fawranOk: function (session, p) {
+    return Online.act(session, p, ['accepted'], function (o) {
+      Util.require(o.pay === 'fawran', 'online_status', o.pay);
+      if (o.paid_at) return {};
+      return { paid_at: Util.nowIso(), paid_by: session.user_id, paid_shop: o.shop };
+    }, 'online_fawran_ok');
   },
 
   /** A cashier took the money: the order is paid at their shop, in their shift. p: {no} */
@@ -566,7 +622,7 @@ var Online = {
   checkUnpaid: function () {
     var cfg = Online.cfg();
     var late = Repo.all('OnlineOrders').filter(function (o) {
-      return o.status === 'accepted' && o.pay === 'shop' && !o.paid_at && Online.untilMinutes(o.date, o.time) <= cfg.pay_min;
+      return o.status === 'accepted' && Online.prepaid(o) && !o.paid_at && Online.untilMinutes(o.date, o.time) <= cfg.pay_min;
     });
     if (!late.length) return 0;
     withLock(function () {
@@ -618,7 +674,7 @@ var Online = {
       .map(function (i) { return { id: i.item_id, name: i.name, name_ar: i.name_ar || '', price: Number(i.final_price) || 0, online: i.online === true,
                                    req: i.online_req === true, photo: i.online_photo || '' }; })
       .sort(function (a, b) { return a.name < b.name ? -1 : 1; });
-    return { cfg: Online.cfg(), items: items, blocked: Online.blocked(),
+    return { cfg: Online.cfg(), items: items, blocked: Online.blocked(), trusted: Online.trusted(),
              shops: Repo.all('Parties').filter(function (x) { return x.kind === 'shop' && x.active === true; }).map(function (x) { return { id: x.party_id, name: x.name }; }) };
   }
 };

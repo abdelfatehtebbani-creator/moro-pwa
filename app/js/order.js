@@ -19,19 +19,19 @@ const T = {
     done: 'وصلتنا طلبيتك', done_sub: 'سيتصل بك المحل لتأكيدها. احفظ رقم طلبيتك:', follow: 'تابع طلبيتك', new_order: 'طلبية جديدة',
     st_new: 'قيد المراجعة', st_new_sub: 'سيتصل بك المحل للتأكيد', st_accepted: 'مقبولة – قيد التجهيز', st_out: 'في الطريق إليك', st_delivered: 'سُلّمت',
     st_rejected: 'تعذر تنفيذ الطلبية', st_cancelled: 'ألغيت الطلبية', reason: 'السبب', wa: 'تواصل معنا على واتساب', cancel: 'ألغِ الطلبية',
-    cancel_q: 'إلغاء الطلبية؟', tr_out: 'عندك {n} صينية', tr_until: 'أرجعها إلى أي محل قبل {d} (باقي {n} يوم) لتسترد {m}.', tr_all_back: 'أرجعت الصواني كلها، شكرًا لك', tr_back: 'أرجعت {n} صينية واسترددت {m} ({d})', tr_kept: 'انتهت مدة الإرجاع: احتُسب {m} ثمنًا لـ {n} صينية', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
+    cancel_q: 'إلغاء الطلبية؟', pay_card: 'بالبطاقة عند الاستلام', pay_card_sub: 'يحمل السائق جهاز البطاقة.', pay_fawran: 'تحويل فوري عبر «فورا»', pay_fawran_sub: 'بعد قبول الطلبية نعطيك رقم التحويل، حوّل قبل التسليم بـ {h} وأرسل الإثبات على واتساب.', st_wait_fawran: 'حوّل {m} عبر فورا قبل {t}', st_fawran_in: 'وصل تحويلك ✓', fawran_t: 'حوّل {m} عبر «فورا» إلى:', fawran_steps: 'بعد التحويل أرسل صورة الإثبات على واتساب. آخر موعد {t}، وإلا تُلغى الطلبية.', fawran_proof: 'أرسل إثبات التحويل على واتساب', fawran_msg: 'إثبات تحويل فورا للطلبية {no}، المبلغ {m}. (أرفقت صورة التحويل)', copy: 'نسخ', copied: 'نُسخ ✓', tr_out: 'عندك {n} صينية', tr_until: 'أرجعها إلى أي محل قبل {d} (باقي {n} يوم) لتسترد {m}.', tr_all_back: 'أرجعت الصواني كلها، شكرًا لك', tr_back: 'أرجعت {n} صينية واسترددت {m} ({d})', tr_kept: 'انتهت مدة الإرجاع: احتُسب {m} ثمنًا لـ {n} صينية', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
     closed: 'الطلب غير متاح الآن، حاول لاحقًا', offline: 'لا اتصال بالإنترنت، حاول مرة أخرى',
     pay_how: 'طريقة الدفع', pay_cod: 'نقدًا عند الاستلام', pay_cod_sub: 'تدفع للسائق عند وصول الطلبية.', pay_at_shop: 'نقدًا في محل', pay_at_shop_sub: 'تدفع في المحل الذي تختاره قبل موعد التسليم بـ {h}، وإلا تُلغى الطلبية.',
     pay_shop_pick: 'المحل الذي ستدفع فيه', st_wait_pay: 'ادفع {m} نقدًا في {s} قبل {t}', st_paid: 'دُفعت ✓', hours_n: '{n} ساعة', mins_n: '{n} دقيقة',
     push_title: 'فعّل الإشعارات لتتابع طلبيتك خطوة بخطوة', push_sub: 'يصلك إشعار عند القبول، والخروج للتوصيل، والتسليم.', push_btn: '🔔 فعّل الإشعارات', push_on: 'الإشعارات مفعّلة ✓',
     push_blocked: 'الإشعارات محظورة لهذه الصفحة. فعّلها من إعدادات المتصفح.', push_fail: 'تعذر تفعيل الإشعارات، حاول مرة أخرى',
     ios_title: 'لتصلك الإشعارات على آيفون أضف الصفحة إلى الشاشة الرئيسية:', ios_1: 'اضغط زر المشاركة', ios_2: 'اختر «إضافة إلى الشاشة الرئيسية»', ios_3: 'افتحها من الشاشة الرئيسية، ثم «طلباتي» واسترجع طلبيتك برقمها وجوالك، وفعّل الإشعارات.',
-    later: 'لاحقًا', pay_time_soon: 'وقت التسليم قريب جدًا للدفع في المحل.', change_time: 'غيّر الوقت', recover_t: 'طلبية من جهاز آخر؟', recover_sub: 'اكتب رقم الطلبية وجوالك.', recover_btn: 'استرجع', recover_no: 'رقم الطلبية',
+    later: 'لاحقًا', pay_time_soon: 'وقت التسليم قريب جدًا للدفع قبل التسليم.', change_time: 'غيّر الوقت', recover_t: 'طلبية من جهاز آخر؟', recover_sub: 'اكتب رقم الطلبية وجوالك.', recover_btn: 'استرجع', recover_no: 'رقم الطلبية',
     err: { customer_required: 'اكتب اسمك', online_phone_invalid: 'رقم الجوال غير صحيح', address_required: 'اكتب العنوان', online_terms_required: 'وافق على الشروط',
       online_blocked: 'لا يمكن قبول طلبات من هذا الرقم، تواصل مع المحل', delivery_date_invalid: 'اختر اليوم والوقت', online_outside_hours: 'الوقت خارج ساعات التوصيل',
       online_too_soon: 'الوقت قريب جدًا، اختر وقتًا بعد {d} دقيقة على الأقل', online_item_gone: 'صنف لم يعد متاحًا: {d}', online_min_req: 'اختر {d} صينية على الأقل',
       online_too_many: 'لديك طلبيات مفتوحة، انتظر حتى تُنفّذ', online_closed: 'الطلب غير متاح الآن', online_cancel_late: 'قُبلت الطلبية، تواصل مع المحل لإلغائها',
-      not_found: 'لم نجد الطلبية', online_pay_shop: 'اختر المحل الذي ستدفع فيه', online_pay_too_late: 'الدفع في المحل يحتاج موعد تسليم بعد {d} دقيقة على الأقل', qty_invalid: 'كمية غير صحيحة', nothing_to_save: 'اختر صنفًا', busy: 'ضغط على الخادم، حاول بعد لحظات' },
+      not_found: 'لم نجد الطلبية', online_pay_shop: 'اختر المحل الذي ستدفع فيه', online_pay_too_late: 'الدفع قبل التسليم (في المحل أو بالتحويل) يحتاج موعد تسليم بعد {d} دقيقة على الأقل', qty_invalid: 'كمية غير صحيحة', nothing_to_save: 'اختر صنفًا', busy: 'ضغط على الخادم، حاول بعد لحظات' },
   },
   en: {
     brand: 'Alaker Sweets', tagline: 'Hot trays to your door', mine: '🧾 My orders', lang: 'ع', step_of: 'Step {a} of 5',
@@ -48,19 +48,19 @@ const T = {
     done: 'We have your order', done_sub: 'The shop will call you to confirm it. Keep your order number:', follow: 'Follow your order', new_order: 'New order',
     st_new: 'Being reviewed', st_new_sub: 'The shop will call you to confirm', st_accepted: 'Accepted – being prepared', st_out: 'On its way to you', st_delivered: 'Delivered',
     st_rejected: 'The order could not be made', st_cancelled: 'The order was cancelled', reason: 'Reason', wa: 'Contact us on WhatsApp', cancel: 'Cancel the order',
-    cancel_q: 'Cancel the order?', tr_out: 'You have {n} tray(s)', tr_until: 'Return them to any shop before {d} ({n} days left) to get {m} back.', tr_all_back: 'All trays returned, thank you', tr_back: '{n} tray(s) returned, {m} paid back ({d})', tr_kept: 'Time to return is over: {m} kept for {n} tray(s)', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
+    cancel_q: 'Cancel the order?', pay_card: 'Card on delivery', pay_card_sub: 'The driver carries a card machine.', pay_fawran: 'Instant transfer with Fawran', pay_fawran_sub: 'Once accepted we give you the number; transfer {h} before delivery and send the proof on WhatsApp.', st_wait_fawran: 'Transfer {m} with Fawran before {t}', st_fawran_in: 'Your transfer arrived ✓', fawran_t: 'Transfer {m} with Fawran to:', fawran_steps: 'After the transfer send the screenshot on WhatsApp. Latest {t}, or the order is cancelled.', fawran_proof: 'Send the transfer proof on WhatsApp', fawran_msg: 'Fawran transfer proof for order {no}, amount {m}. (screenshot attached)', copy: 'Copy', copied: 'Copied ✓', tr_out: 'You have {n} tray(s)', tr_until: 'Return them to any shop before {d} ({n} days left) to get {m} back.', tr_all_back: 'All trays returned, thank you', tr_back: '{n} tray(s) returned, {m} paid back ({d})', tr_kept: 'Time to return is over: {m} kept for {n} tray(s)', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
     closed: 'Ordering is not open now, try later', offline: 'No internet connection, try again',
     pay_how: 'Payment', pay_cod: 'Cash on delivery', pay_cod_sub: 'You pay the driver when the order arrives.', pay_at_shop: 'Cash at a shop', pay_at_shop_sub: 'You pay at the shop you choose, {h} before the delivery time at the latest, or the order is cancelled.',
     pay_shop_pick: 'Shop where you will pay', st_wait_pay: 'Pay {m} cash at {s} before {t}', st_paid: 'Paid ✓', hours_n: '{n} hours', mins_n: '{n} minutes',
     push_title: 'Turn on notifications to follow your order step by step', push_sub: 'You are told when it is accepted, out for delivery and delivered.', push_btn: '🔔 Turn on notifications', push_on: 'Notifications are on ✓',
     push_blocked: 'Notifications are blocked for this page. Allow them in the browser settings.', push_fail: 'Could not turn on notifications, try again',
     ios_title: 'To get notifications on iPhone, add the page to the home screen:', ios_1: 'Tap the Share button', ios_2: 'Choose "Add to Home Screen"', ios_3: 'Open it from the home screen, then "My orders": find your order by its number and mobile, and turn on notifications.',
-    later: 'Later', pay_time_soon: 'The delivery time is too soon to pay at a shop.', change_time: 'Change the time', recover_t: 'An order from another device?', recover_sub: 'Write the order number and your mobile.', recover_btn: 'Find it', recover_no: 'Order No.',
+    later: 'Later', pay_time_soon: 'The delivery time is too soon to pay before delivery.', change_time: 'Change the time', recover_t: 'An order from another device?', recover_sub: 'Write the order number and your mobile.', recover_btn: 'Find it', recover_no: 'Order No.',
     err: { customer_required: 'Write your name', online_phone_invalid: 'The mobile number is not valid', address_required: 'Write the address', online_terms_required: 'Agree to the terms',
       online_blocked: 'Orders from this number cannot be taken, contact the shop', delivery_date_invalid: 'Choose the day and time', online_outside_hours: 'The time is outside the delivery hours',
       online_too_soon: 'Too soon: choose a time at least {d} minutes from now', online_item_gone: 'No longer available: {d}', online_min_req: 'Choose at least {d} tray(s)',
       online_too_many: 'You have open orders, wait until they are done', online_closed: 'Ordering is not open now', online_cancel_late: 'Accepted: contact the shop to cancel',
-      not_found: 'Order not found', online_pay_shop: 'Choose the shop where you will pay', online_pay_too_late: 'Paying at a shop needs a delivery at least {d} minutes from now', qty_invalid: 'Quantity not valid', nothing_to_save: 'Choose a product', busy: 'The server is busy, try again in a moment' },
+      not_found: 'Order not found', online_pay_shop: 'Choose the shop where you will pay', online_pay_too_late: 'Paying before delivery (at a shop or by transfer) needs a delivery at least {d} minutes from now', qty_invalid: 'Quantity not valid', nothing_to_save: 'Choose a product', busy: 'The server is busy, try again in a moment' },
   },
 };
 
@@ -302,7 +302,8 @@ function timesOf(day) {
   if (hrs.off) return null;
   const now = new Date();
   // paying at a shop needs time to come and pay before the delivery
-  const lead = Math.max(cat.cfg.lead_min || 0, store.get('pay', 'delivery') === 'shop' && cat.cfg.pay_shop ? (cat.cfg.pay_min || 120) + 30 : 0);
+  const pm = store.get('pay', '');
+  const lead = Math.max(cat.cfg.lead_min || 0, (pm === 'shop' && cat.cfg.pay_shop) || (pm === 'fawran' && cat.cfg.fawran) ? (cat.cfg.pay_min || 120) + 30 : 0);
   const earliest = now.getTime() + lead * 60000;
   const out = [];
   for (let m = Math.ceil(toMin(hrs.from) / 30) * 30; m <= toMin(hrs.to); m += 30) {
@@ -312,6 +313,7 @@ function timesOf(day) {
   return out;
 }
 let details = store.get('me', { name: '', phone: '', address: '', map: '' });
+let trust = store.get('trust', { phone: '', cod: false });
 let when = { date: '', time: '' };
 function step4() {
   step = 4; current = step4;
@@ -384,8 +386,16 @@ function step5() {
   const err = h('p.o-err');
   // how to pay: cash on delivery, or cash at a shop chosen by the customer (the shop of the QR first)
   const shops = cat.shops || [];
-  let pay = store.get('pay', 'delivery');
-  if (!cat.cfg.pay_shop || !shops.length) pay = 'delivery';
+  // the ways offered: on delivery (cash or card) only for trusted numbers (asked of the server), a Fawran transfer, cash at a shop
+  const ways = () => [].concat(trust.cod ? ['delivery', 'card'] : [], cat.cfg.fawran ? ['fawran'] : [], cat.cfg.pay_shop && shops.length ? ['shop'] : []);
+  let pay = store.get('pay', '');
+  const fixPay = () => { if (!ways().includes(pay)) pay = ways()[0] || 'delivery'; store.set('pay', pay); };
+  fixPay();
+  const ph = String(details.phone || '').replace(/\D/g, '');
+  if (trust.phone !== ph) {
+    trust = { phone: ph, cod: false };
+    api('online.trust', { phone: ph }).then((r) => { if (trust.phone === ph) { trust.cod = r.cod; store.set('trust', trust); fixPay(); if (current === step5) drawPay(); } }).catch(() => {});
+  }
   let payShop = store.get('pay_shop', '') || from || (shops[0] || {}).id || '';
   if (!shops.some((x) => x.id === payShop)) payShop = (shops[0] || {}).id || '';
   const pm = cat.cfg.pay_min || 120;
@@ -398,8 +408,13 @@ function step5() {
     const sel = h('select.o-in', shops.map((x) => h('option', { value: x.id }, x.name)));
     sel.value = payShop;
     sel.addEventListener('change', () => { payShop = sel.value; store.set('pay_shop', payShop); });
-    payBox.replaceChildren(h('h3', tx('pay_how')), opt('delivery', '💵 ' + tx('pay_cod'), tx('pay_cod_sub')),
-      cat.cfg.pay_shop && shops.length ? opt('shop', '🏪 ' + tx('pay_at_shop'), tx('pay_at_shop_sub', { h: ahead }), pay === 'shop' ? [h('div.o-field', h('label', tx('pay_shop_pick')), sel),
+    const w = ways();
+    payBox.replaceChildren(h('h3', tx('pay_how')),
+      w.includes('delivery') ? opt('delivery', '💵 ' + tx('pay_cod'), tx('pay_cod_sub')) : '',
+      w.includes('card') ? opt('card', '💳 ' + tx('pay_card'), tx('pay_card_sub')) : '',
+      w.includes('fawran') ? opt('fawran', '🏦 ' + tx('pay_fawran'), tx('pay_fawran_sub', { h: ahead }), pay === 'fawran' && !(timesOf(when.date) || []).includes(when.time)
+        ? h('p.o-err', tx('pay_time_soon'), ' ', h('button.o-linkbtn', { type: 'button', onclick: step4 }, tx('change_time'))) : '') : '',
+      w.includes('shop') ? opt('shop', '🏪 ' + tx('pay_at_shop'), tx('pay_at_shop_sub', { h: ahead }), pay === 'shop' ? [h('div.o-field', h('label', tx('pay_shop_pick')), sel),
         // the delivery time chosen is too soon to come and pay first
         (timesOf(when.date) || []).includes(when.time) ? '' : h('p.o-err', tx('pay_time_soon'), ' ', h('button.o-linkbtn', { type: 'button', onclick: step4 }, tx('change_time')))] : '') : '');
   };
@@ -418,7 +433,7 @@ function step5() {
       // what the order looks like now, so following it opens at once (the server's answer replaces it)
       if (r.token) store.set('t.' + r.no, { no: r.no, status: 'new', reason: '', date: when.date, time: when.time, whatsapp: cat.cfg.whatsapp,
         lines: lines.map((i) => ({ qty: cart[i.id], name: i.name, name_ar: i.name_ar, price: i.price })), fees: fees.map((f) => ({ ...f, qty: f.n })), total: r.total,
-        pay, pay_shop: pay === 'shop' ? (shops.find((x) => x.id === payShop) || {}).name : '', paid: false, pay_by: '' });
+        pay, pay_shop: pay === 'shop' ? (shops.find((x) => x.id === payShop) || {}).name : '', paid: false, pay_by: '', fawran: '' });
       store.set('orders', mine.slice(0, 30));
       cart = {}; saveCart(); note = ''; store.set('note', ''); clientId = newId();
       done(r);
@@ -494,6 +509,7 @@ function drawTrack(o, t, stale) {
   const bad = t.status === 'rejected' || t.status === 'cancelled';
   try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch { /* optional */ }
   const waitPay = t.pay === 'shop' && !t.paid && t.status === 'accepted';
+  const waitFawran = t.pay === 'fawran' && !t.paid && t.status === 'accepted';
   const wa = t.whatsapp ? 'https://wa.me/974' + t.whatsapp + '?text=' + encodeURIComponent(tx('order_no') + ' ' + t.no) : '';
   frame([h('h2.o-title', tx('order_no') + ' ', h('span', { dir: 'ltr' }, t.no)), h('p.o-sub', tx('when') + ': ', h('bdi', { dir: 'ltr' }, t.date + ' ' + t.time),
       h('small.o-upd', stale ? ' · ' + tx('updating') : '')),
@@ -501,7 +517,10 @@ function drawTrack(o, t, stale) {
       : h('div.o-track', STAGES.map((s, i) => h('div.o-st', { class: i < at ? 'done' : i === at ? 'now' : '' }, h('span.o-dot', i < at ? '✓' : ''),
         h('div', h('b', tx('st_' + s)), s === 'new' && i === at ? h('small', tx('st_new_sub')) : '',
           s === 'accepted' && waitPay ? h('small.o-waitpay', tx('st_wait_pay', { m: money(t.total), s: t.pay_shop, t: t.pay_by })) : '',
+          s === 'accepted' && waitFawran ? h('small.o-waitpay', tx('st_wait_fawran', { m: money(t.total), t: t.pay_by })) : '',
+          s === 'accepted' && t.pay === 'fawran' && t.paid ? h('small.o-paid', tx('st_fawran_in')) : '',
           s === 'accepted' && t.pay === 'shop' && t.paid ? h('small.o-paid', tx('st_paid')) : '')))),
+    waitFawran ? fawranBox(t) : '',
     trayBox(t),
     FINAL.includes(t.status) && !(t.trays_state && t.trays_state.out && !t.trays_state.kept) ? '' : pushBox(() => drawTrack(o, lastTrack(o.no) || t, false)),
     h('div.o-box', h('div.o-lines', t.lines.map((l) => h('div.o-line', h('span', l.qty + ' × ' + nameOf(l)), h('span', money(l.qty * l.price)))),
@@ -518,6 +537,16 @@ function drawTrack(o, t, stale) {
       h('button.o-btn.sec.block', { type: 'button', onclick: () => { step = 1; step1(); } }, tx('home')))], null, false);
 }
 /** After delivery: the trays at the customer, until when, the deposit back so far. */
+/** Accepted, to pay by Fawran: the number to transfer to (copied in one tap), then the proof sent on WhatsApp. */
+function fawranBox(t) {
+  const copy = (v) => navigator.clipboard.writeText(v).then(() => toast(tx('copied'))).catch(() => {});
+  const wa = t.whatsapp ? 'https://wa.me/974' + t.whatsapp + '?text=' + encodeURIComponent(tx('fawran_msg', { no: t.no, m: money(t.total) })) : '';
+  return h('div.o-fawran', h('b', '🏦 ' + tx('fawran_t', { m: money(t.total) })),
+    h('div.o-copy', h('span', { dir: 'ltr' }, t.fawran), h('button.o-btn.sec', { type: 'button', onclick: () => copy(String(t.fawran).replace(/\s/g, '')) }, tx('copy'))),
+    h('div.o-copy', h('span', money(t.total)), h('button.o-btn.sec', { type: 'button', onclick: () => copy(String(t.total)) }, tx('copy'))),
+    h('small', tx('fawran_steps', { t: t.pay_by })),
+    wa ? h('a.o-btn.wa.block', { href: wa, target: '_blank', rel: 'noopener' }, '📎 ' + tx('fawran_proof')) : '');
+}
 function trayBox(t) {
   const st = t.trays_state;
   if (!st) return '';

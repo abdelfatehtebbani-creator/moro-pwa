@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.242', date: '2026-11-16',
+    ar: {"news": ["(نسخة التطوير) طرق الدفع: الدفع عند الاستلام (نقدًا أو بالبطاقة) للزبائن الموثوقين فقط، يعلّمهم محل سلوى من بطاقة الطلبية أو المدير من الإعدادات. التحويل عبر «فورا» بعد قبول الطلبية: يرى الزبون الرقم والمبلغ مع زر نسخ وزر لإرسال الإثبات على واتساب، وسلوى تضغط «وصل التحويل». ويبقى الدفع في المحل."]},
+    en: {"news": ["(Development copy) Payment: on delivery (cash or card) only for trusted customers, marked by the Salwa shop from an order's card or by the admin in the settings. A Fawran transfer after the order is accepted: the customer sees the number and amount with copy buttons and a button to send the proof on WhatsApp; Salwa presses \"Transfer arrived\". Cash at a shop stays."]},
+  },
+  {
     v: '0.9.241', date: '2026-11-16',
     ar: {"news": ["(نسخة التطوير) التوصيل: محل سلوى يضغط «سلّمت للسائق»، والسائق «استلمت الطلبية وانطلقت» (عندها فقط يُعلَم الزبون أنها في الطريق)، ثم «سُلّمت» عند السائق وحده. ثم يسلّم السائق المبلغ ويؤكد الكاشير «استلمت المبلغ».", "(نسخة التطوير) الصواني: تبويب «الصواني» لكاشير أي محل: يبحث بالرقم أو الجوال، ويسجل عدد الصواني الراجعة ويدفع التأمين، ويصل الزبون إشعار. صفحة الزبون تُظهر الصواني عنده والمدة الباقية وما استرده، وبعد انتهاء المدة يُحتسب التأمين ثمنًا للصينية.", "(نسخة التطوير) زر تحديث واضح في الشريط العلوي، وتوقيت التسليم في الطلبيات المنتهية، وسطر الدفع «نقدًا في محل … · بانتظار الدفع»."]},
     en: {"news": ["(Development copy) Delivery: the Salwa shop presses \"Handed to the driver\", the driver \"Got the order, leaving\" (only then is the customer told it is on its way), then \"Delivered\" by the driver only. The driver then hands the money and the cashier confirms \"Money received\".", "(Development copy) Trays: a \"Trays\" tab for any shop's cashier: search by number or mobile, record the trays returned and pay the deposit; the customer is notified. The customer's page shows the trays they have, the days left and what was paid back; after the time, the deposit is kept as the tray's price.", "(Development copy) A clear refresh button in the top bar, the delivery time on finished orders, and the payment line \"Cash at … · waiting for payment\"."]},

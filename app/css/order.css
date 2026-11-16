@@ -157,3 +157,8 @@ a.o-btn { display: block; text-align: center; text-decoration: none; }
 .o-trays small { color: var(--muted); }
 .o-trays.done { background: #e9f5ef; border-color: #bfe3cf; }
 .o-trays.kept { background: #fdecea; border-color: #f2c2bd; }
+
+.o-fawran { background: #eef3fd; border: 1.5px solid #cbd9f5; border-radius: 16px; padding: 14px; display: grid; gap: 8px; margin-top: 10px; }
+.o-fawran small { color: var(--muted); }
+.o-copy { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 12px; padding: 8px 8px 8px 14px; font-size: 20px; font-weight: 800; }
+.o-copy .o-btn { padding: 8px 14px; font-size: 14px; }

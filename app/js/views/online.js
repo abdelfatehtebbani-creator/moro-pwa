@@ -17,9 +17,12 @@ const money = (n) => fmtNum(Math.round(Number(n || 0) * 100) / 100) + ' ' + t('o
 const nameOf = (x) => Data.nameOf(x);
 const OPEN = ['new', 'accepted', 'handed', 'out'];
 // delivered, paid on delivery, and the money not yet with the cashier: still to do
-const cashOpen = (o) => o.status === 'delivered' && o.pay !== 'shop' && !o.cash_received_at;
+// cash on delivery (not by card, not paid before): the driver hands the money to the shop
+const cashDue = (o) => o.pay !== 'shop' && o.pay !== 'fawran' && o.pay !== 'card';
+const prepaid = (o) => o.pay === 'shop' || o.pay === 'fawran';
+const cashOpen = (o) => o.status === 'delivered' && cashDue(o) && !o.cash_received_at;
 // a step pressed shows at once; it is sent in the background, and a list read meanwhile keeps it until the server has it
-const NEXT = { 'online.accept': 'accepted', 'online.hand': 'handed', 'online.reject': 'rejected', 'online.cashIn': 'delivered' };
+const NEXT = { 'online.accept': 'accepted', 'online.hand': 'handed', 'online.reject': 'rejected', 'online.cashIn': 'delivered', 'online.fawranOk': 'accepted' };
 const pending = {};
 
 export function render(root) {
@@ -78,6 +81,7 @@ function card(o, d, late, reload, redraw) {
     if (extra && extra.driver !== undefined) change.driver = extra.driver;
     if (extra && extra.reason) change.reason = extra.reason;
     if (action === 'online.cashIn') change.cash_received_at = new Date().toISOString();
+    if (action === 'online.fawranOk') change.paid_at = new Date().toISOString();
     pending[o.no] = change;
     Object.assign(o, change);
     redraw();
@@ -89,7 +93,14 @@ function card(o, d, late, reload, redraw) {
   const btns = [];
   if (o.status === 'new' || o.status === 'accepted') btns.push(h('a.btn.secondary', { href: tel, onclick: () => { if (!o.called_at) call('online.called', { no: o.no }).then(() => { o.called_at = new Date().toISOString(); }).catch(() => {}); } }, '📞 ' + t('ol_call')));
   if (o.status === 'new') btns.push(h('button.btn', { type: 'button', onclick: (e) => act(e.currentTarget, 'online.accept') }, '✓ ' + t('ol_accept')));
-  const unpaid = o.pay === 'shop' && !o.paid_at;
+  const unpaid = prepaid(o) && !o.paid_at;
+  // the Fawran transfer arrived (its proof came on WhatsApp)
+  if (o.status === 'accepted' && o.pay === 'fawran' && !o.paid_at) btns.push(h('button.btn', { type: 'button', onclick: async (e) => {
+    const btn = e.currentTarget;
+    const ok = await dialog((close) => [h('h3', t('ol_fawran_q', { m: money(o.total) })), h('p.muted', t('ol_fawran_hint')),
+      h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('ol_fawran_ok')))]);
+    if (ok) act(btn, 'online.fawranOk');
+  } }, '🏦 ' + t('ol_fawran_ok')));
   // given to a driver at the shop; the driver confirms when they leave with it, and delivers it
   if ((o.status === 'accepted' && !unpaid) || o.status === 'handed') btns.push(h('button.btn', { type: 'button', class: o.status === 'handed' ? 'secondary' : '', onclick: async (e) => {
     const btn = e.currentTarget;
@@ -123,7 +134,14 @@ function card(o, d, late, reload, redraw) {
     h('div.ol-top', h('b.num', o.no), h('span.ol-pill', { class: o.status }, t('ol_st_' + o.status)), pending[o.no] ? h('span.ol-pill.called', '⏳') : '', late ? h('span.ol-pill.late', '⏰ ' + t('ol_late')) : '',
       o.called_at && o.status === 'new' ? h('span.ol-pill.called', '📞 ' + t('ol_called')) : '', h('span.ol-when', '🗓 ', h('bdi', o.date + ' ' + o.time))),
     o.delivered_at ? h('div.ol-delivered', '✔ ' + t('ol_delivered_at', { t: fmtTime(o.delivered_at) })) : '',
-    h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('a', { href: tel, dir: 'ltr' }, o.phone)),
+    h('div.ol-who', h('b', h('bdi', o.name)), ' · ', h('a', { href: tel, dir: 'ltr' }, o.phone), ' ',
+      o.trusted ? h('span.ol-pill.trusted', '⭐ ' + t('ol_trusted')) : '',
+      // trusted customers may pay on delivery (cash or card): the shop decides after calling them
+      h('button.ol-linkbtn', { type: 'button', onclick: async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        try { const r = await call('online.setTrusted', { phone: o.phone, on: !o.trusted }); d.orders.forEach((x) => { if (x.phone === o.phone) x.trusted = r.trusted; }); redraw(); toast(t(r.trusted ? 'ol_trusted_on' : 'ol_trusted_off'), 'ok'); }
+        catch (ex) { toast(errText(ex), 'err'); b.disabled = false; }
+      } }, o.trusted ? t('ol_untrust') : t('ol_trust'))),
     h('div.ol-addr', '📍 ', h('bdi', o.address), o.map ? [' ', h('a', { href: o.map, target: '_blank', rel: 'noopener' }, t('ol_map'))] : ''),
     h('div.ol-lines', o.lines.map((l) => h('div', h('bdi', fmtNum(l.qty) + ' × ' + nameOf(l)), l.req ? h('small.muted', ' (' + t('ol_tray') + ')') : ''))),
     o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
@@ -143,6 +161,9 @@ const driverNameOf = (o, d) => (o.driver ? ((d.drivers || []).find((x) => x.id =
 const fmtTime = (iso) => { const x = String(iso || ''); return x.slice(11, 16) + ' · ' + x.slice(0, 10); };
 /** How the order is paid: on delivery (the driver takes it), or cash at a shop (paid or waiting). */
 function payLine(o) {
+  if (o.pay === 'card') return h('div.ol-pay', '💳 ' + t('ol_pay_card') + (OPEN.includes(o.status) ? ' · ' + t('ol_take_pos') : ''));
+  if (o.pay === 'fawran') return h('div.ol-pay', '🏦 ' + t('ol_pay_fawran') + ' · ',
+    o.paid_at ? h('span.paid', '✅ ' + t('ol_fawran_in')) : h('span.wait', '⏳ ' + t('ol_fawran_wait')));
   if (o.pay !== 'shop') return h('div.ol-pay', '💵 ' + t('ol_pay_delivery') + (OPEN.includes(o.status) ? ' · ' + t('ol_collect', { m: money(o.total) }) : ''));
   return h('div.ol-pay', '🏪 ' + t('ol_pay_shop_in', { s: o.pay_shop_name || '' }) + ' · ',
     o.paid_at ? h('span.paid', '✅ ' + t('ol_paid_at', { s: o.paid_shop_name || '' })) : h('span.wait', '⏳ ' + t('ol_unpaid_yet')));
@@ -175,7 +196,7 @@ function driverOrders(box) {
         h('div.ol-addr', '📍 ', h('bdi', o.address)),
         h('div.ol-lines', o.lines.map((l) => h('div', h('bdi', fmtNum(l.qty) + ' × ' + nameOf(l))))),
         o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
-        o.pay === 'shop' ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
+        prepaid(o) ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : o.pay === 'card' ? h('div.ol-collect', '💳 ' + t('ol_collect_card', { m: money(o.total) })) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
         o.status === 'handed' ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
         o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '',
         cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
@@ -347,6 +368,8 @@ function drawSettings(box, s) {
 
   const blocked = h('textarea.input', { rows: 3, dir: 'ltr', placeholder: '5555 1234' });
   blocked.value = (s.blocked || []).join('\n');
+  const trusted = h('textarea.input', { rows: 3, dir: 'ltr', placeholder: '5555 1234' });
+  trusted.value = (s.trusted || []).join('\n');
 
   // the page's link for each shop (its QR is printed from it)
   const base = location.origin + location.pathname.replace(/[^/]*$/, '') + 'order.html';
@@ -360,7 +383,8 @@ function drawSettings(box, s) {
     save.disabled = true;
     const items = s.items.filter((i) => marks[i.id].online !== i.online || marks[i.id].req !== i.req).map((i) => ({ item_id: i.id, online: marks[i.id].online, req: marks[i.id].req }));
     try {
-      await call('online.saveSettings', { cfg, items, blocked: blocked.value.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean) });
+      await call('online.saveSettings', { cfg, items, blocked: blocked.value.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean),
+        trusted: trusted.value.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean) });
       items.forEach((x) => { const i = s.items.find((y) => y.id === x.item_id); i.online = x.online; i.req = x.req; });
       setCache = null;
       toast(t('saved'), 'ok');
@@ -373,6 +397,7 @@ function drawSettings(box, s) {
     sec(t('ol_s_products'), h('p.muted', t('ol_products_hint')), search, prodBox),
     sec(t('ol_s_rules'),
       h('div.ol-grid2', h('div.field', h('label', t('ol_shop')), shopSel), h('div.field', h('label', t('ol_whatsapp')), text('whatsapp', { dir: 'ltr', inputmode: 'tel' })),
+        h('div.field', h('label', t('ol_fawran_no')), text('fawran', { dir: 'ltr', placeholder: t('ol_fawran_ph') })),
         h('div.field', h('label', t('ol_min_req')), num('min_req', { min: 0 })), h('div.field', h('label', t('ol_lead')), num('lead_min', { min: 0 })),
         h('div.field', h('label', t('ol_reply')), num('reply_min', { min: 1 })), h('div.field', h('label', t('ol_max_open')), num('max_open', { min: 1 })),
         h('div.field', h('label', t('ol_return_days')), num('return_days', { min: 0 })),
@@ -382,6 +407,7 @@ function drawSettings(box, s) {
     sec(t('ol_s_hours'), hours),
     sec(t('ol_s_terms'), h('p.muted', t('ol_terms_hint')), h('div.field', h('label', 'العربية'), text('terms_ar', { rows: 4 })),
       h('div.field', h('label', 'English'), text('terms_en', { rows: 4, dir: 'ltr' }))),
+    sec(t('ol_s_trusted'), h('p.muted', t('ol_trusted_hint')), trusted),
     sec(t('ol_s_blocked'), h('p.muted', t('ol_blocked_hint')), blocked),
     sec(t('ol_s_links'), h('p.muted', t('ol_links_hint')), links),
     save));

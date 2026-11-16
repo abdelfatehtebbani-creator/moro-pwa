@@ -989,3 +989,6 @@ p.pickup { margin: 8px 0 2px; }
 .sync .sync-btn:active { transform: rotate(90deg); }
 .sync .sync-btn.spin { animation: sync-spin .8s linear infinite; }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
+
+.ol-pill.trusted { background: #fff6d6; color: #8a6d00; }
+.ol-linkbtn { border: 0; background: none; color: var(--teal); text-decoration: underline; font-size: 12.5px; cursor: pointer; padding: 0 4px; }

@@ -30,6 +30,8 @@ function env() {
   g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60, max_open: 2, reply_min: 15, whatsapp: '+974 5555 1234',
     fees: [{ name_ar: 'تأمين صينية', amount: 30, per: 'tray', refundable: true }, { name_ar: 'توصيل', amount: 15, per: 'order' }] },
     items: [{ item_id: 'I0001', online: true, req: true }, { item_id: 'I0002', online: true, req: true }, { item_id: 'I0003', online: true }] }, admin);
+  // the customer of these tests pays on delivery: a trusted number
+  g.api('online.setTrusted', { phone: '5551 2345', on: true }, salwa);
   return { g, admin, salwa, lulua, drv, drvId };
 }
 const base = (over) => Object.assign({ client_id: 'c1', from: 'P002', name: 'Huda', phone: '5551 2345', address: 'Doha, Al Sadd, street 9',
@@ -145,4 +147,29 @@ test('online: paid at a shop before it leaves, cancelled when not paid in time; 
   const rc = g.api('online.recover', { no: r.no, phone: '974 5551 2345' }).data;
   assert.equal(g.api('online.track', { token: rc.token }).data.no, r.no);
   assert.equal(g.api('online.track', { token: r.token }).data.no, r.no, 'the first link still works');
+});
+
+test('online: paying on delivery (cash or card) only for trusted customers; a Fawran transfer after acceptance', () => {
+  const { g, admin, salwa, drv, drvId } = env();
+  g.api('online.saveSettings', { cfg: { min_req: 1, lead_min: 60, fawran: '5555 0000', pay_shop: true } }, admin);
+  g.api('online.setTrusted', { phone: '5551 2345', on: false }, salwa);
+  assert.equal(g.api('online.trust', { phone: '5551 2345' }).data.cod, false);
+  assert.equal(g.api('online.order', base({ pay: 'card' })).error.code, 'online_pay_method', 'not trusted: no payment on delivery');
+  g.api('online.setTrusted', { phone: '5551 2345', on: true }, salwa);
+  assert.equal(g.api('online.trust', { phone: '974 5551 2345' }).data.cod, true);
+  const c = g.api('online.order', base({ pay: 'card' })).data;
+  g.api('online.accept', { no: c.no }, salwa);
+  g.api('online.hand', { no: c.no, driver: drvId }, salwa);
+  g.api('online.depart', { no: c.no }, drv);
+  g.api('online.delivered', { no: c.no }, drv);
+  assert.equal(g.api('online.cashGiven', { no: c.no }, drv).error.code, 'online_status', 'by card: no cash to hand');
+  // Fawran: the number shows once accepted; the shop confirms the transfer; it leaves only then
+  const f = g.api('online.order', base({ client_id: 'f2', pay: 'fawran' })).data;
+  g.api('online.accept', { no: f.no }, salwa);
+  const t = g.api('online.track', { token: f.token }).data;
+  assert.deepEqual([t.pay, t.fawran, t.paid], ['fawran', '5555 0000', false]);
+  assert.equal(g.api('online.hand', { no: f.no, driver: drvId }, salwa).error.code, 'online_unpaid');
+  g.api('online.fawranOk', { no: f.no }, salwa);
+  assert.equal(g.api('online.track', { token: f.token }).data.paid, true);
+  assert.equal(g.api('online.hand', { no: f.no, driver: drvId }, salwa).data.order.status, 'handed');
 });
