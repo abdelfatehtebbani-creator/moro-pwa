@@ -1005,3 +1005,4 @@ p.pickup { margin: 8px 0 2px; }
 .wk-list { max-height: 420px; overflow: auto; margin-top: 8px; }
 .wk-acts { white-space: nowrap; }
 .link.wk-del { color: var(--danger); }
+.ol-gps { color: var(--teal); font-weight: 600; }

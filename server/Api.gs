@@ -144,6 +144,7 @@ var ROUTES = {
   'online.fawranOk':  function (s, p) { return Online.fawranOk(s, p); },
   'online.setTrusted': function (s, p) { return Online.setTrusted(s, p); },
   'online.depart':    function (s, p) { return Online.depart(s, p); },
+  'online.where':     function (s, p) { return Online.where(s, p); },
   'online.cashGiven': function (s, p) { return Online.cashGiven(s, p); },
   'online.cashIn':    function (s, p) { return Online.cashIn(s, p); },
   'online.trays':     function (s) { return Online.trays(s); },

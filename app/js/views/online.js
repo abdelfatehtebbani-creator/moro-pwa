@@ -191,12 +191,29 @@ function payLine(o) {
 
 // ---------- the driver: the customers' orders they take
 let driveCache = null;
+// while an order is on its way, the phone's position goes to the server every 20 seconds (only while the app is open:
+// a web page cannot share its position from the background)
+let gpsWatch = null, gpsLast = 0, gpsPos = null;
+function shareLocation(on) {
+  if (!on || !navigator.geolocation) {
+    if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+    return;
+  }
+  if (gpsWatch !== null) return;
+  gpsWatch = navigator.geolocation.watchPosition((p) => {
+    gpsPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (Date.now() - gpsLast < 20000) return;
+    gpsLast = Date.now();
+    call('online.where', gpsPos).then((r) => { if (!r.sharing) shareLocation(false); }).catch(() => {});
+  }, () => { toast(t('ol_gps_off'), 'err'); shareLocation(false); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+}
 function driverOrders(box) {
   const list = h('div.ol-list');
   box.replaceChildren(list);
   const show = (d) => {
     driveCache = d;
     const fresh = d.orders.filter((o) => o.status === 'out' || o.status === 'handed').length;
+    shareLocation(d.orders.some((o) => o.status === 'out'));
     if (Data.boot && Data.boot.online_drive !== fresh) { Data.boot.online_drive = fresh; window.dispatchEvent(new Event('moro:badge')); }
     const rank = (o) => ({ handed: 0, out: 1 })[o.status] ?? (cashOpen(o) ? 2 : 3);
     const rows = d.orders.slice().sort((a, b) => rank(a) - rank(b) || String(a.date + a.time).localeCompare(String(b.date + b.time)));
@@ -218,6 +235,7 @@ function driverOrders(box) {
         o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
         prepaid(o) ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : o.pay === 'card' ? h('div.ol-collect', '💳 ' + t('ol_collect_card', { m: money(o.total) })) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
         o.status === 'handed' ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
+        o.status === 'out' ? h('small.ol-gps', gpsWatch !== null ? '📡 ' + t('ol_gps_on') : '⚠️ ' + t('ol_gps_ask')) : '',
         o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '',
         cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
     }) : [h('p.empty', t('ol_drive_none'))]));

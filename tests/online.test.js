@@ -83,6 +83,10 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   assert.equal(g.api('online.depart', { no: r.no }, salwa).error.code, 'forbidden', 'only the driver leaves with it');
   g.api('online.depart', { no: r.no }, drv);
   assert.equal(g.api('online.track', { token: r.token }).data.status, 'out');
+  // the driver's phone sends its position; the customer sees it while the order is on its way
+  assert.equal(g.api('online.where', { lat: 25.2854, lng: 51.531 }, drv).data.sharing, 1);
+  assert.deepEqual([g.api('online.track', { token: r.token }).data.driver_pos.lat], [25.2854]);
+  assert.equal(g.api('online.where', { lat: 25.2854, lng: 51.531 }, salwa).error.code, 'forbidden');
   assert.equal(g.api('online.delivered', { no: r.no }, salwa).error.code, 'forbidden', 'only the driver delivers');
   assert.equal(g.api('online.delivered', { no: r.no }, drv).data.order.status, 'delivered');
   // the money of the delivery: the driver hands it, the cashier confirms
