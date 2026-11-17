@@ -3,6 +3,26 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.250', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) أُزيلت كلمة null في آخر جدول العمال."]},
+    en: {"news": ["(Development copy) The stray \"null\" at the end of the workers' table is gone."]},
+  },
+  {
+    v: '0.9.249', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) جدول العمال: رقم البطاقة، وتعديل الاسم والبطاقة والوظيفة، وحذف العامل من القائمة. الأرقام تظهر للعمال المرفوعين من الآن؛ ارفع الملف مرة أخرى لتظهر أرقام المرفوعين قبل ذلك."]},
+    en: {"news": ["(Development copy) The workers' table: the ID card number, editing the name, card and job, and removing a worker from the list. Numbers show for workers uploaded from now on; upload the file again to show the earlier ones."]},
+  },
+  {
+    v: '0.9.248', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) المستخدمون ← «العمال»: قائمة كل العمال المرفوعين (الاسم، شيف أو مساعد، فتح حسابه أم لا) دون أرقام البطاقات."]},
+    en: {"news": ["(Development copy) Users → Workers: the list of every worker uploaded (name, chef or helper, account opened or not), without the card numbers."]},
+  },
+  {
+    v: '0.9.247', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) رفع قائمة العمال: يجد سطر العناوين وحده حتى لو سبقه عنوان للملف، ويجد عمود الوظيفة (Chef / Helper) من قيمه حتى بلا عنوان."]},
+    en: {"news": ["(Development copy) Uploading the workers' list: it finds the titles' row even after a sheet title, and the job column (Chef / Helper) from its values even without a title."]},
+  },
+  {
     v: '0.9.246', date: '2026-11-16',
     ar: {"news": ["«اعتماد الطلبيات ← المتابعة»: اسم السائق والسيارة على الطلبيات في الرحلات، وأُزيلت كلمة null في آخر القائمة."]},
     en: {"news": ["Approve orders → Follow-up: the driver's name and vehicle on orders in trips, and the stray \"null\" at the end of the list is gone."]},

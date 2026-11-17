@@ -14,7 +14,19 @@ test('workers: the list kept by a hash of the card; a worker opens one account, 
   const pv = g.api('workers.import', { rows }, admin).data;
   assert.deepEqual([pv.workers, pv.new_workers, pv.bad, pv.chefs], [3, 3, 1, 1]);
   g.api('workers.import', { rows, apply: true }, admin);
-  assert.ok(!JSON.stringify(g.rows('Workers')).includes('28401234567'), 'only a hash of the card is kept');
+  // the card is kept for the admin's list (asked on 2026-11-17); the sign-in still finds it by its hash
+  const list = g.api('workers.summary', {}, admin).data.list;
+  assert.equal(list.find((w) => w.name === 'Ahmed Ali').qid, '28401234567');
+  // corrected and removed from the list
+  const omar = list.find((w) => w.name === 'Omar');
+  assert.equal(g.api('workers.save', { id: omar.id, name: 'Omar K', qid: '28401234567', job: 'Helper' }, admin).error.code, 'qid_taken');
+  g.api('workers.save', { id: omar.id, name: 'Omar K', qid: '28409998889', job: 'Chef' }, admin);
+  assert.equal(g.api('workers.lookup', { qid: '28409998889' }).data.name, 'Omar K');
+  const omar2 = g.api('workers.summary', {}, admin).data.list.find((w) => w.name === 'Omar K');
+  assert.equal(omar2.kind, 'chef');
+  g.api('workers.remove', { id: omar2.id }, admin);
+  assert.equal(g.api('workers.summary', {}, admin).data.workers, 2);
+  assert.equal(g.api('workers.lookup', { qid: '28409998889' }).error.code, 'worker_unknown', 'removed: no account from the sign-in screen');
   // the sign-in screen: the card shows the name and the departments
   assert.equal(g.api('workers.lookup', { qid: '00000000000' }).error.code, 'worker_unknown');
   const lk = g.api('workers.lookup', { qid: '28401234567' }).data;

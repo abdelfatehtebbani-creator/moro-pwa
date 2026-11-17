@@ -1002,3 +1002,6 @@ p.pickup { margin: 8px 0 2px; }
 .ol-fold-in { display: grid; gap: 10px; margin-top: 10px; }
 .tray-ico { width: 26px; height: 17px; vertical-align: -3px; margin-inline-end: 4px; }
 .fu-driver { font-size: 13px; font-weight: 600; color: var(--ink); }
+.wk-list { max-height: 420px; overflow: auto; margin-top: 8px; }
+.wk-acts { white-space: nowrap; }
+.link.wk-del { color: var(--danger); }
