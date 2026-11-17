@@ -5,6 +5,7 @@ import { call } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, fmtDate, fmtNum, dialog } from '../ui.js';
+import { driverMap } from '../drivermap.js';
 
 const TABS = ['overview', 'orders', 'shifts', 'sales', 'returns'];
 const KEEP = 'moro.branches.';
@@ -161,6 +162,9 @@ export async function render(root) {
     } catch (e) { if (!data) body.replaceChildren(h('p.ex-empty', errText(e))); else toast(errText(e), 'err'); }
   }
 
-  root.replaceChildren(h('div.card.ex', h('div.card-head', h('h2', t('branches')), chips), stamp, shopsBar, tabsBar, body));
+  // the drivers on their way to these shops (shown only while there is one)
+  const coming = h('details.card.dm-coming', { hidden: true, open: true }, h('summary', h('b', '🚚 ' + t('dm_coming'))), h('div.dm-box'));
+  root.replaceChildren(h('div.card.ex', h('div.card-head', h('h2', t('branches')), chips), stamp, shopsBar, tabsBar, body), Data.can('trips.map') ? coming : '');
+  if (Data.can('trips.map')) driverMap(coming.querySelector('.dm-box'), { empty: 'dm_none_coming', onCount: (n) => { coming.hidden = !n; } });
   load();
 }

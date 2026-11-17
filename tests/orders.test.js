@@ -139,6 +139,11 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(g.api('trips.depart', { trip_id: trip.trip_id, vehicle: '', temp: 4 }, tok.driver).error.code, 'vehicle_required');
   const dep = g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '4.5' }, tok.driver).data.trip;
   assert.deepEqual([dep.vehicle, Number(dep.temp), !!dep.departed_at], ['Q 123', 4.5, true]);
+  // on the road: the driver's phone shares its position; distribution sees the driver on the map, the cashier does not
+  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, tok.driver).data.sharing, 1);
+  const dm = g.api('trips.map', {}, tok.dist).data.drivers;
+  assert.deepEqual([dm.length, dm[0].pos.lat, dm[0].trips[0].trip_id], [1, 25.3, trip.trip_id]);
+  assert.equal(g.api('trips.map', {}, tok.cashier).error.code, 'forbidden');
   // the next trip offers the driver's last vehicle; the company's vehicles are loaded once
   assert.equal(g.api('trips.drivers', {}, tok.dist).data.find((d) => d.user_id === driverId).vehicle, 'Q 123');
   assert.ok(g.rows('Vehicles').some((v) => String(v.plate) === '931287'));

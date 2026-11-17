@@ -69,7 +69,7 @@ var CAPS = (function () {
     // the general manager's screen: the business at a glance, read only
     'exec.view':         ['nav.exec', 'exec.summary', 'see_prices'],
     // the branch manager: their shops' orders, shifts, sales, returns (read), and a note on an order or a sales sheet
-    'branches.view':     ['nav.branches', 'branches.summary'],
+    'branches.view':     ['nav.branches', 'branches.summary', 'trips.map'],
     'branches.note':     ['branches.note'],
     // the production batch records (traceability): read, and the food safety officer's part
     'batches.view':      ['nav.batches', 'batches.list', 'batches.get'],
@@ -99,8 +99,8 @@ var CAPS = (function () {
     'orders.receive':    ['nav.orders', 'orders.list', 'orders.receive'],
     // special orders: the production manager reads them and sends each special line to a department (or purchasing)
     'orders.route':      ['nav.orderapprove', 'orders.list', 'orders.route', 'orders.reject'],
-    'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list'],
-    'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.depart', 'trips.deliver'],
+    'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list', 'trips.map'],
+    'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.depart', 'trips.deliver', 'online.where'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
     // the accounts of the suppliers and shops: money, so prices are seen

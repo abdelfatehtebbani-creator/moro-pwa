@@ -35,6 +35,7 @@ import * as counts from './views/counts.js';
 import * as lpo from './views/lpo.js';
 import * as coffee from './views/coffee.js';
 import * as online from './views/online.js';
+import { Gps } from './gps.js';
 
 const ROUTES = {
   home:      { view: home, perm: 'data.bootstrap', group: 'nav_main' },
@@ -129,6 +130,7 @@ async function start() {
   step('outbox');
   await Outbox.init();
   step('shell');
+  if ((Data.boot || {}).drive_share) Gps.start();
   buildShell();
   route();
   window.__moroStarted = true;

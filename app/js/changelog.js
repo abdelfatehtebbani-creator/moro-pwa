@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.253', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) خريطة السائقين: تبويب «الخريطة» في شاشة الرحلات لمسؤول التوزيع والمدير، عليها كل سائق في الطريق (رحلات المحلات وطلبيات الزبائن) بمحلاته ووقت آخر موقع. مدير الفرع يرى «السائق القادم إلى محلك» في شاشة الفروع. جوال السائق يشارك موقعه من الانطلاق حتى آخر تسليم والتطبيق مفتوح."]},
+    en: {"news": ["(Development copy) Drivers' map: a Map tab in the Trips screen for distribution and the admin, with every driver on the road (shop trips and customer orders), their shops and how recent the position is. A branch manager sees \"The driver coming to your shop\" in the Branches screen. The driver's phone shares its position from leaving to the last delivery while the app is open."]},
+  },
+  {
     v: '0.9.252', date: '2026-11-17',
     ar: {"news": ["(نسخة التطوير) تحت خريطة السائق عند الزبون: زر «افتح في خرائط Google» يُظهر موقع السائق والطريق إلى بيته."]},
     en: {"news": ["(Development copy) Under the driver's map on the customer's page: an \"Open in Google Maps\" button showing the driver's position and the way to their home."]},

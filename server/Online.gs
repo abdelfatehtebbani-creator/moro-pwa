@@ -449,11 +449,14 @@ var Online = {
     var lat = Util.num(p.lat), lng = Util.num(p.lng);
     Util.require(lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180, 'location_invalid');
     var mine = Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && o.status === 'out'; });
-    if (!mine.length) return { sharing: 0 };
+    // a trip of shop orders that left and is not finished counts too (distribution and the branch managers follow it)
+    var trips = Trips.activeOf(session.user_id);
+    if (!mine.length && !trips.length) return { sharing: 0 };
     var pos = JSON.stringify({ lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5, at: Util.nowIso() });
     var cache = CacheService.getScriptCache();
     mine.forEach(function (o) { cache.put('drv_pos_' + o.no, pos, 3600); });
-    return { sharing: mine.length };
+    cache.put('drv_at_' + session.user_id, pos, 3600);
+    return { sharing: mine.length + trips.length };
   },
   driverPos: function (o) {
     if (o.status !== 'out') return null;
