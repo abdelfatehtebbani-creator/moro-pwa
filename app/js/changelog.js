@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.255', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) خريطة السائقين: رقم المركبة بجانب اسم السائق على الخريطة."]},
+    en: {"news": ["(Development copy) Drivers' map: the vehicle's plate next to the driver's name on the map."]},
+  },
+  {
     v: '0.9.254', date: '2026-11-17',
     ar: {"news": ["(نسخة التطوير) دور جديد «مسؤول السيارات» وشاشة «السيارات»: للسائق تبويب «سيارتي» يسجل فيه فحص قبل الانطلاق، وتعبئة الوقود، والإبلاغ عن عطل (مع صور). ولمسؤول السيارات: قائمة السيارات بالعداد والكيلومترات واستهلاك الوقود وآخر فحص، والأعطال المفتوحة مع إشعار وزر «أُصلح»، والسجل، والخريطة."]},
     en: {"news": ["(Development copy) A new role, \"Car park manager\", and a Vehicles screen: the driver's \"My car\" tab records a check before leaving, fuel refills and faults (with photos). The car park manager sees the vehicles with odometer, kilometres, fuel use and last check, the open faults with a notification and a \"Fixed\" button, the records, and the map."]},

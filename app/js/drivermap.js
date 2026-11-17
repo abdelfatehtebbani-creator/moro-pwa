@@ -51,9 +51,11 @@ export function driverMap(box, opts = {}) {
         seen[x.id] = true;
         const p = [x.pos.lat, x.pos.lng];
         pts.push(p);
-        const label = '<span class="dm-pin">🚚</span><span class="dm-tag">' + String(x.name).replace(/[<>&]/g, '') + '</span>';
+        // the driver's name and the vehicle's plate next to the mark
+        const label = '<span class="dm-pin">🚚</span><span class="dm-tag">' + String(x.name).replace(/[<>&]/g, '') + (x.vehicle ? ' · ' + String(x.vehicle).replace(/[<>&]/g, '') : '') + '</span>';
+        if (marks[x.id] && marks[x.id]._label !== label) { map.removeLayer(marks[x.id]); delete marks[x.id]; }
         if (marks[x.id]) marks[x.id].setLatLng(p);
-        else marks[x.id] = L.marker(p, { icon: L.divIcon({ html: label, className: 'dm-mark', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map);
+        else { marks[x.id] = L.marker(p, { icon: L.divIcon({ html: label, className: 'dm-mark', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map); marks[x.id]._label = label; }
       });
       Object.keys(marks).forEach((id) => { if (!seen[id]) { map.removeLayer(marks[id]); delete marks[id]; } });
       if (!map._fitted && pts.length) { map.fitBounds(L.latLngBounds(pts).pad(0.4), { maxZoom: 14 }); map._fitted = true; }
