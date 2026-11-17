@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.249', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) جدول العمال: رقم البطاقة، وتعديل الاسم والبطاقة والوظيفة، وحذف العامل من القائمة. الأرقام تظهر للعمال المرفوعين من الآن؛ ارفع الملف مرة أخرى لتظهر أرقام المرفوعين قبل ذلك."]},
+    en: {"news": ["(Development copy) The workers' table: the ID card number, editing the name, card and job, and removing a worker from the list. Numbers show for workers uploaded from now on; upload the file again to show the earlier ones."]},
+  },
+  {
     v: '0.9.248', date: '2026-11-17',
     ar: {"news": ["(نسخة التطوير) المستخدمون ← «العمال»: قائمة كل العمال المرفوعين (الاسم، شيف أو مساعد، فتح حسابه أم لا) دون أرقام البطاقات."]},
     en: {"news": ["(Development copy) Users → Workers: the list of every worker uploaded (name, chef or helper, account opened or not), without the card numbers."]},

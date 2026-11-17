@@ -155,6 +155,8 @@ var ROUTES = {
   'online.setPhoto':  function (s, p) { return Online.setPhoto(s, p); },
   'workers.import':   function (s, p) { return Workers.importRows(s, p); },
   'workers.summary':  function (s, p) { return Workers.summary(); },
+  'workers.save':     function (s, p) { return Workers.save(s, p); },
+  'workers.remove':   function (s, p) { return Workers.remove(s, p); },
   'trips.depart':     function (s, p) { return Trips.depart(s, p); },
   'kiosk.enable':     function (s, p) { return Kiosk.enable(s, p); },
   'kiosk.reset':      function (s, p) { return Kiosk.reset(s, p); },

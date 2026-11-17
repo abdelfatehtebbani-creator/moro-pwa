@@ -173,7 +173,7 @@ var CAPS = (function () {
     'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'coffee.roastStart', 'coffee.roastFinish', 'coffee.packBags', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'vehicles.save', 'workers.import', 'workers.summary', 'settings.idle', 'settings.recipeStock', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'vehicles.save', 'workers.import', 'workers.summary', 'workers.save', 'workers.remove', 'settings.idle', 'settings.recipeStock', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it

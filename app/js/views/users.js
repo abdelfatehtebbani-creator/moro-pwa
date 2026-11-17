@@ -60,12 +60,36 @@ export async function render(root) {
   function workersBox() {
     const count = h('small.muted', '…');
     const listBox = h('div.wk-list');
+    // every worker of the list: name, card number, chef or helper, account opened or not; corrected or removed here
+    const drawWorkers = (list) => {
+      const edit = async (w) => {
+        const name = h('input.input', { value: w.name });
+        const qid = h('input.input', { value: w.qid, dir: 'ltr', inputmode: 'numeric' });
+        const job = h('select.input', h('option', { value: 'Chef' }, t('wk_chef')), h('option', { value: 'Helper' }, t('wk_helper')));
+        job.value = w.kind === 'chef' ? 'Chef' : 'Helper';
+        const ok = await dialog((close) => [h('h3', t('wk_edit')), field(t('wk_name'), name), field(t('wk_qid'), qid), field(t('wk_job'), job),
+          w.registered ? h('small.muted', t('wk_edit_note')) : null,
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn', { type: 'button', onclick: () => close(true) }, t('save')))]);
+        if (!ok) return;
+        try { await call('workers.save', { id: w.id, name: name.value, qid: qid.value, job: job.value }); toast(t('saved'), 'ok'); render(root); } catch (e) { toast(errText(e), 'err'); }
+      };
+      const del = async (w) => {
+        const ok = await dialog((close) => [h('h3', t('wk_del_q', { n: w.name })), w.registered ? h('p.muted', t('wk_del_note')) : null,
+          h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close(false) }, t('cancel')), h('button.btn.danger', { type: 'button', onclick: () => close(true) }, t('wk_delete')))]);
+        if (!ok) return;
+        try { await call('workers.remove', { id: w.id }); toast(t('saved'), 'ok'); render(root); } catch (e) { toast(errText(e), 'err'); }
+      };
+      listBox.replaceChildren(...list.length ? [h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('wk_name')), h('th', t('wk_qid')), h('th', t('wk_job')), h('th', t('wk_state')), h('th', ''))),
+        h('tbody', list.map((w) => h('tr', h('td', h('bdi', w.name)), h('td', h('span.num', { dir: 'ltr' }, w.qid || '—')),
+          h('td', h('span', { class: 'pill ' + (w.kind === 'chef' ? 'st-final' : 'st-dry') }, t(w.kind === 'chef' ? 'wk_chef' : 'wk_helper'))),
+          h('td', w.registered ? h('span', '✅ ', h('bdi', { dir: 'ltr' }, w.username)) : h('span.muted', '⏳ ' + t('wk_not_yet'))),
+          h('td.wk-acts', h('button.link', { type: 'button', onclick: () => edit(w) }, t('wk_edit_btn')), ' · ', h('button.link.wk-del', { type: 'button', onclick: () => del(w) }, t('wk_delete')))))))),
+        list.some((w) => !w.qid) ? h('small.muted', t('wk_no_qid')) : null] : []);
+    };
     call('workers.summary', {}).then((s) => {
       count.textContent = '(' + t('wk_count', { w: s.workers, r: s.registered }) + ')';
       // every worker of the list: a chef or a helper, and whether they opened their account yet
-      listBox.replaceChildren(...(s.list || []).length ? [h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('wk_name')), h('th', t('wk_job')), h('th', t('wk_state')))),
-        h('tbody', s.list.map((w) => h('tr', h('td', h('bdi', w.name)), h('td', h('span', { class: 'pill ' + (w.kind === 'chef' ? 'st-final' : 'st-dry') }, t(w.kind === 'chef' ? 'wk_chef' : 'wk_helper'))),
-          h('td', w.registered ? h('span', '✅ ', h('bdi', { dir: 'ltr' }, w.username)) : h('span.muted', '⏳ ' + t('wk_not_yet'))))))))] : []);
+      drawWorkers(s.list || []);
     }).catch(() => { count.textContent = ''; });
     const upload = () => {
       const file = h('input', { type: 'file', accept: '.xlsx' });
