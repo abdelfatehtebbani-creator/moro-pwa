@@ -436,6 +436,7 @@ var Masters = {
       // the driver: customers' orders on the way with them; a cashier: orders to be paid at their shop
       // the driver's phone shares its position while a trip or a customer's order is on its way
       drive_share: session.role === 'driver' && (Trips.activeOf(session.user_id).length > 0 || Repo.all('OnlineOrders').some(function (o) { return o.driver === session.user_id && o.status === 'out'; })),
+      fleet_open: Perm.has(session, 'fleet.close') ? Fleet.openCount() : 0,
       online_drive: Perm.has(session, 'online.driverList') ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && (o.status === 'handed' || o.status === 'out'); }).length : -1,
       online_pay: (function () {
         if (!Perm.has(session, 'online.pay')) return -1;

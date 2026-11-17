@@ -1022,3 +1022,21 @@ p.pickup { margin: 8px 0 2px; }
 .dm-tag { background: #fff; border-radius: 6px; padding: 1px 6px; font: 600 11px Tahoma, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .dm-coming { margin-top: 14px; }
 .dm-coming summary { cursor: pointer; }
+
+.fl-mine { display: grid; gap: 12px; }
+.fl-status { border-radius: var(--radius); padding: 10px 14px; font-weight: 700; }
+.fl-status.ok { background: #e6f2e4; color: #3f8a3a; } .fl-status.todo { background: var(--warn-soft); color: var(--warn); }
+.fl-big { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fl-big .btn { padding: 16px; font-size: 16px; }
+.fl-row { border: 1px solid var(--line); border-inline-start: 4px solid var(--line); border-radius: var(--radius); padding: 8px 12px; display: grid; gap: 4px; }
+.fl-row.open { border-inline-start-color: var(--danger); background: #fff8f7; }
+.fl-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.fl-closed { color: #3f8a3a; }
+.fl-check { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.fl-pair { display: flex; gap: 6px; }
+.chip.on { background: var(--teal-soft); border-color: var(--teal); }
+.chip.fl-bad.on { background: #fde8e8; border-color: var(--danger); color: var(--danger); }
+.fl-urgent { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--danger); }
+.fl-photo { display: flex; align-items: center; gap: 10px; }
+.fl-list { display: grid; gap: 8px; margin-top: 10px; }
+tr.fl-open td { background: #fff8f7; }

@@ -8,7 +8,7 @@
  * Lists saved before the tree (receive, issue, masters…) are read through OLD_CAPS.
  * Every server action is checked once in the router; the finer rules (own records, stores…) in the services.
  */
-var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver'];
+var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver', 'fleet'];
 
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
@@ -33,6 +33,7 @@ var PERM_TREE = [
   { key: 'orders', children: [{ leaf: 'orders.create' }, { leaf: 'orders.receive' }] },
   { key: 'orderapprove', children: [{ leaf: 'orders.approve' }, { leaf: 'orders.route' }] },
   { key: 'trips', children: [{ leaf: 'trips.manage' }, { leaf: 'trips.drive' }] },
+  { key: 'fleet', children: [{ leaf: 'fleet.manage' }, { leaf: 'fleet.log' }] },
   { key: 'invoices', children: [{ leaf: 'invoices.manage' }] },
   { key: 'online', children: [{ leaf: 'online.decide' }, { leaf: 'online.settings' }, { leaf: 'online.drive' }] },
   { key: 'accounts', children: [
@@ -100,6 +101,9 @@ var CAPS = (function () {
     // special orders: the production manager reads them and sends each special line to a department (or purchasing)
     'orders.route':      ['nav.orderapprove', 'orders.list', 'orders.route', 'orders.reject'],
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list', 'trips.map'],
+    // the vehicles: the car park manager follows them (map, list, records, problems); the driver records on theirs
+    'fleet.manage':      ['nav.fleet', 'fleet.list', 'fleet.close', 'vehicles.save', 'trips.map'],
+    'fleet.log':         ['nav.fleet', 'fleet.mine', 'fleet.add'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.depart', 'trips.deliver', 'online.where'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],
@@ -231,7 +235,9 @@ var ROLE_CAPS = {
   cashier:     ['orders.create', 'orders.receive', 'returns.create', 'online.decide'],
   distribution: ['orders.approve', 'shop.view', 'trips.manage', 'invoices.manage', 'reports.view', 'report.orderTimes', 'report.receiptShort',
                  'report.unavailable', 'report.shopSales', 'report.dispatch', 'prices.see'],
-  driver:      ['trips.drive', 'online.drive'],
+  driver:      ['trips.drive', 'online.drive', 'fleet.log'],
+  // the car park manager: the company's vehicles
+  fleet:       ['fleet.manage'],
   section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],

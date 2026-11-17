@@ -146,6 +146,10 @@ var ROUTES = {
   'online.depart':    function (s, p) { return Online.depart(s, p); },
   'online.where':     function (s, p) { return Online.where(s, p); },
   'trips.map':        function (s) { return Trips.map(s); },
+  'fleet.add':        function (s, p) { return Fleet.add(s, p); },
+  'fleet.mine':       function (s) { return Fleet.mine(s); },
+  'fleet.list':       function (s, p) { return Fleet.list(s, p); },
+  'fleet.close':      function (s, p) { return Fleet.close(s, p); },
   'online.cashGiven': function (s, p) { return Online.cashGiven(s, p); },
   'online.cashIn':    function (s, p) { return Online.cashIn(s, p); },
   'online.trays':     function (s) { return Online.trays(s); },
@@ -231,7 +235,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '66';
+var SCHEMA_VERSION = '67';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -259,6 +263,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 64) Perm.addRoleLeaves({ admin: ['online.decide', 'online.settings'], cashier: ['online.decide'], branch_manager: ['online.decide'] });
     // customers' orders: the drivers see the ones they take (the payment at a shop comes with online.decide)
     if (Number(Settings.get('schema_version', '0')) < 65) Perm.addRoleLeaves({ driver: ['online.drive'] });
+    // the vehicles' records: the drivers with their own ticks get the new tick
+    if (Number(Settings.get('schema_version', '0')) < 67) Perm.addRoleLeaves({ driver: ['fleet.log'] });
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);
