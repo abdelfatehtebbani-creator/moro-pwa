@@ -84,7 +84,7 @@ export async function render(root) {
           h('td', h('span', { class: 'pill ' + (w.kind === 'chef' ? 'st-final' : 'st-dry') }, t(w.kind === 'chef' ? 'wk_chef' : 'wk_helper'))),
           h('td', w.registered ? h('span', '✅ ', h('bdi', { dir: 'ltr' }, w.username)) : h('span.muted', '⏳ ' + t('wk_not_yet'))),
           h('td.wk-acts', h('button.link', { type: 'button', onclick: () => edit(w) }, t('wk_edit_btn')), ' · ', h('button.link.wk-del', { type: 'button', onclick: () => del(w) }, t('wk_delete')))))))),
-        list.some((w) => !w.qid) ? h('small.muted', t('wk_no_qid')) : null] : []);
+        list.some((w) => !w.qid) ? h('small.muted', t('wk_no_qid')) : ''] : []);
     };
     call('workers.summary', {}).then((s) => {
       count.textContent = '(' + t('wk_count', { w: s.workers, r: s.registered }) + ')';
