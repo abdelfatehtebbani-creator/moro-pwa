@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.252', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) تحت خريطة السائق عند الزبون: زر «افتح في خرائط Google» يُظهر موقع السائق والطريق إلى بيته."]},
+    en: {"news": ["(Development copy) Under the driver's map on the customer's page: an \"Open in Google Maps\" button showing the driver's position and the way to their home."]},
+  },
+  {
     v: '0.9.251', date: '2026-11-17',
     ar: {"news": ["(نسخة التطوير) تتبع السائق: بعد «استلمت الطلبية وانطلقت» يرسل جوال السائق موقعه كل 20 ثانية والتطبيق مفتوح، ويرى الزبون خريطة حية في صفحة طلبيته عليها السائق وبيته والمسافة ووقت آخر موقع. تتوقف المشاركة عند التسليم."]},
     en: {"news": ["(Development copy) Driver tracking: after \"Got the order, leaving\" the driver's phone sends its position every 20 seconds while the app is open, and the customer sees a live map on the order page with the driver, their home, the distance and how recent the position is. Sharing stops at delivery."]},
