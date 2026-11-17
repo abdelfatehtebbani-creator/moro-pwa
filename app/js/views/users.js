@@ -68,11 +68,21 @@ export async function render(root) {
         let rows;
         try {
           const all = await readXlsx(f);
-          // the columns are found by their titles (name, QID / card, job), else taken as A, B, C
-          const head = (all[0] || []).map((x) => String(x || '').toLowerCase());
+          // the titles' row: the first of the first rows naming a name and an ID (a sheet title may come before it)
+          const lower = (r) => (r || []).map((x) => String(x || '').toLowerCase().trim());
+          let hi = all.slice(0, 6).findIndex((r) => lower(r).some((x) => /name|اسم/.test(x)) && lower(r).some((x) => /qid|id|بطاق|هوي/.test(x)));
+          if (hi < 0) hi = 0;
+          const head = lower(all[hi]);
           const col = (re, d) => { const i = head.findIndex((x) => re.test(x)); return i >= 0 ? i : d; };
-          const cn = col(/name|اسم/, 0), cq = col(/qid|id|بطاق|هوي/, 1), cj = col(/job|position|وظيف|مهن/, 2);
-          rows = all.slice(1).map((r) => ({ name: r[cn], qid: r[cq], job: r[cj] })).filter((r) => String(r.name || '').trim());
+          const cn = col(/name|اسم/, 0), cq = col(/qid|id|بطاق|هوي/, 1);
+          const body = all.slice(hi + 1).filter((r) => String((r || [])[cn] || '').trim());
+          // the job: the column whose values are chef / helper (even without a title), else the one titled job
+          const jobLike = (v) => /chef|cook|helper|assist|شيف|طباخ|مساعد/i.test(String(v || ''));
+          const width = Math.max(0, ...body.map((r) => r.length));
+          let cj = -1, best = 0;
+          for (let i = 0; i < width; i++) { const n = body.filter((r) => jobLike(r[i])).length; if (n > best) { best = n; cj = i; } }
+          if (best < body.length / 2) cj = col(/job|position|وظيف|مهن/, 2);
+          rows = body.map((r) => ({ name: r[cn], qid: r[cq], job: r[cj] }));
         } catch (e) { toast(t('fam_import_bad'), 'err'); return; }
         let pv;
         try { pv = await call('workers.import', { rows }); } catch (e) { toast(errText(e), 'err'); return; }

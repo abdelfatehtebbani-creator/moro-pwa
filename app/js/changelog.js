@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.247', date: '2026-11-17',
+    ar: {"news": ["(نسخة التطوير) رفع قائمة العمال: يجد سطر العناوين وحده حتى لو سبقه عنوان للملف، ويجد عمود الوظيفة (Chef / Helper) من قيمه حتى بلا عنوان."]},
+    en: {"news": ["(Development copy) Uploading the workers' list: it finds the titles' row even after a sheet title, and the job column (Chef / Helper) from its values even without a title."]},
+  },
+  {
     v: '0.9.246', date: '2026-11-16',
     ar: {"news": ["«اعتماد الطلبيات ← المتابعة»: اسم السائق والسيارة على الطلبيات في الرحلات، وأُزيلت كلمة null في آخر القائمة."]},
     en: {"news": ["Approve orders → Follow-up: the driver's name and vehicle on orders in trips, and the stray \"null\" at the end of the list is gone."]},
