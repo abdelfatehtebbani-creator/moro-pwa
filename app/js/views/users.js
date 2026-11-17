@@ -59,7 +59,14 @@ export async function render(root) {
   // the list of workers (name, ID card number, job): each opens their own account from the sign-in screen
   function workersBox() {
     const count = h('small.muted', '…');
-    call('workers.summary', {}).then((s) => { count.textContent = '(' + t('wk_count', { w: s.workers, r: s.registered }) + ')'; }).catch(() => { count.textContent = ''; });
+    const listBox = h('div.wk-list');
+    call('workers.summary', {}).then((s) => {
+      count.textContent = '(' + t('wk_count', { w: s.workers, r: s.registered }) + ')';
+      // every worker of the list: a chef or a helper, and whether they opened their account yet
+      listBox.replaceChildren(...(s.list || []).length ? [h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('wk_name')), h('th', t('wk_job')), h('th', t('wk_state')))),
+        h('tbody', s.list.map((w) => h('tr', h('td', h('bdi', w.name)), h('td', h('span', { class: 'pill ' + (w.kind === 'chef' ? 'st-final' : 'st-dry') }, t(w.kind === 'chef' ? 'wk_chef' : 'wk_helper'))),
+          h('td', w.registered ? h('span', '✅ ', h('bdi', { dir: 'ltr' }, w.username)) : h('span.muted', '⏳ ' + t('wk_not_yet'))))))))] : []);
+    }).catch(() => { count.textContent = ''; });
     const upload = () => {
       const file = h('input', { type: 'file', accept: '.xlsx' });
       file.addEventListener('change', async () => {
@@ -95,7 +102,7 @@ export async function render(root) {
       file.click();
     };
     return h('details.kiosk-box', h('summary', h('b', t('wk_title')), ' ', count), h('small.muted', t('wk_help')),
-      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: upload }, t('fam_import'))));
+      h('div.form-actions', h('button.btn.secondary', { type: 'button', onclick: upload }, t('fam_import'))), listBox);
   }
 
   // the company's vehicles: chosen when a trip is prepared (the driver's last one first)

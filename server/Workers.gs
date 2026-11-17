@@ -51,7 +51,13 @@ var Workers = {
   /** The admin: how many are on the list and how many opened their account. */
   summary: function () {
     var all = Repo.all('Workers').filter(function (w) { return w.active === true; });
-    return { workers: all.length, registered: all.filter(function (w) { return w.user_id; }).length };
+    var users = {};
+    Repo.all('Users').forEach(function (u) { users[u.user_id] = u; });
+    // the list (never the card numbers): who has opened their account and who not yet
+    var list = all.map(function (w) { var u = users[w.user_id] || null;
+      return { name: w.name, job: w.job, kind: w.kind, registered: !!u, username: u ? u.username : '', at: w.registered_at || '' }; })
+      .sort(function (a, b) { return (a.registered - b.registered) || String(a.name).localeCompare(String(b.name)); });
+    return { workers: all.length, registered: all.filter(function (w) { return w.user_id; }).length, list: list };
   },
 
   find: function (qid) {
