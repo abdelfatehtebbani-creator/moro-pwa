@@ -56,6 +56,9 @@ export function render(root) {
 function renderTables(root) {
   const reports = REPORTS.filter((r) => Data.can('report.' + r.id) && (!r.prices || Data.can('see_prices')));
   const cards = h('div.rep-cards');
+  // the list of reports folded: its title shows the one chosen; opened to choose another
+  const typeName = h('span.rep-type-name');
+  const typeBox = h('details.card.rep-type', h('summary', h('h2', t('report_type')), typeName), cards);
   const opts = h('div.rep-opts');
   const preview = h('div.rep-preview');
   const status = h('p.form-status', '');
@@ -70,7 +73,9 @@ function renderTables(root) {
     const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), orders: t('rep_group_orders'), other: t('rep_group_other') };
     cards.replaceChildren(...Object.keys(groups).map((g) => h('div.rep-group', h('div.rep-group-title', groups[g]),
       reports.filter((r) => r.group === g).map((r) => h('button.rep-card', { type: 'button', class: r.id === selected ? 'on' : '',
-        onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); } }, t('rep_' + r.id))))));
+        onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); typeBox.open = false; } }, t('rep_' + r.id))))));
+    typeName.textContent = selected ? t('rep_' + selected) : '';
+    if (!selected) typeBox.open = true;
   }
 
   function opt(id) {
@@ -320,7 +325,7 @@ function renderTables(root) {
     clearPreview();
   }
 
-  root.replaceChildren(h('div.rep-layout', h('div.card', h('h2', t('report_type')), cards), h('div.card', opts), h('div.card.rep-out', h('h2', t('preview')), preview)));
+  root.replaceChildren(h('div.rep-layout', typeBox, h('div.card', opts), h('div.card.rep-out', h('h2', t('preview')), preview)));
   drawCards();
   drawOpts();
   drawPreview();
