@@ -31,4 +31,15 @@ test('fleet: the driver records on a vehicle; the car park manager follows and c
   g.api('fleet.close', { log_id: issue.log_id, note: 'fixed' }, mgr);
   assert.equal(g.api('fleet.list', {}, mgr).data.cars.find((c) => c.plate === 'Q100').open, 0);
   assert.equal(g.api('fleet.list', {}, drv).error.code, 'forbidden');
+  // the shift: from its start the driver's phone shares its position; at its end the car's place is kept
+  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, drv).data.sharing, 0, 'not on shift, no trip: nothing shared');
+  g.api('fleet.add', { client_id: 's1', kind: 'start', plate: 'Q100', data: { lat: 25.29, lng: 51.53 } }, drv);
+  assert.equal(g.api('fleet.add', { client_id: 's2', kind: 'start', plate: 'Q100' }, drv).error.code, 'fleet_on_shift');
+  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, drv).data.sharing, 1);
+  let m = g.api('trips.map', {}, mgr).data;
+  assert.deepEqual([m.drivers.length, m.drivers[0].vehicle, m.parked.length], [1, 'Q100', 0], 'on shift: on the map with its vehicle');
+  g.api('fleet.add', { client_id: 'e1', kind: 'end', plate: 'Q100', data: { lat: 25.31, lng: 51.52 } }, drv);
+  m = g.api('trips.map', {}, mgr).data;
+  assert.deepEqual([m.drivers.length, m.parked.length, m.parked[0].pos.lat], [0, 1, 25.31], 'shift ended: the car shows where it was left');
+  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, drv).data.sharing, 0);
 });

@@ -5,7 +5,9 @@
  * Each record keeps its own fields in `data` (JSON), so a new kind (a wash, a fine, a service…) is added
  * without changing the table. A fault, or a check with a problem, stays open until the manager closes it.
  */
-var FLEET_KINDS = ['check', 'fuel', 'issue'];
+var FLEET_KINDS = ['check', 'fuel', 'issue', 'start', 'end'];
+// a shift left open longer than this is taken as ended (a driver who forgot to end it)
+var FLEET_SHIFT_HOURS = 16;
 var FLEET_CHECKS = ['tyres', 'oil', 'cooling', 'clean'];
 
 var Fleet = {
@@ -52,13 +54,19 @@ var Fleet = {
       Util.require(liters !== null && liters > 0 && liters < 1000, 'fleet_liters');
       Util.require(amount !== null && amount >= 0, 'amount_invalid');
       data.liters = Util.round(liters); data.amount = Util.round(amount);
+    } else if (kind === 'start' || kind === 'end') {
+      // the driver's shift: their phone shares its position from start to end; the position at the end is where the car is left
+      var la = Util.num(src.lat), ln = Util.num(src.lng);
+      if (la !== null && ln !== null && Math.abs(la) <= 90 && Math.abs(ln) <= 180) { data.lat = Math.round(la * 1e5) / 1e5; data.lng = Math.round(ln * 1e5) / 1e5; }
+      if (kind === 'end') Util.require(Fleet.onShift(session.user_id), 'fleet_not_on_shift');
+      else Util.require(!Fleet.onShift(session.user_id), 'fleet_on_shift');
     } else {
       data.text = Util.clean(src.text).slice(0, 600);
       Util.require(data.text, 'fleet_text');
       data.urgent = src.urgent === true;
       open = true;
     }
-    if (kind !== 'issue') Util.require(odo !== null && odo > 0, 'fleet_odometer');
+    if (kind === 'check' || kind === 'fuel') Util.require(odo !== null && odo > 0, 'fleet_odometer');
     return withLock(function () {
       var cid = Util.clean(p.client_id);
       if (cid) { var dup = Repo.find('VehicleLogs', 'client_id', cid); if (dup) return { log: Fleet.view(dup), duplicate: true }; }
@@ -69,6 +77,8 @@ var Fleet = {
       var row = { log_id: id, plate: plate, kind: kind, at: Util.nowIso(), by: session.user_id, odometer: odo || '', data: JSON.stringify(data),
                   photos: photos.join(','), status: open ? 'open' : '', closed_at: '', closed_by: '', note: Util.clean(p.note).slice(0, 300), client_id: cid };
       Repo.append('VehicleLogs', [row]);
+      // where the car is left at the end of a shift
+      if (kind === 'end' && data.lat !== undefined) Fleet.park(plate, data.lat, data.lng, session.user_id);
       Audit.log(session.user_id, 'fleet_' + kind, 'VehicleLogs', id, null, { plate: plate, odometer: odo });
       // the driver's vehicle is remembered for their next records and trips
       var me = Repo.find('Users', 'user_id', session.user_id);
@@ -86,13 +96,28 @@ var Fleet = {
     });
   },
 
+  /** The driver's shift now: the start record when on shift (not ended, not older than the limit), else null. */
+  onShift: function (userId, logs) {
+    var last = (logs || Repo.all('VehicleLogs')).filter(function (l) { return l.by === userId && (l.kind === 'start' || l.kind === 'end'); }).pop();
+    if (!last || last.kind !== 'start') return null;
+    var t0 = new Date(String(last.at).length === 19 ? last.at + '+03:00' : last.at).getTime();
+    return Date.now() - t0 < FLEET_SHIFT_HOURS * 36e5 ? last : null;
+  },
+
+  /** The last place a vehicle was seen (kept on the vehicle: the manager sees parked cars too). */
+  park: function (plate, lat, lng, userId) {
+    if (!plate || !Repo.find('Vehicles', 'plate', plate)) return;
+    Repo.update('Vehicles', 'plate', plate, { last_lat: lat, last_lng: lng, last_at: Util.nowIso(), last_by: userId });
+  },
+
   /** The driver's screen: the vehicles, theirs first, whether it was checked today, their last records. */
   mine: function (session) {
     var me = Repo.find('Users', 'user_id', session.user_id) || {};
     var logs = Repo.all('VehicleLogs');
     var plate = String(me.vehicle || '');
     var today = Util.today();
-    return { vehicles: Fleet.vehicles(), plate: plate,
+    var shift = Fleet.onShift(session.user_id, logs);
+    return { vehicles: Fleet.vehicles(), plate: plate, shift: shift ? { at: shift.at, plate: String(shift.plate) } : null,
       checked_today: logs.some(function (l) { return l.kind === 'check' && String(l.plate) === plate && String(l.at).slice(0, 10) === today; }),
       last_odo: plate ? Fleet.lastOdo(plate, logs) : 0,
       logs: logs.filter(function (l) { return l.by === session.user_id; }).slice(-20).reverse().map(Fleet.view) };

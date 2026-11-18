@@ -10,6 +10,7 @@ import { h, toast, dialog, fmtNum, fmtDate } from '../ui.js';
 import { field, newId } from '../components.js';
 import { shrink, photoButton } from '../photos.js';
 import { driverMap } from '../drivermap.js';
+import { Gps } from '../gps.js';
 
 let tab = '';
 const CHECKS = ['tyres', 'oil', 'cooling', 'clean'];
@@ -38,6 +39,7 @@ function describe(l) {
       d.fuel !== '' && d.fuel !== undefined ? ' · ⛽ ' + t('fl_fuel_' + d.fuel) : '', d.cold !== '' && d.cold !== undefined ? ' · ❄️ ' + d.cold + '°' : ''].join('');
   }
   if (l.kind === 'fuel') return '⛽ ' + fmtNum(d.liters) + ' ' + t('fl_l') + ' · ' + fmtNum(d.amount) + ' ' + t('ol_qr');
+  if (l.kind === 'start' || l.kind === 'end') return (l.kind === 'start' ? '▶️ ' : '⏹ ') + t('fl_k_' + l.kind) + (d.lat !== undefined ? ' · 📍' : '');
   return (d.urgent ? '🚨 ' : '🔧 ') + (d.text || '');
 }
 function logRow(l, extra) {
@@ -61,7 +63,27 @@ function myCar(box) {
     sel.value = m.plate || '';
     const status = h('div.fl-status', { class: m.checked_today ? 'ok' : 'todo' }, m.checked_today ? '✅ ' + t('fl_checked_today') : '⏳ ' + t('fl_check_todo'));
     const go = (kind) => () => { if (!sel.value) { toast(t('fl_pick_car'), 'err'); return; } form(kind, sel.value, m.plate === sel.value ? m.last_odo : 0, reload); };
-    body.replaceChildren(field(t('fl_car'), sel), sel.value === m.plate ? status : '',
+    // the shift: from its start the phone shares its position (the car park manager sees the car), until its end
+    const here = () => new Promise((res) => {
+      if (!navigator.geolocation) return res({});
+      navigator.geolocation.getCurrentPosition((p) => res({ lat: p.coords.latitude, lng: p.coords.longitude }), () => res({}), { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+    });
+    const shiftBtn = h('button.btn' + (m.shift ? '.danger' : ''), { type: 'button', onclick: async () => {
+      if (!m.shift && !sel.value) { toast(t('fl_pick_car'), 'err'); return; }
+      shiftBtn.disabled = true;
+      const pos = await here();
+      try {
+        await call('fleet.add', { client_id: newId(), kind: m.shift ? 'end' : 'start', plate: m.shift ? m.shift.plate : sel.value, data: pos });
+        if (m.shift) Gps.stop(); else Gps.start();
+        toast(t(m.shift ? 'fl_shift_ended' : 'fl_shift_started'), 'ok');
+        reload();
+      } catch (e) { toast(errText(e), 'err'); shiftBtn.disabled = false; }
+    } }, m.shift ? '⏹ ' + t('fl_shift_end') : '▶️ ' + t('fl_shift_start'));
+    const shiftBox = h('div.fl-shift', { class: m.shift ? 'on' : '' },
+      h('div', h('b', m.shift ? t('fl_on_shift', { t: String(m.shift.at).slice(11, 16), p: m.shift.plate }) : t('fl_off_shift')),
+        h('small.muted', m.shift ? (Gps.on ? '📡 ' + t('fl_gps_on') : '⚠️ ' + t('fl_gps_ask')) : t('fl_shift_help'))), shiftBtn);
+    if (m.shift) Gps.start();
+    body.replaceChildren(shiftBox, field(t('fl_car'), sel), sel.value === m.plate ? status : '',
       h('div.fl-big', h('button.btn', { type: 'button', onclick: go('check') }, '🔍 ' + t('fl_k_check')),
         h('button.btn', { type: 'button', onclick: go('fuel') }, '⛽ ' + t('fl_k_fuel')),
         h('button.btn.danger', { type: 'button', onclick: go('issue') }, '🔧 ' + t('fl_k_issue'))),

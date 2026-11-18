@@ -270,7 +270,8 @@ var Trips = {
    * orders); a branch manager: only the drivers with a stop still to deliver at their shops (only those stops).
    */
   map: function (session) {
-    var all = Perm.has(session, 'trips.save') || session.role === 'admin';
+    // distribution, the admin and the car park manager follow every driver; a branch manager only those coming to their shops
+    var all = Perm.has(session, 'trips.save') || Perm.has(session, 'fleet.list') || session.role === 'admin';
     var myShops = all ? null : Branches.of(session);
     var cache = CacheService.getScriptCache();
     var names = {};
@@ -279,6 +280,7 @@ var Trips = {
     Repo.all('Orders').forEach(function (o) { orders[o.order_id] = o; });
     var stopsOf = Repo.groupBy('TripStops', 'trip_id');
     var out = [];
+    var logs = Repo.all('VehicleLogs');
     Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; }).forEach(function (u) {
       var trips = Trips.activeOf(u.user_id).map(function (t) {
         var stops = (stopsOf[t.trip_id] || []).sort(function (a, b) { return Number(a.seq) - Number(b.seq); }).map(function (s) {
@@ -289,13 +291,22 @@ var Trips = {
         return { trip_id: t.trip_id, vehicle: t.vehicle || '', stops: stops };
       }).filter(function (t) { return !myShops || t.stops.some(function (s) { return !s.delivered; }); });
       var online = all ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === u.user_id && o.status === 'out'; }).map(function (o) { return o.no; }) : [];
-      if (!trips.length && !online.length) return;
+      var shift = all ? Fleet.onShift(u.user_id, logs) : null;
+      if (!trips.length && !online.length && !shift) return;
       var pos = null;
       try { pos = JSON.parse(cache.get('drv_at_' + u.user_id) || 'null'); } catch (e) { pos = null; }
-      out.push({ id: u.user_id, name: u.display_name, vehicle: (trips[0] || {}).vehicle || String(u.vehicle || ''), pos: pos,
+      out.push({ id: u.user_id, name: u.display_name, vehicle: shift ? String(shift.plate) : (trips[0] || {}).vehicle || String(u.vehicle || ''), pos: pos,
+        shift_at: shift ? shift.at : '',
         trips: trips.map(function (t) { return { trip_id: t.trip_id, stops: t.stops.map(function (s) { return { shop: s.shop, delivered: s.delivered }; }) }; }), online: online });
     });
-    return { drivers: out };
+    // the vehicles not with a driver on the road: their last known place (for who follows every vehicle)
+    var busy = {};
+    out.forEach(function (d) { if (d.vehicle) busy[String(d.vehicle)] = true; });
+    var users = {};
+    Repo.all('Users').forEach(function (u) { users[u.user_id] = u.display_name; });
+    var parked = !all ? [] : Repo.all('Vehicles').filter(function (v) { return v.active !== false && v.last_lat !== '' && v.last_lat !== undefined && !busy[String(v.plate)]; })
+      .map(function (v) { return { plate: String(v.plate), model: v.model || '', pos: { lat: Number(v.last_lat), lng: Number(v.last_lng), at: v.last_at }, by: users[v.last_by] || '' }; });
+    return { drivers: out, parked: parked };
   },
 
   drivers: function () {
