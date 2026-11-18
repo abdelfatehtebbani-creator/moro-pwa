@@ -99,7 +99,7 @@ function keypad(opts) {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', opts.secret ? '' : '.', '0', '⌫'];
   draw();
   return { el: h('div.k-pad', out, h('div.k-keys', keys.map((x) => x ? h('button.k-key', { type: 'button', onclick: () => press(x) }, x) : h('span')))),
-    get value() { return val; }, clear() { val = ''; draw(); } };
+    get value() { return val; }, clear() { val = ''; draw(); }, setUnit(u) { opts.unit = u; draw(); } };
 }
 
 // ---------- the on-screen keyboard (the device has no keyboard): opens when the field is touched, Arabic or English letters
@@ -375,7 +375,7 @@ async function request() {
     textpad(search, () => p2.set(list()));
     const side = h('div.k-cart');
     const drawCart = () => side.replaceChildren(h('h2', k('cart')), lines.length ? h('div.k-cartlist', lines.map((l) => h('div.k-cartrow',
-      h('bdi', Data.nameOf(Data.items.get(l.item_id))), h('b', qu(l.qty, Data.items.get(l.item_id).unit)),
+      h('bdi', Data.nameOf(Data.items.get(l.item_id))), h('b', l.shown ? qu(l.shown[0], l.shown[1]) : qu(l.qty, Data.items.get(l.item_id).unit)),
       h('button.k-x', { type: 'button', onclick: () => { lines.splice(lines.indexOf(l), 1); drawCart(); } }, '✕')))) : h('p.k-empty', k('empty_cart')),
       h('button.k-btn.k-big.k-ok', { type: 'button', disabled: !lines.length, onclick: send }, '✓ ' + k('send')));
     // the last line asked for stays in view
@@ -385,22 +385,33 @@ async function request() {
     page();
 
     function qtyOf(it) {
-      const pad = keypad({ unit: it.unit, max: 8 });
+      // an item with a small and a large unit (PC and BOX…): the unit is chosen; the request keeps the stock unit
+      const units = Data.unitsOf(it);
+      let unit = String(it.unit).toUpperCase();
+      const pad = keypad({ unit, max: 8 });
       const avail = Math.max(0, Data.qty(it.item_id)) - lines.filter((l) => l.item_id === it.item_id).reduce((s, l) => s + l.qty, 0);
+      const hint = h('p.k-hint');
+      const showAvail = () => { const [n, u] = Data.inUnit(it, avail, unit); hint.textContent = k('available') + ': ' + qu(n, u); };
+      const chips = units.length > 1 ? h('div.k-chips', units.map((u) => h('button.k-chip', { type: 'button', class: u === unit ? 'on' : '', onclick: (e) => {
+        unit = u; pad.setUnit(u); showAvail();
+        [...chips.children].forEach((b) => b.classList.toggle('on', b === e.currentTarget));
+      } }, u))) : '';
+      showAvail();
       const add = h('button.k-btn.k-big.k-ok', { type: 'button', onclick: () => {
         const q = Number(pad.value);
         if (!(q > 0)) return;
-        if (q > avail + 1e-9) { flashMsg(k('available') + ': ' + qu(avail, it.unit), 'err'); return; }
-        lines.push({ item_id: it.item_id, qty: q });
+        const stock = Math.round(q * (Data.factorOf(it, unit) || 1) * 1e6) / 1e6;
+        if (stock > avail + 1e-9) { showAvail(); flashMsg(hint.textContent, 'err'); return; }
+        lines.push({ item_id: it.item_id, qty: stock, shown: unit === String(it.unit).toUpperCase() ? null : [q, unit] });
         drawCartEnd(); page();
       } }, '＋');
-      frame(h('span', h('bdi', Data.nameOf(it))), h('div.k-center', h('p.k-hint', k('available') + ': ' + qu(avail, it.unit)), pad.el), add, { back: page });
+      frame(h('span', h('bdi', Data.nameOf(it))), h('div.k-center', chips, hint, pad.el), add, { back: page });
     }
 
     async function send(e) {
       const btn = e.currentTarget; btn.disabled = true;
       try {
-        await call('requests.create', { date: Data.todayIso(), party_id: dept.party_id, note: '', client_id: newId(), lines });
+        await call('requests.create', { date: Data.todayIso(), party_id: dept.party_id, note: '', client_id: newId(), lines: lines.map((l) => ({ item_id: l.item_id, qty: l.qty })) });
         done(k('sent'), [dept.name + ' · ' + lines.length]);
       } catch (ex) { flashMsg(errText(ex), 'err'); btn.disabled = false; }
     }
