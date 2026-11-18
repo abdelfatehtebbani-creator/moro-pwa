@@ -1074,3 +1074,28 @@ tr.fl-open td { background: #fff8f7; }
 .rep-opts .form-actions { margin: 0; }
 .rep-opts .form-actions .btn { padding: 7px 18px; font-size: 14px; min-width: 0; width: auto; }
 .rep-opts .form-status:empty { display: none; }
+
+/* the report's options in a few low lines */
+.rep-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.rep-inl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.rep-opts .rep-date { width: 140px; padding: 4px 6px; }
+.rep-opts .rep-num { width: 80px; padding: 4px 6px; }
+.rep-opts .rep-quick { width: auto; padding: 4px 6px; font-size: 13px; }
+.rep-seg button { padding: 3px 10px; font-size: 12.5px; }
+.rep-tog { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px 2px 8px; cursor: pointer; }
+.rep-tog:has(input:checked) { background: var(--teal-soft); border-color: var(--teal); color: var(--teal); }
+.rep-folds { display: flex; flex-wrap: wrap; gap: 6px; }
+.rep-fold { border: 1px solid var(--line); border-radius: 8px; background: #fafbfc; }
+.rep-fold[open] { flex-basis: 100%; }
+.rep-fold > summary { cursor: pointer; padding: 4px 10px; font-size: 13px; list-style: none; display: flex; gap: 4px; align-items: center; }
+.rep-fold > summary::-webkit-details-marker { display: none; }
+.rep-fold > summary::after { content: '▾'; color: var(--muted); margin-inline-start: 4px; }
+.rep-fold-val { color: var(--teal); font-weight: 600; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rep-fold-in { padding: 6px 10px 10px; font-size: 13px; }
+.rep-fold-in .ms-list { max-height: 180px; }
+.rep-end { justify-content: flex-start; }
+.rep-opts .rep-run { padding: 6px 18px; font-size: 14px; }
+.rep-opts .form-status { margin: 0; }
+.rep-opts .rep-run { min-width: 0; margin-inline-start: auto; align-self: center; }
+.rep-folds { align-items: flex-start; }
+.rep-opts .form-status:empty { display: none; }

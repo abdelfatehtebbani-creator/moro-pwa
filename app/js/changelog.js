@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.268', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: خيارات كل تقرير في سطرين تقريبًا: التواريخ والمدة والخيارات صغيرة جنبًا إلى جنب، والمخازن والمواد والأقسام والأشهر قوائم مطوية بسطر واحد يقول ما اختير، وزر «إنشاء التقرير» في آخر السطر."]},
+    en: {"news": ["(Development copy) Reports: each report's options in about two lines: dates, period and choices small side by side; stores, items, departments and months folded to one line saying what is chosen; \"Create report\" at the end of the line."]},
+  },
+  {
     v: '0.9.267', date: '2026-11-18',
     ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أقصر بكثير: الخانة بجانب عنوانها، والمسافات والخانات والزر أصغر."]},
     en: {"news": ["(Development copy) Reports: the options frame is much shorter: each field beside its title, tighter spacing, smaller fields and button."]},
