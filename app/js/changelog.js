@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.260', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) عند السائق صار اسم شاشة «السيارات» في القائمة وعنوانها «سيارتي». مسؤول السيارات يراها «السيارات» كما هي."]},
-    en: {"news": ["(Development copy) For drivers, the Vehicles screen is now called \"My car\" in the menu and its title. The car park manager still sees \"Vehicles\"."]},
+    ar: {"news": ["عند السائق صار اسم شاشة «السيارات» في القائمة وعنوانها «سيارتي». مسؤول السيارات يراها «السيارات» كما هي."]},
+    en: {"news": ["For drivers, the Vehicles screen is now called \"My car\" in the menu and its title. The car park manager still sees \"Vehicles\"."]},
   },
   {
     v: '0.9.259', date: '2026-11-18',
