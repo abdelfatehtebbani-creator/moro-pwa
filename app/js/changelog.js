@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.263', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: الشاشة لا تتجاوز عرض الجهاز (يظهر الجانب الأيمن وزر الإرسال وزر الخروج كاملين)، وقائمة «المطلوب» تعرض كل الأصناف وتُسحب بالإصبع للأعلى والأسفل، وآخر صنف مضاف يبقى ظاهرًا."]},
-    en: {"news": ["(Development copy) The shared device: the screen never goes wider than the device (the right side, Send and Sign out show in full); the asked-for list shows every line and scrolls with a finger, the last line added stays in view."]},
+    ar: {"news": ["الجهاز المشترك: الشاشة لا تتجاوز عرض الجهاز (يظهر الجانب الأيمن وزر الإرسال وزر الخروج كاملين)، وقائمة «المطلوب» تعرض كل الأصناف وتُسحب بالإصبع للأعلى والأسفل، وآخر صنف مضاف يبقى ظاهرًا."]},
+    en: {"news": ["The shared device: the screen never goes wider than the device (the right side, Send and Sign out show in full); the asked-for list shows every line and scrolls with a finger, the last line added stays in view."]},
   },
   {
     v: '0.9.262', date: '2026-11-18',
