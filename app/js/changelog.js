@@ -4,13 +4,13 @@
 export const CHANGELOG = [
   {
     v: '0.9.258', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) تسجيل العمال: المساعد يرى كل الأقسام عند فتح حسابه (التنظيف، الإدارة، السيارات، السكن…) ليطلب منها المواد. الشيف يرى الأقسام المنتجة فقط."]},
-    en: {"news": ["(Development copy) Workers' sign-up: a helper sees every department when opening their account (cleaning, administration, vehicles, housing…) to request materials for it. A chef sees the producing departments only."]},
+    ar: {"news": ["تسجيل العمال: المساعد يرى كل الأقسام عند فتح حسابه (التنظيف، الإدارة، السيارات، السكن…) ليطلب منها المواد. الشيف يرى الأقسام المنتجة فقط."]},
+    en: {"news": ["Workers' sign-up: a helper sees every department when opening their account (cleaning, administration, vehicles, housing…) to request materials for it. A chef sees the producing departments only."]},
   },
   {
     v: '0.9.257', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) موقع السيارات في كل الحالات: السائق يضغط «بدء الدوام» في «سيارتي» فيظهر مكان سيارته لمسؤول السيارات حتى «نهاية الدوام»، لا أثناء الرحلات فقط. وعند نهاية الدوام يُحفظ مكان السيارة، فتظهر السيارات الواقفة 🅿️ على الخريطة بآخر مكان لها."]},
-    en: {"news": ["(Development copy) Vehicles' places at all times: the driver presses \"Start the shift\" in My car and their vehicle shows to the car park manager until \"End the shift\", not only on trips. At the end of the shift the vehicle's place is kept, so parked vehicles 🅿️ show on the map at their last place."]},
+    ar: {"news": ["موقع السيارات في كل الحالات: السائق يضغط «بدء الدوام» في «سيارتي» فيظهر مكان سيارته لمسؤول السيارات حتى «نهاية الدوام»، لا أثناء الرحلات فقط. وعند نهاية الدوام يُحفظ مكان السيارة، فتظهر السيارات الواقفة 🅿️ على الخريطة بآخر مكان لها."]},
+    en: {"news": ["Vehicles' places at all times: the driver presses \"Start the shift\" in My car and their vehicle shows to the car park manager until \"End the shift\", not only on trips. At the end of the shift the vehicle's place is kept, so parked vehicles 🅿️ show on the map at their last place."]},
   },
   {
     v: '0.9.256', date: '2026-11-18',
