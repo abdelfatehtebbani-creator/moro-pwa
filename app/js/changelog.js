@@ -4,33 +4,33 @@
 export const CHANGELOG = [
   {
     v: '0.9.256', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) الأقسام المنتجة: لا خطوة إنتاج حين يُصنع المنتج لطلبية. في «تجهيز الطلبيات» تُعرض الكمية كاملة، وعند «تسليم للتوزيع» يُسجَّل الإنتاج الناقص تلقائيًا (بالتشغيلة والصلاحية) ثم يُسلَّم، وتظهر تحت الكمية «سيُسجَّل إنتاج … تلقائيًا». شاشة «الإنتاج» تبقى لما يُنتج دون طلب."]},
-    en: {"news": ["(Development copy) Producing departments: no production step when a product is made for an order. In Prepare orders the full quantity is offered, and \"Hand to distribution\" records the missing production automatically (with batch and expiry) then hands it; \"… will be recorded as made\" shows under the quantity. The Production screen stays for what is made without an order."]},
+    ar: {"news": ["الأقسام المنتجة: لا خطوة إنتاج حين يُصنع المنتج لطلبية. في «تجهيز الطلبيات» تُعرض الكمية كاملة، وعند «تسليم للتوزيع» يُسجَّل الإنتاج الناقص تلقائيًا (بالتشغيلة والصلاحية) ثم يُسلَّم، وتظهر تحت الكمية «سيُسجَّل إنتاج … تلقائيًا». شاشة «الإنتاج» تبقى لما يُنتج دون طلب."]},
+    en: {"news": ["Producing departments: no production step when a product is made for an order. In Prepare orders the full quantity is offered, and \"Hand to distribution\" records the missing production automatically (with batch and expiry) then hands it; \"… will be recorded as made\" shows under the quantity. The Production screen stays for what is made without an order."]},
   },
   {
     v: '0.9.255', date: '2026-11-17',
-    ar: {"news": ["(نسخة التطوير) خريطة السائقين: رقم المركبة بجانب اسم السائق على الخريطة."]},
-    en: {"news": ["(Development copy) Drivers' map: the vehicle's plate next to the driver's name on the map."]},
+    ar: {"news": ["خريطة السائقين: رقم المركبة بجانب اسم السائق على الخريطة."]},
+    en: {"news": ["Drivers' map: the vehicle's plate next to the driver's name on the map."]},
   },
   {
     v: '0.9.254', date: '2026-11-17',
-    ar: {"news": ["(نسخة التطوير) دور جديد «مسؤول السيارات» وشاشة «السيارات»: للسائق تبويب «سيارتي» يسجل فيه فحص قبل الانطلاق، وتعبئة الوقود، والإبلاغ عن عطل (مع صور). ولمسؤول السيارات: قائمة السيارات بالعداد والكيلومترات واستهلاك الوقود وآخر فحص، والأعطال المفتوحة مع إشعار وزر «أُصلح»، والسجل، والخريطة."]},
-    en: {"news": ["(Development copy) A new role, \"Car park manager\", and a Vehicles screen: the driver's \"My car\" tab records a check before leaving, fuel refills and faults (with photos). The car park manager sees the vehicles with odometer, kilometres, fuel use and last check, the open faults with a notification and a \"Fixed\" button, the records, and the map."]},
+    ar: {"news": ["دور جديد «مسؤول السيارات» وشاشة «السيارات»: للسائق تبويب «سيارتي» يسجل فيه فحص قبل الانطلاق، وتعبئة الوقود، والإبلاغ عن عطل (مع صور). ولمسؤول السيارات: قائمة السيارات بالعداد والكيلومترات واستهلاك الوقود وآخر فحص، والأعطال المفتوحة مع إشعار وزر «أُصلح»، والسجل، والخريطة."]},
+    en: {"news": ["A new role, \"Car park manager\", and a Vehicles screen: the driver's \"My car\" tab records a check before leaving, fuel refills and faults (with photos). The car park manager sees the vehicles with odometer, kilometres, fuel use and last check, the open faults with a notification and a \"Fixed\" button, the records, and the map."]},
   },
   {
     v: '0.9.253', date: '2026-11-17',
-    ar: {"news": ["(نسخة التطوير) خريطة السائقين: تبويب «الخريطة» في شاشة الرحلات لمسؤول التوزيع والمدير، عليها كل سائق في الطريق (رحلات المحلات وطلبيات الزبائن) بمحلاته ووقت آخر موقع. مدير الفرع يرى «السائق القادم إلى محلك» في شاشة الفروع. جوال السائق يشارك موقعه من الانطلاق حتى آخر تسليم والتطبيق مفتوح."]},
-    en: {"news": ["(Development copy) Drivers' map: a Map tab in the Trips screen for distribution and the admin, with every driver on the road (shop trips and customer orders), their shops and how recent the position is. A branch manager sees \"The driver coming to your shop\" in the Branches screen. The driver's phone shares its position from leaving to the last delivery while the app is open."]},
+    ar: {"news": ["خريطة السائقين: تبويب «الخريطة» في شاشة الرحلات لمسؤول التوزيع والمدير، عليها كل سائق في الطريق (رحلات المحلات وطلبيات الزبائن) بمحلاته ووقت آخر موقع. مدير الفرع يرى «السائق القادم إلى محلك» في شاشة الفروع. جوال السائق يشارك موقعه من الانطلاق حتى آخر تسليم والتطبيق مفتوح."]},
+    en: {"news": ["Drivers' map: a Map tab in the Trips screen for distribution and the admin, with every driver on the road (shop trips and customer orders), their shops and how recent the position is. A branch manager sees \"The driver coming to your shop\" in the Branches screen. The driver's phone shares its position from leaving to the last delivery while the app is open."]},
   },
   {
     v: '0.9.252', date: '2026-11-17',
-    ar: {"news": ["(نسخة التطوير) تحت خريطة السائق عند الزبون: زر «افتح في خرائط Google» يُظهر موقع السائق والطريق إلى بيته."]},
-    en: {"news": ["(Development copy) Under the driver's map on the customer's page: an \"Open in Google Maps\" button showing the driver's position and the way to their home."]},
+    ar: {"news": ["تحت خريطة السائق عند الزبون: زر «افتح في خرائط Google» يُظهر موقع السائق والطريق إلى بيته."]},
+    en: {"news": ["Under the driver's map on the customer's page: an \"Open in Google Maps\" button showing the driver's position and the way to their home."]},
   },
   {
     v: '0.9.251', date: '2026-11-17',
-    ar: {"news": ["(نسخة التطوير) تتبع السائق: بعد «استلمت الطلبية وانطلقت» يرسل جوال السائق موقعه كل 20 ثانية والتطبيق مفتوح، ويرى الزبون خريطة حية في صفحة طلبيته عليها السائق وبيته والمسافة ووقت آخر موقع. تتوقف المشاركة عند التسليم."]},
-    en: {"news": ["(Development copy) Driver tracking: after \"Got the order, leaving\" the driver's phone sends its position every 20 seconds while the app is open, and the customer sees a live map on the order page with the driver, their home, the distance and how recent the position is. Sharing stops at delivery."]},
+    ar: {"news": ["تتبع السائق: بعد «استلمت الطلبية وانطلقت» يرسل جوال السائق موقعه كل 20 ثانية والتطبيق مفتوح، ويرى الزبون خريطة حية في صفحة طلبيته عليها السائق وبيته والمسافة ووقت آخر موقع. تتوقف المشاركة عند التسليم."]},
+    en: {"news": ["Driver tracking: after \"Got the order, leaving\" the driver's phone sends its position every 20 seconds while the app is open, and the customer sees a live map on the order page with the driver, their home, the distance and how recent the position is. Sharing stops at delivery."]},
   },
   {
     v: '0.9.250', date: '2026-11-17',
