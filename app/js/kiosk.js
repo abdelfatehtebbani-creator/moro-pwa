@@ -374,10 +374,12 @@ async function request() {
     search.addEventListener('input', () => p2.set(list()));
     textpad(search, () => p2.set(list()));
     const side = h('div.k-cart');
-    const drawCart = () => side.replaceChildren(h('h2', k('cart')), lines.length ? h('div.k-cartlist', lines.slice(-7).map((l) => h('div.k-cartrow',
+    const drawCart = () => side.replaceChildren(h('h2', k('cart')), lines.length ? h('div.k-cartlist', lines.map((l) => h('div.k-cartrow',
       h('bdi', Data.nameOf(Data.items.get(l.item_id))), h('b', qu(l.qty, Data.items.get(l.item_id).unit)),
       h('button.k-x', { type: 'button', onclick: () => { lines.splice(lines.indexOf(l), 1); drawCart(); } }, '✕')))) : h('p.k-empty', k('empty_cart')),
       h('button.k-btn.k-big.k-ok', { type: 'button', disabled: !lines.length, onclick: send }, '✓ ' + k('send')));
+    // the last line asked for stays in view
+    const drawCartEnd = () => { drawCart(); const cl = side.querySelector('.k-cartlist'); if (cl) requestAnimationFrame(() => { cl.scrollTop = cl.scrollHeight; }); };
     const page = () => frame(h('span', k('request'), ' · ', h('bdi', dept.name)), h('div.k-split', h('div.k-col', search, p2.box), side), p2.nav, { back: menu });
     drawCart();
     page();
@@ -390,7 +392,7 @@ async function request() {
         if (!(q > 0)) return;
         if (q > avail + 1e-9) { flashMsg(k('available') + ': ' + qu(avail, it.unit), 'err'); return; }
         lines.push({ item_id: it.item_id, qty: q });
-        drawCart(); page();
+        drawCartEnd(); page();
       } }, '＋');
       frame(h('span', h('bdi', Data.nameOf(it))), h('div.k-center', h('p.k-hint', k('available') + ': ' + qu(avail, it.unit)), pad.el), add, { back: page });
     }
