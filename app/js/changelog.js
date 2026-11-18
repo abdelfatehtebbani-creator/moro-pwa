@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.260', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) عند السائق صار اسم شاشة «السيارات» في القائمة وعنوانها «سيارتي». مسؤول السيارات يراها «السيارات» كما هي."]},
+    en: {"news": ["(Development copy) For drivers, the Vehicles screen is now called \"My car\" in the menu and its title. The car park manager still sees \"Vehicles\"."]},
+  },
+  {
     v: '0.9.259', date: '2026-11-18',
     ar: {"news": ["الجهاز المشترك: زر تحديث ↻ في الأعلى يجلب قائمة الأسماء فورًا (عامل جديد أو قسم أُظهر)، والقائمة تتحدث وحدها كل 3 دقائق بدل 10."]},
     en: {"news": ["The shared device: a refresh button ↻ at the top reads the list of names at once (a new worker, a department shown); the list also refreshes itself every 3 minutes instead of 10."]},

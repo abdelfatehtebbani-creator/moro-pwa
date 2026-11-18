@@ -7,7 +7,7 @@ import { Push } from './push.js';
 import { MovStore } from './movstore.js';
 import { kv } from './db.js';
 import { Data } from './data.js';
-import { t, applyLang, getLang, setLang, errText, fmtDateTime } from './i18n.js';
+import { t, applyLang, getLang, setLang, errText, fmtDateTime, setAlias } from './i18n.js';
 import { h, icon, toast, flash, trackFilled, dialog, fmtDate } from './ui.js';
 import { showAuth } from './views/login.js';
 import * as home from './views/home.js';
@@ -133,6 +133,8 @@ async function start() {
   step('outbox');
   await Outbox.init();
   step('shell');
+  // the driver sees the Vehicles screen as "My car"
+  setAlias('fleet', Data.can('fleet.list') ? '' : 'fleet_mine');
   if ((Data.boot || {}).drive_share) Gps.start();
   buildShell();
   route();

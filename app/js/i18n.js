@@ -67,6 +67,7 @@ const DICT = {
     "cash_l_back": "استرجاع نقد",
     "err.cash_all_rejected": "رُفضت كل الأسطر: ارفض الورقة كلها بدل ذلك",
     'pt_general': 'عام',
+    "fleet_mine": "سيارتي",
     "fl_gps_on": "مكان السيارة يظهر لمسؤول السيارات. أبقِ التطبيق مفتوحًا.",
     "fl_gps_ask": "اسمح بالموقع ليظهر مكان السيارة لمسؤول السيارات.",
     "fl_k_start": "بدء الدوام",
@@ -1856,6 +1857,7 @@ const DICT = {
     "cash_l_back": "Cash taken back",
     "err.cash_all_rejected": "Every line is refused: reject the whole sheet instead",
     'pt_general': 'General',
+    "fleet_mine": "My car",
     "fl_gps_on": "The vehicle's place shows to the car park manager. Keep the app open.",
     "fl_gps_ask": "Allow the location so the car park manager sees the vehicle.",
     "fl_k_start": "Shift start",
@@ -3600,7 +3602,11 @@ export function applyLang() {
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 }
 
+// a word that depends on who is signed in (the driver's "My car" for the Vehicles screen)
+const ALIAS = {};
+export function setAlias(key, alias) { if (alias) ALIAS[key] = alias; else delete ALIAS[key]; }
 export function t(key, vars) {
+  if (ALIAS[key]) key = ALIAS[key];
   let s = (DICT[lang] && DICT[lang][key]) ?? DICT.ar[key] ?? key;
   // values are isolated (FSI…PDI) so codes like D-1012-001 or English names keep their order inside Arabic text
   if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join('⁨' + vars[k] + '⁩');
