@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.261', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) السائق: قبل «بدء الدوام» يرى الرحلات وطلبيات الزبائن فقط، دون تحميل أو انطلاق أو تسليم، مع تنبيه وزر «بدء الدوام». والخادم يرفض الاستلام والتسليم قبل الدوام."]},
+    en: {"news": ["(Development copy) Drivers: before \"Start the shift\" they see trips and customer orders only, without loading, leaving or delivering, with a notice and a \"Start the shift\" button. The server refuses loading and delivering before the shift."]},
+  },
+  {
     v: '0.9.260', date: '2026-11-18',
     ar: {"news": ["عند السائق صار اسم شاشة «السيارات» في القائمة وعنوانها «سيارتي». مسؤول السيارات يراها «السيارات» كما هي."]},
     en: {"news": ["For drivers, the Vehicles screen is now called \"My car\" in the menu and its title. The car park manager still sees \"Vehicles\"."]},

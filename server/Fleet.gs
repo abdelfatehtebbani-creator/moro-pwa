@@ -104,6 +104,11 @@ var Fleet = {
     return Date.now() - t0 < FLEET_SHIFT_HOURS * 36e5 ? last : null;
   },
 
+  /** A driver loads, leaves and delivers only once their shift is started (they may look before). */
+  requireShift: function (session) {
+    if (session.role === 'driver') Util.require(Fleet.onShift(session.user_id), 'fleet_need_shift');
+  },
+
   /** The last place a vehicle was seen (kept on the vehicle: the manager sees parked cars too). */
   park: function (plate, lat, lng, userId) {
     if (!plate || !Repo.find('Vehicles', 'plate', plate)) return;

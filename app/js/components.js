@@ -238,3 +238,8 @@ export async function completeItem(itemId, { call, dialog, toast, errText }) {
 }
 
 export const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
+
+// a driver works (loads, leaves, delivers) only on shift: until then the screen is to look only
+export function shiftBanner() {
+  return h('div.shift-need', h('span', '⏸ ' + t('shift_need')), h('a.btn', { href: '#/fleet' }, '▶️ ' + t('fl_shift_start')));
+}

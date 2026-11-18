@@ -75,6 +75,7 @@ function myCar(box) {
       try {
         await call('fleet.add', { client_id: newId(), kind: m.shift ? 'end' : 'start', plate: m.shift ? m.shift.plate : sel.value, data: pos });
         if (m.shift) Gps.stop(); else Gps.start();
+        if (Data.boot) Data.boot.on_shift = !m.shift;
         toast(t(m.shift ? 'fl_shift_ended' : 'fl_shift_started'), 'ok');
         reload();
       } catch (e) { toast(errText(e), 'err'); shiftBtn.disabled = false; }

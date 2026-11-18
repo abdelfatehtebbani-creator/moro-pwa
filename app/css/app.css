@@ -1047,3 +1047,5 @@ tr.fl-open td { background: #fff8f7; }
 .fl-shift.on { border-color: var(--teal); background: var(--teal-soft); }
 .dm-pin.dm-p { background: #6b7380; }
 .dm-parked summary { cursor: pointer; font-weight: 700; margin: 6px 0; }
+.shift-need { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 10px 14px; font-weight: 700; margin: 8px 0; }
+.shift-need .btn { text-decoration: none; white-space: nowrap; }

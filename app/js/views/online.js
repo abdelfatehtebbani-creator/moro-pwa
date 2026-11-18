@@ -10,6 +10,7 @@ import { t, errText } from '../i18n.js';
 import { h, toast, dialog, fmtNum } from '../ui.js';
 import { shrink } from '../photos.js';
 import { Gps } from '../gps.js';
+import { shiftBanner } from '../components.js';
 
 let tab = '';
 const trayIco = () => h('img.tray-ico', { src: 'icons/tray.svg', alt: '' });
@@ -197,7 +198,9 @@ const shareLocation = (on) => { if (on) Gps.start(); };
 Gps.onChange((st) => { if (st === 'denied') toast(t('ol_gps_off'), 'err'); });
 function driverOrders(box) {
   const list = h('div.ol-list');
-  box.replaceChildren(list);
+  // not on shift: the orders are shown, not worked on
+  const shiftOk = !!(Data.boot || {}).on_shift;
+  box.replaceChildren(shiftOk ? '' : shiftBanner(), list);
   const show = (d) => {
     driveCache = d;
     const fresh = d.orders.filter((o) => o.status === 'out' || o.status === 'handed').length;
@@ -222,9 +225,9 @@ function driverOrders(box) {
         h('div.ol-lines', o.lines.map((l) => h('div', h('bdi', fmtNum(l.qty) + ' × ' + nameOf(l))))),
         o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
         prepaid(o) ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : o.pay === 'card' ? h('div.ol-collect', '💳 ' + t('ol_collect_card', { m: money(o.total) })) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
-        o.status === 'handed' ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
+        o.status === 'handed' && shiftOk ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
         o.status === 'out' ? h('small.ol-gps', Gps.on ? '📡 ' + t('ol_gps_on') : '⚠️ ' + t('ol_gps_ask')) : '',
-        o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '',
+        o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), shiftOk ? done : '') : '',
         cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
     }) : [h('p.empty', t('ol_drive_none'))]));
   };
