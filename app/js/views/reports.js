@@ -56,6 +56,9 @@ export function render(root) {
 function renderTables(root) {
   const reports = REPORTS.filter((r) => Data.can('report.' + r.id) && (!r.prices || Data.can('see_prices')));
   const cards = h('div.rep-cards');
+  // the list of reports folded: its title shows the one chosen; opened to choose another
+  const typeName = h('span.rep-type-name');
+  const typeBox = h('details.card.rep-type', h('summary', h('h2', t('report_type')), typeName), cards);
   const opts = h('div.rep-opts');
   const preview = h('div.rep-preview');
   const status = h('p.form-status', '');
@@ -70,7 +73,9 @@ function renderTables(root) {
     const groups = { stock: t('rep_group_stock'), move: t('rep_group_move'), orders: t('rep_group_orders'), other: t('rep_group_other') };
     cards.replaceChildren(...Object.keys(groups).map((g) => h('div.rep-group', h('div.rep-group-title', groups[g]),
       reports.filter((r) => r.group === g).map((r) => h('button.rep-card', { type: 'button', class: r.id === selected ? 'on' : '',
-        onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); } }, t('rep_' + r.id))))));
+        onclick: () => { selected = r.id; clearPreview(); drawCards(); drawOpts(); typeBox.open = false; } }, t('rep_' + r.id))))));
+    typeName.textContent = selected ? t('rep_' + selected) : '';
+    if (!selected) typeBox.open = true;
   }
 
   function opt(id) {
@@ -83,94 +88,97 @@ function renderTables(root) {
     return state[id];
   }
 
+  // the options of a report, as low as they can be: small fields side by side on one line, the long lists
+  // (stores, departments, items, months) folded to one line saying what is chosen, opened to change
   function drawOpts() {
     const rep = reports.find((r) => r.id === selected);
     const p = opt(selected);
-    const parts = [];
     const o = rep.opts;
+    const line = [];            // small controls side by side
+    const folds = [];           // the folded lists
+    const fold = (label, summaryText, body) => {
+      const sum = h('span.rep-fold-val', summaryText());
+      const d = h('details.rep-fold', h('summary', h('b', label + ': '), sum), h('div.rep-fold-in', body));
+      d.addEventListener('change', () => { sum.textContent = summaryText(); });
+      d.addEventListener('click', () => setTimeout(() => { sum.textContent = summaryText(); }, 0));
+      return d;
+    };
+    const seg = (keys, cur, set, label) => h('div.tabs.rep-seg', keys.map((m) => h('button', { type: 'button', class: cur === m ? 'on' : '', onclick: () => { set(m); drawOpts(); } }, t(label + m))));
+    const toggle = (checked, text, on) => { const cb = h('input', { type: 'checkbox', checked }); cb.addEventListener('change', () => on(cb.checked, cb)); return h('label.rep-tog', cb, text); };
     if (o.includes('dates')) {
-      const from = trackFilled(h('input.input#rp-from', { type: 'date', value: p.from }));
-      const to = trackFilled(h('input.input#rp-to', { type: 'date', value: p.to }));
+      const from = trackFilled(h('input.input.rep-date#rp-from', { type: 'date', value: p.from }));
+      const to = trackFilled(h('input.input.rep-date#rp-to', { type: 'date', value: p.to }));
       from.addEventListener('change', () => { p.from = from.value; });
       to.addEventListener('change', () => { p.to = to.value; });
-      const quick = (days) => () => { const d = new Date(Data.todayIso() + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - days); from.value = p.from = d.toISOString().slice(0, 10); to.value = p.to = Data.todayIso(); from.dispatchEvent(new Event('change')); };
-      parts.push(h('div.form-grid', h('div.field', h('label', t('from')), from), h('div.field', h('label', t('to')), to)),
-        h('div.quick', h('button.link', { type: 'button', onclick: quick(0) }, t('today')), h('button.link', { type: 'button', onclick: quick(6) }, t('last_7')),
-          h('button.link', { type: 'button', onclick: quick(29) }, t('last_30')), h('button.link', { type: 'button', onclick: quick(364) }, t('last_year'))));
+      const quick = h('select.input.rep-quick', h('option', { value: '' }, t('rep_quick')), [[0, 'today'], [6, 'last_7'], [29, 'last_30'], [364, 'last_year']].map(([d, k]) => h('option', { value: d }, t(k))));
+      quick.addEventListener('change', () => {
+        if (quick.value === '') return;
+        const d = new Date(Data.todayIso() + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - Number(quick.value));
+        from.value = p.from = d.toISOString().slice(0, 10); to.value = p.to = Data.todayIso(); quick.value = '';
+      });
+      line.push(h('label.rep-inl', t('from'), from), h('label.rep-inl', t('to'), to), quick);
     }
     if (o.includes('asof')) {
-      const at = trackFilled(h('input.input#rp-asof', { type: 'date', value: p.asof || Data.todayIso(), max: Data.todayIso() }));
+      const at = trackFilled(h('input.input.rep-date#rp-asof', { type: 'date', value: p.asof || Data.todayIso(), max: Data.todayIso() }));
       at.addEventListener('change', () => { p.asof = at.value; });
       const monthEnd = () => { const d = new Date(Data.todayIso().slice(0, 8) + '01T00:00:00Z'); d.setUTCDate(0); at.value = p.asof = d.toISOString().slice(0, 10); };
-      parts.push(h('div.field', h('label', t('as_of')), at), h('div.quick', h('button.link', { type: 'button', onclick: () => { at.value = p.asof = Data.todayIso(); } }, t('today')),
-        h('button.link', { type: 'button', onclick: monthEnd }, t('last_month_end'))));
+      line.push(h('label.rep-inl', t('as_of'), at), h('button.link', { type: 'button', onclick: () => { at.value = p.asof = Data.todayIso(); } }, t('today')),
+        h('button.link', { type: 'button', onclick: monthEnd }, t('last_month_end')));
     }
     if (o.includes('days')) {
-      const d = trackFilled(h('input.input.num#rp-days', { type: 'number', min: 1, value: p.days }));
+      const d = trackFilled(h('input.input.num.rep-num#rp-days', { type: 'number', min: 1, value: p.days }));
       d.addEventListener('input', () => { p.days = Number(d.value) || 90; });
-      parts.push(h('div.field', h('label', t('days_period')), d));
+      line.push(h('label.rep-inl', t('days_period'), d));
     }
-    if (o.includes('mode')) {
-      const tabs = h('div.tabs');
-      ['all', 'in', 'out'].forEach((m) => tabs.append(h('button', { type: 'button', class: p.mode === m ? 'on' : '', onclick: () => { p.mode = m; drawOpts(); } }, t('mode_' + m))));
-      parts.push(tabs);
-    }
-    if (o.includes('detail')) {
-      const tabs = h('div.tabs');
-      ['summary', 'detailed'].forEach((m) => tabs.append(h('button', { type: 'button', class: p.detail === m ? 'on' : '', onclick: () => { p.detail = m; drawOpts(); } }, t('detail_' + m))));
-      parts.push(tabs);
-    }
-    if (o.includes('period')) {
-      const tabs = h('div.tabs');
-      ['weekly', 'monthly', 'yearly'].forEach((m) => tabs.append(h('button', { type: 'button', class: p.period === m ? 'on' : '', onclick: () => { p.period = m; drawOpts(); } }, t('period_' + m))));
-      parts.push(tabs);
-    }
+    if (o.includes('mode')) line.push(seg(['all', 'in', 'out'], p.mode, (m) => { p.mode = m; }, 'mode_'));
+    if (o.includes('detail')) line.push(seg(['summary', 'detailed'], p.detail, (m) => { p.detail = m; }, 'detail_'));
+    if (o.includes('period')) line.push(seg(['weekly', 'monthly', 'yearly'], p.period, (m) => { p.period = m; }, 'period_'));
     if (o.includes('foodPack')) {
-      const f = h('input', { type: 'checkbox', checked: p.foodOnly }); const k = h('input', { type: 'checkbox', checked: p.packOnly });
-      f.addEventListener('change', () => { p.foodOnly = f.checked; if (f.checked) { p.packOnly = false; k.checked = false; } });
-      k.addEventListener('change', () => { p.packOnly = k.checked; if (k.checked) { p.foodOnly = false; f.checked = false; } });
-      parts.push(h('label.check', f, ' ', t('food_only')), h('label.check', k, ' ', t('pack_only')));
+      let fl, pl;
+      fl = toggle(p.foodOnly, t('food_only'), (v) => { p.foodOnly = v; if (v) { p.packOnly = false; pl.querySelector('input').checked = false; } });
+      pl = toggle(p.packOnly, t('pack_only'), (v) => { p.packOnly = v; if (v) { p.foodOnly = false; fl.querySelector('input').checked = false; } });
+      line.push(fl, pl);
     }
-    if (o.includes('zero')) {
-      const z = h('input', { type: 'checkbox', checked: p.zero });
-      z.addEventListener('change', () => { p.zero = z.checked; });
-      parts.push(h('label.check', z, ' ', t('show_zero')));
-    }
+    if (o.includes('zero')) line.push(toggle(p.zero, t('show_zero'), (v) => { p.zero = v; }));
     if (o.includes('year')) {
-      const y = h('select.input#rp-year');
+      const y = h('select.input.rep-num#rp-year');
       const now = Number(Data.todayIso().slice(0, 4));
       for (let v = now - 3; v <= now + 1; v++) y.append(h('option', { value: v, selected: v === p.year }, v));
       y.addEventListener('change', () => { p.year = Number(y.value); });
+      line.push(h('label.rep-inl', t('year'), y));
       const months = h('div.months', Array.from({ length: 12 }, (_, i) => {
         const cb = h('input', { type: 'checkbox', checked: p.months.has(i + 1) });
         cb.addEventListener('change', () => { cb.checked ? p.months.add(i + 1) : p.months.delete(i + 1); });
         return h('label.check', cb, ' ', t('month_' + (i + 1)));
       }));
-      parts.push(h('div.field', h('label', t('year')), y), months);
+      folds.push(fold(t('rep_months'), () => (p.months.size === 12 || !p.months.size ? t('rep_all') : String(p.months.size)), months));
     }
     if (o.includes('list')) {
       const list = selected === 'fast' ? 'FAST' : 'SENSITIVE';
-      parts.push(h('p.muted', t('list_count', { n: Data.list(list).size })));
-      if (Data.can('lists.save')) parts.push(h('button.btn.secondary', { type: 'button', onclick: () => editList(list) }, t('edit_list')));
+      line.push(h('span.muted', t('list_count', { n: Data.list(list).size })));
+      if (Data.can('lists.save')) line.push(h('button.link', { type: 'button', onclick: () => editList(list) }, t('edit_list')));
     }
     if (o.includes('stores')) {
-      parts.push(h('div.field', h('label', t('stores')), h('div.months', STORES.map((s) => {
-        const cb = h('input', { type: 'checkbox', checked: p.stores.has(s) });
-        cb.addEventListener('change', () => { cb.checked ? p.stores.add(s) : p.stores.delete(s); });
-        return h('label.check', cb, ' ', t('store_' + s));
-      }))));
+      const boxes = h('div.months', STORES.map((st) => {
+        const cb = h('input', { type: 'checkbox', checked: p.stores.has(st) });
+        cb.addEventListener('change', () => { cb.checked ? p.stores.add(st) : p.stores.delete(st); });
+        return h('label.check', cb, ' ', t('store_' + st));
+      }));
+      folds.push(fold(t('stores'), () => (p.stores.size === STORES.length ? t('rep_all') : p.stores.size ? [...p.stores].map((x) => t('store_' + x)).join('، ') : t('rep_none')), boxes));
     }
-    if (o.includes('sections')) parts.push(h('div.field', h('label', t('departments')), multiSelect('rp-sec', sectionOpts, p.sections, 'dept_hint')));
+    if (o.includes('sections')) folds.push(fold(t('departments'), () => (p.sections.size ? t('rep_n_chosen', { n: p.sections.size }) : t('rep_none')), multiSelect('rp-sec', sectionOpts, p.sections, 'dept_hint')));
     if (o.includes('zoneItems')) {
-      const tabs = h('div.tabs');
-      STORES.forEach((z) => tabs.append(h('button', { type: 'button', class: p.zone === z ? 'on' : '', onclick: () => { p.zone = z; p.items.clear(); drawOpts(); } }, t('store_' + z))));
-      parts.push(tabs, h('div.field', h('label', t('items')), multiSelect('rp-items', itemOpts(p.zone), p.items)));
+      line.push(seg(STORES, p.zone, (z) => { p.zone = z; p.items.clear(); }, 'store_'));
+      folds.push(fold(t('items'), () => (p.items.size ? t('rep_n_chosen', { n: p.items.size }) : t('rep_none')), multiSelect('rp-items', itemOpts(p.zone), p.items)));
     }
     if (o.includes('items') || o.includes('items?')) {
-      parts.push(h('div.field', h('label', t(o.includes('items?') ? 'items_optional' : 'items')), multiSelect('rp-items', itemOpts(), p.items)));
+      const optional = o.includes('items?');
+      folds.push(fold(t('items'), () => (p.items.size ? t('rep_n_chosen', { n: p.items.size }) : optional ? t('rep_all') : t('rep_none')), multiSelect('rp-items', itemOpts(), p.items)));
     }
-    opts.replaceChildren(h('h2', t('rep_' + selected)), ...parts,
-      h('div.form-actions', h('button.btn.save-btn#rp-run', { type: 'button', onclick: run }, t('create_report'))), status);
+    const run1 = h('button.btn.save-btn.rep-run#rp-run', { type: 'button', onclick: run }, t('create_report'));
+    // the button ends the last line (no line of its own)
+    if (folds.length) folds.push(run1); else line.push(run1);
+    opts.replaceChildren(h('h2', t('rep_' + selected)), line.length ? h('div.rep-line', line) : '', folds.length ? h('div.rep-folds', folds) : '', status);
   }
 
   async function editList(list) {
@@ -320,7 +328,7 @@ function renderTables(root) {
     clearPreview();
   }
 
-  root.replaceChildren(h('div.rep-layout', h('div.card', h('h2', t('report_type')), cards), h('div.card', opts), h('div.card.rep-out', h('h2', t('preview')), preview)));
+  root.replaceChildren(h('div.rep-layout', typeBox, h('div.card', opts), h('div.card.rep-out', h('h2', t('preview')), preview)));
   drawCards();
   drawOpts();
   drawPreview();

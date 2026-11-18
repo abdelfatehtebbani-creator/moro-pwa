@@ -3,6 +3,26 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.268', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: خيارات كل تقرير في سطرين تقريبًا: التواريخ والمدة والخيارات صغيرة جنبًا إلى جنب، والمخازن والمواد والأقسام والأشهر قوائم مطوية بسطر واحد يقول ما اختير، وزر «إنشاء التقرير» في آخر السطر."]},
+    en: {"news": ["(Development copy) Reports: each report's options in about two lines: dates, period and choices small side by side; stores, items, departments and months folded to one line saying what is chosen; \"Create report\" at the end of the line."]},
+  },
+  {
+    v: '0.9.267', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أقصر بكثير: الخانة بجانب عنوانها، والمسافات والخانات والزر أصغر."]},
+    en: {"news": ["(Development copy) Reports: the options frame is much shorter: each field beside its title, tighter spacing, smaller fields and button."]},
+  },
+  {
+    v: '0.9.266', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أصغر، لا يملأ كل العرض بجانب «نوع التقرير»، والخانات والأزرار بحجم مناسب."]},
+    en: {"news": ["(Development copy) Reports: the report's options frame is smaller, not filling the whole width beside the report type; fields and buttons sized to fit."]},
+  },
+  {
+    v: '0.9.265', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: قائمة «نوع التقرير» مطوية، ويظهر في عنوانها التقرير المختار. تفتحها لتختار تقريرًا آخر فتُطوى وحدها."]},
+    en: {"news": ["(Development copy) Reports: the \"Report type\" list is folded, its title showing the report chosen; opened to choose another, it folds by itself."]},
+  },
+  {
     v: '0.9.264', date: '2026-11-18',
     ar: {"news": ["الجهاز المشترك ← طلب مواد: الصنف الذي له وحدة صغرى وكبرى (مثل BOX و PC) تظهر فوق الأرقام أزرار لاختيار الوحدة، ويتغير المتوفر معها. يُحفظ الطلب بوحدة المخزن (50 PC من علبة 250 = 0.2 BOX)."]},
     en: {"news": ["Shared device → Ask the store: an item with a small and a large unit (BOX and PC…) shows buttons above the keypad to choose the unit, and the available quantity follows. The request is kept in the stock unit (50 PC of a 250 box = 0.2 BOX)."]},
