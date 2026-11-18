@@ -103,7 +103,7 @@ var CAPS = (function () {
     'trips.manage':      ['nav.trips', 'trips.list', 'trips.drivers', 'trips.save', 'trips.cancel', 'orders.list', 'trips.map'],
     // the vehicles: the car park manager follows them (map, list, records, problems); the driver records on theirs
     'fleet.manage':      ['nav.fleet', 'fleet.list', 'fleet.close', 'vehicles.save', 'trips.map'],
-    'fleet.log':         ['nav.fleet', 'fleet.mine', 'fleet.add'],
+    'fleet.log':         ['nav.fleet', 'fleet.mine', 'fleet.add', 'online.where'],
     'trips.drive':       ['nav.trips', 'trips.list', 'trips.load', 'trips.depart', 'trips.deliver', 'online.where'],
     'returns.create':    ['nav.returns', 'returns.list', 'returns.create'],
     'returns.decide':    ['nav.returns', 'returns.list', 'returns.decide'],

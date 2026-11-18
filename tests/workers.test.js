@@ -6,7 +6,8 @@ const { createGas } = require('./helpers/gas');
 
 test('workers: the list kept by a hash of the card; a worker opens one account, with the rights of the job', () => {
   const g = createGas();
-  g.seed('Parties', [{ party_id: 'P001', name: 'Baklava section', kind: 'section', active: true, producing: true }]);
+  g.seed('Parties', [{ party_id: 'P001', name: 'Baklava section', kind: 'section', active: true, producing: true },
+    { party_id: 'P009', name: 'Cleaning', kind: 'section', active: true }]);
   g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
   const admin = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
   const rows = [{ name: 'Ahmed Ali', qid: '284 0123 4567', job: 'Chef' }, { name: 'Sami', qid: '28401112222', job: 'مساعد شيف' },
@@ -31,6 +32,8 @@ test('workers: the list kept by a hash of the card; a worker opens one account, 
   assert.equal(g.api('workers.lookup', { qid: '00000000000' }).error.code, 'worker_unknown');
   const lk = g.api('workers.lookup', { qid: '28401234567' }).data;
   assert.deepEqual([lk.name, lk.job, lk.depts.map((d) => d.party_id)], ['Ahmed Ali', 'chef', ['P001']]);
+  // a helper asks the store only: any department, producing or not (cleaning, administration…)
+  assert.deepEqual(g.api('workers.lookup', { qid: '28401112222' }).data.depts.map((d) => d.party_id).sort(), ['P001', 'P009']);
   const r = g.api('workers.register', { qid: '28401234567', dept: 'P001', username: 'ahmed', pin: '4321' });
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.deepEqual(r.data.user.caps.slice().sort(), ['production.post', 'production.view', 'requests.create', 'requests.view', 'shop.hand', 'shop.unavailable', 'shop.view']);

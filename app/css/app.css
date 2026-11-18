@@ -1041,3 +1041,9 @@ p.pickup { margin: 8px 0 2px; }
 .fl-list { display: grid; gap: 8px; margin-top: 10px; }
 tr.fl-open td { background: #fff8f7; }
 .make-hint { color: var(--teal); font-weight: 600; font-size: 12px; }
+
+.fl-shift { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.fl-shift > div { display: grid; gap: 2px; }
+.fl-shift.on { border-color: var(--teal); background: var(--teal-soft); }
+.dm-pin.dm-p { background: #6b7380; }
+.dm-parked summary { cursor: pointer; font-weight: 700; margin: 6px 0; }

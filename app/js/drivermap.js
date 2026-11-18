@@ -30,14 +30,19 @@ export function driverMap(box, opts = {}) {
   const draw = (d) => {
     const drivers = d.drivers || [];
     if (opts.onCount) opts.onCount(drivers.length);
-    list.replaceChildren(...(drivers.length ? drivers.map((x) => h('div.dm-row', { onclick: () => { if (map && x.pos) map.setView([x.pos.lat, x.pos.lng], 15); } },
-      h('div.dm-who', h('b', '🚚 ', h('bdi', x.name)), x.vehicle ? h('span.muted', ' · ' + x.vehicle) : '',
+    list.replaceChildren(...(drivers.length || (d.parked || []).length ? drivers.map((x) => h('div.dm-row', { onclick: () => { if (map && x.pos) map.setView([x.pos.lat, x.pos.lng], 15); } },
+      h('div.dm-who', h('b', '🚚 ', h('bdi', x.name)), x.vehicle ? h('span.muted', ' · ' + x.vehicle) : '', x.shift_at ? h('span.pill.st-final', t('dm_on_shift', { t: String(x.shift_at).slice(11, 16) })) : '',
         h('small', { class: x.pos ? '' : 'dm-none' }, x.pos ? t('dm_last', { t: ago(x.pos.at) }) : t('dm_no_pos'))),
       h('div.dm-stops', x.trips.map((tr) => h('div', h('span.muted', tr.trip_id + ': '),
         tr.stops.map((s, i) => h('span', { class: 'dm-stop' + (s.delivered ? ' done' : '') }, (i ? ' ← ' : ''), (s.delivered ? '✓ ' : ''), h('bdi', s.shop))))),
         x.online.length ? h('div', h('span.muted', t('dm_customers') + ': '), x.online.join('، ')) : '')))
       : [h('p.empty', t(opts.empty || 'dm_none'))]));
-    if (!drivers.some((x) => x.pos)) { canvas.hidden = true; return; }
+    const parked = d.parked || [];
+    if (parked.length) list.append(h('details.dm-parked', h('summary', '🅿️ ' + t('dm_parked', { n: parked.length })),
+      parked.map((v) => h('div.dm-row', { onclick: () => { if (map) map.setView([v.pos.lat, v.pos.lng], 16); } },
+        h('div.dm-who', h('b', '🅿️ ', h('span.num', v.plate)), v.model ? h('span.muted', ' · ' + v.model) : '',
+          h('small', t('dm_parked_at', { t: ago(v.pos.at), n: v.by })))))));
+    if (!drivers.some((x) => x.pos) && !parked.length) { canvas.hidden = true; return; }
     canvas.hidden = false;
     loadLeaflet().then(() => {
       const L = window.L;
@@ -56,6 +61,12 @@ export function driverMap(box, opts = {}) {
         if (marks[x.id] && marks[x.id]._label !== label) { map.removeLayer(marks[x.id]); delete marks[x.id]; }
         if (marks[x.id]) marks[x.id].setLatLng(p);
         else { marks[x.id] = L.marker(p, { icon: L.divIcon({ html: label, className: 'dm-mark', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map); marks[x.id]._label = label; }
+      });
+      parked.forEach((v) => {
+        const id = 'P:' + v.plate, p = [v.pos.lat, v.pos.lng];
+        seen[id] = true; pts.push(p);
+        if (marks[id]) marks[id].setLatLng(p);
+        else marks[id] = L.marker(p, { icon: L.divIcon({ html: '<span class="dm-pin dm-p">🅿️</span><span class="dm-tag">' + String(v.plate).replace(/[<>&]/g, '') + '</span>', className: 'dm-mark', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
       });
       Object.keys(marks).forEach((id) => { if (!seen[id]) { map.removeLayer(marks[id]); delete marks[id]; } });
       if (!map._fitted && pts.length) { map.fitBounds(L.latLngBounds(pts).pad(0.4), { maxZoom: 14 }); map._fitted = true; }

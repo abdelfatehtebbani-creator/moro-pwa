@@ -106,7 +106,10 @@ var Workers = {
   lookup: function (p) {
     var w = Workers.find(p.qid);
     var depts = Repo.all('Parties').filter(function (x) {
-      return x.kind === 'section' && x.active === true && (x.producing === true || Repo.all('Items').some(function (i) { return String(i.dept || '') === x.party_id; }));
+      if (x.kind !== 'section' || x.active !== true) return false;
+      // a helper only asks the store: every department (cleaning, administration, vehicles, housing…);
+      // a chef makes and prepares: the departments that produce
+      return w.kind !== 'chef' || x.producing === true || Repo.all('Items').some(function (i) { return String(i.dept || '') === x.party_id; });
     }).map(function (x) { return { party_id: x.party_id, name: x.name }; }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
     return { name: w.name, job: w.kind, depts: depts };
   },

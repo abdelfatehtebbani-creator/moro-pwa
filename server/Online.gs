@@ -451,12 +451,19 @@ var Online = {
     var mine = Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && o.status === 'out'; });
     // a trip of shop orders that left and is not finished counts too (distribution and the branch managers follow it)
     var trips = Trips.activeOf(session.user_id);
-    if (!mine.length && !trips.length) return { sharing: 0 };
+    var shift = Fleet.onShift(session.user_id);
+    if (!mine.length && !trips.length && !shift) return { sharing: 0 };
     var pos = JSON.stringify({ lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5, at: Util.nowIso() });
     var cache = CacheService.getScriptCache();
     mine.forEach(function (o) { cache.put('drv_pos_' + o.no, pos, 3600); });
     cache.put('drv_at_' + session.user_id, pos, 3600);
-    return { sharing: mine.length + trips.length };
+    // the vehicle's last place, kept on the vehicle (at most every 5 minutes): the manager sees where it was left
+    var plate = shift ? String(shift.plate) : String((trips[0] || {}).vehicle || (Repo.find('Users', 'user_id', session.user_id) || {}).vehicle || '');
+    if (plate && !cache.get('veh_w_' + plate)) {
+      withLock(function () { Fleet.park(plate, Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5, session.user_id); });
+      cache.put('veh_w_' + plate, '1', 300);
+    }
+    return { sharing: mine.length + trips.length + (shift ? 1 : 0) };
   },
   driverPos: function (o) {
     if (o.status !== 'out') return null;
