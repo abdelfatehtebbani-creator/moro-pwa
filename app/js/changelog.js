@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.264', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك ← طلب مواد: الصنف الذي له وحدة صغرى وكبرى (مثل BOX و PC) تظهر فوق الأرقام أزرار لاختيار الوحدة، ويتغير المتوفر معها. يُحفظ الطلب بوحدة المخزن (50 PC من علبة 250 = 0.2 BOX)."]},
+    en: {"news": ["(Development copy) Shared device → Ask the store: an item with a small and a large unit (BOX and PC…) shows buttons above the keypad to choose the unit, and the available quantity follows. The request is kept in the stock unit (50 PC of a 250 box = 0.2 BOX)."]},
+  },
+  {
     v: '0.9.263', date: '2026-11-18',
     ar: {"news": ["الجهاز المشترك: الشاشة لا تتجاوز عرض الجهاز (يظهر الجانب الأيمن وزر الإرسال وزر الخروج كاملين)، وقائمة «المطلوب» تعرض كل الأصناف وتُسحب بالإصبع للأعلى والأسفل، وآخر صنف مضاف يبقى ظاهرًا."]},
     en: {"news": ["The shared device: the screen never goes wider than the device (the right side, Send and Sign out show in full); the asked-for list shows every line and scrolls with a finger, the last line added stays in view."]},
