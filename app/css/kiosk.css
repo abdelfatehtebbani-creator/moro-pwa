@@ -124,3 +124,16 @@ body.k-kbopen .k-tile small { font-size: 13px; }
 .k-me b { display: block; max-width: 26vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .k-head h1 { min-width: 80px; }
 @media (max-width: 1100px) { .k-brand small { display: none; } }
+
+/* never wider than the screen: long names and words shrink or wrap instead of pushing the right side off */
+html, body { overflow-x: hidden; }
+.k-app { width: 100%; max-width: 100vw; }
+.k-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.k-g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.k-head { overflow: hidden; }
+.k-head h1 { min-width: 0; }
+.k-bye { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.k-tile b, .k-tile small { overflow-wrap: anywhere; }
+/* the asked-for list scrolls with a finger: every line, the newest at the bottom */
+.k-cartlist { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+@media (max-width: 900px) { .k-g4 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
