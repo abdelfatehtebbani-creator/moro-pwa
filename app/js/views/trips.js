@@ -7,6 +7,8 @@ import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtDate, fmtNum, trackFilled, dialog } from '../ui.js';
 import { field, newId, combo } from '../components.js';
+import { Gps } from '../gps.js';
+import { driverMap } from '../drivermap.js';
 
 const PILL = { preparing: 'soon', loaded: 'soon', in_transit: 'soon', completed: 'in', cancelled: 'out' };
 let tab = 'open';
@@ -92,14 +94,15 @@ export async function render(root) {
   // ---------- the trips
   const listBox = h('div.req-list');
   const tabs = h('div.tabs');
-  const keys = (manage ? ['new'] : []).concat(['open', 'all']);
+  const keys = (manage ? ['new'] : []).concat(['open', 'all'], manage && Data.can('trips.map') ? ['map'] : []);
   if (!keys.includes(tab)) tab = keys[0];
   keys.forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
     onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('trips_' + s))));
-  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), newBox, listBox));
+  const mapBox = h('div.dm-box');
+  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), newBox, listBox, mapBox));
   function show() {
-    newBox.hidden = tab !== 'new'; listBox.hidden = tab === 'new';
-    if (tab === 'new') drawNew(); else loadList();
+    newBox.hidden = tab !== 'new'; listBox.hidden = tab === 'new' || tab === 'map'; mapBox.hidden = tab !== 'map';
+    if (tab === 'new') drawNew(); else if (tab === 'map') driverMap(mapBox); else loadList();
   }
 
   async function loadList(quiet) {
@@ -201,7 +204,7 @@ export async function render(root) {
             if (!vehicle.value.trim()) { flash(vehicle); return; }
             if (temp.value === '' || !isFinite(Number(temp.value))) { flash(temp); return; }
             const btn = e.currentTarget; btn.disabled = true;
-            try { await act('trips.depart', { trip_id: trip.trip_id, vehicle: vehicle.value.trim(), temp: Number(temp.value) }); toast(t('trip_departed'), 'ok'); loadList(true); }
+            try { await act('trips.depart', { trip_id: trip.trip_id, vehicle: vehicle.value.trim(), temp: Number(temp.value) }); toast(t('trip_departed'), 'ok'); loadList(true); setTimeout(() => Gps.start(), 4000); }
             catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
           } }, t('trip_depart'))));
       }

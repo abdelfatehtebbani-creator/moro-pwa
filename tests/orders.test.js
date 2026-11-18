@@ -64,12 +64,17 @@ test('orders: one cashier per shop; a draft is sent for the next day; distributi
   assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h0', lines: [{ line_id: flour.line_id, qty: 1 }] }, tok.prod).error.code, 'store_forbidden');
   g.api('shop.hand', { date: '2026-11-01', client_id: 'h1', lines: [{ line_id: box.line_id, qty: 2 }] }, tok.baklava);
   assert.equal(bal('I0002'), 1);
-  // more than the final products stock: to be made first
+  // more than the final products stock: the department hands it at once and what is short is recorded as made
+  // (decided 2026-11-18: no production step when the product is made for an order)
   const o2 = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 5 }], send: true }, tok.cashier).data.order;
   g.api('orders.approve', { order_id: o2.order_id }, tok.dist);
   const big = g.api('shop.list', {}, tok.baklava).data.find((l) => l.order_id === o2.order_id);
-  assert.equal(g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: big.line_id, qty: 5 }] }, tok.baklava).error.code, 'final_needs_production');
-  assert.equal(bal('I0002'), 1);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: big.line_id, qty: 5 }] }, tok.baklava);
+  assert.equal(bal('I0002'), 0, '1 from the stock and 4 made: all handed');
+  const made = g.rows('Movements').filter((m) => m.kind === 'PROD_OUTPUT' && m.item_id === 'I0002');
+  assert.deepEqual(made.map((m) => Number(m.qty)), [4]);
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: big.line_id, qty: 5 }] }, tok.baklava);
+  assert.equal(g.rows('Movements').filter((m) => m.kind === 'PROD_OUTPUT' && m.item_id === 'I0002').length, 1, 'pressed twice: made once');
   g.api('shop.unavailable', { line_id: flour.line_id, reason: 'Not today' }, tok.store);
   const o = g.api('orders.list', {}, tok.cashier).data.find((x) => x.order_id === d.order_id);
   assert.equal(o.status, 'ready');
@@ -139,6 +144,11 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   assert.equal(g.api('trips.depart', { trip_id: trip.trip_id, vehicle: '', temp: 4 }, tok.driver).error.code, 'vehicle_required');
   const dep = g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '4.5' }, tok.driver).data.trip;
   assert.deepEqual([dep.vehicle, Number(dep.temp), !!dep.departed_at], ['Q 123', 4.5, true]);
+  // on the road: the driver's phone shares its position; distribution sees the driver on the map, the cashier does not
+  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, tok.driver).data.sharing, 1);
+  const dm = g.api('trips.map', {}, tok.dist).data.drivers;
+  assert.deepEqual([dm.length, dm[0].pos.lat, dm[0].trips[0].trip_id], [1, 25.3, trip.trip_id]);
+  assert.equal(g.api('trips.map', {}, tok.cashier).error.code, 'forbidden');
   // the next trip offers the driver's last vehicle; the company's vehicles are loaded once
   assert.equal(g.api('trips.drivers', {}, tok.dist).data.find((d) => d.user_id === driverId).vehicle, 'Q 123');
   assert.ok(g.rows('Vehicles').some((v) => String(v.plate) === '931287'));
@@ -634,17 +644,17 @@ test('a trip sent twice (a resend after a lost reply) is made once', () => {
   assert.equal(g.rows('Trips').length, 1);
 });
 
-test('a department product not in stock counts on Production first, then on Prepare orders once made', () => {
+test('a department product not in stock counts on Prepare orders: handing it records what is made', () => {
   const { g, tok } = env();
   const o = g.api('orders.save', { lines: [{ item_id: 'I0002', qty: 5 }], send: true }, tok.cashier).data.order;
   g.api('orders.approve', { order_id: o.order_id }, tok.dist);
   const b = () => g.api('data.bootstrap', {}, tok.baklava).data;
-  assert.deepEqual([b().prod_todo, b().shop_todo], [1, 1], 'stock 3 of 5: some can be handed, the rest made');
+  assert.deepEqual([b().prod_todo, b().shop_todo], [0, 1], 'stock 3 of 5: on Prepare orders only (decided 2026-11-18)');
   const l = g.api('shop.list', {}, tok.baklava).data.find((x) => x.order_id === o.order_id);
   g.api('shop.hand', { date: '2026-11-01', client_id: 'h', lines: [{ line_id: l.line_id, qty: 3 }] }, tok.baklava);
-  assert.deepEqual([b().prod_todo, b().shop_todo], [1, 0], 'no stock left: only Production counts it');
-  g.api('production.post', { product: 'BAKLAVA BOX', qty: 2, date: '2026-11-01', client_id: 'p1' }, tok.baklava);
-  assert.deepEqual([b().prod_todo, b().shop_todo], [0, 1], 'made: back on Prepare orders');
+  assert.deepEqual([b().prod_todo, b().shop_todo], [0, 1], 'no stock left: still on Prepare orders, the rest made when handed');
+  g.api('shop.hand', { date: '2026-11-01', client_id: 'h2', lines: [{ line_id: l.line_id, qty: 2 }] }, tok.baklava);
+  assert.deepEqual([b().prod_todo, b().shop_todo], [0, 0]);
 });
 
 test('the general manager screen: one read-only summary of the period against the one before', () => {

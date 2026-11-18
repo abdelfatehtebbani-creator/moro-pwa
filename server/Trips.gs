@@ -255,6 +255,49 @@ var Trips = {
 
   /** Active drivers, for the trip form. */
   /** The drivers, each with the vehicle of their last trip (else the one saved with them). */
+  /** A driver's trips on the road: left, not cancelled, a stop still to deliver. */
+  activeOf: function (userId) {
+    var stops = Repo.groupBy('TripStops', 'trip_id');
+    return Repo.all('Trips').filter(function (t) {
+      if (t.driver_id !== userId || t.status === 'cancelled' || !t.departed_at) return false;
+      var s = stops[t.trip_id] || [];
+      return s.length && s.some(function (x) { return !x.delivered_at; });
+    });
+  },
+
+  /**
+   * The drivers on the road and their last position. Distribution and the admin: every driver (trips and customers'
+   * orders); a branch manager: only the drivers with a stop still to deliver at their shops (only those stops).
+   */
+  map: function (session) {
+    var all = Perm.has(session, 'trips.save') || session.role === 'admin';
+    var myShops = all ? null : Branches.of(session);
+    var cache = CacheService.getScriptCache();
+    var names = {};
+    Repo.all('Parties').forEach(function (p) { if (p.kind === 'shop') names[p.party_id] = p.name; });
+    var orders = {};
+    Repo.all('Orders').forEach(function (o) { orders[o.order_id] = o; });
+    var stopsOf = Repo.groupBy('TripStops', 'trip_id');
+    var out = [];
+    Repo.all('Users').filter(function (u) { return u.role === 'driver' && u.active === true; }).forEach(function (u) {
+      var trips = Trips.activeOf(u.user_id).map(function (t) {
+        var stops = (stopsOf[t.trip_id] || []).sort(function (a, b) { return Number(a.seq) - Number(b.seq); }).map(function (s) {
+          var o = orders[s.order_id] || {};
+          return { shop_id: o.shop_party_id || '', shop: names[o.shop_party_id] || o.customer_name || '', delivered: !!s.delivered_at };
+        });
+        if (myShops) stops = stops.filter(function (s) { return myShops.indexOf(s.shop_id) >= 0; });
+        return { trip_id: t.trip_id, vehicle: t.vehicle || '', stops: stops };
+      }).filter(function (t) { return !myShops || t.stops.some(function (s) { return !s.delivered; }); });
+      var online = all ? Repo.all('OnlineOrders').filter(function (o) { return o.driver === u.user_id && o.status === 'out'; }).map(function (o) { return o.no; }) : [];
+      if (!trips.length && !online.length) return;
+      var pos = null;
+      try { pos = JSON.parse(cache.get('drv_at_' + u.user_id) || 'null'); } catch (e) { pos = null; }
+      out.push({ id: u.user_id, name: u.display_name, vehicle: (trips[0] || {}).vehicle || String(u.vehicle || ''), pos: pos,
+        trips: trips.map(function (t) { return { trip_id: t.trip_id, stops: t.stops.map(function (s) { return { shop: s.shop, delivered: s.delivered }; }) }; }), online: online });
+    });
+    return { drivers: out };
+  },
+
   drivers: function () {
     var last = {}, at = {};
     Repo.all('Trips').forEach(function (t) {

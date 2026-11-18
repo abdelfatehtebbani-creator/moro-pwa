@@ -95,7 +95,14 @@ export async function render(root) {
       // a line already sent for handing and not yet answered by the server: shown as sending, no second press
       const sending = Outbox.queued('shop.hand').some((j) => (j.payload.lines || []).some((x) => x.line_id === l.line_id));
       const open = (tab === 'open' || tab === 'special') && left > 0 && l.approved !== false && l.can && !sending;
-      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: (l.special ? left : Math.min(left, l.reserved_qty)) || '' })) : null;
+      // a department's product made for this order: the whole quantity is offered; what the stock lacks is recorded as made
+      const makes = !l.special && l.store === 'FINAL' && !!l.dept && Data.can('production.post');
+      const inp = open ? trackFilled(h('input.input.num.small', { type: 'number', step: 'any', min: 0, 'data-key': l.line_id, value: (l.special || makes ? left : Math.min(left, l.reserved_qty)) || '' })) : null;
+      const makeHint = inp && makes ? h('small.make-hint') : null;
+      if (makeHint) {
+        const upd = () => { const n = Math.round(Math.max(0, (Number(inp.value) || 0) - (Number(l.reserved_qty) || 0)) * 1000) / 1000; makeHint.textContent = n > 0 ? t('auto_made', { n: fmtNum(n) + ' ' + l.unit }) : ''; };
+        inp.addEventListener('input', upd); upd();
+      }
       // bought by purchasing: to distribution, or straight to the shop
       const dest = inp && l.special && l.dept === 'PURCHASE' ? h('select.input.small', h('option', { value: '' }, '—'), h('option', { value: 'dist' }, t('hand_to_dist_short')), h('option', { value: 'shop' }, t('hand_to_shop'))) : null;
       if (inp) inputs.push({ line: l, inp, left, dest });
@@ -112,7 +119,7 @@ export async function render(root) {
         : h('bdi', Data.nameOf(it));
       return h('tr', h('td.wrap', label), h('td', where), h('td.num', fmtNum(l.qty) + ' ' + l.unit),
         h('td.num', fmtNum(l.handed_qty), l.returned_qty ? h('small.qty-neg', ' −' + fmtNum(l.returned_qty)) : ''), h('td.num', fmtNum(l.reserved_qty)), h('td', state, l.reason ? h('small.muted', ' ' + l.reason) : ''),
-        h('td', inp || '', ' ', dest || '', ' ', no || ''));
+        h('td', inp || '', ' ', dest || '', ' ', no || '', makeHint ? h('div', makeHint) : ''));
     });
     const actions = h('div.form-actions');
     // lines still awaiting Masar's distribution approval: the button shows, greyed out, until approval

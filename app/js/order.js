@@ -19,7 +19,7 @@ const T = {
     done: 'وصلتنا طلبيتك', done_sub: 'سيتصل بك المحل لتأكيدها. احفظ رقم طلبيتك:', follow: 'تابع طلبيتك', new_order: 'طلبية جديدة',
     st_new: 'قيد المراجعة', st_new_sub: 'سيتصل بك المحل للتأكيد', st_accepted: 'مقبولة – قيد التجهيز', st_out: 'في الطريق إليك', st_delivered: 'سُلّمت',
     st_rejected: 'تعذر تنفيذ الطلبية', st_cancelled: 'ألغيت الطلبية', reason: 'السبب', wa: 'تواصل معنا على واتساب', cancel: 'ألغِ الطلبية',
-    cancel_q: 'إلغاء الطلبية؟', refreshed: 'تم التحديث ✓', pay_card: 'بالبطاقة عند الاستلام', pay_card_sub: 'يحمل السائق جهاز البطاقة.', pay_fawran: 'تحويل فوري عبر «فورا»', pay_fawran_sub: 'بعد قبول الطلبية نعطيك رقم التحويل، حوّل قبل التسليم بـ {h} وأرسل الإثبات على واتساب.', st_wait_fawran: 'حوّل {m} عبر فورا قبل {t}', st_fawran_in: 'وصل تحويلك ✓', fawran_t: 'حوّل {m} عبر «فورا» إلى:', fawran_steps: 'بعد التحويل أرسل صورة الإثبات على واتساب. آخر موعد {t}، وإلا تُلغى الطلبية.', fawran_proof: 'أرسل إثبات التحويل على واتساب', fawran_msg: 'إثبات تحويل فورا للطلبية {no}، المبلغ {m}. (أرفقت صورة التحويل)', copy: 'نسخ', copied: 'نُسخ ✓', tr_out: 'عندك {n} صينية', tr_until: 'أرجعها إلى أي محل قبل {d} (باقي {n} يوم) لتسترد {m}.', tr_all_back: 'أرجعت الصواني كلها، شكرًا لك', tr_back: 'أرجعت {n} صينية واسترددت {m} ({d})', tr_kept: 'انتهت مدة الإرجاع: احتُسب {m} ثمنًا لـ {n} صينية', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
+    cancel_q: 'إلغاء الطلبية؟', map_away: 'على بعد {n} كم تقريبًا', map_on_way: 'السائق في الطريق', map_last: 'آخر موقع قبل {t}', map_wait: '🚚 ستظهر هنا خريطة السائق حين يرسل موقعه', map_fail: 'تعذر تحميل الخريطة', map_google: 'افتح في خرائط Google', ago_s: '{n} ث', ago_m: '{n} د', refreshed: 'تم التحديث ✓', pay_card: 'بالبطاقة عند الاستلام', pay_card_sub: 'يحمل السائق جهاز البطاقة.', pay_fawran: 'تحويل فوري عبر «فورا»', pay_fawran_sub: 'بعد قبول الطلبية نعطيك رقم التحويل، حوّل قبل التسليم بـ {h} وأرسل الإثبات على واتساب.', st_wait_fawran: 'حوّل {m} عبر فورا قبل {t}', st_fawran_in: 'وصل تحويلك ✓', fawran_t: 'حوّل {m} عبر «فورا» إلى:', fawran_steps: 'بعد التحويل أرسل صورة الإثبات على واتساب. آخر موعد {t}، وإلا تُلغى الطلبية.', fawran_proof: 'أرسل إثبات التحويل على واتساب', fawran_msg: 'إثبات تحويل فورا للطلبية {no}، المبلغ {m}. (أرفقت صورة التحويل)', copy: 'نسخ', copied: 'نُسخ ✓', tr_out: 'عندك {n} صينية', tr_until: 'أرجعها إلى أي محل قبل {d} (باقي {n} يوم) لتسترد {m}.', tr_all_back: 'أرجعت الصواني كلها، شكرًا لك', tr_back: 'أرجعت {n} صينية واسترددت {m} ({d})', tr_kept: 'انتهت مدة الإرجاع: احتُسب {m} ثمنًا لـ {n} صينية', unpaid_reason: 'لم تُدفع في المحل قبل الموعد', updating: 'يُحدَّث…', cancelling: 'يُلغى…', refresh: 'تحديث', order_no: 'رقم الطلبية', when: 'التسليم', no_orders: 'لا طلبات بعد', home: '🛍️ اطلب من جديد',
     closed: 'الطلب غير متاح الآن، حاول لاحقًا', offline: 'لا اتصال بالإنترنت، حاول مرة أخرى',
     pay_how: 'طريقة الدفع', pay_cod: 'نقدًا عند الاستلام', pay_cod_sub: 'تدفع للسائق عند وصول الطلبية.', pay_at_shop: 'نقدًا في محل', pay_at_shop_sub: 'تدفع في المحل الذي تختاره قبل موعد التسليم بـ {h}، وإلا تُلغى الطلبية.',
     pay_shop_pick: 'المحل الذي ستدفع فيه', st_wait_pay: 'ادفع {m} نقدًا في {s} قبل {t}', st_paid: 'دُفعت ✓', hours_n: '{n} ساعة', mins_n: '{n} دقيقة',
@@ -48,7 +48,7 @@ const T = {
     done: 'We have your order', done_sub: 'The shop will call you to confirm it. Keep your order number:', follow: 'Follow your order', new_order: 'New order',
     st_new: 'Being reviewed', st_new_sub: 'The shop will call you to confirm', st_accepted: 'Accepted – being prepared', st_out: 'On its way to you', st_delivered: 'Delivered',
     st_rejected: 'The order could not be made', st_cancelled: 'The order was cancelled', reason: 'Reason', wa: 'Contact us on WhatsApp', cancel: 'Cancel the order',
-    cancel_q: 'Cancel the order?', refreshed: 'Updated ✓', pay_card: 'Card on delivery', pay_card_sub: 'The driver carries a card machine.', pay_fawran: 'Instant transfer with Fawran', pay_fawran_sub: 'Once accepted we give you the number; transfer {h} before delivery and send the proof on WhatsApp.', st_wait_fawran: 'Transfer {m} with Fawran before {t}', st_fawran_in: 'Your transfer arrived ✓', fawran_t: 'Transfer {m} with Fawran to:', fawran_steps: 'After the transfer send the screenshot on WhatsApp. Latest {t}, or the order is cancelled.', fawran_proof: 'Send the transfer proof on WhatsApp', fawran_msg: 'Fawran transfer proof for order {no}, amount {m}. (screenshot attached)', copy: 'Copy', copied: 'Copied ✓', tr_out: 'You have {n} tray(s)', tr_until: 'Return them to any shop before {d} ({n} days left) to get {m} back.', tr_all_back: 'All trays returned, thank you', tr_back: '{n} tray(s) returned, {m} paid back ({d})', tr_kept: 'Time to return is over: {m} kept for {n} tray(s)', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
+    cancel_q: 'Cancel the order?', map_away: 'About {n} km away', map_on_way: 'The driver is on the way', map_last: 'last position {t} ago', map_wait: '🚚 The driver\u2019s map shows here once their position arrives', map_fail: 'Could not load the map', map_google: 'Open in Google Maps', ago_s: '{n} s', ago_m: '{n} min', refreshed: 'Updated ✓', pay_card: 'Card on delivery', pay_card_sub: 'The driver carries a card machine.', pay_fawran: 'Instant transfer with Fawran', pay_fawran_sub: 'Once accepted we give you the number; transfer {h} before delivery and send the proof on WhatsApp.', st_wait_fawran: 'Transfer {m} with Fawran before {t}', st_fawran_in: 'Your transfer arrived ✓', fawran_t: 'Transfer {m} with Fawran to:', fawran_steps: 'After the transfer send the screenshot on WhatsApp. Latest {t}, or the order is cancelled.', fawran_proof: 'Send the transfer proof on WhatsApp', fawran_msg: 'Fawran transfer proof for order {no}, amount {m}. (screenshot attached)', copy: 'Copy', copied: 'Copied ✓', tr_out: 'You have {n} tray(s)', tr_until: 'Return them to any shop before {d} ({n} days left) to get {m} back.', tr_all_back: 'All trays returned, thank you', tr_back: '{n} tray(s) returned, {m} paid back ({d})', tr_kept: 'Time to return is over: {m} kept for {n} tray(s)', unpaid_reason: 'It was not paid at the shop in time', updating: 'updating…', cancelling: 'Cancelling…', refresh: 'Refresh', order_no: 'Order No.', when: 'Delivery', no_orders: 'No orders yet', home: '🛍️ Order again',
     closed: 'Ordering is not open now, try later', offline: 'No internet connection, try again',
     pay_how: 'Payment', pay_cod: 'Cash on delivery', pay_cod_sub: 'You pay the driver when the order arrives.', pay_at_shop: 'Cash at a shop', pay_at_shop_sub: 'You pay at the shop you choose, {h} before the delivery time at the latest, or the order is cancelled.',
     pay_shop_pick: 'Shop where you will pay', st_wait_pay: 'Pay {m} cash at {s} before {t}', st_paid: 'Paid ✓', hours_n: '{n} hours', mins_n: '{n} minutes',
@@ -517,7 +517,7 @@ async function track(o, fresh) {
   trackTimer = setInterval(() => {
     if (current !== trackScreen || tracking !== o) return clearInterval(trackTimer);
     if (document.visibilityState === 'visible') read();
-  }, 30000);
+  }, (lastTrack(o.no) || {}).status === 'out' ? 20000 : 30000);
 }
 function drawTrack(o, t, stale) {
   // given to the driver but not left yet: still "accepted" for the customer (told when the driver leaves)
@@ -537,6 +537,7 @@ function drawTrack(o, t, stale) {
           s === 'accepted' && t.pay === 'fawran' && t.paid ? h('small.o-paid', tx('st_fawran_in')) : '',
           s === 'accepted' && t.pay === 'shop' && t.paid ? h('small.o-paid', tx('st_paid')) : '')))),
     waitFawran ? fawranBox(t) : '',
+    t.status === 'out' ? liveMap(t) : '',
     trayBox(t),
     FINAL.includes(t.status) && !(t.trays_state && t.trays_state.out && !t.trays_state.kept) ? '' : pushBox(() => drawTrack(o, lastTrack(o.no) || t, false)),
     h('div.o-box', h('div.o-lines', t.lines.map((l) => h('div.o-line', h('span', l.qty + ' × ' + nameOf(l)), h('span', money(l.qty * l.price)))),
@@ -562,6 +563,52 @@ function fawranBox(t) {
     h('div.o-copy', h('span', money(t.total)), h('button.o-btn.sec', { type: 'button', onclick: () => copy(String(t.total)) }, tx('copy'))),
     h('small', tx('fawran_steps', { t: t.pay_by })),
     wa ? h('a.o-btn.wa.block', { href: wa, target: '_blank', rel: 'noopener' }, '📎 ' + tx('fawran_proof')) : '');
+}
+// the live map: Leaflet (with OpenStreetMap's map) loaded only when an order is on its way; the same map is kept
+// between refreshes, its driver's mark moved to the last position the driver's phone sent
+const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
+let leaflet = null, mapBox = null, mapObj = null, mapNo = '', drvMark = null, homeMark = null;
+function loadLeaflet() {
+  if (leaflet) return leaflet;
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = LEAFLET + 'leaflet.min.css'; document.head.append(css);
+  leaflet = loadScript(LEAFLET + 'leaflet.min.js');
+  return leaflet;
+}
+const homeOf = (t) => { const m = String(t.map || '').match(/q=(-?[\d.]+),(-?[\d.]+)/); return m ? [Number(m[1]), Number(m[2])] : null; };
+function km(a, b) {
+  const r = (x) => (x * Math.PI) / 180, R = 6371;
+  const d1 = r(b[0] - a[0]), d2 = r(b[1] - a[1]);
+  const x = Math.sin(d1 / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(d2 / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+function ago(iso) {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(String(iso).length === 19 ? iso + '+03:00' : iso)) / 1000));
+  return s < 60 ? tx('ago_s', { n: s }) : tx('ago_m', { n: Math.round(s / 60) });
+}
+function liveMap(t) {
+  const pos = t.driver_pos;
+  const home = homeOf(t);
+  const info = h('div.o-map-info', pos ? [h('b', home ? tx('map_away', { n: km([pos.lat, pos.lng], home).toFixed(1) }) : tx('map_on_way')), h('small', tx('map_last', { t: ago(pos.at) }))]
+    : h('small', tx('map_wait')));
+  if (!pos) return h('div.o-map', info);
+  if (!mapBox || mapNo !== t.no) { mapBox = h('div.o-map-canvas'); mapObj = null; drvMark = null; homeMark = null; mapNo = t.no; }
+  loadLeaflet().then(() => {
+    const L = window.L;
+    if (!mapObj) {
+      mapObj = L.map(mapBox, { zoomControl: false, attributionControl: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapObj);
+    }
+    const icon = (e, cls) => L.divIcon({ html: '<span class="o-pin ' + cls + '">' + e + '</span>', className: '', iconSize: [34, 34], iconAnchor: [17, 17] });
+    const p = [pos.lat, pos.lng];
+    if (drvMark) drvMark.setLatLng(p); else drvMark = L.marker(p, { icon: icon('🚚', 'drv') }).addTo(mapObj);
+    if (home && !homeMark) homeMark = L.marker(home, { icon: icon('🏠', 'home') }).addTo(mapObj);
+    if (home) mapObj.fitBounds(L.latLngBounds([p, home]).pad(0.3), { maxZoom: 16 }); else mapObj.setView(p, 15);
+    setTimeout(() => mapObj.invalidateSize(), 50);
+  }).catch(() => { mapBox.replaceChildren(h('small', tx('map_fail'))); });
+  // the same place in Google Maps (the driver's last position, and the way to the customer when their home is known)
+  const gmaps = home ? 'https://www.google.com/maps/dir/?api=1&origin=' + pos.lat + ',' + pos.lng + '&destination=' + home[0] + ',' + home[1]
+    : 'https://www.google.com/maps/search/?api=1&query=' + pos.lat + ',' + pos.lng;
+  return h('div.o-map', mapBox, info, h('a.o-btn.sec.block.o-gmaps', { href: gmaps, target: '_blank', rel: 'noopener' }, '🗺️ ' + tx('map_google')));
 }
 function trayBox(t) {
   const st = t.trays_state;

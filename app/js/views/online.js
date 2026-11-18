@@ -9,6 +9,7 @@ import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, dialog, fmtNum } from '../ui.js';
 import { shrink } from '../photos.js';
+import { Gps } from '../gps.js';
 
 let tab = '';
 const trayIco = () => h('img.tray-ico', { src: 'icons/tray.svg', alt: '' });
@@ -191,12 +192,16 @@ function payLine(o) {
 
 // ---------- the driver: the customers' orders they take
 let driveCache = null;
+// while an order is on its way, the phone shares its position (gps.js: every 20 s while the app is open)
+const shareLocation = (on) => { if (on) Gps.start(); };
+Gps.onChange((st) => { if (st === 'denied') toast(t('ol_gps_off'), 'err'); });
 function driverOrders(box) {
   const list = h('div.ol-list');
   box.replaceChildren(list);
   const show = (d) => {
     driveCache = d;
     const fresh = d.orders.filter((o) => o.status === 'out' || o.status === 'handed').length;
+    shareLocation(d.orders.some((o) => o.status === 'out'));
     if (Data.boot && Data.boot.online_drive !== fresh) { Data.boot.online_drive = fresh; window.dispatchEvent(new Event('moro:badge')); }
     const rank = (o) => ({ handed: 0, out: 1 })[o.status] ?? (cashOpen(o) ? 2 : 3);
     const rows = d.orders.slice().sort((a, b) => rank(a) - rank(b) || String(a.date + a.time).localeCompare(String(b.date + b.time)));
@@ -218,6 +223,7 @@ function driverOrders(box) {
         o.note ? h('div.ol-note', '📝 ', h('bdi', o.note)) : '',
         prepaid(o) ? h('div.ol-pay.paid', '✅ ' + t('ol_paid_nothing')) : o.pay === 'card' ? h('div.ol-collect', '💳 ' + t('ol_collect_card', { m: money(o.total) })) : h('div.ol-collect', t(cashOpen(o) ? (o.cash_given_at ? 'ol_cash_wait' : 'ol_cash_give') : o.cash_received_at ? 'ol_cash_done' : 'ol_collect', { m: money(o.total) })),
         o.status === 'handed' ? h('div.ol-btns', step('online.depart', { status: 'out' }, '🚚 ' + t('ol_depart'))) : '',
+        o.status === 'out' ? h('small.ol-gps', Gps.on ? '📡 ' + t('ol_gps_on') : '⚠️ ' + t('ol_gps_ask')) : '',
         o.status === 'out' ? h('div.ol-btns', h('a.btn.secondary', { href: tel }, '📞 ' + t('ol_call')), h('a.btn.secondary', { href: map, target: '_blank', rel: 'noopener' }, '🗺 ' + t('ol_map')), done) : '',
         cashOpen(o) && !o.cash_given_at ? h('div.ol-btns', step('online.cashGiven', { cash_given_at: new Date().toISOString() }, '💵 ' + t('ol_cash_gave'))) : '');
     }) : [h('p.empty', t('ol_drive_none'))]));

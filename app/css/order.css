@@ -165,3 +165,12 @@ a.o-btn { display: block; text-align: center; text-decoration: none; }
 .tray-ico { width: 30px; height: 20px; vertical-align: -3px; margin-inline-end: 6px; }
 .o-refresh { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--orange); color: #fff; font-size: 20px; font-weight: 700; cursor: pointer; display: grid; place-items: center; }
 .o-refresh.spin { animation: o-spin .8s linear infinite; }
+
+.o-map { background: #fff; border-radius: 16px; overflow: hidden; margin-top: 10px; box-shadow: 0 2px 10px rgba(22, 38, 63, .06); }
+.o-map-canvas { height: 240px; background: #eef1f4; }
+.o-map-info { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; }
+.o-map-info small { color: var(--muted); }
+.o-map > .o-map-info:only-child { justify-content: center; padding: 16px; }
+.o-pin { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.o-pin.drv { background: #f07c2a; } .o-pin.home { background: #0e7c74; }
+.o-gmaps { border-radius: 0; margin: 0; }

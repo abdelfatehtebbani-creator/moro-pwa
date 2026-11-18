@@ -332,12 +332,12 @@ var Online = {
     Online.checkKept();
     var o = Online.find(p.token);
     var cfg = Online.cfg();
-    return { no: o.no, status: o.status, reason: o.reason || '', date: o.date, time: o.time, name: o.name, address: o.address, note: o.note,
+    return { no: o.no, status: o.status, reason: o.reason || '', date: o.date, time: o.time, name: o.name, address: o.address, map: o.map || '', note: o.note,
              lines: JSON.parse(o.lines || '[]'), fees: JSON.parse(o.fees || '[]'), goods: Number(o.goods), fee_total: Number(o.fee_total),
              deposit: Number(o.deposit), total: Number(o.total), created_at: o.created_at, called: !!o.called_at, whatsapp: cfg.whatsapp,
              pay: o.pay || 'delivery', pay_shop: Online.shopName(o.pay_shop), paid: !!o.paid_at, pay_by: Online.prepaid(o) ? Online.payBy(o, cfg) : '',
              fawran: o.pay === 'fawran' ? cfg.fawran : '',
-             delivered_at: o.delivered_at || '', trays_state: o.status === 'delivered' && Number(o.trays) > 0 && Number(o.deposit) > 0 ? Online.trayState(o, cfg) : null };
+             delivered_at: o.delivered_at || '', driver_pos: Online.driverPos(o), trays_state: o.status === 'delivered' && Number(o.trays) > 0 && Number(o.deposit) > 0 ? Online.trayState(o, cfg) : null };
   },
 
   /** The customer cancels while it is new. p: {token} */
@@ -444,6 +444,25 @@ var Online = {
       return { status: 'handed', handed_at: Util.nowIso(), handed_by: session.user_id, driver: d.user_id };
     }, 'online_hand');
   },
+  /** The driver's phone, while it delivers: its position for the customers of the orders on its way (kept an hour in the cache). p: {lat, lng} */
+  where: function (session, p) {
+    var lat = Util.num(p.lat), lng = Util.num(p.lng);
+    Util.require(lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180, 'location_invalid');
+    var mine = Repo.all('OnlineOrders').filter(function (o) { return o.driver === session.user_id && o.status === 'out'; });
+    // a trip of shop orders that left and is not finished counts too (distribution and the branch managers follow it)
+    var trips = Trips.activeOf(session.user_id);
+    if (!mine.length && !trips.length) return { sharing: 0 };
+    var pos = JSON.stringify({ lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5, at: Util.nowIso() });
+    var cache = CacheService.getScriptCache();
+    mine.forEach(function (o) { cache.put('drv_pos_' + o.no, pos, 3600); });
+    cache.put('drv_at_' + session.user_id, pos, 3600);
+    return { sharing: mine.length + trips.length };
+  },
+  driverPos: function (o) {
+    if (o.status !== 'out') return null;
+    try { return JSON.parse(CacheService.getScriptCache().get('drv_pos_' + o.no) || 'null'); } catch (e) { return null; }
+  },
+
   /** The driver got it and leaves: the customer is told it is on its way. */
   depart: function (session, p) {
     return Online.act(session, p, ['handed'], function () { return { status: 'out', out_at: Util.nowIso() }; }, 'online_depart');
