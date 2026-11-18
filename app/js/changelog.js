@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.266', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أصغر، لا يملأ كل العرض بجانب «نوع التقرير»، والخانات والأزرار بحجم مناسب."]},
+    en: {"news": ["(Development copy) Reports: the report's options frame is smaller, not filling the whole width beside the report type; fields and buttons sized to fit."]},
+  },
+  {
     v: '0.9.265', date: '2026-11-18',
     ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: قائمة «نوع التقرير» مطوية، ويظهر في عنوانها التقرير المختار. تفتحها لتختار تقريرًا آخر فتُطوى وحدها."]},
     en: {"news": ["(Development copy) Reports: the \"Report type\" list is folded, its title showing the report chosen; opened to choose another, it folds by itself."]},
