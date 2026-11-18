@@ -122,7 +122,8 @@ function textpad(input, onChange) {
       h('button.k-kbkey.k-kbwide.k-kbdone', { type: 'button', onclick: close }, k('kb_done'))));
   };
   const open = () => {
-    if (box) return;
+    // a new screen removes the keyboard from the page: it opens again on the next touch
+    if (box && box.isConnected) return;
     box = h('div.k-kb', { dir: 'ltr' });
     draw();
     document.body.append(box);

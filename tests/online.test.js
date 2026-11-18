@@ -27,6 +27,7 @@ function env() {
     g.api('users.save', { username, display_name: username, role, pin: '5678' }, admin);
     const tok = g.api('auth.login', { username, pin: '5678' }).data.token;
     if (shop) g.api('orders.shift', { shop }, tok);
+    if (role === 'driver') g.api('fleet.add', { client_id: 'shift-' + username, kind: 'start', plate: '931287' }, tok);
     return tok;
   };
   const salwa = user('salwa1', 'cashier', 'P001');
@@ -90,7 +91,7 @@ test('online: the shop calls, accepts or refuses, sends and delivers; sold out t
   g.api('online.depart', { no: r.no }, drv);
   assert.equal(g.api('online.track', { token: r.token }).data.status, 'out');
   // the driver's phone sends its position; the customer sees it while the order is on its way
-  assert.equal(g.api('online.where', { lat: 25.2854, lng: 51.531 }, drv).data.sharing, 1);
+  assert.ok(g.api('online.where', { lat: 25.2854, lng: 51.531 }, drv).data.sharing >= 1, 'the order on its way (and the shift)');
   assert.deepEqual([g.api('online.track', { token: r.token }).data.driver_pos.lat], [25.2854]);
   assert.equal(g.api('online.where', { lat: 25.2854, lng: 51.531 }, salwa).error.code, 'forbidden');
   assert.equal(g.api('online.delivered', { no: r.no }, salwa).error.code, 'forbidden', 'only the driver delivers');

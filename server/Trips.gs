@@ -150,6 +150,7 @@ var Trips = {
 
   /** The driver: one stop loaded (step 'load') or delivered (step 'deliver'). p: {trip_id, order_id}. */
   confirm: function (session, p, step) {
+    Fleet.requireShift(session);
     return withLock(function () {
       var t = Repo.find('Trips', 'trip_id', p.trip_id);
       Util.require(t && t.status !== 'cancelled' && t.driver_id === session.user_id, 'not_found');
@@ -195,6 +196,7 @@ var Trips = {
    * the dispatching record. p: {trip_id, vehicle, temp}.
    */
   depart: function (session, p) {
+    Fleet.requireShift(session);
     var temp = Util.num(p.temp);
     Util.require(temp !== null && temp >= -40 && temp <= 90, 'temp_invalid');
     var vehicle = Util.clean(p.vehicle).slice(0, 30);

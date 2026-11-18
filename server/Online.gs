@@ -472,6 +472,7 @@ var Online = {
 
   /** The driver got it and leaves: the customer is told it is on its way. */
   depart: function (session, p) {
+    Fleet.requireShift(session);
     return Online.act(session, p, ['handed'], function () { return { status: 'out', out_at: Util.nowIso() }; }, 'online_depart');
   },
   /** The driver gave the money of an order paid on delivery to the shop (the cashier confirms it). */
@@ -665,6 +666,7 @@ var Online = {
     return late.length;
   },
   delivered: function (session, p) {
+    Fleet.requireShift(session);
     return Online.act(session, p, ['out'], function () { return { status: 'delivered', delivered_at: Util.nowIso() }; }, 'online_delivered');
   },
 

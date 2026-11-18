@@ -31,6 +31,9 @@ test('fleet: the driver records on a vehicle; the car park manager follows and c
   g.api('fleet.close', { log_id: issue.log_id, note: 'fixed' }, mgr);
   assert.equal(g.api('fleet.list', {}, mgr).data.cars.find((c) => c.plate === 'Q100').open, 0);
   assert.equal(g.api('fleet.list', {}, drv).error.code, 'forbidden');
+  // not on shift: a driver cannot work a trip or a customer's order (they may look)
+  assert.equal(g.api('trips.depart', { trip_id: 'T00001', vehicle: 'Q100', temp: 4 }, drv).error.code, 'fleet_need_shift');
+  assert.equal(g.api('online.delivered', { no: 'W00001' }, drv).error.code, 'fleet_need_shift');
   // the shift: from its start the driver's phone shares its position; at its end the car's place is kept
   assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, drv).data.sharing, 0, 'not on shift, no trip: nothing shared');
   g.api('fleet.add', { client_id: 's1', kind: 'start', plate: 'Q100', data: { lat: 25.29, lng: 51.53 } }, drv);

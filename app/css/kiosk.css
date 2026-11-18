@@ -118,3 +118,9 @@ body.k-kbopen .k-tile small { font-size: 13px; }
 .k-ref { font-size: 26px; font-weight: 700; min-width: 56px; }
 .k-spin { animation: k-spin .8s linear infinite; }
 @keyframes k-spin { to { transform: rotate(360deg); } }
+/* the header never pushes "Sign out" off the screen: a long name is cut, the title keeps room, the device name goes first */
+.k-head > * { min-width: 0; }
+.k-me { flex: none; }
+.k-me b { display: block; max-width: 26vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-head h1 { min-width: 80px; }
+@media (max-width: 1100px) { .k-brand small { display: none; } }

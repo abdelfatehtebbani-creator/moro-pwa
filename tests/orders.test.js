@@ -19,6 +19,8 @@ function env() {
     const id = g.rows('Users').find((u) => u.username === username).user_id;
     if (extra) { const r = g.api('users.save', Object.assign({ user_id: id }, extra), tok.admin); assert.equal(r.ok, true, JSON.stringify(r)); }
     tok[username] = g.api('auth.login', { username, pin: '5678' }).data.token;
+    // a driver works on shift (loads, leaves, delivers)
+    if (role === 'driver') g.api('fleet.add', { client_id: 'shift-' + username, kind: 'start', plate: '931287' }, tok[username]);
     return id;
   };
   user('cashier', 'cashier', { shop: 'P002' });
@@ -145,7 +147,7 @@ test('trips: distribution sends ready orders with a driver; loaded then delivere
   const dep = g.api('trips.depart', { trip_id: trip.trip_id, vehicle: 'Q 123', temp: '4.5' }, tok.driver).data.trip;
   assert.deepEqual([dep.vehicle, Number(dep.temp), !!dep.departed_at], ['Q 123', 4.5, true]);
   // on the road: the driver's phone shares its position; distribution sees the driver on the map, the cashier does not
-  assert.equal(g.api('online.where', { lat: 25.3, lng: 51.5 }, tok.driver).data.sharing, 1);
+  assert.ok(g.api('online.where', { lat: 25.3, lng: 51.5 }, tok.driver).data.sharing >= 1, 'the trip on its way (and the shift)');
   const dm = g.api('trips.map', {}, tok.dist).data.drivers;
   assert.deepEqual([dm.length, dm[0].pos.lat, dm[0].trips[0].trip_id], [1, 25.3, trip.trip_id]);
   assert.equal(g.api('trips.map', {}, tok.cashier).error.code, 'forbidden');

@@ -6,7 +6,7 @@ import { Outbox } from '../outbox.js';
 import { Data } from '../data.js';
 import { t, errText, fmtDateTime } from '../i18n.js';
 import { h, toast, flash, fmtDate, fmtNum, trackFilled, dialog } from '../ui.js';
-import { field, newId, combo } from '../components.js';
+import { field, newId, combo, shiftBanner } from '../components.js';
 import { Gps } from '../gps.js';
 import { driverMap } from '../drivermap.js';
 
@@ -99,7 +99,9 @@ export async function render(root) {
   keys.forEach((s) => tabs.append(h('button', { type: 'button', class: s === tab ? 'on' : '',
     onclick: (e) => { tab = s; [...tabs.children].forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on'); show(); } }, t('trips_' + s))));
   const mapBox = h('div.dm-box');
-  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), newBox, listBox, mapBox));
+  // a driver not on shift: the trips are shown, not worked on
+  const shiftOk = !drive || manage || !!(Data.boot || {}).on_shift;
+  parts.push(h('div.card', h('div.card-head', h('h2', t(drive && !manage ? 'my_trips' : 'trips')), tabs), shiftOk ? '' : shiftBanner(), newBox, listBox, mapBox));
   function show() {
     newBox.hidden = tab !== 'new'; listBox.hidden = tab === 'new' || tab === 'map'; mapBox.hidden = tab !== 'map';
     if (tab === 'new') drawNew(); else if (tab === 'map') driverMap(mapBox); else loadList();
@@ -176,7 +178,7 @@ export async function render(root) {
         try { await act('trips.' + step, { trip_id: trip.trip_id, order_id: s.order_id }); toast(t(step === 'load' ? 'stop_loaded' : 'stop_delivered'), 'ok'); loadList(true); }
         catch (ex) { toast(errText(ex), 'err'); btn.disabled = false; }
       };
-      const button = stepGoing(trip.trip_id, s.order_id) ? h('span.pill.soon', t('sending')) : drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
+      const button = stepGoing(trip.trip_id, s.order_id) ? h('span.pill.soon', t('sending')) : drive && shiftOk && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id
         ? (!s.loaded_at ? h('button.btn', { type: 'button', onclick: doStep('load') }, t('stop_load'))
           : !s.delivered_at ? (!trip.stops.every((x) => x.loaded_at) ? h('small.muted', t('deliver_after_all_loaded'))
             : !left ? h('small.muted', t('deliver_after_depart'))
@@ -192,7 +194,7 @@ export async function render(root) {
     });
     // leaving: the whole trip loaded, the driver writes the vehicle and the temperature of the products (the dispatching record)
     let departBox = null;
-    const mine = drive && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id;
+    const mine = drive && shiftOk && trip.status !== 'cancelled' && trip.driver_id === Data.user.user_id;
     if (mine && !left && trip.stops.length && trip.stops.every((x) => x.loaded_at)) {
       if (stepGoing(trip.trip_id)) departBox = h('p', h('span.pill.soon', t('sending')));
       else {
