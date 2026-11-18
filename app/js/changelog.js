@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.259', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: زر تحديث ↻ في الأعلى يجلب قائمة الأسماء فورًا (عامل جديد أو قسم أُظهر)، والقائمة تتحدث وحدها كل 3 دقائق بدل 10."]},
+    en: {"news": ["(Development copy) The shared device: a refresh button ↻ at the top reads the list of names at once (a new worker, a department shown); the list also refreshes itself every 3 minutes instead of 10."]},
+  },
+  {
     v: '0.9.258', date: '2026-11-18',
     ar: {"news": ["تسجيل العمال: المساعد يرى كل الأقسام عند فتح حسابه (التنظيف، الإدارة، السيارات، السكن…) ليطلب منها المواد. الشيف يرى الأقسام المنتجة فقط."]},
     en: {"news": ["Workers' sign-up: a helper sees every department when opening their account (cleaning, administration, vehicles, housing…) to request materials for it. A chef sees the producing departments only."]},

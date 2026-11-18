@@ -22,7 +22,7 @@ const W = {
     reason: 'السبب', r_none: 'لم يُنتج', r_stock: 'نفد المخزون', r_quality: 'مشكلة في الجودة', r_other: 'سبب آخر', saved: 'تم الحفظ', left: 'المتبقي',
     pick_dept: 'لأي قسم؟', nothing_here: 'لا عمليات متاحة لك على هذا الجهاز.', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
     available: 'المتوفر', remove: 'حذف', bye: 'سيُغلق خلال {n} ث', loading: 'جارٍ التحميل…', unknown: 'الجهاز لم يعد مفعّلًا. يفعّله المدير من جديد.',
-    lang: 'English', none_users: 'لا مستخدمين لهذا الجهاز بعد' },
+    lang: 'English', refresh: 'تحديث القائمة', none_users: 'لا مستخدمين لهذا الجهاز بعد' },
   en: { setup: 'Set up the shared device', setup_help: 'This device is not a shared device yet. The admin signs in to set it up.', device_name: 'Device name',
     username: 'Username', pin: 'PIN', enable: 'Set up', not_admin: 'Only the admin can set it up.', who: 'Press your name', all: 'All', page: 'Page {a} of {b}',
     next: 'Next', prev: 'Back', back: 'Back', logout: 'Sign out', type_pin: 'Type your PIN', production: 'Record production', shop: 'Shop orders', request: 'Ask the store',
@@ -31,7 +31,7 @@ const W = {
     reason: 'Reason', r_none: 'Not made', r_stock: 'Out of stock', r_quality: 'Quality problem', r_other: 'Other reason', saved: 'Saved', left: 'Left',
     pick_dept: 'For which department?', nothing_here: 'Nothing for you to do on this device.', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
     available: 'Available', remove: 'Remove', bye: 'Closing in {n} s', loading: 'Loading…', unknown: 'This device is no longer set up. The admin sets it up again.',
-    lang: 'العربية', none_users: 'No users for this device yet' },
+    lang: 'العربية', refresh: 'Refresh the list', none_users: 'No users for this device yet' },
 };
 const k = (key, vars) => { let s = (W[getLang()] || W.ar)[key] || key; for (const [a, b] of Object.entries(vars || {})) s = s.replace('{' + a + '}', b); return s; };
 const fmt = (n) => (Math.round(Number(n) * 1000) / 1000).toLocaleString('en-US');
@@ -50,7 +50,8 @@ let idleTimer = null, tickTimer = null, idleAt = 0;
 // ---------- the frame: a header, the screen, a footer; nothing larger than the device's screen
 function frame(title, body, foot, opts = {}) {
   const left = me ? h('div.k-me', h('b', h('bdi', me.display_name)), h('button.k-btn.k-out', { type: 'button', onclick: signOut }, k('logout')))
-    : h('button.k-btn.k-lang', { type: 'button', onclick: () => { setLang(getLang() === 'ar' ? 'en' : 'ar'); applyLang(); if (people) names(); else setup(); } }, k('lang'));
+    : h('div.k-me', people ? h('button.k-btn.k-ref', { type: 'button', title: k('refresh'), 'aria-label': k('refresh'), onclick: refreshPeople }, '↻') : '',
+      h('button.k-btn.k-lang', { type: 'button', onclick: () => { setLang(getLang() === 'ar' ? 'en' : 'ar'); applyLang(); if (people) names(); else setup(); } }, k('lang')));
   document.querySelectorAll('.k-kb').forEach((x) => x.remove()); document.body.classList.remove('k-kbopen');   // a new screen: the on-screen keyboard closes
   root.replaceChildren(
     h('header.k-head', h('div.k-brand', h('img', { src: 'icons/logo.png', alt: '' }), h('span', 'MORO'), people ? h('small', h('bdi', people.device)) : ''),
@@ -403,6 +404,17 @@ async function request() {
   }
 }
 
+/** The refresh button (before anyone signs in): the list of names read again now (a new worker, a department shown). */
+async function refreshPeople(e) {
+  const b = e && e.currentTarget;
+  if (b) { b.disabled = true; b.classList.add('k-spin'); }
+  try {
+    people = await call('kiosk.users', { key: getKey() });
+    try { localStorage.setItem(KEY + '.people', JSON.stringify(people)); } catch { /* full */ }
+    if (!me) names();
+  } catch (ex) { if (b) { b.disabled = false; b.classList.remove('k-spin'); } alert(errText(ex)); }
+}
+
 // ---------- start: the device's people, or its setup
 async function start() {
   applyLang();
@@ -421,7 +433,7 @@ async function start() {
   }
   if (!me && (!kept || root.querySelector('.k-name') || root.querySelector('.k-empty'))) names();
   // the list of names is read again now and then (new people, people switched off)
-  setInterval(async () => { if (me) return; try { people = await call('kiosk.users', { key: getKey() }); if (!me && root.querySelector('.k-name')) names(); } catch { /* next time */ } }, 10 * 60000);
+  setInterval(async () => { if (me) return; try { people = await call('kiosk.users', { key: getKey() }); if (!me && root.querySelector('.k-name')) names(); } catch { /* next time */ } }, 3 * 60000);
 }
 
 // a button pressed shows it and takes no second press for a moment (no double entries); keypad keys only show it

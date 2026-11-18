@@ -115,3 +115,6 @@ body.k-kbopen .k-tile small { font-size: 13px; }
 .k-kbspace { flex-grow: 4; max-width: 420px; font-size: 20px; }
 .k-kbdone { background: var(--teal); color: #fff; box-shadow: none; }
 .k-input.k-typing { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14, 124, 116, .2); }
+.k-ref { font-size: 26px; font-weight: 700; min-width: 56px; }
+.k-spin { animation: k-spin .8s linear infinite; }
+@keyframes k-spin { to { transform: rotate(360deg); } }
