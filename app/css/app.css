@@ -1062,3 +1062,15 @@ tr.fl-open td { background: #fff8f7; }
 .rep-opts .input:not(.combo-input) { max-width: 340px; }
 .rep-opts .btn { justify-self: start; min-width: 200px; }
 .rep-type > summary { min-height: 0; }
+/* the report's options as small as they can be: tight spacing, a field beside its title, small boxes and button */
+.rep-layout > .card:has(> .rep-opts) { padding: 12px 14px; }
+.rep-opts { gap: 8px; }
+.rep-opts h2 { font-size: 15px; }
+.rep-opts .field:has(> input.input) { grid-template-columns: auto minmax(0, 160px); align-items: center; justify-content: start; gap: 8px; }
+.rep-opts .field .input { padding: 5px 8px; }
+.rep-opts .form-grid { gap: 8px; }
+.rep-opts .check-grid, .rep-opts .ms-row { font-size: 13px; }
+.rep-opts .check-grid { gap: 2px 14px; }
+.rep-opts .form-actions { margin: 0; }
+.rep-opts .form-actions .btn { padding: 7px 18px; font-size: 14px; min-width: 0; width: auto; }
+.rep-opts .form-status:empty { display: none; }

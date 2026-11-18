@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.267', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أقصر بكثير: الخانة بجانب عنوانها، والمسافات والخانات والزر أصغر."]},
+    en: {"news": ["(Development copy) Reports: the options frame is much shorter: each field beside its title, tighter spacing, smaller fields and button."]},
+  },
+  {
     v: '0.9.266', date: '2026-11-18',
     ar: {"news": ["(نسخة التطوير) شاشة «التقارير»: إطار خيارات التقرير أصغر، لا يملأ كل العرض بجانب «نوع التقرير»، والخانات والأزرار بحجم مناسب."]},
     en: {"news": ["(Development copy) Reports: the report's options frame is smaller, not filling the whole width beside the report type; fields and buttons sized to fit."]},
