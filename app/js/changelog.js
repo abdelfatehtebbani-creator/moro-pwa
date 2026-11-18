@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.259', date: '2026-11-18',
-    ar: {"news": ["(نسخة التطوير) الجهاز المشترك: زر تحديث ↻ في الأعلى يجلب قائمة الأسماء فورًا (عامل جديد أو قسم أُظهر)، والقائمة تتحدث وحدها كل 3 دقائق بدل 10."]},
-    en: {"news": ["(Development copy) The shared device: a refresh button ↻ at the top reads the list of names at once (a new worker, a department shown); the list also refreshes itself every 3 minutes instead of 10."]},
+    ar: {"news": ["الجهاز المشترك: زر تحديث ↻ في الأعلى يجلب قائمة الأسماء فورًا (عامل جديد أو قسم أُظهر)، والقائمة تتحدث وحدها كل 3 دقائق بدل 10."]},
+    en: {"news": ["The shared device: a refresh button ↻ at the top reads the list of names at once (a new worker, a department shown); the list also refreshes itself every 3 minutes instead of 10."]},
   },
   {
     v: '0.9.258', date: '2026-11-18',
