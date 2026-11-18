@@ -5,7 +5,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGas } = require('./helpers/gas');
 
-const day = (n) => { const d = new Date(Date.now() + n * 864e5); return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qatar' }).format(d); };
+// a day n days ahead in Qatar, moved past a Friday (its delivery hours start at 14:00, after the orders' 12:00)
+const day = (n) => {
+  for (let k = n; ; k++) {
+    const iso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qatar' }).format(new Date(Date.now() + k * 864e5));
+    if (new Date(iso + 'T12:00:00Z').getUTCDay() !== 5) return iso;
+  }
+};
 
 function env() {
   const g = createGas();

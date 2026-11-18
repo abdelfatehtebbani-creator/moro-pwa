@@ -91,8 +91,8 @@ var Shop = {
     Repo.all('ShopOrderLines').forEach(function (l) {
       if (!native[l.order_id] || LINE_OPEN.indexOf(l.status) < 0 || !Shop.approved(l)) return;
       var item = Repo.find('Items', 'item_id', l.item_id);
-      // a product still to be made counts on the production screen first: here once there is stock to hand
-      if (Shop.made(item, l) && Shop.balance(l.item_id) <= 0) return;
+      // a product still to be made: here for who records production when handing it; else once there is stock
+      if (Shop.made(item, l) && Shop.balance(l.item_id) <= 0 && session.perms.indexOf('production.post') < 0) return;
       if (Shop.mayWork(session, item, l)) orders[l.order_id] = true;
     });
     return Object.keys(orders).length;
@@ -122,8 +122,9 @@ var Shop = {
     }).map(function (u) { return u.user_id; });
     // a department's product not in stock: to be made first (the production screen)
     var make = lines.some(function (x) { var it = Repo.find('Items', 'item_id', x.item_id); return Shop.made(it, x) && Shop.balance(x.item_id) < Number(x.qty); });
+    // a product to make goes to the order to prepare too: handing it records its production
     Push.toUsers(to, make
-      ? { ar: { title: 'إنتاج مطلوب ' + o.order_no, body: shop }, en: { title: 'Production needed ' + o.order_no, body: shop }, page: 'production', badge: 1 }
+      ? { ar: { title: 'طلبية للتحضير والتجهيز ' + o.order_no, body: shop }, en: { title: 'Order to make and prepare ' + o.order_no, body: shop }, page: 'shoporders', badge: 1 }
       : { ar: { title: 'طلبية للتجهيز ' + o.order_no, body: shop }, en: { title: 'Order to prepare ' + o.order_no, body: shop }, page: 'shoporders', badge: 1 });
   },
 
@@ -366,7 +367,7 @@ var Shop = {
   hand: function (session, p) {
     var give = (p.lines || []).filter(function (x) { return Util.num(x.qty) > 0; });
     Util.require(give.length, 'nothing_to_save');
-    var movs = [], plan = [];
+    var movs = [], plan = [], want = {};
     give.forEach(function (x) {
       var l = Repo.find('ShopOrderLines', 'line_id', x.line_id);
       Util.require(l && LINE_OPEN.indexOf(l.status) >= 0, 'not_found', x.line_id);
@@ -381,12 +382,22 @@ var Shop = {
         plan.push({ line: l, qty: q, mov: -1, direct: x.direct === true && String(l.dept) === PURCHASE });
         return;
       }
-      // a department's product comes from the final products stock: made first (production screen) when short
+      // a department's product comes from the final products stock: what is short is made now (below)
       var it = Repo.find('Items', 'item_id', l.item_id);
-      if (Stores.of(it) === 'FINAL' && it.dept) Util.require(q <= Math.max(0, Shop.balance(l.item_id)), 'final_needs_production', it.name);
+      if (Stores.of(it) === 'FINAL' && it.dept) want[it.item_id] = { item: it, qty: Util.round(((want[it.item_id] || {}).qty || 0) + q) };
       plan.push({ line: l, qty: q, mov: movs.length });
       movs.push({ client_id: (p.client_id || l.line_id) + '-' + l.line_id, kind: 'ISSUE', date: p.date || Util.today(),
         party_id: l.shop_party_id, item_id: l.item_id, qty: q, unit: l.unit, purpose: 'Shop order ' + (l.order_no || l.order_id) });
+    });
+    // made for this order: the department hands it at once, and what the stock lacks is recorded as made
+    // (its production record, batch and expiry, as from the production screen). Who cannot record production
+    // (a storekeeper) still needs it made first.
+    Object.keys(want).forEach(function (id) {
+      var w = want[id], short = Util.round(w.qty - Math.max(0, Shop.balance(id)));
+      if (short <= 0) return;
+      Util.require(Perm.has(session, 'production.post'), 'final_needs_production', w.item.name);
+      Production.post(session, { product: w.item.name, qty: short, unit: w.item.unit, date: p.date || Util.today(),
+        client_id: (p.client_id || 'hand') + '-make-' + id });
     });
     var saved = movs.length ? Movements.save(session, { movements: movs }, null, '_checked') : { saved: [] };
     return withLock(function () {

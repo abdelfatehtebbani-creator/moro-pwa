@@ -445,7 +445,8 @@ var Masters = {
       })(),
       branch_late: Perm.has(session, 'branches.summary') ? Branches.late(session) : 0,
       shop_todo: Perm.has(session, 'shop.hand') ? Shop.todo(session) : 0,
-      prod_todo: Perm.has(session, 'production.post') ? Shop.prodTodo(session) : 0,
+      // products to make for orders: made when the order is handed (no production step), so only who makes without handing is told
+      prod_todo: Perm.has(session, 'production.post') && !Perm.has(session, 'shop.hand') ? Shop.prodTodo(session) : 0,
       order_todo: OrderNotify.todo(session),
       decisions: Masters.decisions(session),
       takings_diffs: Perm.has(session, 'sales.decide') ? Repo.all('Shifts').filter(function (s) {

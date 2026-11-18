@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.256', date: '2026-11-18',
+    ar: {"news": ["(نسخة التطوير) الأقسام المنتجة: لا خطوة إنتاج حين يُصنع المنتج لطلبية. في «تجهيز الطلبيات» تُعرض الكمية كاملة، وعند «تسليم للتوزيع» يُسجَّل الإنتاج الناقص تلقائيًا (بالتشغيلة والصلاحية) ثم يُسلَّم، وتظهر تحت الكمية «سيُسجَّل إنتاج … تلقائيًا». شاشة «الإنتاج» تبقى لما يُنتج دون طلب."]},
+    en: {"news": ["(Development copy) Producing departments: no production step when a product is made for an order. In Prepare orders the full quantity is offered, and \"Hand to distribution\" records the missing production automatically (with batch and expiry) then hands it; \"… will be recorded as made\" shows under the quantity. The Production screen stays for what is made without an order."]},
+  },
+  {
     v: '0.9.255', date: '2026-11-17',
     ar: {"news": ["(نسخة التطوير) خريطة السائقين: رقم المركبة بجانب اسم السائق على الخريطة."]},
     en: {"news": ["(Development copy) Drivers' map: the vehicle's plate next to the driver's name on the map."]},

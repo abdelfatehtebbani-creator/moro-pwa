@@ -1040,3 +1040,4 @@ p.pickup { margin: 8px 0 2px; }
 .fl-photo { display: flex; align-items: center; gap: 10px; }
 .fl-list { display: grid; gap: 8px; margin-top: 10px; }
 tr.fl-open td { background: #fff8f7; }
+.make-hint { color: var(--teal); font-weight: 600; font-size: 12px; }
