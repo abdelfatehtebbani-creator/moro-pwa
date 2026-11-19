@@ -20,7 +20,7 @@ const W = {
     pick_product: 'اختر المنتج', qty_of: 'الكمية', save: 'حفظ', saved_prod: 'تم تسجيل الإنتاج', batch: 'رقم التشغيلة', again: 'عملية أخرى', home: 'القائمة',
     wanted: 'مطلوب للمحلات', no_products: 'لا منتجات لقسمك', no_lines: 'لا أسطر بانتظارك', hand: 'سلّم', cannot: 'غير متوفر', handed: 'تم التسليم',
     reason: 'السبب', r_none: 'لم يُنتج', r_stock: 'نفد المخزون', r_quality: 'مشكلة في الجودة', r_other: 'سبب آخر', saved: 'تم الحفظ', left: 'المتبقي',
-    pick_dept: 'لأي قسم؟', nothing_here: 'لا عمليات متاحة لك على هذا الجهاز.', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
+    dept: 'القسم', pick_dept: 'لأي قسم؟', nothing_here: 'لا عمليات متاحة لك على هذا الجهاز.', search: 'ابحث عن مادة', kb_space: 'مسافة', kb_clear: 'مسح', kb_done: 'تم', cart: 'المطلوب', send: 'إرسال الطلب', sent: 'أُرسل الطلب إلى المخزن', empty_cart: 'لم تُضف مواد بعد',
     available: 'المتوفر', remove: 'حذف', bye: 'سيُغلق خلال {n} ث', loading: 'جارٍ التحميل…', unknown: 'الجهاز لم يعد مفعّلًا. يفعّله المدير من جديد.',
     lang: 'English', refresh: 'تحديث القائمة', none_users: 'لا مستخدمين لهذا الجهاز بعد' },
   en: { setup: 'Set up the shared device', setup_help: 'This device is not a shared device yet. The admin signs in to set it up.', device_name: 'Device name',
@@ -29,7 +29,7 @@ const W = {
     pick_product: 'Choose the product', qty_of: 'Quantity', save: 'Save', saved_prod: 'Production recorded', batch: 'Batch No.', again: 'Another one', home: 'Menu',
     wanted: 'Wanted by the shops', no_products: 'No products for your department', no_lines: 'No lines waiting for you', hand: 'Hand over', cannot: 'Not available', handed: 'Handed over',
     reason: 'Reason', r_none: 'Not made', r_stock: 'Out of stock', r_quality: 'Quality problem', r_other: 'Other reason', saved: 'Saved', left: 'Left',
-    pick_dept: 'For which department?', nothing_here: 'Nothing for you to do on this device.', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
+    dept: 'Department', pick_dept: 'For which department?', nothing_here: 'Nothing for you to do on this device.', search: 'Search a material', kb_space: 'Space', kb_clear: 'Clear', kb_done: 'Done', cart: 'Asked for', send: 'Send the request', sent: 'Request sent to the store', empty_cart: 'No materials added yet',
     available: 'Available', remove: 'Remove', bye: 'Closing in {n} s', loading: 'Loading…', unknown: 'This device is no longer set up. The admin sets it up again.',
     lang: 'العربية', refresh: 'Refresh the list', none_users: 'No users for this device yet' },
 };
@@ -196,8 +196,10 @@ function names() {
   const users = (people && people.users) || [];
   const depts = [...new Set(users.flatMap((u) => u.depts))].sort();
   const shown = () => users.filter((u) => !deptFilter || u.depts.includes(deptFilter));
-  const chips = depts.length > 1 ? h('div.k-chips', ['', ...depts].map((d) => h('button.k-chip', { type: 'button', class: d === deptFilter ? 'on' : '',
-    onclick: () => { deptFilter = d; names(); } }, d ? h('bdi', d) : k('all')))) : '';
+  // the departments folded in one line (the chosen one shown); opened to pick another, closed again once picked
+  const chips = depts.length > 1 ? h('details.k-fold', h('summary', k('dept') + ': ', h('b', deptFilter ? h('bdi', deptFilter) : k('all'))),
+    h('div.k-chips', ['', ...depts].map((d) => h('button.k-chip', { type: 'button', class: d === deptFilter ? 'on' : '',
+      onclick: () => { deptFilter = d; names(); } }, d ? h('bdi', d) : k('all'))))) : '';
   const p = pager(shown(), 12, (list) => list.map((u) => h('button.k-tile.k-name', { type: 'button', onclick: () => askPin(u) },
     h('b', h('bdi', u.name)), h('small', h('bdi', u.depts.join('، ') || '')))));
   p.box.classList.add('k-grid', 'k-g4');

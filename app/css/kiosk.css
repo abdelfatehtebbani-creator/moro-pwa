@@ -137,3 +137,11 @@ html, body { overflow-x: hidden; }
 /* the asked-for list scrolls with a finger: every line, the newest at the bottom */
 .k-cartlist { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 @media (max-width: 900px) { .k-g4 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* the departments of the names screen, folded in one line */
+.k-fold { flex: 0 0 auto; align-self: center; border: 2px solid var(--line); border-radius: 14px; background: #fff; max-width: 100%; }
+.k-fold > summary { cursor: pointer; list-style: none; padding: 10px 22px; font-size: 18px; text-align: center; }
+.k-fold > summary::-webkit-details-marker { display: none; }
+.k-fold > summary::after { content: ' ▾'; color: var(--muted); }
+.k-fold[open] > summary::after { content: ' ▴'; }
+.k-fold[open] { align-self: stretch; }
+.k-fold .k-chips { padding: 4px 12px 14px; }
