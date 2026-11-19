@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.272', date: '2026-11-19',
+    ar: {"news": ["(نسخة التطوير) «المستخدمون»: العامل الذي فتح حسابه من قائمة العمال يظهر بوظيفته «شيف» أو «مساعد» بدل «مسؤول قسم»، وقائمة الأدوار تفرز الشيفات والمساعدين كلًا على حدة."]},
+    en: {"news": ["(Development copy) Users: a worker who opened their account from the workers list shows their job, Chef or Assistant, instead of Department head, and the roles list filters chefs and assistants apart."]}
+  },
+  {
     v: '0.9.271', date: '2026-11-19',
     ar: {"news": ["«طلبات الأقسام»: كل طلب في الأرشيف يظهر بساعة إرساله، وبساعة صرفه بعد التنفيذ.", "«صرف البضاعة»: كل صرف في السجل يحمل مصدره: «بطلب قسم» مع رقم الطلب، أو «طلبية محل» مع رقمها، أو «صرف مباشر». وفلتر جديد بجانب البحث يعرض مصدرًا واحدًا."]},
     en: {"news": ["Department requests: each request in the archive shows the time it was sent, and the time it was issued once done.", "Issue goods: each issue in the records shows where it came from: Dept. request with its number, Shop order with its number, or Direct. A new filter next to the search shows one source."]}
