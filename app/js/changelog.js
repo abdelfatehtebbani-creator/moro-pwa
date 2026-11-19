@@ -2,6 +2,7 @@
 // ("What's new"), with what they need to do. Newest first. Add an entry with every release.
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
+  {v: "0.9.269", "date": "2026-11-19", "ar": {"news": ["(نسخة التطوير) تبويب «صرف للأقسام» أصبح اسمه «صرف البضاعة»."]}, "en": {"news": ["(Development copy) The «Department issues» tab is now called «Issue goods»."]}},
   {
     v: '0.9.268', date: '2026-11-18',
     ar: {"news": ["شاشة «التقارير»: خيارات كل تقرير في سطرين تقريبًا: التواريخ والمدة والخيارات صغيرة جنبًا إلى جنب، والمخازن والمواد والأقسام والأشهر قوائم مطوية بسطر واحد يقول ما اختير، وزر «إنشاء التقرير» في آخر السطر."]},
