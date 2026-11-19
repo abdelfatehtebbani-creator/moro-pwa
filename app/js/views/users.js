@@ -248,20 +248,25 @@ export async function render(root) {
     try {
       all = await call('users.list');
       const keep = roleSel.value;
+      // the workers' jobs (chef, assistant) are listed like roles
+      const keys = ROLES.flatMap((r) => (r === 'section_head' ? [r, 'job:chef', 'job:assistant'] : [r]));
       roleSel.replaceChildren(h('option', { value: '' }, t('all_roles') + ' (' + all.length + ')'),
-        ...ROLES.filter((r) => all.some((u) => u.role === r)).map((r) => h('option', { value: r }, t('role_' + r) + ' (' + all.filter((u) => u.role === r).length + ')')));
+        ...keys.filter((r) => all.some((u) => roleKey(u) === r)).map((r) => h('option', { value: r }, roleName(r) + ' (' + all.filter((u) => roleKey(u) === r).length + ')')));
       roleSel.value = keep;
       draw();
     } catch (e) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, errText(e)))); }
   }
+  // a worker's account (made from the workers list) shows their job, not the role it is made with
+  const roleKey = (u) => (u.job && u.role === 'section_head' ? 'job:' + u.job : u.role);
+  const roleName = (k) => (k === 'job:chef' ? t('wk_chef') : k === 'job:assistant' ? t('wk_helper') : t('role_' + k));
   roleSel.addEventListener('change', () => draw());
   search.addEventListener('input', () => draw());
   function draw() {
     const q = search.value.trim().toLowerCase();
-    const users = all.filter((u) => (!roleSel.value || u.role === roleSel.value) && (!q || (u.display_name + ' ' + u.username).toLowerCase().includes(q)));
+    const users = all.filter((u) => (!roleSel.value || roleKey(u) === roleSel.value) && (!q || (u.display_name + ' ' + u.username).toLowerCase().includes(q)));
     if (!users.length) { tb.replaceChildren(h('tr', h('td.empty', { colspan: 6 }, t('no_rows')))); return; }
     tb.replaceChildren(...users.map((u) => h('tr.click', { onclick: () => edit(u) }, h('td', u.display_name), h('td.num', u.username),
-      h('td', t('role_' + u.role)), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults')),
+      h('td', roleName(roleKey(u))), h('td', u.custom_caps ? h('span.pill.soon', t('custom_caps', { n: u.caps.length })) : h('span.muted', t('role_defaults')),
         ' ', ...(u.stores || []).map((s) => storePill(s))),
       h('td.num', u.last_login ? fmtDate(u.last_login.slice(0, 10)) : ''), h('td', u.active ? '' : h('span.pill.out', t('inactive'))))));
   }

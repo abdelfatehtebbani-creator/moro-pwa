@@ -140,10 +140,14 @@ var Auth = {
   },
 
   listUsers: function () {
+    // a worker who opened their own account: their job (chef or assistant) is shown instead of the role
+    var job = {};
+    Repo.all('Workers').forEach(function (w) { if (w.user_id) job[w.user_id] = w.kind === 'chef' ? 'chef' : 'assistant'; });
     return Repo.all('Users').map(function (u) {
       var o = Auth.publicUser(u);
       o.active = u.active === true;
       o.last_login = u.last_login;
+      o.job = job[u.user_id] || '';
       return o;
     });
   },

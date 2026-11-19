@@ -44,4 +44,7 @@ test('workers: the list kept by a hash of the card; a worker opens one account, 
   const s = g.api('workers.register', { qid: '28401112222', dept: 'P001', username: 'sami', pin: '1111' }).data;
   assert.deepEqual(s.user.caps.slice().sort(), ['requests.create', 'requests.view']);
   assert.equal(g.api('workers.summary', {}, admin).data.registered, 2);
+  // the users list shows their job, not the role their account is made with
+  const jobs = Object.fromEntries(g.api('users.list', {}, admin).data.map((u) => [u.username, u.job]));
+  assert.deepEqual([jobs.ahmed, jobs.sami, jobs.admin], ['chef', 'assistant', '']);
 });
