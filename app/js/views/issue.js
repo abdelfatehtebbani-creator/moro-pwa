@@ -22,13 +22,20 @@ export async function render(root) {
   // "Disposal" (damaged / expired stock thrown away) is chosen like a department and needs a reason
   const DISPOSAL = '__DISPOSAL__';
   const deptOpts = () => (Data.can('kind.DISPOSAL') ? [{ value: DISPOSAL, label: '⚠ ' + t('disposal') }] : []).concat([...Data.parties.values()]
-    .filter((p) => ['section', 'shop', 'affiliate'].includes(p.kind) && p.active === true)
+    .filter((p) => ['section', 'shop', 'affiliate'].includes(p.kind) && p.active === true && (isReturn.checked || directOk(p)))
     .sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ value: p.party_id, label: p.name })));
   const reason = trackFilled(h('input.input#i-reason', { placeholder: t('disposal_reason') }));
   const reasonField = h('div.field.wide', { hidden: true }, h('label', { for: 'i-reason' }, t('disposal_reason')), reason);
   const itemOpts = () => Data.activeItems().filter((i) => Data.storeOf(i) === zone.value)
     .sort((a, b) => a.name.localeCompare(b.name)).map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: fmtNum(Data.qty(i.item_id)) + ' ' + i.unit }));
 
+  // direct issuing may be closed (all or some departments and shops): they then ask through their requests
+  function directOk(p) {
+    const s = Data.settings || {};
+    const mode = s.issue_direct || 'all';
+    if (p.kind === 'affiliate' || mode === 'all') return true;
+    return mode === 'chosen' && String(s.issue_direct_list || '').split(',').includes(p.party_id);
+  }
   const dept = combo({ id: 'i-dept', options: deptOpts, onPick: (v) => { reasonField.hidden = v !== DISPOSAL; } });
   // a raw material coming back from a department: the same slip, the stock goes up (like a return to the supplier when receiving)
   const isReturn = h('input#i-return', { type: 'checkbox' });

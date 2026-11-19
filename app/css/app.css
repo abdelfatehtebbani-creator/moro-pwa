@@ -1099,3 +1099,4 @@ tr.fl-open td { background: #fff8f7; }
 .rep-opts .rep-run { min-width: 0; margin-inline-start: auto; align-self: center; }
 .rep-folds { align-items: flex-start; }
 .rep-opts .form-status:empty { display: none; }
+.idir-modes { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }

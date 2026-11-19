@@ -190,6 +190,8 @@ var Movements = {
           m.doc_no = slip[sk];
         }
         Util.require(m.kind !== 'ISSUE' || m.doc_no, 'doc_required');
+        // an issue typed in «Issue goods» (not a request, not a shop order): only to whom direct issuing is open
+        if (m.kind === 'ISSUE' && !storeOp) Util.require(Masters.issueDirectOk(Repo.find('Parties', 'party_id', m.party_id)), 'issue_direct_closed', (Repo.find('Parties', 'party_id', m.party_id) || {}).name);
         m.movement_id = Movements.nextId();
         m.category = item.category;
         m.expiry_text = '';
@@ -251,6 +253,8 @@ var Movements = {
       // an edited final-product receipt keeps its own price (the product's price may have changed since)
       Movements.fixedPrice(m, item, src.item_id === cur.item_id && cur.price !== '' ? cur.price : undefined);
       var newItem = Movements.validate(m);
+      // an issue moved to another department: only to one direct issuing is open to
+      if (cur.kind === 'ISSUE' && m.party_id !== cur.party_id) Util.require(Masters.issueDirectOk(Repo.find('Parties', 'party_id', m.party_id)), 'issue_direct_closed', (Repo.find('Parties', 'party_id', m.party_id) || {}).name);
       Period.require(m.date);
       Movements.checkLpo(m);
       var changes = {};
