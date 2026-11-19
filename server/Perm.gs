@@ -152,7 +152,7 @@ var CAPS = (function () {
     'counts.approve':    ['nav.counts', 'counts.list', 'counts.get', 'counts.approve', 'kind.ADJUST'],
     'counts.cancel':     ['counts.cancel'],
     'items.view':        ['nav.masters', 'tab.items'],
-    'items.add':         ['items.save', 'add_items'],
+    'items.add':         ['items.save', 'add_items', 'items.importRaw'],
     'items.rename':      ['items.save', 'rename.items', 'items.namesAr'],
     'items.min':         ['items.save', 'min_stock'],
     'items.packaging':   ['items.save', 'packaging'],

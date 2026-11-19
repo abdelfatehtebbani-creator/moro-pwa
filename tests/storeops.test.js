@@ -86,3 +86,25 @@ test('direct issue permission: open to all (default), closed to all, or open to 
   assert.equal(g.api('settings.issueDirect', { mode: 'all' }, tok.admin).ok, true);
   assert.equal(g.api('movements.save', to('c4', 'P002'), tok.store).ok, true);
 });
+
+test('raw materials from a sheet: checked, then made with their generic material (made once); names already there kept', () => {
+  const { g, tok } = env();
+  const rows = [
+    { name: 'CHEF DEEMA BIRYANI 90G', unit: 'un', store: 'DRY', family: 'KARMA SPICES', family_ar: 'بهارات الكرمة', family_unit: 'KG', factor: 0.09 },
+    { name: 'ASA GARAM MASALA 90G', unit: 'PC', store: 'DRY', family: 'KARMA SPICES', family_ar: 'بهارات الكرمة', family_unit: 'KG', factor: '0.09' },
+    { name: 'sugar', unit: 'KG', store: 'DRY', family: 'KARMA SPICES', factor: 1 },
+    { name: 'NO FACTOR', unit: 'PC', store: 'DRY', family: 'KARMA SPICES', factor: '' },
+  ];
+  const pv = g.api('items.importRaw', { rows }, tok.admin).data;
+  assert.deepEqual(pv.plan.map((l) => l.action), ['new', 'new', 'exists', 'bad']);
+  assert.deepEqual(pv.new_families, ['KARMA SPICES']);
+  const r = g.api('items.importRaw', { rows, apply: true }, tok.admin);
+  assert.equal(r.data.created, 2, JSON.stringify(r));
+  const fams = g.rows('Families');
+  assert.equal(fams.length, 1);
+  assert.equal(fams[0].name_ar, 'بهارات الكرمة');
+  const made = g.rows('Items').filter((i) => /90G/.test(i.name));
+  assert.deepEqual(made.map((i) => [i.unit, i.store, i.family_id, Number(i.family_factor)]), [['UN', 'DRY', fams[0].family_id, 0.09], ['PC', 'DRY', fams[0].family_id, 0.09]]);
+  // again: nothing new
+  assert.deepEqual(g.api('items.importRaw', { rows }, tok.admin).data.plan.map((l) => l.action), ['exists', 'exists', 'exists', 'bad']);
+});

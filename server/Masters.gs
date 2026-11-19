@@ -645,6 +645,61 @@ Masters.deptKeys = function (name) {
   if (outside) keys.push(outside);
   return keys;
 };
+/**
+ * Raw materials from a sheet (name, name_ar, unit, store, family, family_ar, family_unit, factor): checked first, then
+ * saved at once. Each one is classed in its generic material (made when new) with what one of its units holds.
+ * A name already there is left as it is (nothing is overwritten).
+ */
+Masters.importRaw = function (session, p) {
+  var rows = (p.rows || []).slice(0, 1000);
+  Util.require(rows.length, 'nothing_to_save');
+  var names = {}, fams = {}, seen = {};
+  Repo.all('Items').forEach(function (i) { names[Util.key(i.name)] = i; });
+  Repo.all('Families').forEach(function (f) { fams[Util.key(f.name)] = f; if (f.name_ar) fams[Util.key(f.name_ar)] = f; });
+  var plan = rows.map(function (r, ix) {
+    var l = { line: ix + 1, name: Util.clean(r.name), name_ar: Util.clean(r.name_ar), store: Util.clean(r.store).toUpperCase() || 'DRY',
+              family: Util.clean(r.family), family_ar: Util.clean(r.family_ar), family_unit: Util.clean(r.family_unit).toUpperCase() || 'KG',
+              factor: Util.num(r.factor) };
+    var u = Util.clean(r.unit).toUpperCase();
+    l.unit = Masters.UNIT_ALIASES[u] || u;
+    if (!l.name) { l.action = 'bad'; l.why = 'name_required'; return l; }
+    if (!l.unit) { l.action = 'bad'; l.why = 'unit_required'; return l; }
+    if (!Stores.valid(l.store) || Families.RAW_STORES.indexOf(l.store) < 0) { l.action = 'bad'; l.why = 'store_invalid'; return l; }
+    if (!l.family && !l.family_ar) { l.action = 'bad'; l.why = 'family_required'; return l; }
+    if (!(l.factor > 0)) { l.action = 'bad'; l.why = 'family_factor'; return l; }
+    var k = Util.key(l.name);
+    if (seen[k]) { l.action = 'dup'; l.why = String(seen[k]); return l; }
+    seen[k] = l.line;
+    if (names[k]) { l.action = 'exists'; l.item_id = names[k].item_id; return l; }
+    var f = fams[Util.key(l.family)] || fams[Util.key(l.family_ar)];
+    l.family_id = f ? f.family_id : '';
+    l.action = 'new';
+    return l;
+  });
+  var counts = {};
+  plan.forEach(function (l) { counts[l.action] = (counts[l.action] || 0) + 1; });
+  var newFams = {};
+  plan.forEach(function (l) { if (l.action === 'new' && !l.family_id) newFams[Util.key(l.family || l.family_ar)] = l.family || l.family_ar; });
+  var out = { plan: plan, counts: counts, new_families: Object.keys(newFams).map(function (k) { return newFams[k]; }) };
+  if (!p.apply) return out;
+  return withLock(function () {
+    var made = 0, famIds = {};
+    plan.forEach(function (l) {
+      if (l.action !== 'new') return;
+      var fk = Util.key(l.family || l.family_ar);
+      var q = { name: l.name, name_ar: l.name_ar, unit: l.unit, store: l.store, family_factor: l.factor };
+      if (l.family_id || famIds[fk]) q.family_id = l.family_id || famIds[fk];
+      else q.new_family = { name: l.family || l.family_ar, name_ar: l.family_ar, unit: l.family_unit };
+      var res = Masters.saveItem(session, q);
+      var it = Repo.find('Items', 'item_id', (res && res.item && res.item.item_id) || (res && res.item_id) || '') || Repo.all('Items').filter(function (i) { return Util.key(i.name) === Util.key(l.name); })[0];
+      if (it && !famIds[fk]) famIds[fk] = it.family_id;
+      made++;
+    });
+    Audit.log(session.user_id, 'items_import_raw', 'Items', '', null, { created: made });
+    return { created: made, version: Version.bump() };
+  });
+};
+
 Masters.importItems = function (session, p) {
   var rows = (p.rows || []).slice(0, 2000);
   Util.require(rows.length, 'nothing_to_save');
