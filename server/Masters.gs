@@ -570,6 +570,35 @@ Masters.saveRecipeStock = function (session, p) {
   });
 };
 
+/**
+ * Who goods are issued to directly from «Issue goods» (not through a department's request or a shop order):
+ * mode 'all' (as before, the default), 'none' (only through the requests) or 'chosen' (the departments and shops
+ * in the list). The owner's parties (affiliates) are not concerned: they have no request screen.
+ */
+Masters.issueDirectOk = function (party) {
+  if (!party || party.kind === 'affiliate') return true;
+  var mode = Settings.get('issue_direct', '') || 'all';
+  if (mode === 'all') return true;
+  if (mode === 'none') return false;
+  return String(Settings.get('issue_direct_list', '')).split(',').indexOf(String(party.party_id)) >= 0;
+};
+
+Masters.saveIssueDirect = function (session, p) {
+  var mode = String(p.mode || '');
+  Util.require(['all', 'none', 'chosen'].indexOf(mode) >= 0, 'issue_direct_mode');
+  var ids = (p.parties || []).map(String).filter(function (id) {
+    var x = Repo.find('Parties', 'party_id', id); return x && (x.kind === 'section' || x.kind === 'shop');
+  });
+  if (mode === 'chosen') Util.require(ids.length, 'issue_direct_none_chosen');
+  return withLock(function () {
+    var before = { mode: Settings.get('issue_direct', '') || 'all', list: Settings.get('issue_direct_list', '') };
+    Settings.set('issue_direct', mode);
+    Settings.set('issue_direct_list', mode === 'chosen' ? ids.join(',') : before.list);
+    Audit.log(session.user_id, 'settings_issue_direct', 'Settings', 'issue_direct', before, { mode: mode, list: Settings.get('issue_direct_list', '') });
+    return { mode: mode, version: Version.bump() };
+  });
+};
+
 Masters.saveIdle = function (session, p) {
   var m = Util.num(p.minutes);
   Util.require(m !== null && m >= 0 && m <= 240 && Math.round(m) === m, 'idle_minutes_invalid');

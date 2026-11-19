@@ -48,6 +48,7 @@ export async function render(root) {
         h('div.form-grid', field(t('idle_minutes'), input), h('div.field', h('label', '\u00a0'), h('button.btn', { type: 'button', onclick: save }, t('save')))),
         h('small.muted', t('idle_minutes_help'))),
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
+      Data.can('settings.issueDirect') ? issueDirectBox() : null,
       Data.can('kiosk.off') ? kioskBox() : null,
       Data.can('vehicles.save') ? vehiclesBox() : null,
       Data.can('workers.import') ? workersBox() : null,
@@ -173,6 +174,31 @@ export async function render(root) {
       h('b', t('kiosk_depts')), h('div.check-grid', depts.map((x) => h('label.check', x.box, ' ', h('bdi', x.d.name)))),
       h('b', t('kiosk_tiles')), h('div.check-grid', tiles.map((x) => h('label.check', x.box, ' ', t('kiosk_tile_' + x.k)))),
       h('div.form-actions', h('button.btn', { type: 'button', onclick: save }, t('save'))));
+  }
+
+  // «Issue goods»: to whom the storekeeper issues directly; the others ask through their requests
+  function issueDirectBox() {
+    const s = Data.settings || {};
+    let mode = s.issue_direct || 'all';
+    const chosen = new Set(String(s.issue_direct_list || '').split(',').filter(String));
+    const parties = [...Data.parties.values()].filter((p) => (p.kind === 'section' || p.kind === 'shop') && p.active === true)
+      .sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === 'section' ? -1 : 1));
+    const boxes = parties.map((p) => { const cb = h('input', { type: 'checkbox', checked: chosen.has(p.party_id) }); cb.addEventListener('change', () => { cb.checked ? chosen.add(p.party_id) : chosen.delete(p.party_id); }); return { p, cb }; });
+    const listBox = h('div', { hidden: mode !== 'chosen' },
+      h('b', t('idir_sections')), h('div.check-grid', boxes.filter((x) => x.p.kind === 'section').map((x) => h('label.check', x.cb, ' ', h('bdi', x.p.name)))),
+      h('b', t('idir_shops')), h('div.check-grid', boxes.filter((x) => x.p.kind === 'shop').map((x) => h('label.check', x.cb, ' ', h('bdi', x.p.name)))));
+    const radios = ['none', 'chosen', 'all'].map((m) => {
+      const r = h('input', { type: 'radio', name: 'idir', value: m, checked: mode === m });
+      r.addEventListener('change', () => { mode = m; listBox.hidden = m !== 'chosen'; });
+      return h('label.check', r, ' ', h('b', t('idir_' + m)));
+    });
+    const save = async () => {
+      if (mode === 'chosen' && !chosen.size) { toast(t('err.issue_direct_none_chosen'), 'err'); return; }
+      try { await call('settings.issueDirect', { mode, parties: [...chosen] }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { toast(errText(e), 'err'); }
+    };
+    return h('details.kiosk-box', h('summary', h('b', t('idir_title'))), h('small.muted', t('idir_help')),
+      h('div.idir-modes', radios), listBox, h('div.form-actions', h('button.btn', { type: 'button', onclick: save }, t('save'))));
   }
 
   // producing takes the recipes' ingredients from the stores, or not (off until the recipes are complete)

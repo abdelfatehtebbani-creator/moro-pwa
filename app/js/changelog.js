@@ -3,6 +3,17 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.271', date: '2026-11-19',
+    ar: {"news": ["(نسخة التطوير) «طلبات الأقسام»: كل طلب في الأرشيف يظهر بساعة إرساله، وبساعة صرفه بعد التنفيذ.", "(نسخة التطوير) «صرف البضاعة»: كل صرف في السجل يحمل مصدره: «بطلب قسم» مع رقم الطلب، أو «طلبية محل» مع رقمها، أو «صرف مباشر». وفلتر جديد بجانب البحث يعرض مصدرًا واحدًا."]},
+    en: {"news": ["(Development copy) Department requests: each request in the archive shows the time it was sent, and the time it was issued once done.", "(Development copy) Issue goods: each issue in the records shows where it came from: Dept. request with its number, Shop order with its number, or Direct. A new filter next to the search shows one source."]}
+  },
+  {
+    v: '0.9.270', date: '2026-11-19',
+    ar: {"news": ["(نسخة التطوير) إعداد جديد في «المستخدمون ← الإعدادات العامة»: «إذن الصرف المباشر». يختار المدير أحد ثلاثة خيارات: ممنوع للكل، أو مسموح لأقسام ومحلات يختارها، أو مسموح للكل كما كان. من لا يُسمح له لا يظهر في قائمة «صرف البضاعة»، ويطلب بضاعته من الشاشة المشتركة، وصرف الطلبات يبقى كما هو. جهات المالك الخاصة لا تتأثر."]},
+    en: {"news": ["(Development copy) A new setting in Users, General settings: Direct issue permission. The admin picks one of three: closed for all, open to chosen departments and shops, or open to all as before. Those not allowed are not listed in Issue goods and ask for their goods on the shared device; issuing their requests is unchanged. The owner's own parties are not concerned."]}
+  },
+  {v: "0.9.269", "date": "2026-11-19", "ar": {"news": ["(نسخة التطوير) تبويب «صرف للأقسام» أصبح اسمه «صرف البضاعة»."]}, "en": {"news": ["(Development copy) The «Department issues» tab is now called «Issue goods»."]}},
+  {
     v: '0.9.268', date: '2026-11-18',
     ar: {"news": ["شاشة «التقارير»: خيارات كل تقرير في سطرين تقريبًا: التواريخ والمدة والخيارات صغيرة جنبًا إلى جنب، والمخازن والمواد والأقسام والأشهر قوائم مطوية بسطر واحد يقول ما اختير، وزر «إنشاء التقرير» في آخر السطر."]},
     en: {"news": ["Reports: each report's options in about two lines: dates, period and choices small side by side; stores, items, departments and months folded to one line saying what is chosen; \"Create report\" at the end of the line."]},

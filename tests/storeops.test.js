@@ -58,3 +58,31 @@ test('store ops: editing or deleting a receipt follows the receiving operation o
   assert.equal(g.api('movements.update', { movement_id: m, changes: { qty: 3 } }, tok.store).error.code, 'store_op_forbidden');
   assert.equal(g.api('movements.delete', { movement_id: m }, tok.store).error.code, 'forbidden', 'the storekeeper has no delete permission at all');
 });
+
+test('direct issue permission: open to all (default), closed to all, or open to chosen departments; requests still issue', () => {
+  const { g, tok } = env();
+  g.seed('Parties', [{ party_id: 'P003', name: 'Bakery', kind: 'section', active: true }, { party_id: 'P004', name: 'Owner', kind: 'affiliate', active: true }]);
+  const to = (cid, party) => ({ movements: [{ client_id: cid, kind: 'ISSUE', date: '2026-10-30', party_id: party, item_id: 'I0001', qty: 1, unit: 'KG' }] });
+  assert.equal(g.api('movements.save', to('a1', 'P002'), tok.store).ok, true);
+  assert.equal(g.api('settings.issueDirect', { mode: 'none' }, tok.store).error.code, 'forbidden');
+  assert.equal(g.api('settings.issueDirect', { mode: 'bogus' }, tok.admin).error.code, 'issue_direct_mode');
+  assert.equal(g.api('settings.issueDirect', { mode: 'chosen', parties: [] }, tok.admin).error.code, 'issue_direct_none_chosen');
+  assert.equal(g.api('settings.issueDirect', { mode: 'none' }, tok.admin).ok, true);
+  assert.equal(g.api('movements.save', to('n1', 'P002'), tok.store).error.code, 'issue_direct_closed');
+  assert.equal(g.api('movements.save', to('n2', 'P004'), tok.store).ok, true, 'the owner\'s parties are not concerned');
+  // a department's request is still issued
+  const r = g.api('requests.create', { date: g.api('data.bootstrap', {}, tok.admin).data.today, party_id: 'P002', lines: [{ item_id: 'I0001', qty: 1 }] }, tok.admin);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const f = g.api('requests.fulfil', { request_id: r.data.request_id }, tok.store);
+  assert.equal(f.ok, true, JSON.stringify(f));
+  // open to the bakery only (the supplier is not taken into the list)
+  assert.equal(g.api('settings.issueDirect', { mode: 'chosen', parties: ['P003', 'P001'] }, tok.admin).ok, true);
+  assert.equal(g.rows('Settings').find((s) => s.key === 'issue_direct_list').value, 'P003');
+  assert.equal(g.api('movements.save', to('c1', 'P003'), tok.store).ok, true);
+  assert.equal(g.api('movements.save', to('c2', 'P002'), tok.store).error.code, 'issue_direct_closed');
+  // an issue cannot be moved to a department that is closed
+  const m = g.api('movements.save', to('c3', 'P003'), tok.admin).data.saved[0].movement_id;
+  assert.equal(g.api('movements.update', { movement_id: m, changes: { party_id: 'P002' } }, tok.admin).error.code, 'issue_direct_closed');
+  assert.equal(g.api('settings.issueDirect', { mode: 'all' }, tok.admin).ok, true);
+  assert.equal(g.api('movements.save', to('c4', 'P002'), tok.store).ok, true);
+});

@@ -1099,3 +1099,9 @@ tr.fl-open td { background: #fff8f7; }
 .rep-opts .rep-run { min-width: 0; margin-inline-start: auto; align-self: center; }
 .rep-folds { align-items: flex-start; }
 .rep-opts .form-status:empty { display: none; }
+.idir-modes { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.isrc { font-size: 11px; margin-inline-start: 4px; white-space: nowrap; }
+.isrc-direct { background: #fff4e5; color: #a15c00; }
+.isrc-request { background: #e8f1ff; color: #1d4ed8; }
+.isrc-shop { background: #eef7ee; color: #1f7a3a; }
+.src-sel { width: auto; flex: none; }
