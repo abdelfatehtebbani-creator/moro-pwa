@@ -209,7 +209,8 @@ export async function render(root) {
       actions.append(cancel);
     }
     return h('div.req-card',
-      h('div.card-head', h('b', r.request_id), h('span', h('bdi', p ? p.name : r.party_id)), h('span.muted.num', fmtDate(r.date)),
+      h('div.card-head', h('b', r.request_id), h('span', h('bdi', p ? p.name : r.party_id)), h('span.muted.num', fmtDate(r.date), r.created_at ? ' · ' + t('req_at', { t: String(r.created_at).slice(11, 16) }) : ''),
+        r.fulfilled_at && (r.status === 'fulfilled' || r.status === 'partial') ? h('span.muted.num', t('req_issued_at', { t: String(r.fulfilled_at).slice(11, 16), d: String(r.fulfilled_at).slice(0, 10) === String(r.created_at).slice(0, 10) ? '' : fmtDate(String(r.fulfilled_at).slice(0, 10)) + ' ' })) : '',
         h('span', { class: 'pill ' + ({ open: 'soon', partial: 'soon', fulfilled: 'in', cancelled: 'out', rejected: 'low' }[r.status] || '') }, t('req_' + r.status))),
       r.note ? h('p.muted', r.note) : null,
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('store')), h('th', t('requested')), h('th', t('issued')), h('th', t('balance')), h('th', canFulfil || answers.length ? t('to_issue') : ''))), h('tbody', rows))),

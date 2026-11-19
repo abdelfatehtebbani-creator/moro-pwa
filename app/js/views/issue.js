@@ -190,10 +190,15 @@ export async function render(root) {
   const recBody = h('tbody');
   let records = [];
   const filters = recordFilters(() => fillRecords(), zone);
+  // where an issue came from: a department's request, a shop order, or typed directly in this screen
+  const srcOf = (m) => (m.kind !== 'ISSUE' ? '' : /^Request /.test(m.purpose || '') ? 'request' : /^Shop order /.test(m.purpose || '') ? 'shop' : 'direct');
+  const srcSel = h('select.input.src-sel#i-src', ['', 'direct', 'request', 'shop'].map((k) => h('option', { value: k }, t(k ? 'isrc_' + k : 'isrc_all'))));
+  srcSel.addEventListener('change', () => fillRecords());
   const fillRecords = () => {
     const q = search.value.trim().toLowerCase();
     const rows = records.filter((m) => {
       if (!filters.test(m)) return false;
+      if (srcSel.value && srcOf(m) !== srcSel.value) return false;
       if (!q) return true;
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return [it && it.name, it && it.name_ar, p && p.name, m.doc_no].some((x) => String(x || '').toLowerCase().includes(q));
@@ -201,7 +206,8 @@ export async function render(root) {
     recBody.replaceChildren(...(rows.length ? rows.map((m) => {
       const it = Data.items.get(m.item_id); const p = Data.parties.get(m.party_id);
       return h('tr.click', { class: m.pending ? 'pending' : '', onclick: () => editRecord(m) },
-        h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : ''), m.kind === 'DEPT_RETURN' ? h('span.pill.in', ' ↩ ' + t('kind_DEPT_RETURN')) : ''),
+        h('td.num', fmtDate(m.date)), h('td.wrap', m.kind === 'DISPOSAL' ? h('span.pill.low', t('disposal')) : h('bdi', p ? p.name : ''), m.kind === 'DEPT_RETURN' ? h('span.pill.in', ' ↩ ' + t('kind_DEPT_RETURN')) : '',
+          srcOf(m) ? h('span', { class: 'pill isrc isrc-' + srcOf(m), title: srcOf(m) === 'direct' ? '' : String(m.purpose || '').replace(/^(Request|Shop order) /, '') }, t('isrc_' + srcOf(m)) + (srcOf(m) === 'direct' ? '' : ' ' + String(m.purpose || '').replace(/^(Request|Shop order) /, ''))) : ''),
         h('td.wrap', h('bdi', it ? Data.nameOf(it) : m.item_id), filters.all() && it ? h('span', ' ', storePill(Data.storeOf(it))) : ''), h('td.num', { class: m.kind === 'DEPT_RETURN' ? '' : 'qty-neg' }, m.kind === 'DEPT_RETURN' ? '+' : '', fmtMoveQty(m)),
         h('td', m.pending ? h('span.pill.soon', t('pending')) : ''), h('td.num', m.doc_no || ''), h('td.wrap.muted', enteredBy(m)));
     }) : [h('tr', h('td.empty', { colspan: 7 }, t('no_rows')))]));
@@ -249,7 +255,7 @@ export async function render(root) {
       h('div.table-wrap', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('kind')), h('th', t('qty')), h('th', ''))), lineBody)),
       h('div.form-actions', postBtn, clearBtn), status,
       h('small.muted', t('issue_help'))),
-    h('div.card', h('div.card-head', h('h2', t('recent_issues'))), search, filters.el,
+    h('div.card', h('div.card-head', h('h2', t('recent_issues'))), h('div.search', search, srcSel), filters.el,
       h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('department')), h('th', t('item')), h('th', t('qty')), h('th', ''), h('th', t('slip_no')), h('th', t('entered_by')))), recBody)))));
 
   const onSent = (e) => {
