@@ -4,13 +4,13 @@
 export const CHANGELOG = [
   {
     v: '0.9.273', date: '2026-11-19',
-    ar: {"news": ["(نسخة التطوير) الشاشة المشتركة: أزرار الأقسام فوق الأسماء صارت قائمة تُطوى في سطر واحد «القسم: الكل ▾». اضغطها لتختار قسمًا، فتُطوى من جديد بعد الاختيار."]},
-    en: {"news": ["(Development copy) Shared device: the department buttons above the names are now one folded line «Department: All ▾». Press it to pick a department; it folds again once picked."]}
+    ar: {"news": ["الشاشة المشتركة: أزرار الأقسام فوق الأسماء صارت قائمة تُطوى في سطر واحد «القسم: الكل ▾». اضغطها لتختار قسمًا، فتُطوى من جديد بعد الاختيار."]},
+    en: {"news": ["Shared device: the department buttons above the names are now one folded line «Department: All ▾». Press it to pick a department; it folds again once picked."]}
   },
   {
     v: '0.9.272', date: '2026-11-19',
-    ar: {"news": ["(نسخة التطوير) «المستخدمون»: العامل الذي فتح حسابه من قائمة العمال يظهر بوظيفته «شيف» أو «مساعد» بدل «مسؤول قسم»، وقائمة الأدوار تفرز الشيفات والمساعدين كلًا على حدة."]},
-    en: {"news": ["(Development copy) Users: a worker who opened their account from the workers list shows their job, Chef or Assistant, instead of Department head, and the roles list filters chefs and assistants apart."]}
+    ar: {"news": ["«المستخدمون»: العامل الذي فتح حسابه من قائمة العمال يظهر بوظيفته «شيف» أو «مساعد» بدل «مسؤول قسم»، وقائمة الأدوار تفرز الشيفات والمساعدين كلًا على حدة."]},
+    en: {"news": ["Users: a worker who opened their account from the workers list shows their job, Chef or Assistant, instead of Department head, and the roles list filters chefs and assistants apart."]}
   },
   {
     v: '0.9.271', date: '2026-11-19',
