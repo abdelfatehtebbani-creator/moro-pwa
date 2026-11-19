@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.274', date: '2026-11-19',
+    ar: {"news": ["(نسخة التطوير) «المواد والموردون»: زر جديد «رفع مواد خام (Excel)». يرفع ملفًا فيه أعمدة: الاسم، والوحدة، والمخزن، والمادة العامة، وما تحتويه الوحدة منها. يعرض النظام المواد أولًا، الجديد منها والموجود من قبل وما فيه خطأ، ثم يحفظ الجديد فقط، وينشئ المادة العامة إن لم تكن موجودة."]},
+    en: {"news": ["(Development copy) Materials and suppliers: a new button Upload raw materials (Excel). The sheet has the name, unit, store, generic material and how much of it one unit holds. The materials are shown first (new, already there, with an error), then only the new ones are saved, and the generic material is made if it is not there yet."]}
+  },
+  {
     v: '0.9.273', date: '2026-11-19',
     ar: {"news": ["الشاشة المشتركة: أزرار الأقسام فوق الأسماء صارت قائمة تُطوى في سطر واحد «القسم: الكل ▾». اضغطها لتختار قسمًا، فتُطوى من جديد بعد الاختيار."]},
     en: {"news": ["Shared device: the department buttons above the names are now one folded line «Department: All ▾». Press it to pick a department; it folds again once picked."]}

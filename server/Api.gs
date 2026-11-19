@@ -26,6 +26,7 @@ var ROUTES = {
   'items.save':       function (s, p) { return Masters.saveItem(s, p); },
   'items.namesAr':    function (s, p) { return Masters.namesAr(s, p); },
   'items.import':     function (s, p) { return Masters.importItems(s, p); },
+  'items.importRaw':  function (s, p) { return Masters.importRaw(s, p); },
   'parties.save':     function (s, p) { return Masters.saveParty(s, p); },
   'locations.save':   function (s, p) { return Masters.saveLocation(s, p); },
   'units.save':       function (s, p) { return Masters.saveUnit(s, p); },

@@ -294,6 +294,41 @@ function items(body, isAdmin) {
     });
     file.click();
   };
+  // raw materials from an Excel sheet (name, name_ar, unit, store, family, family_ar, family_unit, factor): checked, then saved
+  const importRaw = () => {
+    const file = h('input', { type: 'file', accept: '.xlsx' });
+    file.addEventListener('change', async () => {
+      const f = file.files[0];
+      if (!f) return;
+      let rows;
+      try {
+        const all = await readXlsx(f);
+        const hi = Math.max(0, all.slice(0, 6).findIndex((r) => (r || []).some((x) => String(x || '').trim().toLowerCase() === 'name')));
+        const head = (all[hi] || []).map((x) => String(x || '').trim().toLowerCase());
+        const col = (k) => head.indexOf(k);
+        if (col('name') < 0 || col('factor') < 0) { toast(t('raw_import_bad'), 'err'); return; }
+        const cell = (r, k) => (col(k) >= 0 ? String(r[col(k)] === undefined || r[col(k)] === null ? '' : r[col(k)]).trim() : '');
+        rows = all.slice(hi + 1).filter((r) => cell(r, 'name')).map((r) => ({ name: cell(r, 'name'), name_ar: cell(r, 'name_ar'), unit: cell(r, 'unit'), store: cell(r, 'store'),
+          family: cell(r, 'family'), family_ar: cell(r, 'family_ar'), family_unit: cell(r, 'family_unit'), factor: cell(r, 'factor') }));
+      } catch (e) { toast(t('raw_import_bad'), 'err'); return; }
+      let pv;
+      try { pv = await call('items.importRaw', { rows }); } catch (e) { toast(errText(e), 'err'); return; }
+      const c = pv.counts || {};
+      const go = await dialog((close) => [h('h3', t('raw_import')),
+        h('p', t('raw_import_summary', { n: c.new || 0, s: c.exists || 0, x: (c.bad || 0) + (c.dup || 0) })),
+        pv.new_families.length ? h('p', t('raw_import_new_fam'), ' ', h('b', pv.new_families.join('، '))) : null,
+        h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', '#'), h('th', t('item')), h('th', t('unit')), h('th', t('store')), h('th', t('fam_word_title')), h('th', t('family_factor_short')), h('th', ''))),
+          h('tbody', pv.plan.map((l) => h('tr', h('td', String(l.line)), h('td', h('bdi', l.name), l.name_ar ? h('small.muted', ' ', l.name_ar) : ''), h('td', l.unit), h('td', l.store ? t('store_' + l.store) : ''),
+            h('td', h('bdi', l.family_ar || l.family)), h('td.num', l.factor ? fmtNum(l.factor) + ' ' + (l.family_unit || '') : ''),
+            h('td', h('span', { class: 'pill imp-' + (l.action === 'exists' ? 'same' : l.action) }, t('raw_imp_' + l.action)), l.why && l.action === 'bad' ? h('small.muted', ' ' + t('err.' + l.why)) : l.action === 'dup' ? h('small.muted', ' #' + l.why) : '')))))),
+        h('div.actions', h('button.btn.secondary', { type: 'button', onclick: () => close() }, t('cancel')),
+          h('button.btn', { type: 'button', disabled: !c.new, onclick: () => close(true) }, t('import_save')))]);
+      if (!go) return;
+      try { const r = await call('items.importRaw', { rows, apply: true }); toast(t('raw_import_done', { n: r.created }), 'ok'); refreshSoon(fill); }
+      catch (e) { toast(errText(e), 'err'); }
+    });
+    file.click();
+  };
   // final products from a price list (CSV: dept, name, name_ar, unit, price): checked first, then saved at once
   const importItems = async () => {
     const file = h('input', { type: 'file', accept: '.csv,text/csv' });
@@ -334,6 +369,7 @@ function items(body, isAdmin) {
   body.replaceChildren(h('div.search', search, deptFilter), h('div.tool-row', Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
       Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
+      Data.can('items.importRaw') ? h('button.btn.secondary', { type: 'button', onclick: importRaw }, t('raw_import')) : null,
       showPrice ? h('button.btn.secondary', { type: 'button', onclick: choosePrint }, t('price_list_print')) : null),
     h('label.check', showInactive, ' ', t('show_inactive')),
     h('div.table-wrap.tall', h('table', h('thead', h('tr', h('th', 'ID'), h('th', t('item')), h('th', t('store')), h('th', t('unit')),
