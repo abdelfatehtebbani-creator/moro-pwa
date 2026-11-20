@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.275', date: '2026-11-20',
-    ar: {"news": ["(نسخة التطوير) التقارير: لم تعد كلمة «null» تظهر تحت التقرير الذي ليس له سطر ملاحظات. وأُصلح الخطأ نفسه في سجل أسعار المادة في «أوامر الشراء»."]},
-    en: {"news": ["(Development copy) Reports: the word «null» no longer shows under a report with no notes line. The same slip was fixed in an item's price history in Purchase orders."]}
+    ar: {"news": ["التقارير: لم تعد كلمة «null» تظهر تحت التقرير الذي ليس له سطر ملاحظات. وأُصلح الخطأ نفسه في سجل أسعار المادة في «أوامر الشراء»."]},
+    en: {"news": ["Reports: the word «null» no longer shows under a report with no notes line. The same slip was fixed in an item's price history in Purchase orders."]}
   },
   {
     v: '0.9.274', date: '2026-11-19',
