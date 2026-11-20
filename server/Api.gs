@@ -237,7 +237,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '67';
+var SCHEMA_VERSION = '68';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -267,6 +267,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 65) Perm.addRoleLeaves({ driver: ['online.drive'] });
     // the vehicles' records: the drivers with their own ticks get the new tick
     if (Number(Settings.get('schema_version', '0')) < 67) Perm.addRoleLeaves({ driver: ['fleet.log'] });
+    // the item card report: whoever has their own ticks and sees the stock changes sees it too
+    if (Number(Settings.get('schema_version', '0')) < 68) Perm.addLeafWith('report.changes', 'report.ledger');
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);

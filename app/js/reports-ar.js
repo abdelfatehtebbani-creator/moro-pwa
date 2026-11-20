@@ -40,6 +40,8 @@ const W = {
   'Dispatching and delivery record': 'سجل صرف وتسليم المنتجات', 'Loading time': 'وقت التحميل', 'Batch No.': 'رقم التشغيلة',
   'Production date': 'تاريخ الإنتاج', 'Quantity and unit': 'الكمية ووحدتها', 'Destination': 'الجهة المستلمة', 'Vehicle no.': 'رقم المركبة', 'Driver': 'اسم السائق', 'Temperature when leaving (°C)': 'درجة الحرارة عند المغادرة (°م)', 'Temperature on arrival (°C)': 'درجة الحرارة عند الوصول (°م)',
   'Departure time': 'وقت المغادرة', 'Recipient (confirmed)': 'المستلم (تأكيد الاستلام)', 'Handed over by': 'مسؤول التسليم', '#': 'م',
+  'In': 'الداخل', 'Out': 'الخارج', 'Balance after': 'الرصيد بعدها', 'Document': 'المستند', 'Entered by': 'أدخله',
+  'Issue': 'صرف', 'Return to supplier': 'مرتجع لمورد', 'Production (input)': 'إنتاج (مكوّن)', 'Production (output)': 'إنتاج (منتج)',
   // cells
   'Food': 'غذائي', 'Packaging': 'تغليف', 'Chilled foods': 'مواد مبرّدة', 'Dry foods': 'مواد جافة', 'Final products': 'المنتج النهائي', 'Cleaning': 'مواد تنظيف',
   'No expiry': 'بلا صلاحية', 'Expired': 'منتهي الصلاحية', 'Expires Today': 'ينتهي اليوم', 'Never issued': 'لم يُصرف قط', 'Incoming': 'وارد', 'Outgoing': 'صادر',
@@ -57,6 +59,10 @@ const W = {
 const P = [
   [/^Period: (.+)  to  (.+)$/, (m) => 'الفترة: ' + m[1] + ' إلى ' + m[2]],
   [/^Date: (.+)$/, (m) => 'التاريخ: ' + m[1]],
+  [/^Item card: (.+)$/, (m) => 'حركة مادة: ' + m[1]],
+  [/^Since the first entry to (.+)$/, (m) => 'منذ أول إدخال إلى ' + m[1]],
+  [/^Unit: (.*)$/, (m) => 'الوحدة: ' + m[1]],
+  [/^Current balance: (.+)$/, (m) => 'الرصيد الحالي: ' + m[1]],
   [/^Stores: (.+)$/, (m) => 'المخازن: ' + m[1].split(', ').map(word).join('، ')],
   [/^Slow-moving stock \(no issue for (\d+) days or more\)$/, (m) => 'المخزون الراكد (بلا صرف منذ ' + m[1] + ' يومًا أو أكثر)'],
   [/^Days of cover \(use of the last (\d+) days\)$/, (m) => 'أيام التغطية (استهلاك آخر ' + m[1] + ' يومًا)'],
@@ -85,7 +91,7 @@ function word(s) {
 /** The report in Arabic (a new object; the English one is left as it is). */
 export function localize(rep) {
   return Object.assign({}, rep, {
-    title: word(rep.title), subtitle: word(rep.subtitle), rtl: true,
+    title: word(rep.title), subtitle: word(rep.subtitle), rtl: true, foot: (rep.foot || []).map(word),
     columns: rep.columns.map((c) => Object.assign({}, c, { label: word(c.label) })),
     rows: rep.rows.map((r) => r.map((v, i) => (rep.columns[i] && rep.columns[i].type === 't' ? word(v) : v))),
     labels: { system: 'نظام إدارة المخزون', printed: 'طُبع: ', records: 'عدد السجلات: ', none: 'لا توجد بيانات',
