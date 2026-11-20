@@ -273,7 +273,7 @@ function renderTables(root) {
       h('div.table-wrap.tall', h('table.rep-table', { dir: c.rtl ? 'rtl' : 'ltr' }, h('thead', h('tr', c.columns.map((col) => h('th', col.label)))),
         h('tbody', c.rows.length ? c.rows.map((r) => h('tr', r.map((v, i) => h('td', { class: ['n', 'm', 'p'].includes(c.columns[i].type) ? 'num' : '' }, cellText(v, c.columns[i].type))))) :
           h('tr', h('td.empty', { colspan: c.columns.length }, (c.labels || {}).none || 'No data'))))),
-      (c.foot || []).length ? h('div.rep-foot', c.foot.map((x) => h('p', x))) : null,
+      (c.foot || []).length ? h('div.rep-foot', c.foot.map((x) => h('p', x))) : '',
       reviewBox(c) || '',
       h('div.form-actions',
         h('button.btn', { type: 'button', onclick: pdf }, t('save_pdf')),

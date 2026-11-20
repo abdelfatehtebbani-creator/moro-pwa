@@ -194,10 +194,10 @@ async function renderLpo(root) {
       };
       hist.replaceChildren(
         h('div.lpo-hist-head', h('h3', h('bdi', itemName(id))), pid ? h('button.link', { type: 'button', onclick: supplierHistory }, '← ' + t('lpo_back_supplier')) : null),
-        pid ? h('h4', t('lpo_prices_with', { s: partyName(pid) })) : null,
+        pid ? h('h4', t('lpo_prices_with', { s: partyName(pid) })) : '',
         pid ? (here.length ? h('div.table-wrap.lpo-hist-table', h('table', h('thead', h('tr', h('th', t('date')), h('th', t('qty')), h('th', t('price')), h('th', ''))),
           h('tbody', here.slice(0, 30).map((m) => h('tr', h('td.num', fmtDate(m.date)), h('td.num', fmtNum(m.entry_qty || Math.abs(m.qty)) + ' ' + (m.entry_unit || m.unit)),
-            h('td.num', money(m.price) + ' / ' + (m.per || m.unit)), h('td', h('button.btn.small', { type: 'button', onclick: use(m) }, t('lpo_use_price')))))))) : h('p.muted', t('lpo_never_from'))) : null,
+            h('td.num', money(m.price) + ' / ' + (m.per || m.unit)), h('td', h('button.btn.small', { type: 'button', onclick: use(m) }, t('lpo_use_price')))))))) : h('p.muted', t('lpo_never_from'))) : '',
         h('h4', t(pid ? 'lpo_other_suppliers' : 'lpo_all_suppliers')),
         others.size ? h('div.table-wrap.lpo-hist-table', h('table', h('thead', h('tr', h('th', t('supplier')), h('th', t('lpo_last_price')), h('th', t('date')), h('th', t('lpo_times')), h('th', ''))),
           h('tbody', [...others.entries()].sort((a, b) => Number(a[1][0].price) - Number(b[1][0].price)).map(([p, ms]) => h('tr',
