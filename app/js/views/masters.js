@@ -54,6 +54,13 @@ function items(body, isAdmin) {
     h('optgroup', { label: t('departments') }, Data.producingDepts().map((p) => h('option', { value: p.party_id }, p.name))),
     h('optgroup', { label: t('m_stores') }, ['CHILLED', 'DRY', 'PACK', 'CLEAN', 'EQUIP'].map((s) => h('option', { value: 'st:' + s }, t('store_' + s)))));
   const byFilter = (i) => !deptFilter.value || (deptFilter.value.startsWith('st:') ? Data.storeOf(i) === deptFilter.value.slice(3) : String(i.dept || '') === deptFilter.value);
+  // by generic material (the brands classed under it), or the raw materials not classed yet
+  const famCount = {};
+  Data.items.forEach((i) => { if (i.family_id) famCount[i.family_id] = (famCount[i.family_id] || 0) + 1; });
+  const famFilter = h('select.input#m-fam', h('option', { value: '' }, t('m_all_families')), h('option', { value: '-' }, t('m_no_family')),
+    [...Data.families.values()].filter((f) => famCount[f.family_id]).sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b)))
+      .map((f) => h('option', { value: f.family_id }, Data.nameOf(f) + ' (' + famCount[f.family_id] + ')')));
+  const byFamily = (i) => !famFilter.value || (famFilter.value === '-' ? !i.family_id && Data.storeOf(i) !== 'FINAL' : String(i.family_id || '') === famFilter.value);
   const tb = h('tbody');
   // the fixed price of a final product (the price list); other materials have none here
   const showPrice = Data.can('see_prices') || Data.can('final_price');
@@ -94,7 +101,7 @@ function items(body, isAdmin) {
   const fill = () => {
     const q = search.value.trim().toLowerCase();
     const rows = [...Data.items.values()].filter((i) => (showInactive.checked || i.active === true) && (!q || (i.name + ' ' + (i.name_ar || '')).toLowerCase().includes(q))
-      && byFilter(i))
+      && byFilter(i) && byFamily(i))
       .sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     tb.replaceChildren(...rows.map((i) => h('tr.click', { onclick: () => edit(i) },
       h('td.num', i.item_id), h('td.wrap', h('bdi', i.name), i.name_ar ? h('small.muted.name-ar', h('bdi', i.name_ar)) : null), h('td', storePill(Data.storeOf(i))),
@@ -104,6 +111,7 @@ function items(body, isAdmin) {
   search.addEventListener('input', fill);
   showInactive.addEventListener('change', fill);
   deptFilter.addEventListener('change', fill);
+  famFilter.addEventListener('change', fill);
   watch(fill);
 
   const edit = (it) => dialog((close) => {
@@ -366,7 +374,7 @@ function items(body, isAdmin) {
     file.click();
   };
   // the search and the filter on one line (the search takes the room), the buttons on the next
-  body.replaceChildren(h('div.search', search, deptFilter), h('div.tool-row', Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
+  body.replaceChildren(h('div.search', search, deptFilter, famFilter), h('div.tool-row', Data.can('add_items') ? h('button.btn', { type: 'button', onclick: () => edit(null) }, '+ ' + t('new_item')) : null,
       Data.can('items.namesAr') ? h('button.btn.secondary', { type: 'button', onclick: importAr }, t('names_ar_import')) : null,
       Data.can('items.import') ? h('button.btn.secondary', { type: 'button', onclick: importItems }, t('import_items')) : null,
       Data.can('items.importRaw') ? h('button.btn.secondary', { type: 'button', onclick: importRaw }, t('raw_import')) : null,

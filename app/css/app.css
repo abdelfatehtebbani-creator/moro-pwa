@@ -135,12 +135,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .sync.offline .dot { background: var(--danger); }
 .sync.pending .dot { background: var(--warn); }
-.content { padding: 20px 24px 40px; display: grid; gap: 18px; align-content: start; }
+.content { padding: 20px 24px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-content: start; }
 
 .bottom-nav { display: none; }
 
 /* ---------- building blocks ---------- */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
 .card h2 { margin: 0; font-size: 16px; }
 .card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .card-head h2 { flex: 1; }
@@ -1106,3 +1106,13 @@ tr.fl-open td { background: #fff8f7; }
 .isrc-shop { background: #eef7ee; color: #1f7a3a; }
 .src-sel { width: auto; flex: none; }
 .rep-item1 .combo { min-width: 280px; }
+/* the phone: the top bar fits the screen (nothing wider than it, no sideways drag); version, language and
+   sign out are in "More"; the sync shows its dot and refresh button */
+@media (max-width: 640px) {
+  .topbar { gap: 8px; }
+  .topbar h1 { font-size: 17px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .top-admin, .topbar .sync .sync-text { display: none; }
+  .top-user { max-width: 34vw; padding: 4px 10px; }
+}
+.main { min-width: 0; }
+.search select.input { max-width: 100%; }
