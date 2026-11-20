@@ -1115,3 +1115,4 @@ tr.fl-open td { background: #fff8f7; }
   .top-user { max-width: 34vw; padding: 4px 10px; }
 }
 .main { min-width: 0; }
+.search select.input { max-width: 100%; }
