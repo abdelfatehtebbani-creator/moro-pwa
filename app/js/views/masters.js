@@ -570,10 +570,11 @@ function recipes(body) {
   const costOnly = h('input#rc-costonly', { type: 'checkbox' });
   const tb = h('tbody');
   const err = h('p.err-text', '');
-  const draw = () => tb.replaceChildren(...(lines.length ? lines.map((l, i) => { const part = Data.recipePart(l.item_id); return h('tr',
-    h('td.wrap', part.family ? h('b', '◆ ', h('bdi', part.name)) : h('bdi', part.name), part.family ? h('small.muted', ' · ' + t('fam_word')) : ''),
+  const draw = () => tb.replaceChildren(...(lines.length ? lines.map((l, i) => { const part = Data.recipePart(l.item_id); return h('tr', { class: l.off ? 'rc-off' : '' },
+    h('td.wrap', part.family ? h('b', '◆ ', h('bdi', part.name)) : h('bdi', part.name), part.family ? h('small.muted', ' · ' + t('fam_word')) : '', l.off ? h('span.pill.out', ' ' + t('rc_off')) : ''),
     h('td.num', fmtNum(l.qty_per_unit) + ' ' + (part.unit || '')),
-    h('td', h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))); })
+    h('td', h('button.link', { type: 'button', onclick: () => { l.off = !l.off; draw(); } }, t(l.off ? 'rc_turn_on' : 'rc_turn_off')), ' ',
+      h('button.link', { type: 'button', onclick: () => { lines.splice(i, 1); draw(); } }, t('delete')))); })
     : [h('tr', h('td.empty', { colspan: 3 }, t('no_lines')))]));
   // the chosen product's cost (materials, running costs, full) and its own running costs, under the product
   const costLine = h('div.recipe-cost');
@@ -592,7 +593,7 @@ function recipes(body) {
   };
   function load(name) {
     const mine = name ? Data.recipes.filter((r) => norm(r.product) === norm(name)) : [];
-    lines = mine.map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit) }));
+    lines = mine.map((r) => ({ item_id: r.item_id, qty_per_unit: Number(r.qty_per_unit), off: r.off === true }));
     costOnly.checked = mine.some((r) => r.cost_only === true);
     draw();
     showCost(name);
@@ -600,7 +601,7 @@ function recipes(body) {
   const add = () => {
     if (!item.value) return flash(item.input);
     if (!(Number(qty.value) > 0)) return flash(qty);
-    lines = lines.filter((l) => l.item_id !== item.value).concat([{ item_id: item.value, qty_per_unit: Number(qty.value) }]);
+    lines = lines.filter((l) => l.item_id !== item.value).concat([{ item_id: item.value, qty_per_unit: Number(qty.value), off: false }]);
     item.clear(); qty.value = ''; draw(); item.input.focus();
   };
   qty.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });

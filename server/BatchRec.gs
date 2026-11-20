@@ -76,7 +76,7 @@ var BatchRec = {
     var qty = Number(r.qty) || 0;
     var moves = Repo.all('Movements');
     // the materials: the recipe (any recipe), else the store's issues to the department that day
-    var recipe = Repo.all('Recipes').filter(function (x) { return Util.key(x.product) === Util.key(item.name); });
+    var recipe = Repo.all('Recipes').filter(function (x) { return Util.key(x.product) === Util.key(item.name) && x.off !== true; });
     var source = recipe.length ? 'recipe' : 'issues';
     var need = {};
     // a family line: the brands this production really took (its own consumption movements)

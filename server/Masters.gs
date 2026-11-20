@@ -312,11 +312,16 @@ var Masters = {
       var lines = (p.lines || []).filter(function (l) { return Util.num(l.qty_per_unit) > 0; });
       // a line names an item, or a family (a generic material: the brand is chosen when producing)
       lines.forEach(function (l) { Util.require(Families.isId(l.item_id) ? Repo.find('Families', 'family_id', l.item_id) : Repo.find('Items', 'item_id', l.item_id), 'item_unknown', l.item_id); });
-      var keep = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) !== Util.key(product); });
-      Repo.replaceAll('Recipes', keep.concat(lines.map(function (l) {
-        return { product: product, item_id: l.item_id, qty_per_unit: Util.num(l.qty_per_unit), cost_only: p.cost_only === true };
-      })));
-      Audit.log(session.user_id, 'recipe_save', 'Recipes', product, null, { lines: lines.length, cost_only: p.cost_only === true });
+      var all = Repo.all('Recipes');
+      var keep = all.filter(function (r) { return Util.key(r.product) !== Util.key(product); });
+      // what the recipe was, for the audit (each line: item, quantity per unit, turned off)
+      var line = function (r) { return r.item_id + ' ' + Util.round(Number(r.qty_per_unit) * 1e6) / 1e6 + (r.off === true ? ' off' : ''); };
+      var before = all.filter(function (r) { return Util.key(r.product) === Util.key(product); }).map(line);
+      var rows = lines.map(function (l) {
+        return { product: product, item_id: l.item_id, qty_per_unit: Util.num(l.qty_per_unit), cost_only: p.cost_only === true, off: l.off === true };
+      });
+      Repo.replaceAll('Recipes', keep.concat(rows));
+      Audit.log(session.user_id, p.from_calc ? 'recipe_calc_save' : 'recipe_save', 'Recipes', product, { lines: before }, { lines: rows.map(line), cost_only: p.cost_only === true });
       return { lines: lines.length, version: Version.bump() };
     });
   },
@@ -509,7 +514,7 @@ Masters.lastCosts = function () {
 Masters.recipeCost = function (product, costs) {
   costs = costs || Masters.lastCosts();
   var k = Util.key(product), total = 0, missing = [];
-  var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k; }).map(function (r) {
+  var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k && r.off !== true; }).map(function (r) {
     var c = Families.isId(r.item_id) ? Families.cost(r.item_id, costs) : costs[r.item_id], q = Number(r.qty_per_unit) || 0;
     if (!c) missing.push(r.item_id); else total += q * c.unit;
     return { item_id: r.item_id, qty: q, unit_cost: c ? Util.round(c.unit * 1000) / 1000 : '', date: c ? c.date : '', amount: c ? Util.round(q * c.unit * 100) / 100 : '' };
@@ -530,6 +535,7 @@ Masters.recipeCost = function (product, costs) {
 Masters.costOverPrice = function () {
   var costs = Masters.lastCosts(), seen = {}, n = 0;
   Repo.all('Recipes').forEach(function (r) {
+    if (r.off === true) return;
     var k = Util.key(r.product);
     if (seen[k]) return;
     seen[k] = true;

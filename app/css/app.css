@@ -1116,3 +1116,13 @@ tr.fl-open td { background: #fff8f7; }
 }
 .main { min-width: 0; }
 .search select.input { max-width: 100%; }
+/* the recipe calculator (production) */
+.calc-box { border: 2px solid var(--teal); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: #f7fbfb; }
+.calc-head { display: flex; justify-content: space-between; align-items: center; }
+.calc-size { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 700; }
+.calc-size .input { width: 120px; }
+.calc-box td .input.num { width: 110px; padding: 4px 6px; }
+.calc-add { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 8px; align-items: center; }
+@media (max-width: 560px) { .calc-add { grid-template-columns: minmax(0, 1fr) 90px; } .calc-add .btn { grid-column: 1 / -1; } }
+tr.rc-off td { color: var(--muted); text-decoration: line-through; }
+tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: none; }
