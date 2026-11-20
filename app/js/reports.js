@@ -27,6 +27,7 @@ export const REPORTS = [
   { id: 'expiry', group: 'stock', opts: ['stores', 'foodPack', 'zero', 'items?'], build: stockExpiry },
   { id: 'near', group: 'stock', opts: ['days', 'stores', 'zero'], build: nearExpiry },
   { id: 'changes', group: 'move', opts: ['dates', 'mode', 'items?'], build: changes },
+  { id: 'ledger', group: 'move', opts: ['item1', 'since'], build: ledger },
   { id: 'bySection', group: 'move', opts: ['dates', 'stores', 'sections'], build: (p, m) => consumption(p, m, false) },
   { id: 'byItem', group: 'move', opts: ['dates', 'zoneItems'], build: (p, m) => consumption(p, m, true) },
   { id: 'itemOut', group: 'move', opts: ['dates', 'zoneItems', 'detail'], build: (p, m) => itemMovement(p, m, true) },
@@ -394,6 +395,37 @@ function nearExpiry(p) {
   }
   return { title: 'Products near expiry (within ' + days + ' days)', subtitle: todayText() + storesText(p),
     columns: cols(['Item', 't'], ['Expiry date', 'd'], ['Days left', 'n'], ['Quantity', 'n'], ['Unit', 't']), rows };
+}
+
+// ---------- one item's card: every movement since its first entry (or in a period), with the balance after each
+const KIND_NAMES = { RECEIPT: 'Receipt', SUPPLIER_RETURN: 'Return to supplier', ISSUE: 'Issue', DEPT_RETURN: 'Department return',
+  PROD_CONSUME: 'Production (input)', PROD_OUTPUT: 'Production (output)', OPENING: 'Opening balance', ADJUST: 'Adjustment', DISPOSAL: 'Disposal' };
+function ledger(p, movs) {
+  const id = p.item;
+  const it = Data.items.get(id) || {};
+  const mine = movs.filter((m) => m.item_id === id && !m.pending)
+    .sort((a, b) => (a.date === b.date ? String(a.movement_id || '').localeCompare(String(b.movement_id || '')) : a.date < b.date ? -1 : 1));
+  const from = p.lfrom || '';
+  const to = p.to || Data.todayIso();
+  // the balance is worked back from today's: what came after the period, then what was in it
+  const after = mine.filter((m) => m.date > to).reduce((s, m) => s + Number(m.qty), 0);
+  const inWin = mine.filter((m) => (!from || m.date >= from) && m.date <= to);
+  let bal = r6(Data.qty(id) - after - inWin.reduce((s, m) => s + Number(m.qty), 0));
+  const names = Data.userNames || {};
+  const rows = [];
+  // what was there before (an earlier period, or movements moved to the archive)
+  if (Math.abs(bal) > 1e-9 || from) rows.push([from || (inWin[0] || {}).date || to, 'Opening balance', '', '', '', bal, '', '']);
+  inWin.forEach((m) => {
+    const q = Number(m.qty);
+    bal = r6(bal + q);
+    const party = m.party_id ? partyName(m.party_id) : '';
+    const why = m.kind === 'DISPOSAL' || m.kind === 'ADJUST' ? m.purpose || '' : '';
+    rows.push([m.date, KIND_NAMES[m.kind] || m.kind, [party, why].filter(Boolean).join(' · '), q > 0 ? r6(q) : '', q < 0 ? r6(-q) : '', bal,
+      m.doc_no || m.lpo_no || '', names[m.created_by] || m.created_by || '']);
+  });
+  return { title: 'Item card: ' + itemName(id), subtitle: (from ? periodText({ from, to }) : 'Since the first entry to ' + to) + '  ·  Unit: ' + (it.unit || ''),
+    columns: cols(['Date', 'd'], ['Type', 't'], ['Supplier / Department', 't'], ['In', 'n'], ['Out', 'n'], ['Balance after', 'n'], ['Document', 't'], ['Entered by', 't']),
+    rows, foot: rows.length ? ['Current balance: ' + r6(Data.qty(id)) + ' ' + (it.unit || '')] : [] };
 }
 
 function changes(p, movs) {

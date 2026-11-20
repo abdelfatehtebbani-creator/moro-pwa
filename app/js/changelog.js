@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.276', date: '2026-11-20',
+    ar: {"news": ["(نسخة التطوير) تقرير جديد «حركة مادة (كرت الصنف)». تختار مادة، فيعرض كل حركاتها منذ أول إدخال، أو من تاريخ تختاره، إلى اليوم. في كل سطر: التاريخ، والنوع، والجهة، والداخل، والخارج، والرصيد بعد الحركة، والمستند، ومن أدخله. وفي أسفله الرصيد الحالي. يحصل عليه تلقائيًا كل من يرى «تغيرات المخزون»."]},
+    en: {"news": ["(Development copy) A new report: Item card. Pick an item to see every movement since its first entry (or from a date you choose) to today: date, type, party, in, out, the balance after it, the document and who entered it, with the current balance under it. Whoever sees Stock changes gets it too."]}
+  },
+  {
     v: '0.9.275', date: '2026-11-20',
     ar: {"news": ["التقارير: لم تعد كلمة «null» تظهر تحت التقرير الذي ليس له سطر ملاحظات. وأُصلح الخطأ نفسه في سجل أسعار المادة في «أوامر الشراء»."]},
     en: {"news": ["Reports: the word «null» no longer shows under a report with no notes line. The same slip was fixed in an item's price history in Purchase orders."]}

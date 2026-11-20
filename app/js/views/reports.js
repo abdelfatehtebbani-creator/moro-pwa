@@ -7,6 +7,7 @@ import { MovStore } from '../movstore.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtNum, fmtDate, trackFilled, dialog } from '../ui.js';
 import { REPORTS, reportText } from '../reports.js';
+import { combo } from '../components.js';
 import { localize } from '../reports-ar.js';
 import { reportToXlsx } from '../xlsx.js';
 import * as analysis from './analysis.js';
@@ -105,6 +106,21 @@ function renderTables(root) {
     };
     const seg = (keys, cur, set, label) => h('div.tabs.rep-seg', keys.map((m) => h('button', { type: 'button', class: cur === m ? 'on' : '', onclick: () => { set(m); drawOpts(); } }, t(label + m))));
     const toggle = (checked, text, on) => { const cb = h('input', { type: 'checkbox', checked }); cb.addEventListener('change', () => on(cb.checked, cb)); return h('label.rep-tog', cb, text); };
+    if (o.includes('item1')) {
+      // one item, typed or picked
+      const one = combo({ id: 'rp-item1', options: itemOpts(), placeholder: t('lookup_hint'), onPick: (v) => { p.item = v; } });
+      if (p.item) one.set(p.item);
+      line.push(h('label.rep-inl.rep-item1', t('item'), one.el));
+    }
+    if (o.includes('since')) {
+      // from: empty = since the item's first entry
+      const from = trackFilled(h('input.input.rep-date#rp-lfrom', { type: 'date', value: p.lfrom || '' }));
+      const to = trackFilled(h('input.input.rep-date#rp-lto', { type: 'date', value: p.to }));
+      from.addEventListener('change', () => { p.lfrom = from.value; });
+      to.addEventListener('change', () => { p.to = to.value; });
+      line.push(h('label.rep-inl', t('from'), from), h('button.link', { type: 'button', onclick: () => { from.value = p.lfrom = ''; } }, t('rep_since_first')),
+        h('label.rep-inl', t('to'), to));
+    }
     if (o.includes('dates')) {
       const from = trackFilled(h('input.input.rep-date#rp-from', { type: 'date', value: p.from }));
       const to = trackFilled(h('input.input.rep-date#rp-to', { type: 'date', value: p.to }));
@@ -195,6 +211,8 @@ function renderTables(root) {
     const rep = reports.find((r) => r.id === selected);
     const p = opt(selected);
     if ((rep.opts.includes('items') || rep.opts.includes('zoneItems')) && !p.items.size) { status.textContent = t('choose_items'); status.className = 'form-status warn'; return; }
+    if (rep.opts.includes('item1') && !p.item) { status.textContent = t('choose_item_one'); status.className = 'form-status warn'; return; }
+    if (rep.opts.includes('since') && (!p.to || (p.lfrom && p.lfrom > p.to))) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
     if (rep.opts.includes('stores') && !p.stores.size) { status.textContent = t('choose_stores'); status.className = 'form-status warn'; return; }
     if (rep.opts.includes('sections') && !p.sections.size) { status.textContent = t('choose_departments'); status.className = 'form-status warn'; return; }
     if (rep.opts.includes('dates') && (!p.from || !p.to || p.from > p.to)) { status.textContent = t('dates_invalid'); status.className = 'form-status err'; return; }
