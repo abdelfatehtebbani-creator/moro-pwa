@@ -4,13 +4,13 @@
 export const CHANGELOG = [
   {
     v: '0.9.278', date: '2026-11-20',
-    ar: {"news": ["(نسخة التطوير) «المواد والموردون»: قائمة جديدة بجانب البحث «كل المواد العامة». تختار مادة عامة، مثل «بهارات الكرمة»، فتظهر المواد المصنفة تحتها فقط، وبجانب كل مادة عامة عدد موادها. والخيار «بلا مادة عامة» يعرض المواد الخام التي لم تُصنَّف بعد."]},
-    en: {"news": ["(Development copy) Materials and suppliers: a new list next to the search, All generic materials. Pick one (like Karma spices) to see only the materials classed under it, with their number next to each; No generic material shows the raw materials not classed yet."]}
+    ar: {"news": ["«المواد والموردون»: قائمة جديدة بجانب البحث «كل المواد العامة». تختار مادة عامة، مثل «بهارات الكرمة»، فتظهر المواد المصنفة تحتها فقط، وبجانب كل مادة عامة عدد موادها. والخيار «بلا مادة عامة» يعرض المواد الخام التي لم تُصنَّف بعد."]},
+    en: {"news": ["Materials and suppliers: a new list next to the search, All generic materials. Pick one (like Karma spices) to see only the materials classed under it, with their number next to each; No generic material shows the raw materials not classed yet."]}
   },
   {
     v: '0.9.277', date: '2026-11-20',
-    ar: {"news": ["(نسخة التطوير) الهاتف: لم تعد الصفحات تتحرك يمينًا ويسارًا. الشريط العلوي صار بعرض الشاشة: الإصدار واللغة وتسجيل الخروج في «المزيد»، وحالة الاتصال تظهر بنقطتها وزر التحديث. الجداول العريضة تُسحب داخل إطارها فقط، والصفحة ثابتة."]},
-    en: {"news": ["(Development copy) Phone: the pages no longer move sideways. The top bar fits the screen: the version, the language and sign out are in More, and the connection shows its dot and refresh button. Wide tables scroll inside their frame only; the page stays still."]}
+    ar: {"news": ["الهاتف: لم تعد الصفحات تتحرك يمينًا ويسارًا. الشريط العلوي صار بعرض الشاشة: الإصدار واللغة وتسجيل الخروج في «المزيد»، وحالة الاتصال تظهر بنقطتها وزر التحديث. الجداول العريضة تُسحب داخل إطارها فقط، والصفحة ثابتة."]},
+    en: {"news": ["Phone: the pages no longer move sideways. The top bar fits the screen: the version, the language and sign out are in More, and the connection shows its dot and refresh button. Wide tables scroll inside their frame only; the page stays still."]}
   },
   {
     v: '0.9.276', date: '2026-11-20',
