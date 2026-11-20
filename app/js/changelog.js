@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.275', date: '2026-11-20',
+    ar: {"news": ["(نسخة التطوير) التقارير: لم تعد كلمة «null» تظهر تحت التقرير الذي ليس له سطر ملاحظات. وأُصلح الخطأ نفسه في سجل أسعار المادة في «أوامر الشراء»."]},
+    en: {"news": ["(Development copy) Reports: the word «null» no longer shows under a report with no notes line. The same slip was fixed in an item's price history in Purchase orders."]}
+  },
+  {
     v: '0.9.274', date: '2026-11-19',
     ar: {"news": ["«المواد والموردون»: زر جديد «رفع مواد خام (Excel)». يرفع ملفًا فيه أعمدة: الاسم، والوحدة، والمخزن، والمادة العامة، وما تحتويه الوحدة منها. يعرض النظام المواد أولًا، الجديد منها والموجود من قبل وما فيه خطأ، ثم يحفظ الجديد فقط، وينشئ المادة العامة إن لم تكن موجودة."]},
     en: {"news": ["Materials and suppliers: a new button Upload raw materials (Excel). The sheet has the name, unit, store, generic material and how much of it one unit holds. The materials are shown first (new, already there, with an error), then only the new ones are saved, and the generic material is made if it is not there yet."]}
