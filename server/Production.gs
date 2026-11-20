@@ -10,7 +10,7 @@ var Production = {
   /** Ingredients needed for qty of product, with what is available. */
   preview: function (product, qty) {
     var k = Util.key(product);
-    var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k && r.cost_only !== true; });
+    var lines = Repo.all('Recipes').filter(function (r) { return Util.key(r.product) === k && r.cost_only !== true && r.off !== true; });
     Util.require(lines.length, 'recipe_missing', product);
     var have = function (id) { var bal = Repo.find('Balances', 'item_id', id); return bal ? Number(bal.qty) || 0 : 0; };
     var moves = null;
@@ -60,7 +60,7 @@ var Production = {
     Util.require(Util.isDate(p.date || ''), 'date_invalid');
     // a final product without a recipe (a department's product): its stock goes up, no ingredient is taken
     var k = Util.key(p.product);
-    var recipe = Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only !== true; });
+    var recipe = Repo.all('Recipes').some(function (r) { return Util.key(r.product) === k && r.cost_only !== true && r.off !== true; });
     // taking the ingredients from the stores is switched on by the admin (off until the recipes are complete)
     var hasRecipe = recipe && Production.takesStock();
     if (!hasRecipe) {

@@ -14,13 +14,14 @@ let lastNeed = {};
 export function render(root) {
   // products with a recipe, and the final products without one (a department's product: no ingredient is taken)
   // a recipe that only prices the product: produced like a product without one (nothing taken from the stores)
-  const withRecipe = new Set(Data.recipes.filter((r) => r.cost_only !== true).map((r) => norm(r.product)));
+  const live = (r) => r.cost_only !== true && r.off !== true;
+  const withRecipe = new Set(Data.recipes.filter(live).map((r) => norm(r.product)));
   const finals = Data.activeItems().filter((i) => Data.storeOf(i) === 'FINAL' && !withRecipe.has(norm(i.name)));
   // a department head: only what their departments make
   const head = (Data.user || {}).role === 'section_head' || ((Data.user || {}).role === 'branch_manager' && ((Data.user || {}).depts || []).length > 0);
   const myDepts = new Set((Data.user || {}).depts || []);
   const mine = (name) => !head || Data.activeItems().some((i) => norm(i.name) === norm(name) && myDepts.has(String(i.dept || '')));
-  const base = [...new Map(Data.recipes.filter((r) => r.cost_only !== true).map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
+  const base = [...new Map(Data.recipes.filter(live).map((r) => [norm(r.product), r.product])).values()].sort().filter(mine).map((p) => ({ value: p, label: p }))
     .concat(finals.filter((i) => mine(i.name)).map((i) => ({ value: i.name, label: Data.nameOf(i), alt: i.name, hint: t('no_recipe') })));
   // the products the shop orders wait for come first, with the quantity still to make
   let need = lastNeed;
@@ -65,13 +66,96 @@ export function render(root) {
   const body = h('tbody');
   const summary = h('p.form-status', '');
   const btn = h('button.btn.save-btn#p-post', { type: 'button', onclick: post }, t('confirm_production'));
+  // ---------- the recipe calculator (on request): one number changed, the others follow
+  const calcBtn = h('button.btn.secondary#p-calc', { type: 'button', hidden: true, onclick: () => (calcBox.isConnected ? calcBox.remove() : openCalc()) }, '🧮 ' + t('calc_title'));
+  let calcBox = h('div');
+  let calcFor = '';
+  function openCalc() {
+    calcFor = norm(product.value);
+    const rec = Data.recipes.filter((r) => norm(r.product) === calcFor);
+    const costOnly = rec.some((r) => r.cost_only === true);
+    const fin = Data.activeItems().find((i) => norm(i.name) === calcFor);
+    const pUnit = fin ? fin.unit : (unit.value || 'KG');
+    let size = Number(qty.value) > 0 ? Number(qty.value) : 1;      // how much product is calculated
+    // per: the ingredient for one unit of the product (the recipe); the shown amount is per × size
+    const rows = rec.map((r) => ({ item_id: r.item_id, per: Number(r.qty_per_unit) || 0, off: r.off === true }));
+    let together = true;                                            // a change moves the others (else: only that one)
+    const r6 = (n) => Math.round(n * 1e6) / 1e6;
+    const sizeIn = h('input.input.num#calc-size', { type: 'number', step: 'any', min: 0, value: r6(size) });
+    const tbody = h('tbody');
+    const note = h('p.form-status', '');
+    const inputs = [];
+    const refresh = (except) => {
+      if (except !== sizeIn) sizeIn.value = r6(size);
+      inputs.forEach((x, i) => { if (x !== except) x.value = r6(rows[i].per * size); });
+    };
+    const draw = () => {
+      inputs.length = 0;
+      tbody.replaceChildren(...rows.map((r, i) => {
+        const part = Data.recipePart(r.item_id);
+        const q = h('input.input.num', { type: 'number', step: 'any', min: 0, value: r6(r.per * size), disabled: r.off });
+        q.addEventListener('input', () => {
+          const v = Number(q.value);
+          if (!(v >= 0)) return;
+          if (together && r.per > 0 && v > 0) { size = v / r.per; refresh(q); }
+          else { r.per = size > 0 ? v / size : 0; }
+        });
+        inputs.push(q);
+        const off = h('input', { type: 'checkbox', checked: !r.off });
+        off.addEventListener('change', () => { r.off = !off.checked; draw(); });
+        return h('tr', { class: r.off ? 'rc-off' : '' }, h('td.wrap', part.family ? h('b', '◆ ', h('bdi', part.name)) : h('bdi', part.name)),
+          h('td', q), h('td', part.unit || ''), h('td', h('label.check', off, ' ', t('calc_on'))));
+      }));
+    };
+    sizeIn.addEventListener('input', () => { const v = Number(sizeIn.value); if (v > 0) { size = v; refresh(sizeIn); } });
+    const tog = h('input#calc-together', { type: 'checkbox', checked: true });
+    tog.addEventListener('change', () => { together = tog.checked; });
+    // a new ingredient: a generic material or a food item, with its amount for the size shown
+    const add = combo({ id: 'calc-add', placeholder: t('calc_add_ph'), options: () => [...Data.families.values()].filter((f) => f.active === true)
+      .sort((a, b) => Data.nameOf(a).localeCompare(Data.nameOf(b))).map((f) => ({ value: f.family_id, label: '◆ ' + Data.nameOf(f), alt: f.name, hint: f.unit }))
+      .concat(Data.activeItems().filter((i) => i.category === 'Food').map((i) => ({ value: i.item_id, label: Data.nameOf(i), alt: i.name, hint: i.unit }))) });
+    const addQty = h('input.input.num#calc-add-qty', { type: 'number', step: 'any', min: 0, placeholder: t('qty') });
+    const addLine = () => {
+      if (!add.value) return flash(add.input);
+      if (!(Number(addQty.value) > 0)) return flash(addQty);
+      if (rows.some((r) => r.item_id === add.value)) { toast(t('calc_already'), 'err'); return; }
+      rows.push({ item_id: add.value, per: Number(addQty.value) / size, off: false });
+      add.clear(); addQty.value = ''; draw();
+    };
+    addQty.addEventListener('keydown', (e) => { if (e.key === 'Enter') addLine(); });
+    const use = h('button.btn', { type: 'button', onclick: () => { qty.value = r6(size); qty.dispatchEvent(new Event('input')); qty.dispatchEvent(new Event('change')); toast(t('calc_used'), 'ok'); } }, t('calc_use'));
+    const save = Data.can('recipes.save') ? h('button.btn.secondary', { type: 'button', onclick: async () => {
+      const lines = rows.filter((r) => r.per > 0).map((r) => ({ item_id: r.item_id, qty_per_unit: r6(r.per), off: r.off }));
+      if (!lines.some((l) => !l.off)) { note.textContent = t('calc_need_one'); note.className = 'form-status warn'; return; }
+      save.disabled = true;
+      try {
+        await call('recipes.save', { product: rec.length ? rec[0].product : product.value, lines, cost_only: costOnly, from_calc: true });
+        await Data.refresh();
+        note.textContent = t('calc_saved'); note.className = 'form-status ok';
+        preview();
+      } catch (e) { note.textContent = errText(e); note.className = 'form-status err'; }
+      save.disabled = false;
+    } }, t('calc_save')) : '';
+    draw();
+    calcBox = h('div.calc-box',
+      h('div.calc-head', h('b', '🧮 ' + t('calc_title')), h('button.link', { type: 'button', onclick: () => calcBox.remove() }, '✕')),
+      h('div.calc-size', h('bdi', product.value), sizeIn, h('span', pUnit)),
+      h('label.check', tog, ' ', t('calc_together')),
+      h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('qty')), h('th', t('unit')), h('th', ''))), tbody)),
+      h('div.calc-add', add.el, addQty, h('button.btn.secondary', { type: 'button', onclick: addLine }, '+ ' + t('calc_add'))),
+      h('small.muted', t(Data.can('recipes.save') ? 'calc_help' : 'calc_help_view')), note,
+      h('div.form-actions', use, save));
+    calcBtn.after(calcBox);
+  }
   const needNote = h('small.muted', Object.keys(lastNeed).length ? t('prod_need_note', { n: Object.keys(lastNeed).length }) : '');
   let lines = [];
 
   const noRecipe = () => product.value && !withRecipe.has(norm(product.value)) && finals.some((i) => i.name === product.value);
   function preview() {
+    calcBtn.hidden = !product.value || !Data.recipes.some((r) => norm(r.product) === norm(product.value));
+    if (calcBox.isConnected && calcFor !== norm(product.value)) calcBox.remove();
     const q = Number(qty.value);
-    const recipe = Data.recipes.filter((r) => r.cost_only !== true && norm(r.product) === norm(product.value));
+    const recipe = Data.recipes.filter((r) => live(r) && norm(r.product) === norm(product.value));
     lines = recipe.map((r) => {
       // a generic material (a family): what all its brands hold, in its unit (the brand is taken when saving)
       const fam = Data.isFamily(r.item_id);
@@ -111,7 +195,7 @@ export function render(root) {
     needNote,
     h('div.form-grid', field(t('product'), product, { wide: true }), field(t('qty'), qty), field(t('unit'), unit), field(t('date'), date)),
     h('div.table-wrap', h('table', h('thead', h('tr', h('th', t('item')), h('th', t('needed')), h('th', t('available')), h('th', t('unit')), h('th', ''))), body)),
-    summary, h('div.form-actions', btn)));
+    summary, h('div.form-actions', btn, calcBtn)));
   preview();
   product.input.focus();
   loadNeed();

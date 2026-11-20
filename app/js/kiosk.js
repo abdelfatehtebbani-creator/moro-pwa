@@ -259,7 +259,7 @@ async function production() {
   frame(k('production'), h('p.k-empty', k('loading')), '', { back: menu });
   try { await dataReady; } catch (e) { frame(k('production'), h('p.k-empty', errText(e)), '', { back: menu }); return; }
   // the products of the person's departments (a department head), else every product; the ones the shops wait for first
-  const withRecipe = new Set(Data.recipes.filter((r) => r.cost_only !== true).map((r) => norm(r.product)));
+  const withRecipe = new Set(Data.recipes.filter((r) => r.cost_only !== true && r.off !== true).map((r) => norm(r.product)));
   const head = (me.depts || []).length > 0 && me.role !== 'production';
   const mine = (it) => !head || (me.depts || []).includes(String(it.dept || ''));
   const items = Data.activeItems().filter((i) => (Data.storeOf(i) === 'FINAL' || withRecipe.has(norm(i.name))) && mine(i));

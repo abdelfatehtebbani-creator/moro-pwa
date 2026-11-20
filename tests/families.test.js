@@ -166,3 +166,22 @@ test('the recipes sheet: products found by name, ingredients by generic material
   const rec = g.rows('Recipes').filter((r) => r.product === 'BASBOUSA').map((r) => [r.item_id, r.qty_per_unit]).sort();
   assert.deepEqual(rec, [['F001', 0.2], ['I0003', 0.3]]);
 });
+
+test('a recipe line turned off: kept in the recipe, left out of production, cost and preview; the audit keeps before and after', () => {
+  const { g, admin, bal } = env();
+  g.api('settings.recipeStock', { on: true }, admin);
+  assert.equal(g.api('recipes.save', { product: 'BASBOUSA', from_calc: true,
+    lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }, { item_id: 'I0001', qty_per_unit: 0.05, off: true }] }, admin).ok, true);
+  assert.deepEqual(g.rows('Recipes').map((r) => [r.item_id, r.off]), [['I0002', false], ['I0001', true]]);
+  assert.deepEqual(g.api('production.preview', { product: 'BASBOUSA', qty: 5 }, admin).data.map((l) => l.item_id), ['I0002']);
+  assert.deepEqual(g.api('recipes.cost', { product: 'BASBOUSA' }, admin).data.lines.map((l) => l.item_id), ['I0002']);
+  assert.equal(g.api('production.post', { product: 'BASBOUSA', qty: 5, unit: 'KG', date: TODAY, client_id: 'off1' }, admin).ok, true);
+  assert.equal(bal('I0002'), 0.5);
+  assert.equal(bal('I0001'), 2, 'the line turned off is not taken');
+  const a = g.rows('Audit').filter((x) => x.action === 'recipe_calc_save').pop();
+  assert.ok(a && /I0001 0.05 off/.test(String(a.after)), JSON.stringify(a));
+  // turned on again: taken
+  g.api('recipes.save', { product: 'BASBOUSA', lines: [{ item_id: 'I0002', qty_per_unit: 0.1 }, { item_id: 'I0001', qty_per_unit: 0.05 }] }, admin);
+  g.api('production.post', { product: 'BASBOUSA', qty: 4, unit: 'KG', date: TODAY, client_id: 'off2' }, admin);
+  assert.equal(bal('I0001'), 1.8);
+});

@@ -56,7 +56,7 @@ var Exec = {
       (prices[m.item_id] = prices[m.item_id] || []).push({ k: k, date: String(m.date), unit: unit, party: m.party_id });
     });
     var recipes = {};
-    Repo.all('Recipes').forEach(function (r) { var k = Util.key(r.product); (recipes[k] = recipes[k] || []).push(r); });
+    Repo.all('Recipes').forEach(function (r) { if (r.off === true) return; var k = Util.key(r.product); (recipes[k] = recipes[k] || []).push(r); });
     var famCost = {}, ohRate = Overhead.rate(), ohOwn = Overhead.products();
     var costOf = function (id) {
       var it = items[id];
