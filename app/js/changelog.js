@@ -4,8 +4,8 @@
 export const CHANGELOG = [
   {
     v: '0.9.280', date: '2026-11-21',
-    ar: {"news": ["(نسخة التطوير) «طلبات الأقسام ← طلب صرف جديد»: القسم يُعرف تلقائيًا من المستخدم. من له قسم واحد يظهر قسمه ثابتًا ولا يستطيع تغييره، ومن له عدة أقسام يختار من أقسامه فقط، ويرفض الخادم الطلب لغيرها. المدير يطلب لأي قسم."]},
-    en: {"news": ["(Development copy) Department requests, new request: the department comes from the user. With one department it is shown fixed and cannot be changed; with several, only theirs are listed, and the server refuses others. The admin asks for any department."]}
+    ar: {"news": ["«طلبات الأقسام ← طلب صرف جديد»: القسم يُعرف تلقائيًا من المستخدم. من له قسم واحد يظهر قسمه ثابتًا ولا يستطيع تغييره، ومن له عدة أقسام يختار من أقسامه فقط، ويرفض الخادم الطلب لغيرها. المدير يطلب لأي قسم."]},
+    en: {"news": ["Department requests, new request: the department comes from the user. With one department it is shown fixed and cannot be changed; with several, only theirs are listed, and the server refuses others. The admin asks for any department."]}
   },
   {
     v: '0.9.279', date: '2026-11-20',
