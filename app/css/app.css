@@ -1126,3 +1126,4 @@ tr.fl-open td { background: #fff8f7; }
 @media (max-width: 560px) { .calc-add { grid-template-columns: minmax(0, 1fr) 90px; } .calc-add .btn { grid-column: 1 / -1; } }
 tr.rc-off td { color: var(--muted); text-decoration: line-through; }
 tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: none; }
+.req-fixed { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #f4f6f8; font-weight: 700; }

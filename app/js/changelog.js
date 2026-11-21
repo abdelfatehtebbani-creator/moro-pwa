@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.280', date: '2026-11-21',
+    ar: {"news": ["(نسخة التطوير) «طلبات الأقسام ← طلب صرف جديد»: القسم يُعرف تلقائيًا من المستخدم. من له قسم واحد يظهر قسمه ثابتًا ولا يستطيع تغييره، ومن له عدة أقسام يختار من أقسامه فقط، ويرفض الخادم الطلب لغيرها. المدير يطلب لأي قسم."]},
+    en: {"news": ["(Development copy) Department requests, new request: the department comes from the user. With one department it is shown fixed and cannot be changed; with several, only theirs are listed, and the server refuses others. The admin asks for any department."]}
+  },
+  {
     v: '0.9.279', date: '2026-11-20',
     ar: {"news": ["«الإنتاج»: زر جديد «🧮 حاسبة الوصفة» يظهر بعد اختيار منتج له وصفة. تغيّر أي رقم، كمية المنتج أو أي مكوّن، فتتغير الأرقام الأخرى بالنسبة نفسها. وإن أزلت علامة «تغيير المقادير مع بعضها» تغيّر نسبة مكوّن واحد فقط. يمكنك إضافة مادة أو مادة عامة، وتعطيل مكوّن. «استخدم في هذا الإنتاج» يضع الكمية. «حفظ في الوصفة» يغيّر الوصفة، ويظهر لمن يملك صلاحية تعديل الوصفات فقط، ويُسجَّل قبل التغيير وبعده.", "الوصفات: المكوّن المعطّل يبقى محفوظًا في الوصفة، ويظهر في «المواد ← الوصفات» بعلامة «معطّلة» مع زر «تفعيل»، لكنه لا يُحسب في التكلفة ولا يُخصم في الإنتاج."]},
     en: {"news": ["Production: a new button Recipe calculator, once a product with a recipe is picked. Change any number (the product or an ingredient) and the others follow at the same ratio; untick Change the amounts together to change one ingredient's share. Add an item or a generic material, turn an ingredient off. Use for this production puts the quantity; Save to the recipe changes the recipe (only for who edits recipes), with before and after kept in the audit.", "Recipes: an ingredient turned off stays in the recipe (shown Off in Materials, Recipes, with Turn on) but is not counted in the cost nor taken when producing."]}

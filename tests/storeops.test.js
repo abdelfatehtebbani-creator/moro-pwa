@@ -108,3 +108,17 @@ test('raw materials from a sheet: checked, then made with their generic material
   // again: nothing new
   assert.deepEqual(g.api('items.importRaw', { rows }, tok.admin).data.plan.map((l) => l.action), ['exists', 'exists', 'exists', 'bad']);
 });
+
+test('department requests: a user with departments asks for them only; the admin for any', () => {
+  const { g, tok } = env();
+  g.seed('Parties', [{ party_id: 'P003', name: 'Bakery', kind: 'section', active: true }]);
+  g.api('users.save', { username: 'helper', display_name: 'helper', role: 'storekeeper', pin: '5678' }, tok.admin);
+  const hid = g.rows('Users').find((u) => u.username === 'helper').user_id;
+  g.api('users.save', { user_id: hid, depts: ['P002'] }, tok.admin);
+  const helper = g.api('auth.login', { username: 'helper', pin: '5678' }).data.token;
+  const today = g.api('data.bootstrap', {}, tok.admin).data.today;
+  const ask = (party, who) => g.api('requests.create', { date: today, party_id: party, lines: [{ item_id: 'I0001', qty: 1 }] }, who);
+  assert.equal(ask('P003', helper).error.code, 'req_not_your_dept');
+  assert.equal(ask('P002', helper).ok, true);
+  assert.equal(ask('P003', tok.admin).ok, true, 'the admin asks for any department');
+});

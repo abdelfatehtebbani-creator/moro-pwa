@@ -8,9 +8,9 @@ var Requests = {
     Util.require(Util.isDate(p.date || ''), 'date_invalid');
     var party = Repo.find('Parties', 'party_id', p.party_id);
     Util.require(party && party.kind === 'section', 'party_not_section');
-    // a section head asks for their own departments only
-    var mine = session.depts || [];
-    Util.require(session.role !== 'section_head' || !mine.length || mine.indexOf(party.party_id) >= 0, 'forbidden');
+    // whoever has departments asks for them only (the admin for any)
+    var mine = session.role === 'admin' ? [] : (session.depts || []);
+    Util.require(!mine.length || mine.indexOf(party.party_id) >= 0, 'req_not_your_dept', party.name);
     var lines = (p.lines || []).filter(function (l) { return Util.num(l.qty) > 0; });
     Util.require(lines.length, 'nothing_to_save');
     // a request asks for no more than the stock of each item
