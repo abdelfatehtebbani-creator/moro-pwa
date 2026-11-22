@@ -11,6 +11,9 @@ function env() {
     { party_id: 'P009', name: 'Cleaning', kind: 'section', active: true }]);
   g.api('auth.setup', { username: 'admin', display_name: 'Admin', pin: '1234' });
   const admin = g.api('auth.login', { username: 'admin', pin: '1234' }).data.token;
+  // the HR screen sends nothing until the admin switches it on
+  assert.equal(g.api('hr.create', { kind: 'doc', type: 'work_cert' }, admin).error.code, 'hr_preview');
+  g.api('settings.hrLive', { on: true }, admin);
   g.api('workers.import', { rows: [{ name: 'Sami', qid: '28401112222', job: 'Helper' }], apply: true }, admin);
   const worker = g.api('workers.register', { qid: '28401112222', dept: 'P001', username: 'sami', pin: '1111' }).data.token;
   // the head of the baklava section, and the head of cleaning
@@ -145,4 +148,13 @@ test('hr: the requester sees the answer once (green banner); HR changes the kind
   assert.equal(g.api('pen.setCategories', { list: ['Hygiene', ' Hygiene', 'Late'] }, worker).error.code, 'forbidden');
   assert.deepEqual(g.api('pen.setCategories', { list: ['Hygiene', ' Hygiene', 'تأخير|Late ', ''] }, admin).data.list, ['Hygiene', 'تأخير | Late']);
   assert.equal(g.api('pen.setCategories', { list: [] }, admin).error.code, 'pen_categories_empty');
+});
+
+test('hr: switched off again, nothing is sent (shown as being built)', () => {
+  const { g, admin, worker } = env();
+  g.api('settings.hrLive', { on: false }, admin);
+  assert.equal(g.api('hr.create', { kind: 'leave', type: 'annual', date_from: '2026-12-01', date_to: '2026-12-02' }, worker).error.code, 'hr_preview');
+  assert.equal(g.api('settings.hrLive', { on: true }, worker).error.code, 'forbidden');
+  assert.equal(g.api('hr.mine', {}, worker).ok, true, 'the lists still open');
+  assert.equal(g.rows('HrRequests').length, 0);
 });

@@ -49,6 +49,7 @@ export async function render(root) {
         h('small.muted', t('idle_minutes_help'))),
       Data.can('settings.recipeStock') ? recipeStockBox() : null,
       Data.can('settings.issueDirect') ? issueDirectBox() : null,
+      Data.can('settings.hrLive') ? hrLiveBox() : null,
       Data.can('kiosk.off') ? kioskBox() : null,
       Data.can('vehicles.save') ? vehiclesBox() : null,
       Data.can('workers.import') ? workersBox() : null,
@@ -174,6 +175,16 @@ export async function render(root) {
       h('b', t('kiosk_depts')), h('div.check-grid', depts.map((x) => h('label.check', x.box, ' ', h('bdi', x.d.name)))),
       h('b', t('kiosk_tiles')), h('div.check-grid', tiles.map((x) => h('label.check', x.box, ' ', t('kiosk_tile_' + x.k)))),
       h('div.form-actions', h('button.btn', { type: 'button', onclick: save }, t('save'))));
+  }
+
+  // the HR screen: shown to everyone as "being built" until switched on (then requests and penalties are sent)
+  function hrLiveBox() {
+    const on = h('input#set-hr-live', { type: 'checkbox', checked: (Data.settings || {}).hr_live === '1' });
+    on.addEventListener('change', async () => {
+      try { await call('settings.hrLive', { on: on.checked }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); }
+      catch (e) { on.checked = !on.checked; toast(errText(e), 'err'); }
+    });
+    return h('details.kiosk-box', h('summary', h('b', t('hr_live_title'))), h('label.check', on, ' ', h('b', t('hr_live_on'))), h('small.muted', t('hr_live_help')));
   }
 
   // «Issue goods»: to whom the storekeeper issues directly; the others ask through their requests

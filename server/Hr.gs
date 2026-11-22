@@ -17,6 +17,20 @@ var HR_PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom'];
 var HR_ANSWERS = function (r) { return r.kind === 'doc' && HR_PAPERS.indexOf(r.type) >= 0 ? ['ready', 'rejected'] : r.type === 'other' ? ['approved', 'ready', 'rejected'] : ['approved', 'rejected']; };
 
 var Hr = {
+  /** The screen is shown to everyone, but until the admin switches it on (Settings.hr_live) nothing is sent. */
+  live: function () { return Settings.get('hr_live', '') === '1'; },
+  requireLive: function () { Util.require(Hr.live(), 'hr_preview'); },
+
+  /** The admin switches HR on (the requests and penalties are sent) or back to "being built". p: {on} */
+  setLive: function (session, p) {
+    return withLock(function () {
+      var before = Settings.get('hr_live', '');
+      Settings.set('hr_live', p.on === true ? '1' : '');
+      Audit.log(session.user_id, 'settings_hr_live', 'Settings', 'hr_live', before, p.on === true ? '1' : '');
+      return { on: p.on === true, version: Version.bump() };
+    });
+  },
+
   /** The heads of a department: users who see their departments' requests (hr.dept_view). */
   headsOf: function (deptId) {
     if (!deptId) return [];
@@ -51,6 +65,7 @@ var Hr = {
 
   /** The user asks. p: {kind, type, date_from, date_to, reason, addressed_to, client_id} */
   create: function (session, p) {
+    Hr.requireLive();
     var kind = String(p.kind || '');
     Util.require(HR_KINDS.indexOf(kind) >= 0, 'hr_kind');
     var type = String(p.type || '');
@@ -124,6 +139,7 @@ var Hr = {
 
   /** The head has seen a request of their department (information only). p: {request_id} */
   seen: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrRequests', 'request_id', String(p.request_id || ''));
       Util.require(r && (session.depts || []).indexOf(r.dept_id) >= 0, 'not_found');
@@ -134,6 +150,7 @@ var Hr = {
 
   /** HR answers. p: {request_id, status, note} */
   decide: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrRequests', 'request_id', String(p.request_id || ''));
       Util.require(r, 'not_found');
@@ -159,6 +176,7 @@ var Hr = {
 
   /** The requester withdraws a request not answered yet. p: {request_id} */
   cancel: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrRequests', 'request_id', String(p.request_id || ''));
       Util.require(r && r.user_id === session.user_id, 'not_found');
@@ -171,6 +189,7 @@ var Hr = {
 
   /** The requester has opened "My requests": the answers there are seen (the green banner goes). */
   seenMine: function (session) {
+    if (!Hr.live()) return { seen: 0 };
     return withLock(function () {
       var now = Util.nowIso(), n = 0;
       Repo.all('HrRequests').forEach(function (r) {

@@ -2,13 +2,24 @@
 // follows their requests; the head of a department sees their department's requests (information only);
 // HR answers them. Penalties: HR records one, or a head / food safety / production proposes it and HR issues it;
 // the employee may object within 24 hours. The server checks who may do what; the screen only shows it.
-import { call } from '../api.js';
+import { call as send } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText, getLang } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled } from '../ui.js';
 import { field, newId, combo } from '../components.js';
 import { shrink, photoButton } from '../photos.js';
 
+// until the admin switches HR on, the screen is shown and nothing is sent (every button says so)
+const live = () => (Data.settings || {}).hr_live === '1';
+const READS = ['hr.mine', 'hr.list', 'pen.mine', 'pen.list', 'pen.people'];
+function call(action, p) {
+  if (live() || READS.includes(action)) return send(action, p);
+  if (action === 'pen.seen' || action === 'hr.seenMine') return Promise.resolve({});
+  toast(t('hr_preview_toast'), 'warn');
+  // nothing is sent: the buttons come back at once
+  setTimeout(() => document.querySelectorAll('.card button[disabled]').forEach((b) => { b.disabled = false; }), 50);
+  return new Promise(() => {});
+}
 const LEAVE_TYPES = ['annual', 'emergency', 'sick', 'unpaid'];
 const DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
 // a certificate or a copy is made ready; a leave or a request (resignation, transfer…) is approved
@@ -42,7 +53,7 @@ export function render(root) {
   const cnt = (k) => { const c = (Data.boot || {}).hr_counts || {}; return Number({ mine: c.my_req_new, penmine: c.my_pen_new, hr: c.hr_pending, pen: c.pen_todo }[k]) || 0; };
   const bar = h('div.tabs.hr-tabs', tabs.map(([k, label]) => h('button', { type: 'button', class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); } }, t(label),
     cnt(k) ? h('span.tab-badge', String(cnt(k))) : '')));
-  root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('hr')), bar), box));
+  root.replaceChildren(h('div.card', h('div.card-head', h('h2', t('hr')), bar), live() ? '' : h('div.hr-preview', '🚧 ' + t('hr_preview_note')), box));
 
   function draw() {
     bar.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', tabs[i][0] === tab));

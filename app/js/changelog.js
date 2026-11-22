@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.288', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة «الموارد البشرية» تظهر للجميع «قيد البناء»: يمكن الاطلاع عليها، وكل زر يعرض رسالة ولا يُرسل شيئًا، حتى يشغّلها المدير من «المستخدمون ← الإعدادات العامة ← شاشة الموارد البشرية» عند جاهزية الربط مع MyFiles."]},
+    en: {"news": ["(Development copy) The Human resources screen shows to everyone as \"being built\": it can be looked at, every button shows a message and sends nothing, until the admin switches it on in Users, General settings, Human resources screen (when the link with MyFiles is ready)."]}
+  },
+  {
     v: '0.9.287', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) أنواع المخالفات بلغتين: كل نوع «بالعربية | بالإنجليزية»، ويرى كل مستخدم النوع بلغة تطبيقه. وفي «الطلبات ← تم الرد» عند الموارد البشرية: الطلبات مطوية ومجمّعة حسب نوعها مع عددها."]},
     en: {"news": ["(Development copy) Kinds of penalty in two languages: each kind \"Arabic | English\", each user sees it in their app's language. In HR's Requests, Answered: folded and grouped by type, with their number."]}

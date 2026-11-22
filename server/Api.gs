@@ -135,6 +135,7 @@ var ROUTES = {
   'pen.seen':         function (s) { return Penalties.seenAll(s); },
   'pen.setCategories': function (s, p) { return Penalties.setCategories(s, p); },
   'hr.seenMine':      function (s) { return Hr.seenMine(s); },
+  'settings.hrLive':  function (s, p) { return Hr.setLive(s, p); },
   'returns.create':   function (s, p) { return Returns.create(s, p); },
   'returns.decide':   function (s, p) { return Returns.decide(s, p); },
   'returns.receive':  function (s, p) { return Returns.receive(s, p); },

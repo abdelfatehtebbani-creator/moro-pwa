@@ -1162,3 +1162,5 @@ tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: n
 .hr-card .form-actions .pen-catsel { flex: 1 1 160px; }
 .hr-group { margin-bottom: 6px; }
 .hr-group[open] > summary { margin-bottom: 8px; }
+.hr-preview { background: #fff7e0; color: #8a5a00; border: 1px dashed #e0b84c; border-radius: var(--radius); padding: 8px 12px; font-weight: 600; margin-bottom: 8px; }
+.toast.warn { background: #b7791f; }

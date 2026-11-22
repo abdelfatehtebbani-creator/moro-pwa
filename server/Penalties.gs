@@ -23,6 +23,7 @@ var Penalties = {
 
   /** HR: the list of kinds. p: {list: [text]} */
   setCategories: function (session, p) {
+    Hr.requireLive();
     // "Arabic | English" (one name alone serves both languages)
     var list = (p.list || []).map(function (x) { return Util.clean(x).split('|').map(function (y) { return Util.clean(y); }).filter(String).slice(0, 2).join(' | ').slice(0, 160); }).filter(String)
       .filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 40);
@@ -37,6 +38,7 @@ var Penalties = {
 
   /** The employee opened "My penalties": the issued ones are seen (no button; the red banner goes). */
   seenAll: function (session) {
+    if (!Hr.live()) return { seen: 0 };
     return withLock(function () {
       var now = Util.nowIso(), n = 0;
       Repo.all('HrPenalties').forEach(function (r) {
@@ -87,6 +89,7 @@ var Penalties = {
 
   /** HR records (issued at once) or a proposer proposes. p: {user_id, date, reason, amount, client_id} */
   add: function (session, p) {
+    Hr.requireLive();
     var hr = Perm.has(session, 'hr.decide');
     Util.require(hr || Perm.has(session, 'hr.penalty_propose'), 'forbidden');
     var target = Repo.find('Users', 'user_id', String(p.user_id || ''));
@@ -155,6 +158,7 @@ var Penalties = {
 
   /** HR on a proposal: issue it or dismiss it. p: {penalty_id, issue: true|false, note, amount} */
   review: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrPenalties', 'penalty_id', String(p.penalty_id || ''));
       Util.require(r, 'not_found');
@@ -183,6 +187,7 @@ var Penalties = {
 
   /** The employee: "seen" (accepts), or an objection with its reason – within 24 hours of the issue. p: {penalty_id, object, text} */
   respond: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrPenalties', 'penalty_id', String(p.penalty_id || ''));
       Util.require(r && r.user_id === session.user_id, 'not_found');
@@ -205,6 +210,7 @@ var Penalties = {
 
   /** HR on an objection (keep or cancel), or cancels a penalty that stands. p: {penalty_id, keep: true|false, note} */
   decide: function (session, p) {
+    Hr.requireLive();
     return withLock(function () {
       var r = Repo.find('HrPenalties', 'penalty_id', String(p.penalty_id || ''));
       Util.require(r, 'not_found');
