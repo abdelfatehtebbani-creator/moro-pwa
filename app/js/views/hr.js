@@ -1,17 +1,19 @@
 // The employees' requests to HR: every user asks for themselves (a leave, a document or certificate) and
 // follows their requests; the head of a department sees their department's requests (information only);
-// HR answers them. The server checks who may do what; the screen only shows it.
+// HR answers them. Penalties: HR records one, or a head / food safety / production proposes it and HR issues it;
+// the employee may object within 24 hours. The server checks who may do what; the screen only shows it.
 import { call } from '../api.js';
 import { Data } from '../data.js';
 import { t, errText } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled } from '../ui.js';
-import { field, newId } from '../components.js';
+import { field, newId, combo } from '../components.js';
 
 const LEAVE_TYPES = ['annual', 'emergency', 'sick', 'unpaid'];
 const DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
 // a certificate or a copy is made ready; a leave or a request (resignation, transfer…) is approved
 const PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom'];
 const ST_CLASS = { pending: 'soon', approved: 'in', ready: 'in', rejected: 'out', cancelled: 'low' };
+const PEN_CLASS = { proposed: 'soon', issued: 'out', objected: 'soon', kept: 'out', cancelled: 'low', dismissed: 'low' };
 let tab = 'new';
 let hrTab = 'pending';
 
@@ -21,7 +23,9 @@ const stamp = (iso) => (iso ? fmtDate(String(iso).slice(0, 10)) + ' ' + String(i
 export function render(root) {
   const decide = Data.can('hr.decide');
   const head = !decide && Data.can('hr.seen') && ((Data.user || {}).depts || []).length > 0;
-  const tabs = [['new', 'hr_tab_new'], ['mine', 'hr_tab_mine']].concat(head ? [['dept', 'hr_tab_dept']] : []).concat(decide ? [['hr', 'hr_tab_hr']] : []);
+  const penAll = decide || Data.can('hr.penalty_propose') || head;
+  const tabs = [['new', 'hr_tab_new'], ['mine', 'hr_tab_mine'], ['penmine', 'pen_tab_mine']].concat(head ? [['dept', 'hr_tab_dept']] : []).concat(decide ? [['hr', 'hr_tab_hr']] : [])
+    .concat(penAll ? [['pen', 'pen_tab']] : []);
   if (!tabs.some(([k]) => k === tab)) tab = 'new';
   const box = h('div');
   const bar = h('div.tabs', tabs.map(([k, label]) => h('button', { type: 'button', class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); } }, t(label))));
@@ -32,6 +36,8 @@ export function render(root) {
     if (tab === 'new') newForm();
     else if (tab === 'mine') listOf('hr.mine', {}, 'mine');
     else if (tab === 'dept') listOf('hr.list', {}, 'dept');
+    else if (tab === 'penmine') penList('pen.mine', 'mine');
+    else if (tab === 'pen') penBoard();
     else hrList();
   }
 
@@ -137,6 +143,87 @@ export function render(root) {
       onclick: () => { hrTab = k; hrList(); } }, t(l))));
     box.replaceChildren(sub, inner);
     listOf('hr.list', { status: hrTab }, 'hr', inner);
+  }
+
+  // ---------- penalties
+  function penCard(r, mode) {
+    const lines = [h('div.hr-head', h('b', '⚠ ' + t('pen_one') + ' · ', h('bdi.num', String(r.amount) + ' QR')), h('span', { class: 'pill ' + (PEN_CLASS[r.status] || '') }, t('pen_st_' + r.status)), h('small.muted.num', r.penalty_id))];
+    if (mode !== 'mine') lines.push(h('div', h('b', h('bdi', r.user_name)), r.dept_name ? h('span.muted', ' · ', h('bdi', r.dept_name)) : ''));
+    lines.push(h('div', t('pen_date') + ': ' + fmtDate(r.date)), h('div', h('bdi', r.reason)));
+    if (r.proposed_name && r.status === 'proposed') lines.push(h('small.muted', t('pen_proposed_by', { n: r.proposed_name, t: stamp(r.proposed_at) })));
+    if (r.issued_at) lines.push(h('small.muted', t('pen_issued_at', { t: stamp(r.issued_at) }), r.issued_name ? ' · ' + r.issued_name : ''));
+    if (r.objection) lines.push(h('div.hr-answer', h('b', t('pen_objection') + ': '), h('bdi', r.objection), h('small.muted', ' · ' + stamp(r.objected_at))));
+    if (r.decision_note) lines.push(h('div.hr-answer', h('b', t('hr_answer') + ': '), h('bdi', r.decision_note), h('small.muted', ' · ', h('bdi', r.decided_name || ''), ' ', stamp(r.decided_at))));
+    if (r.ack_at) lines.push(h('small.muted', t('pen_acked', { t: stamp(r.ack_at) })));
+    const act = h('div.form-actions');
+    const go = async (e, action, p) => {
+      e.target.disabled = true;
+      try { await call(action, p); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); draw(); } catch (er) { toast(errText(er), 'err'); e.target.disabled = false; }
+    };
+    if (mode === 'mine' && r.can_object) {
+      const text = trackFilled(h('input.input', { placeholder: t('pen_objection_ph') }));
+      lines.push(h('small.pen-deadline', t('pen_object_until', { t: stamp(new Date(new Date(r.object_until).getTime() + 3 * 36e5).toISOString()) })));
+      act.append(h('button.btn.secondary', { type: 'button', onclick: (e) => go(e, 'pen.respond', { penalty_id: r.penalty_id, object: false }) }, '✓ ' + t('pen_ack')),
+        text, h('button.btn.danger', { type: 'button', onclick: (e) => { if (!text.value.trim()) { flash(text); return; } go(e, 'pen.respond', { penalty_id: r.penalty_id, object: true, text: text.value }); } }, t('pen_object')));
+    }
+    if (mode === 'hr') {
+      const note = trackFilled(h('input.input', { placeholder: t('pen_note_ph') }));
+      if (r.status === 'proposed') {
+        const amt = h('input.input.num.pen-amt', { type: 'number', min: 0, step: 'any', value: r.amount, title: t('hr_amount') });
+        act.append(amt, h('button.btn', { type: 'button', onclick: (e) => go(e, 'pen.review', { penalty_id: r.penalty_id, issue: true, amount: amt.value }) }, t('pen_issue')),
+          note, h('button.btn.secondary', { type: 'button', onclick: (e) => { if (!note.value.trim()) { flash(note); return; } go(e, 'pen.review', { penalty_id: r.penalty_id, issue: false, note: note.value }); } }, t('pen_dismiss')));
+      } else if (r.status === 'objected') {
+        act.append(note, h('button.btn', { type: 'button', onclick: (e) => { if (!note.value.trim()) { flash(note); return; } go(e, 'pen.decide', { penalty_id: r.penalty_id, keep: true, note: note.value }); } }, t('pen_keep')),
+          h('button.btn.secondary', { type: 'button', onclick: (e) => { if (!note.value.trim()) { flash(note); return; } go(e, 'pen.decide', { penalty_id: r.penalty_id, keep: false, note: note.value }); } }, t('pen_cancel')));
+      } else if (r.status === 'issued' || r.status === 'kept') {
+        act.append(note, h('button.btn.secondary', { type: 'button', onclick: (e) => { if (!note.value.trim()) { flash(note); return; } go(e, 'pen.decide', { penalty_id: r.penalty_id, keep: false, note: note.value }); } }, t('pen_cancel')));
+      }
+    }
+    return h('div.hr-card', { class: 'pen-' + r.status }, lines, act.children.length ? act : '');
+  }
+
+  async function penList(action, mode, holder) {
+    const out = holder || box;
+    out.replaceChildren(h('p.empty', '…'));
+    try {
+      let rows = await call(action, {});
+      // what needs an answer first
+      const rank = { proposed: 0, objected: 0, issued: 1, kept: 2, cancelled: 3, dismissed: 3 };
+      rows = rows.map((r, i) => [r, i]).sort((a, b) => ((rank[a[0].status] ?? 4) - (rank[b[0].status] ?? 4)) || (a[1] - b[1])).map((x) => x[0]);
+      out.replaceChildren(...(rows.length ? rows.map((r) => penCard(r, mode)) : [h('p.empty', t(mode === 'mine' ? 'pen_none_mine' : 'pen_none'))]));
+      if (mode === 'mine') out.prepend(h('small.muted', t('pen_mine_help')));
+    } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }
+  }
+
+  // HR / a proposer: record (HR) or propose a penalty, and the list
+  function penBoard() {
+    const inner = h('div');
+    const canAdd = decide || Data.can('hr.penalty_propose');
+    const parts = [];
+    if (canAdd) {
+      let people = [];
+      const who = combo({ id: 'pen-who', placeholder: t('pen_who_ph'), options: () => people.map((p) => ({ value: p.user_id, label: p.name, hint: p.dept })) });
+      call('pen.people', {}).then((l) => { people = l; }).catch(() => {});
+      const date = trackFilled(h('input.input#pen-date', { type: 'date', value: Data.todayIso(), max: Data.todayIso() }));
+      const amount = trackFilled(h('input.input.num#pen-amount', { type: 'number', min: 0, step: 'any', inputmode: 'decimal' }));
+      const reason = trackFilled(h('textarea.input#pen-reason', { rows: 2, maxlength: 500, placeholder: t('pen_reason_ph') }));
+      const status = h('p.form-status', '');
+      const add = h('button.btn.save-btn#pen-add', { type: 'button', onclick: async () => {
+        if (!who.value) { flash(who.input); return; }
+        if (!(Number(amount.value) > 0)) { flash(amount); return; }
+        if (!reason.value.trim()) { flash(reason); return; }
+        add.disabled = true;
+        try {
+          await call('pen.add', { user_id: who.value, date: date.value, amount: amount.value, reason: reason.value, client_id: newId() });
+          toast(t(decide ? 'pen_issued' : 'pen_proposed'), 'ok'); draw();
+        } catch (e) { status.textContent = errText(e); status.className = 'form-status err'; add.disabled = false; }
+      } }, t(decide ? 'pen_add_hr' : 'pen_add_propose'));
+      parts.push(h('details.fam-box.pen-form', h('summary', h('b', '+ ' + t(decide ? 'pen_add_hr' : 'pen_add_propose'))),
+        h('div.form-grid', field(t('pen_employee'), who, { wide: true }), field(t('pen_date'), date), field(t('hr_amount'), amount)),
+        field(t('pen_reason'), reason, { wide: true }), h('small.muted', t(decide ? 'pen_hr_help' : 'pen_propose_help')), status, h('div.form-actions', add)));
+    }
+    box.replaceChildren(...parts, inner);
+    penList('pen.list', decide ? 'hr' : 'view', inner);
   }
 
   draw();

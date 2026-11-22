@@ -125,6 +125,13 @@ var ROUTES = {
   'hr.seen':          function (s, p) { return Hr.seen(s, p); },
   'hr.decide':        function (s, p) { return Hr.decide(s, p); },
   'hr.cancel':        function (s, p) { return Hr.cancel(s, p); },
+  'pen.people':       function (s) { return Penalties.people(s); },
+  'pen.add':          function (s, p) { return Penalties.add(s, p); },
+  'pen.mine':         function (s) { return Penalties.mine(s); },
+  'pen.list':         function (s) { return Penalties.list(s); },
+  'pen.review':       function (s, p) { return Penalties.review(s, p); },
+  'pen.respond':      function (s, p) { return Penalties.respond(s, p); },
+  'pen.decide':       function (s, p) { return Penalties.decide(s, p); },
   'returns.create':   function (s, p) { return Returns.create(s, p); },
   'returns.decide':   function (s, p) { return Returns.decide(s, p); },
   'returns.receive':  function (s, p) { return Returns.receive(s, p); },
@@ -243,7 +250,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '71';
+var SCHEMA_VERSION = '72';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -277,6 +284,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 68) Perm.addLeafWith('report.changes', 'report.ledger');
     // the employees' requests: an admin with their own ticks answers them; the department heads see their departments'
     if (Number(Settings.get('schema_version', '0')) < 70) { Perm.addRoleLeaves({ admin: ['hr.decide'] }); Hr.addHeadLeaf(); }
+    // penalties: food safety, production and the department heads with their own ticks may propose one
+    if (Number(Settings.get('schema_version', '0')) < 72) { Perm.addRoleLeaves({ food_safety: ['hr.penalty_propose'], production: ['hr.penalty_propose'] }); Hr.addHeadLeaf('hr.penalty_propose'); }
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);

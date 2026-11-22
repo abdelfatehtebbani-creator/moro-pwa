@@ -433,7 +433,7 @@ var Masters = {
       })(),
       reserved: Shop.reservedMap(),
       requests_todo: Perm.has(session, 'nav.requests') ? Requests.todo(session) : 0,
-      hr_todo: Hr.todo(session),
+      hr_todo: Hr.todo(session) + Penalties.todo(session),
       orders_pending: (Perm.has(session, 'orders.approve') ? Orders.pending() : 0) + (Perm.has(session, 'orders.route') ? Orders.pendingSpecial() : 0),
       follow_late: Perm.has(session, 'orders.follow') ? Orders.followLate() : 0,
       // customers' orders from their phones: the shop that makes them sees the screen, with the new ones on the menu

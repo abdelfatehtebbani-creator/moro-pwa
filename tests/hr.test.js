@@ -86,3 +86,42 @@ test('hr: an advance asked with its amount, answered approved or refused; the co
   assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'ready' }, admin).error.code, 'hr_status');
   assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'approved' }, admin).data.request.status, 'approved');
 });
+
+test('penalties: HR records one directly; a head proposes, HR issues; the employee objects within 24 hours; HR keeps or cancels', () => {
+  const { g, admin, worker, head, head2 } = env();
+  const sami = g.rows('Users').find((u) => u.username === 'sami').user_id;
+  const today = g.api('data.bootstrap', {}, admin).data.today;
+  // a head proposes only for their department; the worker cannot propose
+  assert.equal(g.api('pen.add', { user_id: sami, date: today, reason: 'late', amount: 50 }, head2).error.code, 'pen_employee');
+  assert.equal(g.api('pen.add', { user_id: sami, date: today, reason: 'late', amount: 50 }, worker).error.code, 'forbidden');
+  assert.equal(g.api('pen.add', { user_id: sami, date: today, reason: '', amount: 50 }, head).error.code, 'pen_reason_required');
+  const p = g.api('pen.add', { user_id: sami, date: today, reason: 'no hair net', amount: 50 }, head).data.penalty;
+  assert.equal(p.status, 'proposed');
+  assert.equal(g.api('pen.mine', {}, worker).data.length, 0, 'a proposal is not shown to the employee');
+  assert.equal(g.api('data.bootstrap', {}, admin).data.hr_todo, 1);
+  // HR issues it (with a corrected amount); the employee sees it and may object
+  const i = g.api('pen.review', { penalty_id: p.penalty_id, issue: true, amount: 40 }, admin).data.penalty;
+  assert.deepEqual([i.status, i.amount], ['issued', 40]);
+  const mine = g.api('pen.mine', {}, worker).data;
+  assert.equal(mine[0].can_object, true);
+  assert.equal(mine[0].proposed_by, undefined, 'who proposed it is shown to HR only');
+  assert.equal(g.api('data.bootstrap', {}, worker).data.hr_todo, 1);
+  assert.equal(g.api('pen.respond', { penalty_id: p.penalty_id, object: true, text: '' }, worker).error.code, 'pen_objection_required');
+  assert.equal(g.api('pen.respond', { penalty_id: p.penalty_id, object: true, text: 'I had it on' }, worker).data.penalty.status, 'objected');
+  assert.equal(g.api('pen.decide', { penalty_id: p.penalty_id, keep: true }, admin).error.code, 'hr_note_required');
+  assert.equal(g.api('pen.decide', { penalty_id: p.penalty_id, keep: true, note: 'seen on camera' }, admin).data.penalty.status, 'kept');
+  // HR records one directly: issued at once; after 24 hours no objection
+  const d = g.api('pen.add', { user_id: sami, date: today, reason: 'phone at work', amount: 20 }, admin).data.penalty;
+  assert.equal(d.status, 'issued');
+  const row = g.spreadsheet.sheets.HrPenalties;
+  const c = row.data[0].indexOf('issued_at');
+  row.data.find((r) => r[0] === d.penalty_id)[c] = '2020-01-01T08:00:00';
+  g.reset && g.reset();
+  assert.equal(g.api('pen.respond', { penalty_id: d.penalty_id, object: true, text: 'no' }, worker).error.code, 'pen_object_late');
+  // a dismissed proposal needs a reason; HR may cancel a penalty that stands
+  const q = g.api('pen.add', { user_id: sami, date: today, reason: 'x', amount: 10 }, head).data.penalty;
+  assert.equal(g.api('pen.review', { penalty_id: q.penalty_id, issue: false }, admin).error.code, 'hr_note_required');
+  assert.equal(g.api('pen.review', { penalty_id: q.penalty_id, issue: false, note: 'not proven' }, admin).data.penalty.status, 'dismissed');
+  assert.equal(g.api('pen.decide', { penalty_id: d.penalty_id, keep: false, note: 'first time' }, admin).data.penalty.status, 'cancelled');
+  assert.equal(g.api('pen.list', {}, head2).data.length, 0);
+});

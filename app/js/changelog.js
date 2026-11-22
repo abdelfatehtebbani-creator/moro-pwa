@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.285', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: المخالفات المالية. تسجّل الموارد البشرية المخالفة مباشرة (الموظف، التاريخ، المبلغ، ما حدث)، أو يقترحها مدير القسم أو مسؤول سلامة الغذاء أو مسؤول الإنتاج فتصدرها الموارد البشرية أو لا تعتمدها.", "(نسخة التطوير) الموظف يُبلَّغ ويرى مخالفته في «مخالفاتي»، فيضغط «اطّلعت» أو يعترض مع السبب خلال 24 ساعة. الموارد البشرية ترفض الاعتراض أو تلغي المخالفة مع ملاحظة. لا يُحذف شيء، ويُخصم المبلغ مع الراتب لدى الموارد البشرية."]},
+    en: {"news": ["(Development copy) Human resources: financial penalties. HR records one directly (employee, date, amount, what happened), or a department head, the food safety officer or the production manager proposes it and HR issues it or not.", "(Development copy) The employee is told and sees it in My penalties: Seen, or an objection with its reason within 24 hours; HR refuses the objection or cancels the penalty, with a note. Nothing is deleted; HR takes the amount from the salary."]}
+  },
+  {
     v: '0.9.284', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) شاشة «طلبات الموظفين» صار اسمها «الموارد البشرية» (في قسم «شؤون الموظفين»). و«طلباتي» مرتبة: التي في الانتظار أولًا، ثم الموافق عليها والجاهزة، ثم المرفوضة والملغاة."]},
     en: {"news": ["(Development copy) The Employee requests screen is now called Human resources (in Staff affairs). My requests are in order: waiting first, then approved / ready, then refused and cancelled."]}

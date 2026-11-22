@@ -181,14 +181,15 @@ var Hr = {
   },
 
   /** Schema 70: the department heads with their own ticks (not the workers' accounts) see their departments' requests. */
-  addHeadLeaf: function () {
+  addHeadLeaf: function (leaf) {
+    leaf = leaf || 'hr.dept_view';
     var workers = {};
     Repo.all('Workers').forEach(function (w) { if (w.user_id) workers[w.user_id] = true; });
     Repo.setColumn('Users', 'caps', function (u) {
       var own = String(u.caps || '').trim();
       if (!own || u.role !== 'section_head' || workers[u.user_id]) return own;
       var caps = Perm.capsOf(u);
-      return caps.indexOf('hr.dept_view') >= 0 ? own : caps.concat(['hr.dept_view']).join(',');
+      return caps.indexOf(leaf) >= 0 ? own : caps.concat([leaf]).join(',');
     });
   }
 };
