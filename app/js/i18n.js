@@ -1,7 +1,7 @@
 // Arabic / English texts. Server error codes are translated here (err.<code>).
 const DICT = {
   ar: {
-    app_name: 'MORO', app_sub: 'Materials Operations & Records Organizer', company: 'حلويات العكر',
+    app_name: 'MORO', app_sub: 'Management of Operations, Resources & Orders', company: 'حلويات العكر',
     lang_other: 'English',
     // auth
     login_title: 'تسجيل الدخول', username: 'اسم المستخدم', pin: 'الرمز (PIN)', login: 'دخول',
@@ -1988,7 +1988,7 @@ const DICT = {
     'job.requests.create': 'طلب قسم', 'job.requests.fulfil': 'صرف طلب', 'job.requests.cancel': 'إلغاء طلب', 'job.production.post': 'إنتاج',
   },
   en: {
-    app_name: 'MORO', app_sub: 'Materials Operations & Records Organizer', company: 'ALAKER SWEETS',
+    app_name: 'MORO', app_sub: 'Management of Operations, Resources & Orders', company: 'ALAKER SWEETS',
     lang_other: 'العربية',
     login_title: 'Sign in', username: 'Username', pin: 'PIN', login: 'Sign in',
     setup_title: 'First run: admin account', setup_hint: 'There are no users yet. Create your account as system admin.',
