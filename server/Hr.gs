@@ -2,16 +2,17 @@
  * Hr.gs – the employees' requests to HR: a leave, or a document / certificate.
  *
  *   Every signed-in user asks for themselves. The head of their department is told and sees the request
- *   (for information only: they press "seen", they decide nothing); HR (hr.decide) approves or refuses
+ *   (for information only: they decide nothing); HR (hr.decide) approves or refuses
  *   a leave, and prepares or refuses a document. The requester is told of the answer.
  *   The table keeps stable text ids and the worker's ID card number (QID), the key shared with MyFiles,
  *   so the requests move as they are to the shared database later.
  */
 var HR_KINDS = ['leave', 'doc'];
 var HR_LEAVE_TYPES = ['annual', 'emergency', 'sick', 'unpaid'];
-var HR_DOC_TYPES = ['work_cert', 'salary_cert', 'to_whom', 'doc_copy', 'other'];
-// the answers: a leave is approved or refused; a document is ready or refused
-var HR_ANSWERS = { leave: ['approved', 'rejected'], doc: ['ready', 'rejected'] };
+var HR_DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
+// the answers: a certificate or a copy is ready or refused; a leave or a request (resignation, transfer…) approved or refused
+var HR_PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy'];
+var HR_ANSWERS = function (r) { return r.kind === 'doc' && HR_PAPERS.indexOf(r.type) >= 0 ? ['ready', 'rejected'] : r.type === 'other' ? ['approved', 'ready', 'rejected'] : ['approved', 'rejected']; };
 
 var Hr = {
   /** The heads of a department: users who see their departments' requests (hr.dept_view). */
@@ -82,7 +83,9 @@ var Hr = {
       // HR and the head of the department are told
       var me = Repo.find('Users', 'user_id', session.user_id);
       var who = me ? me.display_name : session.user_id;
-      var what = { ar: kind === 'leave' ? 'طلب إجازة ' + row.days + ' يوم' : 'طلب وثيقة', en: kind === 'leave' ? 'Leave request, ' + row.days + ' days' : 'Document request' };
+      var AR = { work_cert: 'شهادة عمل', salary_cert: 'شهادة راتب', experience_cert: 'شهادة خبرة', to_whom: 'تعريف', doc_copy: 'نسخة وثيقة', resignation: 'استقالة',
+        sponsor_transfer: 'نقل كفالة', secondment: 'إعارة', promotion: 'ترقية', other: 'طلب' };
+      var what = { ar: kind === 'leave' ? 'طلب إجازة ' + row.days + ' يوم' : 'طلب جديد: ' + (AR[type] || type), en: kind === 'leave' ? 'Leave request, ' + row.days + ' days' : 'New request: ' + type.replace(/_/g, ' ') };
       var to = Push.usersWith('hr.decide').concat(Hr.headsOf(row.dept_id)).filter(function (u, i, a) { return u !== session.user_id && a.indexOf(u) === i; });
       if (to.length) Push.toUsers(to, { ar: { title: what.ar, body: who }, en: { title: what.en, body: who }, page: 'hr', badge: 1 });
       return { request: Hr.view(row), version: Version.bump() };
@@ -128,7 +131,7 @@ var Hr = {
       Util.require(r, 'not_found');
       Util.require(r.status === 'pending', 'hr_already_decided');
       var st = String(p.status || '');
-      Util.require((HR_ANSWERS[r.kind] || []).indexOf(st) >= 0, 'hr_status');
+      Util.require(HR_ANSWERS(r).indexOf(st) >= 0, 'hr_status');
       var note = Util.clean(p.note).slice(0, 500);
       if (st === 'rejected') Util.require(note, 'hr_note_required');
       var ch = { status: st, decided_at: Util.nowIso(), decided_by: session.user_id, decision_note: note };
@@ -153,14 +156,14 @@ var Hr = {
     });
   },
 
-  /** The number on the menu: HR – requests to answer; a head – their departments' requests not seen yet. */
+  /** The number on the menu: HR – requests to answer; a head – their departments' requests still waiting. */
   todo: function (session) {
     var all = Perm.has(session, 'hr.decide'), head = Perm.has(session, 'hr.seen'), depts = session.depts || [];
     if (!all && !(head && depts.length)) return 0;
     return Repo.all('HrRequests').filter(function (r) {
       if (r.status !== 'pending') return false;
       if (all) return true;
-      return depts.indexOf(r.dept_id) >= 0 && !r.head_seen_at;
+      return depts.indexOf(r.dept_id) >= 0;
     }).length;
   },
 

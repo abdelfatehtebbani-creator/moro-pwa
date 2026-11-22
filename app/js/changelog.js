@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.282', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «طلبات الموظفين»: مدير القسم يرى طلبات قسمه للاطلاع فقط دون زر «اطّلعت». و«وثيقة أو طلب إداري» صار فيه أيضًا: شهادة خبرة، طلب استقالة، طلب نقل كفالة، طلب إعارة، طلب ترقية. الشهادات والنسخ تُجهَّز («جاهزة للاستلام»)، والطلبات الإدارية يُوافَق عليها أو تُرفض."]},
+    en: {"news": ["(Development copy) Employee requests: the department head sees their department's requests for information only, with no Seen button. Document or other request now also has: experience certificate, resignation, sponsorship transfer, secondment, promotion. Certificates and copies are made ready; the other requests are approved or refused."]}
+  },
+  {
     v: '0.9.281', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) شاشة جديدة «طلبات الموظفين» لكل مستخدم: «طلب جديد» لطلب إجازة (سنوية، اضطرارية، مرضية، بدون راتب: من/إلى، وعدد الأيام يُحسب) أو وثيقة/شهادة (شهادة عمل، شهادة راتب، تعريف، نسخة من وثيقة، أخرى)، و«طلباتي» لمتابعة الحالة وإلغاء طلب لم يُرَد عليه.", "(نسخة التطوير) مدير القسم يُبلَّغ ويرى طلبات موظفي قسمه في «طلبات قسمي» للاطلاع فقط («اطّلعت»). والموارد البشرية (صلاحية «الرد على الطلبات») توافق أو ترفض الإجازة، وتجهّز الوثيقة أو ترفضها، مع ملاحظة، ويُبلَّغ الموظف بالرد."]},
     en: {"news": ["(Development copy) A new screen Employee requests for every user: New request for a leave (annual, emergency, sick, unpaid: from/to, the days counted) or a document/certificate (work, salary, to whom it may concern, copy of a document, other); My requests to follow them and cancel one not answered yet.", "(Development copy) The head of the department is told and sees their department's requests (My department, for information: Seen). HR (Answer the requests) approves or refuses a leave, prepares or refuses a document, with a note; the employee is told."]}

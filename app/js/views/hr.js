@@ -8,7 +8,9 @@ import { h, toast, flash, fmtDate, trackFilled } from '../ui.js';
 import { field, newId } from '../components.js';
 
 const LEAVE_TYPES = ['annual', 'emergency', 'sick', 'unpaid'];
-const DOC_TYPES = ['work_cert', 'salary_cert', 'to_whom', 'doc_copy', 'other'];
+const DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
+// a certificate or a copy is made ready; a leave or a request (resignation, transfer…) is approved
+const PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy'];
 const ST_CLASS = { pending: 'soon', approved: 'in', ready: 'in', rejected: 'out', cancelled: 'low' };
 let tab = 'new';
 let hrTab = 'pending';
@@ -86,8 +88,7 @@ export function render(root) {
     if (r.kind === 'leave') lines.push(h('div', t('hr_period', { a: fmtDate(r.date_from), b: fmtDate(r.date_to), n: r.days })));
     if (r.addressed_to) lines.push(h('div', t('hr_addressed') + ': ', h('bdi', r.addressed_to)));
     if (r.reason) lines.push(h('div.muted', h('bdi', r.reason)));
-    lines.push(h('small.muted', t('hr_asked_at', { t: stamp(r.created_at) }),
-      r.head_seen_at ? ' · ' + t('hr_seen_by', { n: r.seen_name, t: stamp(r.head_seen_at) }) : ''));
+    lines.push(h('small.muted', t('hr_asked_at', { t: stamp(r.created_at) })));
     if (r.status !== 'pending' && r.status !== 'cancelled') lines.push(h('div.hr-answer', h('b', t('hr_answer') + ': '), t('hr_st_' + r.status),
       r.decision_note ? h('span', ' – ', h('bdi', r.decision_note)) : '', h('small.muted', ' · ', h('bdi', r.decided_name || ''), ' ', stamp(r.decided_at))));
     const act = h('div.form-actions');
@@ -95,10 +96,6 @@ export function render(root) {
       e.target.disabled = true;
       try { await call('hr.cancel', { request_id: r.request_id }); toast(t('hr_cancelled'), 'ok'); draw(); } catch (er) { toast(errText(er), 'err'); e.target.disabled = false; }
     } }, t('hr_cancel')));
-    if (mode === 'dept' && !r.head_seen_at) act.append(h('button.btn.secondary', { type: 'button', onclick: async (e) => {
-      e.target.disabled = true;
-      try { await call('hr.seen', { request_id: r.request_id }); Data.refresh().catch(() => {}); draw(); } catch (er) { toast(errText(er), 'err'); e.target.disabled = false; }
-    } }, '👁 ' + t('hr_mark_seen')));
     if (mode === 'hr' && r.status === 'pending') {
       const note = trackFilled(h('input.input', { placeholder: t('hr_note_ph') }));
       const answer = (st) => async (e) => {
@@ -107,7 +104,9 @@ export function render(root) {
         try { await call('hr.decide', { request_id: r.request_id, status: st, note: note.value }); toast(t('saved'), 'ok'); Data.refresh().catch(() => {}); draw(); }
         catch (er) { toast(errText(er), 'err'); e.target.disabled = false; }
       };
-      act.append(note, h('button.btn', { type: 'button', onclick: answer(r.kind === 'leave' ? 'approved' : 'ready') }, t(r.kind === 'leave' ? 'hr_approve' : 'hr_ready')),
+      const paper = r.kind === 'doc' && PAPERS.includes(r.type);
+      act.append(note, h('button.btn', { type: 'button', onclick: answer(paper ? 'ready' : 'approved') }, t(paper ? 'hr_ready' : 'hr_approve')),
+        r.type === 'other' ? h('button.btn.secondary', { type: 'button', onclick: answer('ready') }, t('hr_ready')) : '',
         h('button.btn.danger', { type: 'button', onclick: answer('rejected') }, t('hr_reject')));
     }
     return h('div.hr-card', { class: 'hr-' + r.status }, lines, act.children.length ? act : '');

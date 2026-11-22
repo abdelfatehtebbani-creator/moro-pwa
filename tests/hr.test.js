@@ -23,7 +23,7 @@ function env() {
   return { g, admin, worker, head, head2 };
 }
 
-test('hr: a leave asked by a worker, seen by the head of their department only, approved by HR', () => {
+test('hr: a leave asked by a worker, seen by the head of their department only (information), approved by HR', () => {
   const { g, admin, worker, head, head2 } = env();
   assert.equal(g.api('hr.create', { kind: 'leave', type: 'annual', date_from: '2026-12-10', date_to: '2026-12-01' }, worker).error.code, 'hr_dates_order');
   assert.equal(g.api('hr.create', { kind: 'leave', type: 'holiday', date_from: '2026-12-01', date_to: '2026-12-10' }, worker).error.code, 'hr_type');
@@ -41,30 +41,38 @@ test('hr: a leave asked by a worker, seen by the head of their department only, 
   assert.equal(g.api('hr.list', {}, head2).data.length, 0);
   assert.equal(g.api('hr.decide', { request_id: id, status: 'approved' }, head).error.code, 'forbidden');
   assert.equal(g.api('hr.list', {}, worker).error.code, 'forbidden');
-  g.api('hr.seen', { request_id: id }, head);
-  assert.equal(todo(head), 0);
-  assert.equal(g.api('hr.seen', { request_id: id }, head2).error.code, 'not_found');
   // HR: a refusal needs a reason; a leave is approved (not "ready")
   assert.equal(g.api('hr.decide', { request_id: id, status: 'rejected' }, admin).error.code, 'hr_note_required');
   assert.equal(g.api('hr.decide', { request_id: id, status: 'ready' }, admin).error.code, 'hr_status');
   const d = g.api('hr.decide', { request_id: id, status: 'approved', note: 'ok' }, admin);
   assert.equal(d.data.request.status, 'approved');
-  assert.equal(d.data.request.seen_name, 'Head');
   assert.equal(g.api('hr.decide', { request_id: id, status: 'rejected', note: 'x' }, admin).error.code, 'hr_already_decided');
   assert.equal(g.api('hr.cancel', { request_id: id }, worker).error.code, 'hr_already_decided');
   assert.equal(g.api('hr.mine', {}, worker).data[0].status, 'approved');
-  assert.equal(todo(admin), 0);
+  assert.deepEqual([todo(admin), todo(head)], [0, 0]);
 });
 
 test('hr: a document request, prepared by HR; a request withdrawn before the answer', () => {
   const { g, admin, worker } = env();
   assert.equal(g.api('hr.create', { kind: 'doc', type: 'other' }, worker).error.code, 'hr_reason_required');
+  assert.equal(g.api('hr.create', { kind: 'doc', type: 'resignation' }, worker).ok, true);
+  g.api('hr.cancel', { request_id: g.api('hr.mine', {}, worker).data[0].request_id }, worker);
   const a = g.api('hr.create', { kind: 'doc', type: 'work_cert', addressed_to: 'Embassy' }, worker).data.request;
   assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'approved' }, admin).error.code, 'hr_status');
   assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'ready', note: 'At the office' }, admin).data.request.status, 'ready');
   const b = g.api('hr.create', { kind: 'doc', type: 'salary_cert' }, worker).data.request;
   assert.equal(g.api('hr.cancel', { request_id: b.request_id }, admin).error.code, 'not_found', 'only the requester withdraws');
   assert.equal(g.api('hr.cancel', { request_id: b.request_id }, worker).ok, true);
-  assert.deepEqual(g.api('hr.mine', {}, worker).data.map((r) => r.status), ['cancelled', 'ready']);
+  assert.deepEqual(g.api('hr.mine', {}, worker).data.map((r) => r.status), ['cancelled', 'ready', 'cancelled']);
   assert.deepEqual(g.api('hr.list', { status: 'pending' }, admin).data.length, 0);
+});
+
+test('hr: a resignation or a transfer is approved (not "ready"); a certificate is made ready', () => {
+  const { g, admin, worker } = env();
+  const r = g.api('hr.create', { kind: 'doc', type: 'sponsor_transfer', reason: 'new sponsor' }, worker).data.request;
+  assert.equal(g.api('hr.decide', { request_id: r.request_id, status: 'ready' }, admin).error.code, 'hr_status');
+  assert.equal(g.api('hr.decide', { request_id: r.request_id, status: 'approved' }, admin).data.request.status, 'approved');
+  const c = g.api('hr.create', { kind: 'doc', type: 'experience_cert' }, worker).data.request;
+  assert.equal(g.api('hr.decide', { request_id: c.request_id, status: 'approved' }, admin).error.code, 'hr_status');
+  assert.equal(g.api('hr.create', { kind: 'doc', type: 'promotion' }, worker).ok, true);
 });
