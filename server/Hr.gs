@@ -18,7 +18,8 @@ var HR_ANSWERS = function (r) { return r.kind === 'doc' && HR_PAPERS.indexOf(r.t
 
 var Hr = {
   /** The screen is shown to everyone, but until the admin switches it on (Settings.hr_live) nothing is sent. */
-  live: function () { return Settings.get('hr_live', '') === '1'; },
+  // the development copy (MORO DIV) always works, to test it (asked on 2026-11-22)
+  live: function () { return Auth.noPin() || Settings.get('hr_live', '') === '1'; },
   requireLive: function () { Util.require(Hr.live(), 'hr_preview'); },
 
   /** The admin switches HR on (the requests and penalties are sent) or back to "being built". p: {on} */

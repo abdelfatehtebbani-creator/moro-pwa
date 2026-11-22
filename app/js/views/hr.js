@@ -10,7 +10,7 @@ import { field, newId, combo } from '../components.js';
 import { shrink, photoButton } from '../photos.js';
 
 // until the admin switches HR on, the screen is shown and nothing is sent (every button says so)
-const live = () => (Data.settings || {}).hr_live === '1';
+const live = () => (Data.boot || {}).hr_live === true || (Data.settings || {}).hr_live === '1';
 const READS = ['hr.mine', 'hr.list', 'pen.mine', 'pen.list', 'pen.people'];
 function call(action, p) {
   if (live() || READS.includes(action)) return send(action, p);
