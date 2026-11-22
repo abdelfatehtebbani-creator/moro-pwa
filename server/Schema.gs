@@ -73,7 +73,7 @@ var SCHEMA = {
                  'pay_shop', 'paid_at', 'paid_by', 'paid_shop', 'paid_shift', 'push_token', 'push_lang', 'alt_hashes',
                  'handed_at', 'handed_by', 'cash_given_at', 'cash_received_at', 'cash_received_by', 'cash_shift', 'trays_back', 'deposit_back', 'tray_log', 'trays_kept_at'],
   HrRequests:   ['request_id', 'kind', 'type', 'user_id', 'emp_qid', 'dept_id', 'date_from', 'date_to', 'days', 'reason', 'addressed_to', 'status',
-                 'created_at', 'head_seen_at', 'head_seen_by', 'decided_at', 'decided_by', 'decision_note', 'client_id'],
+                 'created_at', 'head_seen_at', 'head_seen_by', 'decided_at', 'decided_by', 'decision_note', 'client_id', 'amount'],
   Workers:      ['qid_hash', 'name', 'job', 'kind', 'active', 'user_id', 'created_at', 'registered_at', 'qid', 'deleted_at', 'deleted_by'],
   TripStops:    ['trip_id', 'order_id', 'seq', 'loaded_at', 'loaded_by', 'delivered_at', 'delivered_by'],
   Invoices:     ['invoice_id', 'invoice_no', 'order_id', 'order_no', 'shop_party_id', 'date', 'total_final', 'total_store', 'total',

@@ -1,5 +1,7 @@
 /**
- * Hr.gs – the employees' requests to HR: a leave, or a document / certificate.
+ * Hr.gs – the employees' requests to HR: a leave, a document / certificate or an administrative request, an advance.
+ *   An advance is asked here (at most one month's salary – the salary is in MyFiles, HR checks it there);
+ *   paying it and taking it back are done in MyFiles (to be set later).
  *
  *   Every signed-in user asks for themselves. The head of their department is told and sees the request
  *   (for information only: they decide nothing); HR (hr.decide) approves or refuses
@@ -7,11 +9,11 @@
  *   The table keeps stable text ids and the worker's ID card number (QID), the key shared with MyFiles,
  *   so the requests move as they are to the shared database later.
  */
-var HR_KINDS = ['leave', 'doc'];
+var HR_KINDS = ['leave', 'doc', 'advance'];
 var HR_LEAVE_TYPES = ['annual', 'emergency', 'sick', 'unpaid'];
-var HR_DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
+var HR_DOC_TYPES = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'resignation', 'sponsor_transfer', 'secondment', 'promotion', 'other'];
 // the answers: a certificate or a copy is ready or refused; a leave or a request (resignation, transfer…) approved or refused
-var HR_PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom', 'doc_copy'];
+var HR_PAPERS = ['work_cert', 'salary_cert', 'experience_cert', 'to_whom'];
 var HR_ANSWERS = function (r) { return r.kind === 'doc' && HR_PAPERS.indexOf(r.type) >= 0 ? ['ready', 'rejected'] : r.type === 'other' ? ['approved', 'ready', 'rejected'] : ['approved', 'rejected']; };
 
 var Hr = {
@@ -27,6 +29,7 @@ var Hr = {
     var out = {};
     Object.keys(r).forEach(function (k) { out[k] = r[k]; });
     out.days = r.days === '' ? '' : Number(r.days);
+    out.amount = r.amount === '' || r.amount === undefined ? '' : Number(r.amount);
     if (names) {
       out.user_name = names[r.user_id] || r.user_id;
       out.decided_name = names[r.decided_by] || '';
@@ -51,8 +54,8 @@ var Hr = {
     var kind = String(p.kind || '');
     Util.require(HR_KINDS.indexOf(kind) >= 0, 'hr_kind');
     var type = String(p.type || '');
-    Util.require((kind === 'leave' ? HR_LEAVE_TYPES : HR_DOC_TYPES).indexOf(type) >= 0, 'hr_type');
-    var row = { kind: kind, type: type, date_from: '', date_to: '', days: '', reason: Util.clean(p.reason).slice(0, 500), addressed_to: '' };
+    Util.require((kind === 'leave' ? HR_LEAVE_TYPES : kind === 'advance' ? ['advance'] : HR_DOC_TYPES).indexOf(type) >= 0, 'hr_type');
+    var row = { kind: kind, type: type, date_from: '', date_to: '', days: '', reason: Util.clean(p.reason).slice(0, 500), addressed_to: '', amount: '' };
     if (kind === 'leave') {
       Util.require(Util.isDate(p.date_from || '') && Util.isDate(p.date_to || ''), 'date_invalid');
       Util.require(p.date_to >= p.date_from, 'hr_dates_order');
@@ -61,6 +64,10 @@ var Hr = {
       // calendar days, both ends counted (HR checks the balance in MyFiles)
       row.days = Math.round((new Date(p.date_to + 'T00:00:00Z') - new Date(p.date_from + 'T00:00:00Z')) / 864e5) + 1;
       Util.require(row.days <= 366, 'hr_dates_order');
+    } else if (kind === 'advance') {
+      var amt = Util.num(p.amount);
+      Util.require(amt !== null && amt > 0 && amt <= 1e6, 'amount_invalid');
+      row.amount = Util.round(amt);
     } else {
       row.addressed_to = Util.clean(p.addressed_to).slice(0, 200);
       if (type === 'other') Util.require(row.reason, 'hr_reason_required');
@@ -83,9 +90,10 @@ var Hr = {
       // HR and the head of the department are told
       var me = Repo.find('Users', 'user_id', session.user_id);
       var who = me ? me.display_name : session.user_id;
-      var AR = { work_cert: 'شهادة عمل', salary_cert: 'شهادة راتب', experience_cert: 'شهادة خبرة', to_whom: 'تعريف', doc_copy: 'نسخة وثيقة', resignation: 'استقالة',
+      var AR = { work_cert: 'شهادة عمل', salary_cert: 'شهادة راتب', experience_cert: 'شهادة خبرة', to_whom: 'تعريف', advance: 'سلفة', resignation: 'استقالة',
         sponsor_transfer: 'نقل كفالة', secondment: 'إعارة', promotion: 'ترقية', other: 'طلب' };
-      var what = { ar: kind === 'leave' ? 'طلب إجازة ' + row.days + ' يوم' : 'طلب جديد: ' + (AR[type] || type), en: kind === 'leave' ? 'Leave request, ' + row.days + ' days' : 'New request: ' + type.replace(/_/g, ' ') };
+      var what = { ar: kind === 'leave' ? 'طلب إجازة ' + row.days + ' يوم' : kind === 'advance' ? 'طلب سلفة ' + row.amount + ' ر.ق' : 'طلب جديد: ' + (AR[type] || type),
+        en: kind === 'leave' ? 'Leave request, ' + row.days + ' days' : kind === 'advance' ? 'Advance request, QR ' + row.amount : 'New request: ' + type.replace(/_/g, ' ') };
       var to = Push.usersWith('hr.decide').concat(Hr.headsOf(row.dept_id)).filter(function (u, i, a) { return u !== session.user_id && a.indexOf(u) === i; });
       if (to.length) Push.toUsers(to, { ar: { title: what.ar, body: who }, en: { title: what.en, body: who }, page: 'hr', badge: 1 });
       return { request: Hr.view(row), version: Version.bump() };
@@ -140,6 +148,11 @@ var Hr = {
       var word = { approved: ['تمت الموافقة على طلبك', 'Your request was approved'], rejected: ['رُفض طلبك', 'Your request was refused'],
         ready: ['وثيقتك جاهزة', 'Your document is ready'] }[st];
       Push.toUsers([r.user_id], { ar: { title: word[0], body: note || r.request_id }, en: { title: word[1], body: note || r.request_id }, page: 'hr', badge: 1 });
+      // the head of the department follows the answer (information only)
+      var who = (Repo.find('Users', 'user_id', r.user_id) || {}).display_name || '';
+      var heads = Hr.headsOf(r.dept_id).filter(function (u) { return u !== r.user_id && u !== session.user_id; });
+      var st2 = { approved: ['موافَق عليه', 'approved'], rejected: ['مرفوض', 'refused'], ready: ['جاهز', 'ready'] }[st];
+      if (heads.length) Push.toUsers(heads, { ar: { title: 'رد الموارد البشرية: ' + st2[0], body: who + ' · ' + r.request_id }, en: { title: 'HR answer: ' + st2[1], body: who + ' · ' + r.request_id }, page: 'hr' });
       return { request: Hr.view(Repo.find('HrRequests', 'request_id', r.request_id), Hr.names()), version: Version.bump() };
     });
   },

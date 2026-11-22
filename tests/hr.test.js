@@ -76,3 +76,13 @@ test('hr: a resignation or a transfer is approved (not "ready"); a certificate i
   assert.equal(g.api('hr.decide', { request_id: c.request_id, status: 'approved' }, admin).error.code, 'hr_status');
   assert.equal(g.api('hr.create', { kind: 'doc', type: 'promotion' }, worker).ok, true);
 });
+
+test('hr: an advance asked with its amount, answered approved or refused; the copy of a document is no more', () => {
+  const { g, admin, worker } = env();
+  assert.equal(g.api('hr.create', { kind: 'advance', type: 'advance' }, worker).error.code, 'amount_invalid');
+  assert.equal(g.api('hr.create', { kind: 'doc', type: 'doc_copy' }, worker).error.code, 'hr_type');
+  const a = g.api('hr.create', { kind: 'advance', type: 'advance', amount: '1500', reason: 'rent' }, worker).data.request;
+  assert.equal(a.amount, 1500);
+  assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'ready' }, admin).error.code, 'hr_status');
+  assert.equal(g.api('hr.decide', { request_id: a.request_id, status: 'approved' }, admin).data.request.status, 'approved');
+});
