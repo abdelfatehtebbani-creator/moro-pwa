@@ -458,12 +458,28 @@ function updateBadges() {
   const hrn = allowed('hr') ? Number(bb.hr_todo) || 0 : 0;
   document.querySelectorAll('a[data-route="hr"] .badge').forEach((b) => { b.hidden = !hrn; b.textContent = String(hrn); });
   Push.badge(n + r + o + bl + sp + pr + more + ol + fo + hrn);
+  hrBanner();
   // the same numbers for "waiting for you" on the admin's home screen
   const ot2 = (Data.boot || {}).order_todo || {};
   Counts.now = { lpo: n, requests: r, orderapprove: o, shoporders: sp, production: pr, orders: allowed('orders') ? Number(ot2.orders) || 0 : 0,
     trips: allowed('trips') ? Number(ot2.trips) || 0 : 0, invoices: allowed('invoices') ? Number(ot2.invoices) || 0 : 0, returns: allowed('returns') ? Number(ot2.returns) || 0 : 0, custorders: ol, fleet: fo, hr: hrn };
   window.dispatchEvent(new Event('moro:badges'));
 }
+
+/** Under the top bar: a new penalty (red) or a request accepted (green), until its tab is opened. */
+function hrBanner() {
+  const main = document.querySelector('.main');
+  if (!main) return;
+  const c = (Data.boot || {}).hr_counts || {};
+  let el = document.getElementById('hr-banner');
+  const pen = Number(c.my_pen_new) || 0, ok = Number(c.my_req_ok) || 0;
+  if (!pen && !ok) { if (el) el.remove(); return; }
+  const make = (cls, text, tabName) => h('button', { type: 'button', class: 'hr-banner ' + cls, onclick: () => hrView.openTab(tabName) }, text, h('b', ' ' + t('hr_banner_open')));
+  const parts = [pen ? make('red', '⚠ ' + t('hr_banner_pen', { n: pen }), 'penmine') : '', ok ? make('green', '✅ ' + t('hr_banner_ok', { n: ok }), 'mine') : ''];
+  const box = h('div#hr-banner', ...parts);
+  if (el) el.replaceWith(box); else { const top = main.querySelector('.topbar'); if (top) top.after(box); else main.prepend(box); }
+}
+window.addEventListener('moro:hrseen', () => hrBanner());
 
 /** "Turn on notifications" for the users of the LPO screen, until this device receives them. */
 function pushButton(tag) {

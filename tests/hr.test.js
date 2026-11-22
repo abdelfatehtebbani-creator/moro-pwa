@@ -100,18 +100,26 @@ test('penalties: HR records one directly; a head proposes, HR issues; the employ
   assert.equal(g.api('pen.mine', {}, worker).data.length, 0, 'a proposal is not shown to the employee');
   assert.equal(g.api('data.bootstrap', {}, admin).data.hr_todo, 1);
   // HR issues it (with a corrected amount); the employee sees it and may object
-  const i = g.api('pen.review', { penalty_id: p.penalty_id, issue: true, amount: 40 }, admin).data.penalty;
-  assert.deepEqual([i.status, i.amount], ['issued', 40]);
+  assert.equal(g.api('pen.review', { penalty_id: p.penalty_id, issue: true, amount: 40 }, admin).error.code, 'pen_category', 'HR picks the kind');
+  const i = g.api('pen.review', { penalty_id: p.penalty_id, issue: true, amount: 40, category: 'سلامة الغذاء' }, admin).data.penalty;
+  assert.deepEqual([i.status, i.amount, i.category], ['issued', 40, 'سلامة الغذاء']);
+  assert.deepEqual(g.api('data.bootstrap', {}, worker).data.hr_counts.my_pen_new, 1);
+  // opening My penalties marks it seen (no button); the objection stays open for 24 hours
+  g.api('pen.seen', {}, worker);
+  assert.deepEqual(g.api('data.bootstrap', {}, worker).data.hr_counts.my_pen_new, 0);
   const mine = g.api('pen.mine', {}, worker).data;
   assert.equal(mine[0].can_object, true);
   assert.equal(mine[0].proposed_by, undefined, 'who proposed it is shown to HR only');
-  assert.equal(g.api('data.bootstrap', {}, worker).data.hr_todo, 1);
+  assert.equal(g.api('data.bootstrap', {}, worker).data.hr_todo, 0, 'seen: no number left, the objection stays open');
   assert.equal(g.api('pen.respond', { penalty_id: p.penalty_id, object: true, text: '' }, worker).error.code, 'pen_objection_required');
   assert.equal(g.api('pen.respond', { penalty_id: p.penalty_id, object: true, text: 'I had it on' }, worker).data.penalty.status, 'objected');
   assert.equal(g.api('pen.decide', { penalty_id: p.penalty_id, keep: true }, admin).error.code, 'hr_note_required');
   assert.equal(g.api('pen.decide', { penalty_id: p.penalty_id, keep: true, note: 'seen on camera' }, admin).data.penalty.status, 'kept');
   // HR records one directly: issued at once; after 24 hours no objection
-  const d = g.api('pen.add', { user_id: sami, date: today, reason: 'phone at work', amount: 20 }, admin).data.penalty;
+  assert.equal(g.api('pen.add', { user_id: sami, date: today, reason: 'phone at work', amount: 20 }, admin).error.code, 'pen_category');
+  assert.equal(g.api('pen.add', { user_id: sami, date: today, reason: 'phone at work', amount: 20, category: 'nope' }, admin).error.code, 'pen_category');
+  const d = g.api('pen.add', { user_id: sami, date: today, reason: 'phone at work', amount: 20, category: 'استعمال الهاتف أثناء العمل', photo: 'data:image/jpeg;base64,AAAA' }, admin).data.penalty;
+  assert.equal(d.photos.length, 1);
   assert.equal(d.status, 'issued');
   const row = g.spreadsheet.sheets.HrPenalties;
   const c = row.data[0].indexOf('issued_at');
@@ -124,4 +132,17 @@ test('penalties: HR records one directly; a head proposes, HR issues; the employ
   assert.equal(g.api('pen.review', { penalty_id: q.penalty_id, issue: false, note: 'not proven' }, admin).data.penalty.status, 'dismissed');
   assert.equal(g.api('pen.decide', { penalty_id: d.penalty_id, keep: false, note: 'first time' }, admin).data.penalty.status, 'cancelled');
   assert.equal(g.api('pen.list', {}, head2).data.length, 0);
+});
+
+test('hr: the requester sees the answer once (green banner); HR changes the kinds of penalty', () => {
+  const { g, admin, worker } = env();
+  const a = g.api('hr.create', { kind: 'doc', type: 'work_cert' }, worker).data.request;
+  g.api('hr.decide', { request_id: a.request_id, status: 'ready' }, admin);
+  const c = () => g.api('data.bootstrap', {}, worker).data.hr_counts;
+  assert.deepEqual([c().my_req_new, c().my_req_ok], [1, 1]);
+  g.api('hr.seenMine', {}, worker);
+  assert.deepEqual([c().my_req_new, c().my_req_ok], [0, 0]);
+  assert.equal(g.api('pen.setCategories', { list: ['Hygiene', ' Hygiene', 'Late'] }, worker).error.code, 'forbidden');
+  assert.deepEqual(g.api('pen.setCategories', { list: ['Hygiene', ' Hygiene', 'Late', ''] }, admin).data.list, ['Hygiene', 'Late']);
+  assert.equal(g.api('pen.setCategories', { list: [] }, admin).error.code, 'pen_categories_empty');
 });

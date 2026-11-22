@@ -1146,3 +1146,17 @@ tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: n
 .pen-deadline { color: var(--warn); font-weight: 700; }
 .hr-card .form-actions .pen-amt { flex: 0 0 110px; }
 .pen-form { margin-bottom: 10px; }
+/* the HR screen: a light mark in the menu; the banners; the tabs' numbers */
+.nav a[data-route="hr"], .bottom-nav a[data-route="hr"] { box-shadow: inset 3px 0 0 #8b5cf6; }
+.nav a[data-route="hr"] .ico { color: #7c3aed; }
+.home-tab[data-route="hr"], a.home-tab[href="#/hr"] { background: #f5f0ff; }
+.hr-tabs button { position: relative; }
+.tab-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-inline-start: 6px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+#hr-banner { display: grid; gap: 4px; padding: 6px 12px 0; }
+.hr-banner { border: 0; border-radius: var(--radius); padding: 10px 14px; font: inherit; font-weight: 600; text-align: start; cursor: pointer; color: #fff; }
+.hr-banner.red { background: var(--danger); }
+.hr-banner.green { background: var(--ok); }
+.pen-cat { background: #f5f0ff; color: #6d28d9; }
+.pen-search { flex-wrap: wrap; }
+.pen-search .pen-day { flex: 0 0 150px; }
+.hr-card .form-actions .pen-catsel { flex: 1 1 160px; }

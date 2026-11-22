@@ -169,11 +169,40 @@ var Hr = {
     });
   },
 
+  /** The requester has opened "My requests": the answers there are seen (the green banner goes). */
+  seenMine: function (session) {
+    return withLock(function () {
+      var now = Util.nowIso(), n = 0;
+      Repo.all('HrRequests').forEach(function (r) {
+        if (r.user_id === session.user_id && ['approved', 'ready', 'rejected'].indexOf(r.status) >= 0 && !r.user_seen_at) {
+          Repo.update('HrRequests', 'request_id', r.request_id, { user_seen_at: now }); n++;
+        }
+      });
+      return { seen: n, version: n ? Version.bump() : Version.get() };
+    });
+  },
+
+  /** The tabs' numbers: HR – requests and penalties to answer; the user – answers and penalties not seen yet. */
+  counts: function (session) {
+    var hr = Perm.has(session, 'hr.decide'), me = session.user_id;
+    var reqs = Repo.all('HrRequests'), pens = Repo.all('HrPenalties');
+    var mineNew = reqs.filter(function (r) { return r.user_id === me && ['approved', 'ready', 'rejected'].indexOf(r.status) >= 0 && !r.user_seen_at; });
+    return {
+      hr_pending: hr ? reqs.filter(function (r) { return r.status === 'pending'; }).length : 0,
+      pen_todo: hr ? pens.filter(function (r) { return r.status === 'proposed' || r.status === 'objected'; }).length : 0,
+      my_req_new: mineNew.length,
+      my_req_ok: mineNew.filter(function (r) { return r.status !== 'rejected'; }).length,
+      my_pen_new: pens.filter(function (r) { return r.user_id === me && r.status === 'issued' && !r.ack_at; }).length
+    };
+  },
+
   /** The number on the menu: HR – requests to answer; a head – their departments' requests still waiting. */
   todo: function (session) {
     var all = Perm.has(session, 'hr.decide'), head = Perm.has(session, 'hr.seen'), depts = session.depts || [];
-    if (!all && !(head && depts.length)) return 0;
-    return Repo.all('HrRequests').filter(function (r) {
+    // the requester: answers not seen yet
+    var mine = Repo.all('HrRequests').filter(function (r) { return r.user_id === session.user_id && ['approved', 'ready', 'rejected'].indexOf(r.status) >= 0 && !r.user_seen_at; }).length;
+    if (!all && !(head && depts.length)) return mine;
+    return mine + Repo.all('HrRequests').filter(function (r) {
       if (r.status !== 'pending') return false;
       if (all) return true;
       return depts.indexOf(r.dept_id) >= 0;

@@ -11,16 +11,49 @@
  *   24 hours stands. HR may cancel an issued or kept penalty with a reason.
  */
 var PEN_OBJECT_HOURS = 24;
+// the kinds of penalty HR picks from (HR can change the list); a starting list until HR sets theirs
+var PEN_CATEGORIES = ['النظافة الشخصية وغطاء الشعر', 'سلامة الغذاء', 'التأخير والغياب', 'استعمال الهاتف أثناء العمل', 'السلوك والتعامل', 'إهمال المعدات والأدوات', 'أخرى'];
 
 var Penalties = {
+  categories: function () {
+    try { var l = JSON.parse(Settings.get('pen_categories', '') || 'null'); if (l && l.length) return l; } catch (e) { /* the starting list */ }
+    return PEN_CATEGORIES.slice();
+  },
+
+  /** HR: the list of kinds. p: {list: [text]} */
+  setCategories: function (session, p) {
+    var list = (p.list || []).map(function (x) { return Util.clean(x).slice(0, 80); }).filter(String)
+      .filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 40);
+    Util.require(list.length, 'pen_categories_empty');
+    return withLock(function () {
+      var before = Settings.get('pen_categories', '');
+      Settings.set('pen_categories', JSON.stringify(list));
+      Audit.log(session.user_id, 'pen_categories', 'Settings', 'pen_categories', before, list.join(' | '));
+      return { list: list, version: Version.bump() };
+    });
+  },
+
+  /** The employee opened "My penalties": the issued ones are seen (no button; the red banner goes). */
+  seenAll: function (session) {
+    return withLock(function () {
+      var now = Util.nowIso(), n = 0;
+      Repo.all('HrPenalties').forEach(function (r) {
+        if (r.user_id === session.user_id && r.status === 'issued' && !r.ack_at) { Repo.update('HrPenalties', 'penalty_id', r.penalty_id, { ack_at: now }); n++; }
+      });
+      return { seen: n, version: n ? Version.bump() : Version.get() };
+    });
+  },
+
   hours: function (iso) { return iso ? (Date.now() - new Date(String(iso).length === 19 ? iso + '+03:00' : iso).getTime()) / 36e5 : 1e9; },
   /** Still open to an objection (issued less than 24 hours ago, not acknowledged). */
-  canObject: function (r) { return r.status === 'issued' && !r.ack_at && Penalties.hours(r.issued_at) < PEN_OBJECT_HOURS; },
+  canObject: function (r) { return r.status === 'issued' && Penalties.hours(r.issued_at) < PEN_OBJECT_HOURS; },
 
   view: function (r, names, forHr) {
     var out = {};
     Object.keys(r).forEach(function (k) { out[k] = r[k]; });
     out.amount = Number(r.amount) || 0;
+    out.photos = String(r.photos || '').split(',').filter(String);
+    out.category = r.category || '';
     out.can_object = Penalties.canObject(r);
     out.object_until = r.issued_at ? new Date(new Date(String(r.issued_at).length === 19 ? r.issued_at + '+03:00' : r.issued_at).getTime() + PEN_OBJECT_HOURS * 36e5).toISOString() : '';
     if (names) {
@@ -61,6 +94,10 @@ var Penalties = {
     Util.require(reason, 'pen_reason_required');
     var amount = Util.num(p.amount);
     Util.require(amount !== null && amount > 0 && amount <= 1e5, 'amount_invalid');
+    // its kind: HR picks it when recording; a proposer may pick it (HR picks it when issuing otherwise)
+    var category = Util.clean(p.category);
+    if (category) Util.require(Penalties.categories().indexOf(category) >= 0, 'pen_category');
+    if (hr) Util.require(category, 'pen_category');
     return withLock(function () {
       var cid = Util.clean(p.client_id);
       if (cid) { var dup = Repo.find('HrPenalties', 'client_id', cid); if (dup) return { penalty: Penalties.view(dup, Penalties.names(), hr), duplicate: true }; }
@@ -69,7 +106,9 @@ var Penalties = {
       var row = { penalty_id: 'PN' + Util.pad(Settings.next('seq_penalty', 0), 5), user_id: target.user_id, emp_qid: w ? String(w.qid || '') : '',
         dept_id: Auth.deptsOf(target)[0] || '', date: p.date, reason: reason, amount: Util.round(amount),
         status: hr ? 'issued' : 'proposed', proposed_by: session.user_id, proposed_at: now, issued_by: hr ? session.user_id : '', issued_at: hr ? now : '',
-        ack_at: '', objection: '', objected_at: '', decided_by: '', decided_at: '', decision_note: '', client_id: cid };
+        ack_at: '', objection: '', objected_at: '', decided_by: '', decided_at: '', decision_note: '', client_id: cid, category: category, photos: '' };
+      // a photo of it, when there is one
+      if (p.photo) row.photos = Photos.add(session, row.penalty_id, [p.photo]).join(',');
       Repo.append('HrPenalties', [row]);
       Audit.log(session.user_id, hr ? 'penalty_issue' : 'penalty_propose', 'HrPenalties', row.penalty_id, null, { user: target.user_id });
       if (hr) Penalties.tellIssued(row, session.user_id);
@@ -125,6 +164,9 @@ var Penalties = {
         // HR may correct the amount proposed
         var amt = Util.num(p.amount);
         if (amt !== null) { Util.require(amt > 0 && amt <= 1e5, 'amount_invalid'); ch.amount = Util.round(amt); }
+        var cat = Util.clean(p.category) || r.category;
+        Util.require(cat && Penalties.categories().indexOf(cat) >= 0, 'pen_category');
+        ch.category = cat;
       } else {
         Util.require(note, 'hr_note_required');
         ch = { status: 'dismissed', decided_by: session.user_id, decided_at: Util.nowIso(), decision_note: note };
@@ -152,8 +194,8 @@ var Penalties = {
         var to = Push.usersWith('hr.decide');
         if (to.length) Push.toUsers(to, { ar: { title: 'اعتراض على مخالفة', body: who + ' – ' + text }, en: { title: 'Penalty objection', body: who + ' – ' + text }, page: 'hr', badge: 1 });
       } else {
-        Util.require(r.status === 'issued' && !r.ack_at, 'pen_state');
-        Repo.update('HrPenalties', 'penalty_id', r.penalty_id, { ack_at: Util.nowIso() });
+        Util.require(r.status === 'issued', 'pen_state');
+        if (!r.ack_at) Repo.update('HrPenalties', 'penalty_id', r.penalty_id, { ack_at: Util.nowIso() });
       }
       return { penalty: Penalties.view(Repo.find('HrPenalties', 'penalty_id', r.penalty_id), Penalties.names(), false), version: Version.bump() };
     });
@@ -177,12 +219,12 @@ var Penalties = {
     });
   },
 
-  /** For the menu number: HR – proposals and objections to answer; the employee – penalties still open to an objection. */
+  /** For the menu number: HR – proposals and objections to answer; the employee – penalties not seen yet. */
   todo: function (session) {
     var hr = Perm.has(session, 'hr.decide');
     return Repo.all('HrPenalties').filter(function (r) {
       if (hr && (r.status === 'proposed' || r.status === 'objected')) return true;
-      return r.user_id === session.user_id && Penalties.canObject(r);
+      return r.user_id === session.user_id && r.status === 'issued' && !r.ack_at;
     }).length;
   }
 };

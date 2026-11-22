@@ -13,7 +13,7 @@ var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper',
 /** Actions every signed-in user may call. */
 var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister',
   // every employee asks HR for themselves (a leave, a document)
-  'nav.hr', 'hr.mine', 'hr.create', 'hr.cancel', 'pen.mine', 'pen.respond'];
+  'nav.hr', 'hr.mine', 'hr.create', 'hr.cancel', 'pen.mine', 'pen.respond', 'pen.seen', 'hr.seenMine'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'ledger', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
                   'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels', 'dispatch'];
@@ -181,7 +181,7 @@ var CAPS = (function () {
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'coffee.roastStart', 'coffee.roastFinish', 'coffee.packBags', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
     // HR answers the employees' requests; a department head sees their departments' requests (information only)
-    'hr.decide':         ['nav.hr', 'hr.list', 'hr.decide', 'pen.people', 'pen.add', 'pen.list', 'pen.review', 'pen.decide'],
+    'hr.decide':         ['nav.hr', 'hr.list', 'hr.decide', 'pen.people', 'pen.add', 'pen.list', 'pen.review', 'pen.decide', 'pen.setCategories'],
     'hr.dept_view':      ['nav.hr', 'hr.list', 'hr.seen', 'pen.list'],
     // a department head, food safety, production: propose a penalty, HR issues it
     'hr.penalty_propose': ['nav.hr', 'pen.people', 'pen.add', 'pen.list', 'hr.penalty_propose'],

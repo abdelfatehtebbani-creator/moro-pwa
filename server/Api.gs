@@ -132,6 +132,9 @@ var ROUTES = {
   'pen.review':       function (s, p) { return Penalties.review(s, p); },
   'pen.respond':      function (s, p) { return Penalties.respond(s, p); },
   'pen.decide':       function (s, p) { return Penalties.decide(s, p); },
+  'pen.seen':         function (s) { return Penalties.seenAll(s); },
+  'pen.setCategories': function (s, p) { return Penalties.setCategories(s, p); },
+  'hr.seenMine':      function (s) { return Hr.seenMine(s); },
   'returns.create':   function (s, p) { return Returns.create(s, p); },
   'returns.decide':   function (s, p) { return Returns.decide(s, p); },
   'returns.receive':  function (s, p) { return Returns.receive(s, p); },
@@ -250,7 +253,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '72';
+var SCHEMA_VERSION = '73';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });

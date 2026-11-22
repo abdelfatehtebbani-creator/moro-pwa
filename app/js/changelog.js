@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.286', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: فتح «مخالفاتي» يُعدّ اطلاعًا (لا زر «اطّلعت»)، وزر الاعتراض يختفي بعد 24 ساعة. أرقام على التبويبات بما ينتظرك فيها. شريط أحمر أعلى التطبيق عند صدور مخالفة، وأخضر عند قبول طلب، يبقى حتى تفتح التبويب. وتمييز خفيف لشاشة «الموارد البشرية» في القائمة.", "(نسخة التطوير) المخالفات: لكل مخالفة نوع تختاره الموارد البشرية من قائمة تعدّلها (⚙ أنواع المخالفات)، وصورة إن وُجدت. المخالفات المغلقة في «الأرشيف» مع بحث بالاسم والتاريخ والحالة والنوع."]},
+    en: {"news": ["(Development copy) Human resources: opening My penalties counts as seen (no Seen button); the objection button goes after 24 hours. Numbers on the tabs for what waits there. A red banner at the top when a penalty is issued, a green one when a request is approved, until the tab is opened. A light mark for the screen in the menu.", "(Development copy) Penalties: each has a kind HR picks from a list they edit (Kinds of penalty), and a photo when there is one. Closed penalties are in the Archive, searched by name, date, state and kind."]}
+  },
+  {
     v: '0.9.285', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: المخالفات المالية. تسجّل الموارد البشرية المخالفة مباشرة (الموظف، التاريخ، المبلغ، ما حدث)، أو يقترحها مدير القسم أو مسؤول سلامة الغذاء أو مسؤول الإنتاج فتصدرها الموارد البشرية أو لا تعتمدها.", "(نسخة التطوير) الموظف يُبلَّغ ويرى مخالفته في «مخالفاتي»، فيضغط «اطّلعت» أو يعترض مع السبب خلال 24 ساعة. الموارد البشرية ترفض الاعتراض أو تلغي المخالفة مع ملاحظة. لا يُحذف شيء، ويُخصم المبلغ مع الراتب لدى الموارد البشرية."]},
     en: {"news": ["(Development copy) Human resources: financial penalties. HR records one directly (employee, date, amount, what happened), or a department head, the food safety officer or the production manager proposes it and HR issues it or not.", "(Development copy) The employee is told and sees it in My penalties: Seen, or an objection with its reason within 24 hours; HR refuses the objection or cancels the penalty, with a note. Nothing is deleted; HR takes the amount from the salary."]}
