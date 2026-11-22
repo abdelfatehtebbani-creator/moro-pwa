@@ -4,7 +4,7 @@
 // the employee may object within 24 hours. The server checks who may do what; the screen only shows it.
 import { call } from '../api.js';
 import { Data } from '../data.js';
-import { t, errText } from '../i18n.js';
+import { t, errText, getLang } from '../i18n.js';
 import { h, toast, flash, fmtDate, trackFilled } from '../ui.js';
 import { field, newId, combo } from '../components.js';
 import { shrink, photoButton } from '../photos.js';
@@ -20,7 +20,10 @@ let hrTab = 'pending';
 
 const typeName = (r) => (r.kind === 'advance' ? t('hr_advance') : t((r.kind === 'leave' ? 'hr_lt_' : 'hr_dt_') + r.type));
 const stamp = (iso) => (iso ? fmtDate(String(iso).slice(0, 10)) + ' ' + String(iso).slice(11, 16) : '');
-const cats = () => { try { const l = JSON.parse((Data.settings || {}).pen_categories || 'null'); if (l && l.length) return l; } catch { /* the starting list */ } return t('pen_cats_default').split('|'); };
+// the kinds of penalty: each "Arabic | English", shown in the user's language (the same starting list as the server's)
+const CATS0 = ["النظافة الشخصية وغطاء الشعر | Personal hygiene and hair net", "سلامة الغذاء | Food safety", "التأخير والغياب | Lateness and absence", "استعمال الهاتف أثناء العمل | Phone at work", "السلوك والتعامل | Behaviour", "إهمال المعدات والأدوات | Neglect of equipment and tools", "أخرى | Other"];
+const cats = () => { try { const l = JSON.parse((Data.settings || {}).pen_categories || 'null'); if (l && l.length) return l; } catch { /* the starting list */ } return CATS0; };
+const catName = (c) => { const p = String(c || '').split('|').map((x) => x.trim()).filter(Boolean); return (getLang() === 'en' ? p[1] : p[0]) || p[0] || ''; };
 // a penalty that needs nothing more: kept, cancelled, not issued, or issued and past the 24 hours
 const closed = (r) => ['kept', 'cancelled', 'dismissed'].includes(r.status) || (r.status === 'issued' && !r.can_object);
 
@@ -162,14 +165,26 @@ export function render(root) {
     const sub = h('div.tabs.hr-sub', [['pending', 'hr_pending'], ['done', 'hr_done']].map(([k, l]) => h('button', { type: 'button', class: hrTab === k ? 'on' : '',
       onclick: () => { hrTab = k; hrList(); } }, t(l))));
     box.replaceChildren(sub, inner);
-    listOf('hr.list', { status: hrTab }, 'hr', inner);
+    if (hrTab === 'pending') { listOf('hr.list', { status: hrTab }, 'hr', inner); return; }
+    // answered: one fold per type of request, with its number
+    inner.replaceChildren(h('p.empty', '…'));
+    call('hr.list', { status: 'done' }).then((rows) => {
+      if (!rows.length) { inner.replaceChildren(h('p.empty', t('hr_none'))); return; }
+      const groups = new Map();
+      rows.forEach((r) => { const k = typeName(r); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+      inner.replaceChildren(...[...groups].sort((a, b) => b[1].length - a[1].length).map(([k, list]) => {
+        const d = h('details.fam-box.hr-group', h('summary', h('b', k), ' ', h('span.muted', '(' + list.length + ')')));
+        d.addEventListener('toggle', () => { if (d.open && d.children.length === 1) d.append(...list.map((r) => card(r, 'hr'))); });
+        return d;
+      }));
+    }).catch((e) => inner.replaceChildren(h('p.empty', errText(e))));
   }
 
   // ---------- penalties
   function penCard(r, mode) {
     const lines = [h('div.hr-head', h('b', '⚠ ' + t('pen_one') + ' · ', h('bdi.num', String(r.amount) + ' QR')), h('span', { class: 'pill ' + (PEN_CLASS[r.status] || '') }, t('pen_st_' + r.status)), h('small.muted.num', r.penalty_id))];
     if (mode !== 'mine') lines.push(h('div', h('b', h('bdi', r.user_name)), r.dept_name ? h('span.muted', ' · ', h('bdi', r.dept_name)) : ''));
-    lines.push(h('div', r.category ? h('span.pill.pen-cat', r.category) : '', ' ', t('pen_date') + ': ' + fmtDate(r.date)), h('div', h('bdi', r.reason)));
+    lines.push(h('div', r.category ? h('span.pill.pen-cat', catName(r.category)) : '', ' ', t('pen_date') + ': ' + fmtDate(r.date)), h('div', h('bdi', r.reason)));
     const ph = photoButton(r.photos);
     if (ph) lines.push(h('div', ph));
     if (r.proposed_name && r.status === 'proposed') lines.push(h('small.muted', t('pen_proposed_by', { n: r.proposed_name, t: stamp(r.proposed_at) })));
@@ -191,7 +206,7 @@ export function render(root) {
       const note = trackFilled(h('input.input', { placeholder: t('pen_note_ph') }));
       if (r.status === 'proposed') {
         const amt = h('input.input.num.pen-amt', { type: 'number', min: 0, step: 'any', value: r.amount, title: t('hr_amount') });
-        const cat = h('select.input.pen-catsel', h('option', { value: '' }, t('pen_category_ph')), cats().map((c) => h('option', { value: c, selected: c === r.category }, c)));
+        const cat = h('select.input.pen-catsel', h('option', { value: '' }, t('pen_category_ph')), cats().map((c) => h('option', { value: c, selected: c === r.category }, catName(c))));
         act.append(cat, amt, h('button.btn', { type: 'button', onclick: (e) => { if (!cat.value) { flash(cat); return; } go(e, 'pen.review', { penalty_id: r.penalty_id, issue: true, amount: amt.value, category: cat.value }); } }, t('pen_issue')),
           note, h('button.btn.secondary', { type: 'button', onclick: (e) => { if (!note.value.trim()) { flash(note); return; } go(e, 'pen.review', { penalty_id: r.penalty_id, issue: false, note: note.value }); } }, t('pen_dismiss')));
       } else if (r.status === 'objected') {
@@ -226,11 +241,11 @@ export function render(root) {
     const q = trackFilled(h('input.input', { type: 'search', placeholder: t('pen_search_ph') }));
     const day = trackFilled(h('input.input.pen-day', { type: 'date' }));
     const st = h('select.input', h('option', { value: '' }, t('pen_all_states')), ['kept', 'cancelled', 'dismissed', 'issued'].map((s) => h('option', { value: s }, t('pen_st_' + s))));
-    const cat = h('select.input', h('option', { value: '' }, t('pen_all_cats')), [...new Set(list.map((r) => r.category).filter(Boolean))].map((c) => h('option', { value: c }, c)));
+    const cat = h('select.input', h('option', { value: '' }, t('pen_all_cats')), [...new Set(list.map((r) => r.category).filter(Boolean))].map((c) => h('option', { value: c }, catName(c))));
     const res = h('div');
     const fill = () => {
       const s = q.value.trim().toLowerCase();
-      const hits = list.filter((r) => (!s || [r.user_name, r.reason, r.penalty_id, r.dept_name].some((x) => String(x || '').toLowerCase().includes(s)))
+      const hits = list.filter((r) => (!s || [r.user_name, r.reason, r.penalty_id, r.dept_name, r.category].some((x) => String(x || '').toLowerCase().includes(s)))
         && (!day.value || r.date === day.value) && (!st.value || r.status === st.value) && (!cat.value || r.category === cat.value));
       res.replaceChildren(...(hits.length ? hits.slice(0, 100).map((r) => penCard(r, mode)) : [h('p.empty', t('no_rows'))]));
     };
@@ -266,7 +281,7 @@ export function render(root) {
       const date = trackFilled(h('input.input#pen-date', { type: 'date', value: Data.todayIso(), max: Data.todayIso() }));
       const amount = trackFilled(h('input.input.num#pen-amount', { type: 'number', min: 0, step: 'any', inputmode: 'decimal' }));
       const reason = trackFilled(h('textarea.input#pen-reason', { rows: 2, maxlength: 500, placeholder: t('pen_reason_ph') }));
-      const cat = h('select.input#pen-cat', h('option', { value: '' }, t(decide ? 'pen_category_ph' : 'pen_category_opt')), cats().map((c) => h('option', { value: c }, c)));
+      const cat = h('select.input#pen-cat', h('option', { value: '' }, t(decide ? 'pen_category_ph' : 'pen_category_opt')), cats().map((c) => h('option', { value: c }, catName(c))));
       // a photo of it, when there is one (made small on the phone)
       let photo = '';
       const file = h('input#pen-photo', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true });

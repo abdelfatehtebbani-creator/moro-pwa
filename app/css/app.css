@@ -1160,3 +1160,5 @@ tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: n
 .pen-search { flex-wrap: wrap; }
 .pen-search .pen-day { flex: 0 0 150px; }
 .hr-card .form-actions .pen-catsel { flex: 1 1 160px; }
+.hr-group { margin-bottom: 6px; }
+.hr-group[open] > summary { margin-bottom: 8px; }

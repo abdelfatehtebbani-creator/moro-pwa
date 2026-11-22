@@ -11,8 +11,9 @@
  *   24 hours stands. HR may cancel an issued or kept penalty with a reason.
  */
 var PEN_OBJECT_HOURS = 24;
-// the kinds of penalty HR picks from (HR can change the list); a starting list until HR sets theirs
-var PEN_CATEGORIES = ['النظافة الشخصية وغطاء الشعر', 'سلامة الغذاء', 'التأخير والغياب', 'استعمال الهاتف أثناء العمل', 'السلوك والتعامل', 'إهمال المعدات والأدوات', 'أخرى'];
+// the kinds of penalty HR picks from (HR can change the list), each "Arabic | English" (the app shows the user's language);
+// a starting list until HR sets theirs
+var PEN_CATEGORIES = ['النظافة الشخصية وغطاء الشعر | Personal hygiene and hair net', 'سلامة الغذاء | Food safety', 'التأخير والغياب | Lateness and absence', 'استعمال الهاتف أثناء العمل | Phone at work', 'السلوك والتعامل | Behaviour', 'إهمال المعدات والأدوات | Neglect of equipment and tools', 'أخرى | Other'];
 
 var Penalties = {
   categories: function () {
@@ -22,7 +23,8 @@ var Penalties = {
 
   /** HR: the list of kinds. p: {list: [text]} */
   setCategories: function (session, p) {
-    var list = (p.list || []).map(function (x) { return Util.clean(x).slice(0, 80); }).filter(String)
+    // "Arabic | English" (one name alone serves both languages)
+    var list = (p.list || []).map(function (x) { return Util.clean(x).split('|').map(function (y) { return Util.clean(y); }).filter(String).slice(0, 2).join(' | ').slice(0, 160); }).filter(String)
       .filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 40);
     Util.require(list.length, 'pen_categories_empty');
     return withLock(function () {

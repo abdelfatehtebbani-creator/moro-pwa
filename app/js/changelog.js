@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.287', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) أنواع المخالفات بلغتين: كل نوع «بالعربية | بالإنجليزية»، ويرى كل مستخدم النوع بلغة تطبيقه. وفي «الطلبات ← تم الرد» عند الموارد البشرية: الطلبات مطوية ومجمّعة حسب نوعها مع عددها."]},
+    en: {"news": ["(Development copy) Kinds of penalty in two languages: each kind \"Arabic | English\", each user sees it in their app's language. In HR's Requests, Answered: folded and grouped by type, with their number."]}
+  },
+  {
     v: '0.9.286', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: فتح «مخالفاتي» يُعدّ اطلاعًا (لا زر «اطّلعت»)، وزر الاعتراض يختفي بعد 24 ساعة. أرقام على التبويبات بما ينتظرك فيها. شريط أحمر أعلى التطبيق عند صدور مخالفة، وأخضر عند قبول طلب، يبقى حتى تفتح التبويب. وتمييز خفيف لشاشة «الموارد البشرية» في القائمة.", "(نسخة التطوير) المخالفات: لكل مخالفة نوع تختاره الموارد البشرية من قائمة تعدّلها (⚙ أنواع المخالفات)، وصورة إن وُجدت. المخالفات المغلقة في «الأرشيف» مع بحث بالاسم والتاريخ والحالة والنوع."]},
     en: {"news": ["(Development copy) Human resources: opening My penalties counts as seen (no Seen button); the objection button goes after 24 hours. Numbers on the tabs for what waits there. A red banner at the top when a penalty is issued, a green one when a request is approved, until the tab is opened. A light mark for the screen in the menu.", "(Development copy) Penalties: each has a kind HR picks from a list they edit (Kinds of penalty), and a photo when there is one. Closed penalties are in the Archive, searched by name, date, state and kind."]}
