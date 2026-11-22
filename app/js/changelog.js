@@ -3,6 +3,16 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.290', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) MORO صار يرمز إلى «Management of Operations, Resources & Orders»: إدارة العمليات والموارد والطلبيات، ليصف كل ما يضمه التطبيق اليوم. الاسم والأيقونة والرابط كما هي."]},
+    en: {"news": ["(Development copy) MORO now stands for Management of Operations, Resources & Orders, to describe all the app holds today. The name, icon and link stay the same."]}
+  },
+  {
+    v: '0.9.289', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة «الموارد البشرية» تعمل دائمًا في نسخة التطوير للتجربة، وتبقى «قيد البناء» في الإنتاج حتى يشغّلها المدير."]},
+    en: {"news": ["(Development copy) The Human resources screen always works in the development copy, for testing; in production it stays \"being built\" until the admin switches it on."]}
+  },
+  {
     v: '0.9.288', date: '2026-11-22',
     ar: {"news": ["شاشة «الموارد البشرية» تظهر للجميع «قيد البناء»: يمكن الاطلاع عليها، وكل زر يعرض رسالة ولا يُرسل شيئًا، حتى يشغّلها المدير من «المستخدمون ← الإعدادات العامة ← شاشة الموارد البشرية» عند جاهزية الربط مع MyFiles."]},
     en: {"news": ["The Human resources screen shows to everyone as \"being built\": it can be looked at, every button shows a message and sends nothing, until the admin switches it on in Users, General settings, Human resources screen (when the link with MyFiles is ready)."]}

@@ -11,7 +11,7 @@ function shell(title, hint, body, onLang) {
   return h('div.auth',
     h('form.auth-card', { novalidate: true },
       h('img.logo', { src: 'icons/logo.png', alt: '' }),
-      h('div.tagline', h('b', 'MORO'), h('span', { dir: 'ltr' }, 'Materials Operations & Records Organizer')),
+      h('div.tagline', h('b', 'MORO'), h('span', { dir: 'ltr' }, 'Management of Operations, Resources & Orders')),
       h('h1', title),
       hint ? h('p', hint) : null,
       body,
