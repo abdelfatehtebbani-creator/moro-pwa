@@ -123,7 +123,9 @@ export function render(root) {
     const out = holder || box;
     out.replaceChildren(h('p.empty', '…'));
     try {
-      const rows = await call(action, p);
+      let rows = await call(action, p);
+      // my requests: waiting first, then the approved / ready ones, then the refused and cancelled (newest first in each)
+      if (mode === 'mine') { const rank = { pending: 0, approved: 1, ready: 1, rejected: 2, cancelled: 3 }; rows = rows.map((r, i) => [r, i]).sort((a, b) => ((rank[a[0].status] ?? 4) - (rank[b[0].status] ?? 4)) || (a[1] - b[1])).map((x) => x[0]); }
       out.replaceChildren(...(rows.length ? rows.map((r) => card(r, mode)) : [h('p.empty', t(mode === 'mine' ? 'hr_none_mine' : 'hr_none'))]));
       if (mode === 'dept') out.prepend(h('small.muted', t('hr_dept_help')));
     } catch (e) { out.replaceChildren(h('p.empty', errText(e))); }

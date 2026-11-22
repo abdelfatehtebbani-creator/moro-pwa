@@ -3,6 +3,11 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.284', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة «طلبات الموظفين» صار اسمها «الموارد البشرية» (في قسم «شؤون الموظفين»). و«طلباتي» مرتبة: التي في الانتظار أولًا، ثم الموافق عليها والجاهزة، ثم المرفوضة والملغاة."]},
+    en: {"news": ["(Development copy) The Employee requests screen is now called Human resources (in Staff affairs). My requests are in order: waiting first, then approved / ready, then refused and cancelled."]}
+  },
+  {
     v: '0.9.283', date: '2026-11-22',
     ar: {"news": ["(نسخة التطوير) «طلبات الموظفين»: نوع جديد «💵 سلفة» بالمبلغ والسبب (الحد الأعلى راتب شهر واحد، وتتم باقي الإجراءات لدى الموارد البشرية). مدير القسم يُبلَّغ أيضًا برد الموارد البشرية على طلبات قسمه ويراه في «طلبات قسمي». وحُذف خيار «نسخة من وثيقة»."]},
     en: {"news": ["(Development copy) Employee requests: a new kind Advance, with the amount and the reason (at most one month's salary; HR handles the rest). The department head is told of HR's answer too and sees it in My department. The copy of a document option is removed."]}
