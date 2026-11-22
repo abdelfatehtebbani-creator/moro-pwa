@@ -3,6 +3,46 @@
 //   todo: for everyone; admin: only for users who manage users (the admin).
 export const CHANGELOG = [
   {
+    v: '0.9.288', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة «الموارد البشرية» تظهر للجميع «قيد البناء»: يمكن الاطلاع عليها، وكل زر يعرض رسالة ولا يُرسل شيئًا، حتى يشغّلها المدير من «المستخدمون ← الإعدادات العامة ← شاشة الموارد البشرية» عند جاهزية الربط مع MyFiles."]},
+    en: {"news": ["(Development copy) The Human resources screen shows to everyone as \"being built\": it can be looked at, every button shows a message and sends nothing, until the admin switches it on in Users, General settings, Human resources screen (when the link with MyFiles is ready)."]}
+  },
+  {
+    v: '0.9.287', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) أنواع المخالفات بلغتين: كل نوع «بالعربية | بالإنجليزية»، ويرى كل مستخدم النوع بلغة تطبيقه. وفي «الطلبات ← تم الرد» عند الموارد البشرية: الطلبات مطوية ومجمّعة حسب نوعها مع عددها."]},
+    en: {"news": ["(Development copy) Kinds of penalty in two languages: each kind \"Arabic | English\", each user sees it in their app's language. In HR's Requests, Answered: folded and grouped by type, with their number."]}
+  },
+  {
+    v: '0.9.286', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: فتح «مخالفاتي» يُعدّ اطلاعًا (لا زر «اطّلعت»)، وزر الاعتراض يختفي بعد 24 ساعة. أرقام على التبويبات بما ينتظرك فيها. شريط أحمر أعلى التطبيق عند صدور مخالفة، وأخضر عند قبول طلب، يبقى حتى تفتح التبويب. وتمييز خفيف لشاشة «الموارد البشرية» في القائمة.", "(نسخة التطوير) المخالفات: لكل مخالفة نوع تختاره الموارد البشرية من قائمة تعدّلها (⚙ أنواع المخالفات)، وصورة إن وُجدت. المخالفات المغلقة في «الأرشيف» مع بحث بالاسم والتاريخ والحالة والنوع."]},
+    en: {"news": ["(Development copy) Human resources: opening My penalties counts as seen (no Seen button); the objection button goes after 24 hours. Numbers on the tabs for what waits there. A red banner at the top when a penalty is issued, a green one when a request is approved, until the tab is opened. A light mark for the screen in the menu.", "(Development copy) Penalties: each has a kind HR picks from a list they edit (Kinds of penalty), and a photo when there is one. Closed penalties are in the Archive, searched by name, date, state and kind."]}
+  },
+  {
+    v: '0.9.285', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «الموارد البشرية»: المخالفات المالية. تسجّل الموارد البشرية المخالفة مباشرة (الموظف، التاريخ، المبلغ، ما حدث)، أو يقترحها مدير القسم أو مسؤول سلامة الغذاء أو مسؤول الإنتاج فتصدرها الموارد البشرية أو لا تعتمدها.", "(نسخة التطوير) الموظف يُبلَّغ ويرى مخالفته في «مخالفاتي»، فيضغط «اطّلعت» أو يعترض مع السبب خلال 24 ساعة. الموارد البشرية ترفض الاعتراض أو تلغي المخالفة مع ملاحظة. لا يُحذف شيء، ويُخصم المبلغ مع الراتب لدى الموارد البشرية."]},
+    en: {"news": ["(Development copy) Human resources: financial penalties. HR records one directly (employee, date, amount, what happened), or a department head, the food safety officer or the production manager proposes it and HR issues it or not.", "(Development copy) The employee is told and sees it in My penalties: Seen, or an objection with its reason within 24 hours; HR refuses the objection or cancels the penalty, with a note. Nothing is deleted; HR takes the amount from the salary."]}
+  },
+  {
+    v: '0.9.284', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة «طلبات الموظفين» صار اسمها «الموارد البشرية» (في قسم «شؤون الموظفين»). و«طلباتي» مرتبة: التي في الانتظار أولًا، ثم الموافق عليها والجاهزة، ثم المرفوضة والملغاة."]},
+    en: {"news": ["(Development copy) The Employee requests screen is now called Human resources (in Staff affairs). My requests are in order: waiting first, then approved / ready, then refused and cancelled."]}
+  },
+  {
+    v: '0.9.283', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «طلبات الموظفين»: نوع جديد «💵 سلفة» بالمبلغ والسبب (الحد الأعلى راتب شهر واحد، وتتم باقي الإجراءات لدى الموارد البشرية). مدير القسم يُبلَّغ أيضًا برد الموارد البشرية على طلبات قسمه ويراه في «طلبات قسمي». وحُذف خيار «نسخة من وثيقة»."]},
+    en: {"news": ["(Development copy) Employee requests: a new kind Advance, with the amount and the reason (at most one month's salary; HR handles the rest). The department head is told of HR's answer too and sees it in My department. The copy of a document option is removed."]}
+  },
+  {
+    v: '0.9.282', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) «طلبات الموظفين»: مدير القسم يرى طلبات قسمه للاطلاع فقط دون زر «اطّلعت». و«وثيقة أو طلب إداري» صار فيه أيضًا: شهادة خبرة، طلب استقالة، طلب نقل كفالة، طلب إعارة، طلب ترقية. الشهادات والنسخ تُجهَّز («جاهزة للاستلام»)، والطلبات الإدارية يُوافَق عليها أو تُرفض."]},
+    en: {"news": ["(Development copy) Employee requests: the department head sees their department's requests for information only, with no Seen button. Document or other request now also has: experience certificate, resignation, sponsorship transfer, secondment, promotion. Certificates and copies are made ready; the other requests are approved or refused."]}
+  },
+  {
+    v: '0.9.281', date: '2026-11-22',
+    ar: {"news": ["(نسخة التطوير) شاشة جديدة «طلبات الموظفين» لكل مستخدم: «طلب جديد» لطلب إجازة (سنوية، اضطرارية، مرضية، بدون راتب: من/إلى، وعدد الأيام يُحسب) أو وثيقة/شهادة (شهادة عمل، شهادة راتب، تعريف، نسخة من وثيقة، أخرى)، و«طلباتي» لمتابعة الحالة وإلغاء طلب لم يُرَد عليه.", "(نسخة التطوير) مدير القسم يُبلَّغ ويرى طلبات موظفي قسمه في «طلبات قسمي» للاطلاع فقط («اطّلعت»). والموارد البشرية (صلاحية «الرد على الطلبات») توافق أو ترفض الإجازة، وتجهّز الوثيقة أو ترفضها، مع ملاحظة، ويُبلَّغ الموظف بالرد."]},
+    en: {"news": ["(Development copy) A new screen Employee requests for every user: New request for a leave (annual, emergency, sick, unpaid: from/to, the days counted) or a document/certificate (work, salary, to whom it may concern, copy of a document, other); My requests to follow them and cancel one not answered yet.", "(Development copy) The head of the department is told and sees their department's requests (My department, for information: Seen). HR (Answer the requests) approves or refuses a leave, prepares or refuses a document, with a note; the employee is told."]}
+  },
+  {
     v: '0.9.280', date: '2026-11-21',
     ar: {"news": ["«طلبات الأقسام ← طلب صرف جديد»: القسم يُعرف تلقائيًا من المستخدم. من له قسم واحد يظهر قسمه ثابتًا ولا يستطيع تغييره، ومن له عدة أقسام يختار من أقسامه فقط، ويرفض الخادم الطلب لغيرها. المدير يطلب لأي قسم."]},
     en: {"news": ["Department requests, new request: the department comes from the user. With one department it is shown fixed and cannot be changed; with several, only theirs are listed, and the server refuses others. The admin asks for any department."]}

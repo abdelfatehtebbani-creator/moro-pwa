@@ -482,7 +482,7 @@ test('the dashboard tick: users with their own ticks who saw the dashboard keep 
   g.api('auth.me', {}, tok.admin);
   const caps = (name) => g.rows('Users').find((u) => u.username === name).caps;
   assert.equal(caps('storekeeper'), 'receive.view,receive.save,dash.view');
-  assert.equal(caps('production'), 'lpo.view');
+  assert.equal(caps('production'), 'lpo.view,hr.penalty_propose', 'later steps: the production manager proposes penalties (schema 72)');
   assert.ok(!g.api('data.bootstrap', {}, tok.production).data.permissions.includes('nav.dashboard'));
   assert.ok(g.api('data.bootstrap', {}, tok.storekeeper).data.permissions.includes('nav.dashboard'));
 });

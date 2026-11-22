@@ -11,7 +11,9 @@
 var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver', 'fleet'];
 
 /** Actions every signed-in user may call. */
-var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
+var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister',
+  // every employee asks HR for themselves (a leave, a document)
+  'nav.hr', 'hr.mine', 'hr.create', 'hr.cancel', 'pen.mine', 'pen.respond', 'pen.seen', 'hr.seenMine'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'ledger', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
                   'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels', 'dispatch'];
@@ -60,6 +62,7 @@ var PERM_TREE = [
     { key: 'tab_units', children: [{ leaf: 'units.view' }, { leaf: 'units.add' }, { leaf: 'units.rename' }] },
     { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }, { leaf: 'recipes.overhead' }] }] },
   { key: 'coffee', children: [{ leaf: 'coffee.view' }, { leaf: 'coffee.pack' }] },
+  { key: 'hr', children: [{ leaf: 'hr.decide' }, { leaf: 'hr.dept_view' }, { leaf: 'hr.penalty_propose' }] },
   { key: 'users', children: [{ leaf: 'users.manage' }] },
   { key: 'general', children: [{ leaf: 'prices.see' }] }
 ];
@@ -177,7 +180,12 @@ var CAPS = (function () {
     'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'coffee.roastStart', 'coffee.roastFinish', 'coffee.packBags', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
-    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'vehicles.save', 'workers.import', 'workers.summary', 'workers.save', 'workers.remove', 'settings.idle', 'settings.recipeStock', 'settings.issueDirect', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
+    // HR answers the employees' requests; a department head sees their departments' requests (information only)
+    'hr.decide':         ['nav.hr', 'hr.list', 'hr.decide', 'pen.people', 'pen.add', 'pen.list', 'pen.review', 'pen.decide', 'pen.setCategories'],
+    'hr.dept_view':      ['nav.hr', 'hr.list', 'hr.seen', 'pen.list'],
+    // a department head, food safety, production: propose a penalty, HR issues it
+    'hr.penalty_propose': ['nav.hr', 'pen.people', 'pen.add', 'pen.list', 'hr.penalty_propose'],
+    'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'vehicles.save', 'workers.import', 'workers.summary', 'workers.save', 'workers.remove', 'settings.idle', 'settings.recipeStock', 'settings.issueDirect', 'settings.hrLive', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
   // the fast-moving and sensitive reports each keep a personal list of items: their tick opens editing it
@@ -229,7 +237,7 @@ var ROLE_CAPS = {
   admin:       Object.keys(CAPS).filter(function (l) { return l !== 'cash.handover'; }),
   storekeeper: ['dash.view'].concat(leavesFromOld(['receive', 'issue', 'shop_orders', 'production', 'request_create', 'request_fulfil', 'edit_own', 'masters', 'see_prices', 'packaging', 'count'])).concat(['coffee.view', 'coffee.pack']),
   purchasing:  leavesFromOld(['receive', 'edit_own', 'masters', 'min_stock', 'lists', 'see_prices', 'special', 'packaging']).concat(['lpo.view', 'lpo.create', 'cash.create', 'coffee.view']),
-  production:  ['dash.view'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide', 'orders.route']),
+  production:  ['dash.view', 'hr.penalty_propose'].concat(leavesFromOld(['request_create'])).concat(['shop.depts', 'production.view', 'production.post', 'returns.decide', 'orders.route']),
   // the shop's cashier writes and sends its orders; distribution approves them; a department head prepares
   // the lines of their department (Users.depts) and records what they make
   cashier:     ['orders.create', 'orders.receive', 'returns.create', 'online.decide'],
@@ -238,13 +246,13 @@ var ROLE_CAPS = {
   driver:      ['trips.drive', 'online.drive', 'fleet.log'],
   // the car park manager: the company's vehicles
   fleet:       ['fleet.manage'],
-  section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
+  section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post', 'hr.dept_view', 'hr.penalty_propose'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],
   // a manager of one or more branches (Users.branches): follows them, approves nothing
   branch_manager: ['branches.view', 'branches.note', 'online.decide'],
   // the food safety officer: follows production and the expiry of the materials, changes nothing in the stock
-  food_safety: ['batches.view', 'batches.edit', 'dash.view', 'production.view', 'receive.view', 'issue.view', 'reports.view',
+  food_safety: ['hr.penalty_propose', 'batches.view', 'batches.edit', 'dash.view', 'production.view', 'receive.view', 'issue.view', 'reports.view',
                 'report.expiry', 'report.near', 'report.trace', 'report.production', 'report.changes', 'report.ledger', 'report.losses', 'report.dispatch', 'dispatch.review'],
   accountant:  ['lpo.view', 'cash.handover', 'accounts.balances', 'accounts.statement', 'accounts.lpo', 'accounts.pay', 'accounts.takings', 'accounts.sales', 'accounts.opening', 'reports.view', 'report.salesChannels', 'report.valuation', 'report.margin', 'report.losses', 'report.takings']
 };
