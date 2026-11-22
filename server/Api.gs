@@ -119,6 +119,12 @@ var ROUTES = {
   'settings.close':   function (s, p) { return Period.save(s, p); },
   'photos.get':       function (s, p) { return Photos.get(s, p); },
   'returns.list':     function (s, p) { return Returns.list(s, p); },
+  'hr.create':        function (s, p) { return Hr.create(s, p); },
+  'hr.mine':          function (s) { return Hr.mine(s); },
+  'hr.list':          function (s, p) { return Hr.list(s, p); },
+  'hr.seen':          function (s, p) { return Hr.seen(s, p); },
+  'hr.decide':        function (s, p) { return Hr.decide(s, p); },
+  'hr.cancel':        function (s, p) { return Hr.cancel(s, p); },
   'returns.create':   function (s, p) { return Returns.create(s, p); },
   'returns.decide':   function (s, p) { return Returns.decide(s, p); },
   'returns.receive':  function (s, p) { return Returns.receive(s, p); },
@@ -237,7 +243,7 @@ function handleRequest(body) {
 }
 
 /** Adds sheets/columns introduced by a newer version once, the first time a request reaches it. */
-var SCHEMA_VERSION = '69';
+var SCHEMA_VERSION = '70';
 function ensureSchema() {
   if (Settings.get('stores_list', '') !== STORES.join(',')) {
     withLock(function () { Stores.addDropdowns(); Settings.set('stores_list', STORES.join(',')); });
@@ -269,6 +275,8 @@ function ensureSchema() {
     if (Number(Settings.get('schema_version', '0')) < 67) Perm.addRoleLeaves({ driver: ['fleet.log'] });
     // the item card report: whoever has their own ticks and sees the stock changes sees it too
     if (Number(Settings.get('schema_version', '0')) < 68) Perm.addLeafWith('report.changes', 'report.ledger');
+    // the employees' requests: an admin with their own ticks answers them; the department heads see their departments'
+    if (Number(Settings.get('schema_version', '0')) < 70) { Perm.addRoleLeaves({ admin: ['hr.decide'] }); Hr.addHeadLeaf(); }
     // the accounts start the day they are installed: what came before is the opening balance the accountant writes (0 until then)
     if (!Settings.get('accounts_start', '')) Settings.set('accounts_start', Util.today());
     Settings.set('schema_version', SCHEMA_VERSION);

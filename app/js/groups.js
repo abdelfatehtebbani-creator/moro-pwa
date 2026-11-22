@@ -7,6 +7,7 @@ export const GROUPS = [
   ['grp_orders', ['custorders', 'orders', 'orderapprove', 'shoporders', 'trips', 'fleet', 'returns', 'invoices']],
   ['grp_finance', ['lpo', 'accounts']],
   ['grp_follow', ['exec', 'branches', 'dashboard', 'reports']],
+  ['grp_hr', ['hr']],
   ['grp_admin', ['masters', 'users', 'guide']],
 ];
 

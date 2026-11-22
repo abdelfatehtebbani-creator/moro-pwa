@@ -1127,3 +1127,17 @@ tr.fl-open td { background: #fff8f7; }
 tr.rc-off td { color: var(--muted); text-decoration: line-through; }
 tr.rc-off td .check, tr.rc-off td .btn, tr.rc-off td button { text-decoration: none; }
 .req-fixed { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #f4f6f8; font-weight: 700; }
+/* the employees' requests (HR) */
+.hr-form { display: grid; gap: 12px; }
+.hr-kind button { padding: 6px 16px; }
+.hr-days { margin: 0; align-self: end; font-weight: 700; color: var(--teal); }
+.hr-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 4px; margin-bottom: 8px; background: var(--surface); }
+.hr-card.hr-pending { border-inline-start: 4px solid var(--warn); }
+.hr-card.hr-approved, .hr-card.hr-ready { border-inline-start: 4px solid var(--ok); }
+.hr-card.hr-rejected { border-inline-start: 4px solid var(--danger); }
+.hr-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hr-head .num { margin-inline-start: auto; }
+.hr-answer { background: #f6f8fa; border-radius: 6px; padding: 4px 8px; }
+.hr-card .form-actions { flex-wrap: wrap; align-items: center; }
+.hr-card .form-actions .input { flex: 1 1 180px; min-width: 0; }
+.hr-sub { margin-bottom: 8px; }

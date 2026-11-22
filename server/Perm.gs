@@ -11,7 +11,9 @@
 var ALL_ROLES = ['admin', 'pdg', 'branch_manager', 'food_safety', 'storekeeper', 'purchasing', 'production', 'accountant', 'cashier', 'distribution', 'section_head', 'driver', 'fleet'];
 
 /** Actions every signed-in user may call. */
-var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister'];
+var BASE_PERMS = ['push.flush', 'photos.get', 'auth.me', 'auth.changePin', 'data.bootstrap', 'data.version', 'movements.query', 'requests.list', 'push.register', 'push.unregister',
+  // every employee asks HR for themselves (a leave, a document)
+  'nav.hr', 'hr.mine', 'hr.create', 'hr.cancel'];
 
 var REPORT_IDS = ['fast', 'min', 'sensitive', 'expiry', 'near', 'changes', 'ledger', 'bySection', 'byItem', 'itemOut', 'itemIn', 'multiMonth', 'prices', 'production', 'trace',
                   'slow', 'cover', 'losses', 'orderTimes', 'receiptShort', 'unavailable', 'shopSales', 'valuation', 'margin', 'takings', 'salesChannels', 'dispatch'];
@@ -60,6 +62,7 @@ var PERM_TREE = [
     { key: 'tab_units', children: [{ leaf: 'units.view' }, { leaf: 'units.add' }, { leaf: 'units.rename' }] },
     { key: 'tab_recipes', children: [{ leaf: 'recipes.view' }, { leaf: 'recipes.edit' }, { leaf: 'recipes.overhead' }] }] },
   { key: 'coffee', children: [{ leaf: 'coffee.view' }, { leaf: 'coffee.pack' }] },
+  { key: 'hr', children: [{ leaf: 'hr.decide' }, { leaf: 'hr.dept_view' }] },
   { key: 'users', children: [{ leaf: 'users.manage' }] },
   { key: 'general', children: [{ leaf: 'prices.see' }] }
 ];
@@ -177,6 +180,9 @@ var CAPS = (function () {
     'recipes.overhead':  ['overhead.list', 'overhead.save', 'overhead.delete', 'overhead.product'],
     'coffee.view':       ['nav.coffee', 'coffee.list'],
     'coffee.pack':       ['nav.coffee', 'coffee.list', 'coffee.pack', 'coffee.roastStart', 'coffee.roastFinish', 'coffee.packBags', 'kind.PROD_CONSUME', 'kind.PROD_OUTPUT', 'coffee.defaults'],
+    // HR answers the employees' requests; a department head sees their departments' requests (information only)
+    'hr.decide':         ['nav.hr', 'hr.list', 'hr.decide'],
+    'hr.dept_view':      ['nav.hr', 'hr.list', 'hr.seen'],
     'users.manage':      ['nav.users', 'users.list', 'users.save', 'audit.list', 'kiosk.enable', 'kiosk.reset', 'kiosk.off', 'vehicles.save', 'workers.import', 'workers.summary', 'workers.save', 'workers.remove', 'settings.idle', 'settings.recipeStock', 'settings.issueDirect', 'settings.close', 'sales.setChannels', 'orders.setFollowHours'],
     'prices.see':        ['see_prices']
   };
@@ -238,7 +244,7 @@ var ROLE_CAPS = {
   driver:      ['trips.drive', 'online.drive', 'fleet.log'],
   // the car park manager: the company's vehicles
   fleet:       ['fleet.manage'],
-  section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post'],
+  section_head: ['shop.view', 'shop.hand', 'shop.unavailable', 'production.view', 'production.post', 'hr.dept_view'],
   // the general manager: their screen only, nothing to change
   pdg:         ['exec.view'],
   // a manager of one or more branches (Users.branches): follows them, approves nothing
