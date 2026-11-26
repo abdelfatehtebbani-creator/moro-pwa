@@ -78,8 +78,10 @@ function withLock(fn) {
   LOCK_DEPTH++;
   try {
     out = fn();
-    // the changes reach the sheets together, before the lock is released
-    if (LOCK_DEPTH === 1) Repo.flush();
+    // the changes reach the sheets together, before the lock is released – and are applied there before another
+    // request may take the lock: Sheets keeps writes in a buffer until the script ends or flush() is called, so without
+    // it the next request (one second later) read the old counter and gave the same number twice (R00165, 2026-11-26)
+    if (LOCK_DEPTH === 1) { Repo.flush(); SpreadsheetApp.flush(); }
   } catch (e) {
     if (LOCK_DEPTH === 1) { AFTER_LOCK = []; Repo.discard(); }   // the operation failed: nothing written, nothing to tell
     throw e;
